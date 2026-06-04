@@ -1,0 +1,35 @@
+# ========================
+# BE (Backend - Go)
+# ========================
+BE/vendor/
+BE/tmp/
+BE/.scannerwork/
+BE/logs/
+
+# ========================
+# FE (Frontend - Node/Vite)
+# ========================
+FE/node_modules/
+FE/dist/
+FE/dist-ssr/
+FE/*.local
+
+# FE Logs
+FE/logs/
+FE/*.log
+FE/npm-debug.log*
+FE/yarn-debug.log*
+FE/yarn-error.log*
+FE/pnpm-debug.log*
+FE/lerna-debug.log*
+
+# FE Editor
+FE/.vscode/*
+!FE/.vscode/extensions.json
+FE/.idea
+FE/.DS_Store
+FE/*.suo
+FE/*.ntvs*
+FE/*.njsproj
+FE/*.sln
+FE/*.sw?
