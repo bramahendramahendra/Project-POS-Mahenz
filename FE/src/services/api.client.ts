@@ -1,25 +1,7 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
 
+import { useAuthStore } from '@/features/auth/auth.store'
 import { ApiError } from '@/shared/types'
-
-// Lazy import pattern — auth store dibuat di FASE 2
-// Gunakan dynamic require agar tidak circular dependency saat store belum ada
-type AuthStore = {
-  accessToken: string | null
-  refreshToken: string | null
-  setSession: (accessToken: string, refreshToken: string) => void
-  clearSession: () => void
-}
-
-const getAuthStore = (): AuthStore | null => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = (globalThis as any).__authStore as AuthStore | undefined
-    return mod ?? null
-  } catch {
-    return null
-  }
-}
 
 // Queue untuk concurrent 401 requests
 type QueueItem = {
@@ -48,10 +30,13 @@ const apiClient = axios.create({
 
 // Request interceptor — attach token
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const store = getAuthStore()
-  const token = store?.accessToken
+  const token = useAuthStore.getState().accessToken
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+  // Biarkan browser set Content-Type otomatis untuk FormData (multipart/form-data + boundary)
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
   }
   return config
 })
@@ -59,6 +44,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // Response interceptor
 apiClient.interceptors.response.use(
   (response) => {
+    if (response.config.responseType === 'blob') return response
     const body = response.data as { status: boolean; message: string; data: unknown }
     if (body.status === false) {
       throw new ApiError(body.message, response.status)
@@ -72,7 +58,6 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        // Antri request yang sedang menunggu refresh
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         })
@@ -88,16 +73,22 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const store = getAuthStore()
-      const refreshToken = store?.refreshToken
+      const { refreshToken, setSession, clearSession } = useAuthStore.getState()
 
       try {
-        const { data } = await axios.post<{ data: { access_token: string; refresh_token: string } }>(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
-          { refresh_token: refreshToken },
-        )
-        const { access_token, refresh_token } = data.data
-        store?.setSession(access_token, refresh_token)
+        const { data } = await axios.post<{
+          data: { access_token: string; refresh_token: string; expires_at: string }
+        }>(`${import.meta.env.VITE_API_URL}/auth/refresh`, { refresh_token: refreshToken })
+        const { access_token, refresh_token, expires_at } = data.data
+        const currentUser = useAuthStore.getState().user
+        if (currentUser) {
+          setSession({
+            accessToken: access_token,
+            refreshToken: refresh_token,
+            expiresAt: expires_at,
+            user: currentUser,
+          })
+        }
         processQueue(null, access_token)
 
         if (originalRequest.headers) {
@@ -106,7 +97,7 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        store?.clearSession()
+        clearSession()
         window.location.href = '/login'
         return Promise.reject(refreshError)
       } finally {
@@ -114,24 +105,18 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const message: string =
-      error.response?.data?.message ?? error.message ?? 'Terjadi kesalahan'
+    const message: string = error.response?.data?.message ?? error.message ?? 'Terjadi kesalahan'
     const statusCode: number = error.response?.status ?? 0
     return Promise.reject(new ApiError(message, statusCode))
-  },
+  }
 )
 
 export { apiClient }
 
 export const api = {
-  get: <T>(url: string, params?: object) =>
-    apiClient.get<T>(url, { params }).then((r) => r.data),
-  post: <T>(url: string, data?: unknown) =>
-    apiClient.post<T>(url, data).then((r) => r.data),
-  put: <T>(url: string, data?: unknown) =>
-    apiClient.put<T>(url, data).then((r) => r.data),
-  patch: <T>(url: string, data?: unknown) =>
-    apiClient.patch<T>(url, data).then((r) => r.data),
-  delete: <T>(url: string) =>
-    apiClient.delete<T>(url).then((r) => r.data),
+  get: <T>(url: string, params?: object) => apiClient.get<T>(url, { params }).then((r) => r.data),
+  post: <T>(url: string, data?: unknown) => apiClient.post<T>(url, data).then((r) => r.data),
+  put: <T>(url: string, data?: unknown) => apiClient.put<T>(url, data).then((r) => r.data),
+  patch: <T>(url: string, data?: unknown) => apiClient.patch<T>(url, data).then((r) => r.data),
+  delete: <T>(url: string) => apiClient.delete<T>(url).then((r) => r.data),
 }

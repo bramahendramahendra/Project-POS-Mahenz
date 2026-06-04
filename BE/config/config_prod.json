@@ -1,13 +1,14 @@
 {
-  "AppName": "POS Retail API",
-  "AppVersion": "1.0.0",
-  "AppPort": "8080",
-  "Timezone": "Asia/Jakarta",
-  "ReleaseMode": "release",
-
   "SecretKey": "pos-retail-secret-key-prod-CHANGE-ME",
   "TokenExpire": 28800,
   "RefreshTokenExpire": 604800,
+  "FormatTime": "2006-01-02 15:04:05",
+  "FormatDate": "2006-01-02",
+  "Timezone": "Asia/Jakarta",
+  "MaxTimeoutGracefulShutdown": 5,
+
+  "LogPath": "logs",
+  "MaxLogAge": 30,
 
   "Database": {
     "Type": "mysql",
@@ -18,13 +19,11 @@
     "Database": "pos_retail_db",
     "MaxOpenConns": 50,
     "MaxIdleConns": 10,
-    "MaxLifetime": 300
+    "MaxLifetime": 300,
+    "MaxIdleTime": 600
   },
 
   "CorsAllowOrigins": [
     "https://pos.example.com"
-  ],
-
-  "LogPath": "logs",
-  "MaxLogAge": 30
+  ]
 }
