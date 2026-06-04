@@ -2,10 +2,10 @@ package jwt
 
 import (
 	"fmt"
-	"permen_api/config"
-	"permen_api/errors"
-	"permen_api/helper"
-	time_helper "permen_api/helper/time"
+	"pos_api/config"
+	"pos_api/errors"
+	"pos_api/helper"
+	time_helper "pos_api/helper/time"
 	"strings"
 	"time"
 
@@ -57,7 +57,7 @@ func CreateClaims(data map[string]any) {
 	}
 
 	// jwtClaims["exp"] = time_helper.GetTimeNow().Add(time.Hour * 2).Unix()
-	expireDuration := config.General.TokenExpire
+	expireDuration := config.Cfg.TokenExpire
 	jwtClaims["exp"] = time_helper.GetTimeNow().Add(time.Second * time.Duration(expireDuration)).Unix()
 	claims = &jwtClaims
 }

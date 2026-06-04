@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"permen_api/config"
+	"pos_api/config"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,7 +45,7 @@ func GenerateUniqueId() string {
 }
 
 func GetSecretKey() (string, error) {
-	secretKey := config.General.SecretKey
+	secretKey := config.Cfg.SecretKey
 	if secretKey == "" {
 		return "", errors.New("secret key is empty")
 	}

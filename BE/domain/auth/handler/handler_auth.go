@@ -1,71 +1,162 @@
 package handler_auth
 
 import (
-	dto_auth "permen_api/domain/auth/dto"
-	global_dto "permen_api/dto"
-	"permen_api/helper"
-	response_helper "permen_api/helper/response"
-	"permen_api/pkg/jwt"
-	"permen_api/validation"
+	"strings"
 
-	// error_helper "permen_api/helper/error"
-	"permen_api/errors"
+	dto_auth "pos_api/domain/auth/dto"
+	service_auth "pos_api/domain/auth/service"
+	global_dto "pos_api/dto"
+	"pos_api/errors"
+	"pos_api/helper"
+	response_helper "pos_api/helper/response"
+	"pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
+	service service_auth.AuthService
 }
 
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{}
+func NewAuthHandler(service service_auth.AuthService) *AuthHandler {
+	return &AuthHandler{service: service}
 }
 
-func (a *AuthHandler) AuthToken(c *gin.Context) {
-	type req struct {
-		Pernr  string `json:"pernr" validate:"required,numeric"`
-		Nama   string `json:"nama" validate:"required,ascii"`
-		Branch string `json:"branchCode" validate:"required,numeric"`
-		Orgeh  string `json:"organisasiUnit" validate:"required,numeric"`
-		Hilfm  string `json:"hilfm" validate:"required,numeric"`
-		Kostl  string `json:"costCenter" validate:"required,alphanum"`
+// POST /api/auth/login
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req dto_auth.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
-
-	var reqData req
-
-	if err := c.ShouldBindJSON(&reqData); err != nil {
+	if err := validation.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if err := validation.Validate.Struct(reqData); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-
-		return
-	}
-
-	claims := map[string]any{
-		"pernr":          reqData.Pernr,
-		"nama":           reqData.Nama,
-		"branchCode":     reqData.Branch,
-		"organisasiUnit": reqData.Orgeh,
-		"hilfm":          reqData.Hilfm,
-		"costCenter":     reqData.Kostl,
-	}
-
-	jwt.CreateClaims(claims)
-	token, err := jwt.GenerateToken()
+	ip := c.ClientIP()
+	resp, err := h.service.Login(&req, ip)
 	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Succes Generate Token",
-		Data: dto_auth.AuthRes{
-			Token: token,
-		},
+		Message: "Login berhasil",
+		Data:    resp,
 	})
+}
+
+// POST /api/auth/logout
+func (h *AuthHandler) Logout(c *gin.Context) {
+	token := extractBearerToken(c)
+	if token == "" {
+		c.Error(&errors.UnauthenticatedError{Message: "Token tidak ditemukan"})
+		return
+	}
+
+	if err := h.service.Logout(token); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Logout berhasil",
+	})
+}
+
+// POST /api/auth/refresh
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req dto_auth.RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	resp, err := h.service.RefreshToken(req.RefreshToken)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Token diperbarui",
+		Data:    resp,
+	})
+}
+
+// GET /api/auth/me
+func (h *AuthHandler) GetMe(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.Error(&errors.UnauthenticatedError{Message: "User tidak terautentikasi"})
+		return
+	}
+
+	id, ok := userID.(int)
+	if !ok {
+		c.Error(&errors.UnauthenticatedError{Message: "User ID tidak valid"})
+		return
+	}
+
+	userData, err := h.service.GetMe(id)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Data user",
+		Data:    userData,
+	})
+}
+
+// POST /api/auth/verify-token
+func (h *AuthHandler) VerifyToken(c *gin.Context) {
+	var req dto_auth.VerifyTokenRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	resp, err := h.service.VerifyToken(req.Token)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Hasil verifikasi token",
+		Data:    resp,
+	})
+}
+
+func extractBearerToken(c *gin.Context) string {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return ""
+	}
+	return parts[1]
 }

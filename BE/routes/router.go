@@ -1,12 +1,13 @@
 package routes
 
 import (
-	"permen_api/errors"
-	error_helper "permen_api/helper/error"
-	log_helper "permen_api/helper/log"
-	"permen_api/middleware"
-	"permen_api/pkg/database"
-	"permen_api/repository"
+	"pos_api/config"
+	"pos_api/errors"
+	error_helper "pos_api/helper/error"
+	log_helper "pos_api/helper/log"
+	"pos_api/middleware"
+	"pos_api/pkg/database"
+	"pos_api/repository"
 
 	"log"
 
@@ -25,7 +26,7 @@ func Router(r *gin.Engine) {
 	repository.LogRequestRepo = repository.NewLogRequestRepository(database.DB)
 	// Security: Add security headers first (including HSTS)
 	r.Use(middleware.SecurityHeaders())
-	r.Use(middleware.Cors())
+	r.Use(middleware.Cors(config.Cfg.CorsAllowOrigins))
 	r.Use(middleware.LogRequestMiddleware())
 	r.Use(middleware.ErrorHandlerMiddleware())
 	r.NoRoute(notFoundHandler)

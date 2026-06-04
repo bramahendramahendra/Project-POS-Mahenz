@@ -3,7 +3,7 @@ package database
 import (
 	"errors"
 	"fmt"
-	"permen_api/config"
+	"pos_api/config"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -49,8 +49,8 @@ func (dm *DatabaseManager) Register(instanceName string, dbConf *config.Database
 
 		sqlDB.SetMaxIdleConns(dbConf.MaxIdleConns)
 		sqlDB.SetMaxOpenConns(dbConf.MaxOpenConns)
-		sqlDB.SetConnMaxLifetime(time.Duration(dbConf.ConnMaxLifeTime) * time.Second)
-		sqlDB.SetConnMaxIdleTime(time.Duration(dbConf.ConnMaxIdleTime) * time.Second)
+		sqlDB.SetConnMaxLifetime(time.Duration(dbConf.MaxLifetime) * time.Second)
+		sqlDB.SetConnMaxIdleTime(time.Duration(dbConf.MaxIdleTime) * time.Second)
 	}
 
 	dm.Databases[instanceName] = db

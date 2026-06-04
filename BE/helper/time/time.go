@@ -1,7 +1,7 @@
 package time_helper
 
 import (
-	"permen_api/config"
+	"pos_api/config"
 	"strconv"
 	"time"
 )
@@ -26,7 +26,7 @@ func GetEndTime(timeString string) string {
 }
 
 func ConvertToDateFormatString(value time.Time) string {
-	return value.Format(config.General.FormatDate)
+	return value.Format(config.Cfg.FormatDate)
 }
 
 func GenerateMasaPajak() (bulanPajak, tahunPajak string) {
