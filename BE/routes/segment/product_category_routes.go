@@ -1,9 +1,9 @@
 package segment
 
 import (
-	product_category_handler "pos_api/domain/product_category/handler"
-	product_category_repo "pos_api/domain/product_category/repo"
-	product_category_service "pos_api/domain/product_category/service"
+	category_handler "pos_api/domain/product_category/handler"
+	category_repo "pos_api/domain/product_category/repo"
+	category_service "pos_api/domain/product_category/service"
 	middleware "pos_api/middleware"
 	pkgdatabase "pos_api/pkg/database"
 
@@ -11,17 +11,17 @@ import (
 )
 
 func ProductCategoryRoutes(r *gin.RouterGroup) {
-	categoryRepo := product_category_repo.NewCategoryRepo(pkgdatabase.DB)
-	categorySvc := product_category_service.NewCategoryService(categoryRepo)
-	categoryHand := product_category_handler.NewCategoryHandler(categorySvc)
+	categoryRepo := category_repo.NewCategoryRepo(pkgdatabase.DB)
+	categorySvc := category_service.NewCategoryService(categoryRepo)
+	categoryHand := category_handler.NewCategoryHandler(categorySvc)
 
 	g := r.Group("/categories")
 	{
-		g.GET("", categoryHand.GetAll)
-		g.GET("/:id", categoryHand.GetByID)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), categoryHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), categoryHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner"), categoryHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner", "admin"), categoryHand.ToggleStatus)
+		g.POST("/list", categoryHand.GetAll)
+		g.POST("/detail/:id", categoryHand.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), categoryHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), categoryHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), categoryHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), categoryHand.ToggleStatus)
 	}
 }

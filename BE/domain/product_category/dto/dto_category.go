@@ -1,24 +1,40 @@
-package dto_product_category
+package dto
 
 import "time"
 
-type CreateCategoryRequest struct {
-	Name        string `json:"name" validate:"required,min=2"`
-	Description string `json:"description"`
-}
+type (
+	GetCategoryByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type UpdateCategoryRequest struct {
-	Name        string `json:"name" validate:"required,min=2"`
-	Description string `json:"description"`
-}
+	CreateCategoryRequest struct {
+		Name        string `json:"name" validate:"required,min=2"`
+		Description string `json:"description"`
+		Code        string `json:"code"`
+	}
 
-type CategoryResponse struct {
-	ID                 int       `json:"id"`
-	Name               string    `json:"name"`
-	Code               string    `json:"code"`
-	Description        string    `json:"description"`
-	IsActive           bool      `json:"is_active"`
-	ProductCount       int       `json:"product_count"`
-	ActiveProductCount int       `json:"active_product_count"`
-	CreatedAt          time.Time `json:"created_at"`
-}
+	UpdateCategoryRequest struct {
+		ID          int    `uri:"id" validate:"required,min=1"`
+		Name        string `json:"name" validate:"required,min=2"`
+		Description string `json:"description"`
+	}
+
+	DeleteCategoryRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	ToggleStatusCategoryRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	CategoryResponse struct {
+		ID                 int       `json:"id"`
+		Name               string    `json:"name"`
+		Code               string    `json:"code"`
+		Description        string    `json:"description"`
+		IsActive           bool      `json:"is_active"`
+		ProductCount       int       `json:"product_count"`
+		ActiveProductCount int       `json:"active_product_count"`
+		CreatedAt          time.Time `json:"created_at"`
+	}
+)

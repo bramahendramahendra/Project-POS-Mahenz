@@ -1,110 +1,101 @@
-package service_product_category
+package service
 
 import (
-	"fmt"
 	"strings"
-	"unicode"
 
-	dto_product_category "pos_api/domain/product_category/dto"
-	model_product_category "pos_api/domain/product_category/model"
-	repo_product_category "pos_api/domain/product_category/repo"
+	dto "pos_api/domain/product_category/dto"
+	model "pos_api/domain/product_category/model"
 	"pos_api/errors"
 )
 
-type categoryService struct {
-	repo repo_product_category.CategoryRepo
-}
-
-func NewCategoryService(repo repo_product_category.CategoryRepo) CategoryService {
-	return &categoryService{repo: repo}
-}
-
-func (s *categoryService) GetAll() ([]*dto_product_category.CategoryResponse, error) {
-	categories, err := s.repo.GetAll()
+func (s *categoryService) GetAll() (data []dto.CategoryResponse, err error) {
+	dataDB, err := s.repo.GetAll()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	result := make([]*dto_product_category.CategoryResponse, 0, len(categories))
-	for _, c := range categories {
-		result = append(result, toCategoryResponse(c))
+
+	for _, v := range dataDB {
+		data = append(data, dto.CategoryResponse{
+			ID:                 v.ID,
+			Name:               v.Name,
+			Code:               v.Code,
+			Description:        v.Description,
+			IsActive:           v.IsActive,
+			ProductCount:       v.ProductCount,
+			ActiveProductCount: v.ActiveProductCount,
+			CreatedAt:          v.CreatedAt,
+		})
 	}
-	return result, nil
+
+	return data, nil
 }
 
-func (s *categoryService) GetByID(id int) (*dto_product_category.CategoryResponse, error) {
-	c, err := s.repo.GetByID(id)
+func (s *categoryService) GetByID(id int) (data dto.CategoryResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	if c == nil {
-		return nil, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
+
+	data = dto.CategoryResponse{
+		ID:                 dataDB.ID,
+		Name:               dataDB.Name,
+		Code:               dataDB.Code,
+		Description:        dataDB.Description,
+		IsActive:           dataDB.IsActive,
+		ProductCount:       dataDB.ProductCount,
+		ActiveProductCount: dataDB.ActiveProductCount,
+		CreatedAt:          dataDB.CreatedAt,
 	}
-	return toCategoryResponse(c), nil
+
+	return data, nil
 }
 
-func (s *categoryService) Create(req *dto_product_category.CreateCategoryRequest) (*dto_product_category.CategoryResponse, error) {
+func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.CategoryResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
+
 	exists, err := s.repo.CheckNameExists(req.Name, 0)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if exists {
-		return nil, &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
 	}
 
-	code, err := s.generateUniqueCode(req.Name)
+	code, err := s.repo.GenerateUniqueCode(req.Name)
 	if err != nil {
-		return nil, err
+		return data, err
 	}
+	req.Code = code
 
-	newID, err := s.repo.Create(req.Name, code, req.Description)
+	newID, err := s.repo.Create(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 
-	created, err := s.repo.GetByID(int(newID))
-	if err != nil || created == nil {
-		return nil, &errors.InternalServerError{Message: "Gagal mengambil data kategori baru"}
+	dataDB, err := s.repo.GetByID(int(newID))
+	if err != nil {
+		return data, err
 	}
-	return toCategoryResponse(created), nil
+
+	data = dto.CategoryResponse{
+		ID:                 dataDB.ID,
+		Name:               dataDB.Name,
+		Code:               dataDB.Code,
+		Description:        dataDB.Description,
+		IsActive:           dataDB.IsActive,
+		ProductCount:       dataDB.ProductCount,
+		ActiveProductCount: dataDB.ActiveProductCount,
+		CreatedAt:          dataDB.CreatedAt,
+	}
+
+	return data, nil
 }
 
-// generateUniqueCode membuat kode 3 huruf dari nama kategori, unik di DB.
-// Contoh: "Minuman" → "MIN", jika sudah ada → "MIN2", "MIN3", dst.
-func (s *categoryService) generateUniqueCode(name string) (string, error) {
-	letters := strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) {
-			return unicode.ToUpper(r)
-		}
-		return -1
-	}, name)
-
-	base := letters
-	if len(base) > 3 {
-		base = base[:3]
-	}
-	for len(base) < 3 {
-		base += "X"
-	}
-
-	candidate := base
-	for i := 2; i <= 99; i++ {
-		exists, err := s.repo.CheckCodeExists(candidate)
-		if err != nil {
-			return "", &errors.InternalServerError{Message: err.Error()}
-		}
-		if !exists {
-			return candidate, nil
-		}
-		candidate = fmt.Sprintf("%s%d", base, i)
-	}
-	return "", &errors.InternalServerError{Message: "Tidak bisa generate kode kategori yang unik"}
-}
-
-func (s *categoryService) Update(id int, req *dto_product_category.UpdateCategoryRequest) error {
+func (s *categoryService) Update(id int, req *dto.UpdateCategoryRequest) error {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
+
 	c, err := s.repo.GetByID(id)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
@@ -166,8 +157,8 @@ func (s *categoryService) ToggleStatus(id int) error {
 	return s.repo.ToggleStatus(id)
 }
 
-func toCategoryResponse(c *model_product_category.Category) *dto_product_category.CategoryResponse {
-	return &dto_product_category.CategoryResponse{
+func toCategoryResponse(c *model.Category) dto.CategoryResponse {
+	return dto.CategoryResponse{
 		ID:                 c.ID,
 		Name:               c.Name,
 		Code:               c.Code,

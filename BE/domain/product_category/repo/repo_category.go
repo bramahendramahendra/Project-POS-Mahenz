@@ -1,17 +1,16 @@
-package repo_product_category
+package repo
 
 import (
 	"fmt"
 	"strings"
 	"unicode"
 
-	model_product_category "pos_api/domain/product_category/model"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/product_category/dto"
+	model "pos_api/domain/product_category/model"
 )
 
 const (
-	getAllCategoriesQuery             = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c ORDER BY c.name`
+	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c ORDER BY c.name`
 	getCategoryByIDQuery             = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c WHERE c.id = ? LIMIT 1`
 	getCategoryByNameQuery           = `SELECT id, name, COALESCE(code, '') as code, description, COALESCE(is_active, 1) as is_active, created_at FROM categories WHERE name = ? LIMIT 1`
 	checkCategoryNameQuery           = `SELECT id FROM categories WHERE name = ? AND id != ? LIMIT 1`
@@ -24,65 +23,31 @@ const (
 	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-type categoryRepo struct {
-	db *gorm.DB
-}
-
-func NewCategoryRepo(db *gorm.DB) CategoryRepo {
-	return &categoryRepo{db: db}
-}
-
-func (r *categoryRepo) GetAll() ([]*model_product_category.Category, error) {
-	rows, err := r.db.Raw(getAllCategoriesQuery).Rows()
+func (r *categoryRepo) GetAll() ([]*model.Category, error) {
+	var categories []*model.Category
+	err := r.db.Raw(getAllCategoriesQuery).Scan(&categories).Error
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	categories := make([]*model_product_category.Category, 0)
-	for rows.Next() {
-		var c model_product_category.Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.Code, &c.Description, &c.IsActive, &c.ProductCount, &c.ActiveProductCount, &c.CreatedAt); err != nil {
-			return nil, err
-		}
-		categories = append(categories, &c)
-	}
-	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return categories, nil
 }
 
-func (r *categoryRepo) GetByName(name string) (*model_product_category.Category, error) {
-	rows, err := r.db.Raw(getCategoryByNameQuery, name).Rows()
+func (r *categoryRepo) GetByName(name string) (*model.Category, error) {
+	var category model.Category
+	err := r.db.Raw(getCategoryByNameQuery, name).Scan(&category).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return nil, nil
-	}
-	var c model_product_category.Category
-	if err := rows.Scan(&c.ID, &c.Name, &c.Code, &c.Description, &c.IsActive, &c.CreatedAt); err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return &category, nil
 }
 
-func (r *categoryRepo) GetByID(id int) (*model_product_category.Category, error) {
-	rows, err := r.db.Raw(getCategoryByIDQuery, id).Rows()
+func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
+	var category model.Category
+	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&category).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return nil, nil
-	}
-	var c model_product_category.Category
-	if err := rows.Scan(&c.ID, &c.Name, &c.Code, &c.Description, &c.IsActive, &c.ProductCount, &c.ActiveProductCount, &c.CreatedAt); err != nil {
-		return nil, err
-	}
-	return &c, nil
+	return &category, nil
 }
 
 func (r *categoryRepo) CheckNameExists(name string, excludeID int) (bool, error) {
@@ -110,21 +75,14 @@ func (r *categoryRepo) CountActiveProductsByCategory(categoryID int) (int, error
 	return count, nil
 }
 
-func (r *categoryRepo) CreateWithGeneratedCode(name, description string) (int64, error) {
-	code, err := r.generateUniqueCode(name)
-	if err != nil {
-		return 0, err
-	}
-	return r.Create(name, code, description)
-}
-
-func (r *categoryRepo) generateUniqueCode(name string) (string, error) {
+func (r *categoryRepo) GenerateUniqueCode(name string) (string, error) {
 	letters := strings.Map(func(ru rune) rune {
 		if unicode.IsLetter(ru) {
 			return unicode.ToUpper(ru)
 		}
 		return -1
 	}, name)
+
 	base := letters
 	if len(base) > 3 {
 		base = base[:3]
@@ -132,6 +90,7 @@ func (r *categoryRepo) generateUniqueCode(name string) (string, error) {
 	for len(base) < 3 {
 		base += "X"
 	}
+
 	candidate := base
 	for i := 2; i <= 99; i++ {
 		exists, err := r.CheckCodeExists(candidate)
@@ -155,17 +114,18 @@ func (r *categoryRepo) CheckCodeExists(code string) (bool, error) {
 	return result.RowsAffected > 0, nil
 }
 
-func (r *categoryRepo) Create(name, code, description string) (int64, error) {
-	var id int64
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(createCategoryQuery, name, code, description).Error; err != nil {
-			return err
-		}
-		return tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error
-	})
+func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
+	err := r.db.Exec(createCategoryQuery, req.Name, req.Code, req.Description).Error
 	if err != nil {
 		return 0, err
 	}
+
+	var id int64
+	err = r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error
+	if err != nil {
+		return 0, err
+	}
+
 	return id, nil
 }
 
