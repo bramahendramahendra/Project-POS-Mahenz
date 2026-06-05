@@ -92,31 +92,31 @@ func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.Categ
 	return data, nil
 }
 
-func (s *categoryService) Update(id int, req *dto.UpdateCategoryRequest) error {
+func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
 
-	c, err := s.repo.GetByID(id)
+	c, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if c == nil {
 		return &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
-	exists, err := s.repo.CheckNameExists(req.Name, id)
+	exists, err := s.repo.CheckNameExists(req.Name, req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if exists {
 		return &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
 	}
 
-	return s.repo.Update(id, req.Name, req.Description)
+	return s.repo.Update(req.ID, req.Name, req.Description)
 }
 
-func (s *categoryService) Delete(id int) error {
-	c, err := s.repo.GetByID(id)
+func (s *categoryService) Delete(req *dto.UpdateCategoryRequest) (err error) {
+	c, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -124,7 +124,7 @@ func (s *categoryService) Delete(id int) error {
 		return &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
-	count, err := s.repo.CountProductsByCategory(id)
+	count, err := s.repo.CountProductsByCategory(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -132,11 +132,11 @@ func (s *categoryService) Delete(id int) error {
 		return &errors.BadRequestError{Message: "Kategori masih digunakan oleh produk"}
 	}
 
-	return s.repo.Delete(id)
+	return s.repo.Delete(req.ID)
 }
 
-func (s *categoryService) ToggleStatus(id int) error {
-	c, err := s.repo.GetByID(id)
+func (s *categoryService) ToggleStatus(req *dto.UpdateCategoryRequest) (err error) {
+	c, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -145,7 +145,7 @@ func (s *categoryService) ToggleStatus(id int) error {
 	}
 
 	if c.IsActive {
-		activeCount, err := s.repo.CountActiveProductsByCategory(id)
+		activeCount, err := s.repo.CountActiveProductsByCategory(req.ID)
 		if err != nil {
 			return &errors.InternalServerError{Message: err.Error()}
 		}
@@ -154,7 +154,7 @@ func (s *categoryService) ToggleStatus(id int) error {
 		}
 	}
 
-	return s.repo.ToggleStatus(id)
+	return s.repo.ToggleStatus(req.ID)
 }
 
 func toCategoryResponse(c *model.Category) dto.CategoryResponse {

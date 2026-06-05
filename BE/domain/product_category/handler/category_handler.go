@@ -89,25 +89,25 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 }
 
 func (h *CategoryHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateCategoryRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateCategoryUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	bodyReq, err := binder.BindJSON[dto.UpdateCategoryRequest](c)
+	req, err := binder.BindJSON[dto.UpdateCategoryRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
-	bodyReq.ID = uriReq.ID
+	req.ID = uriReq.ID
 
-	if err := validator.Validate.Struct(bodyReq); err != nil {
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if err := h.service.Update(bodyReq.ID, &bodyReq); err != nil {
+	if err := h.service.Update(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -131,7 +131,7 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(req.ID); err != nil {
+	if err := h.service.Delete(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -155,7 +155,7 @@ func (h *CategoryHandler) ToggleStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.ToggleStatus(req.ID); err != nil {
+	if err := h.service.ToggleStatus(&req); err != nil {
 		c.Error(err)
 		return
 	}

@@ -10,9 +10,9 @@ type (
 		GetAll() (data []dto.CategoryResponse, err error)
 		GetByID(id int) (data dto.CategoryResponse, err error)
 		Create(req *dto.CreateCategoryRequest) (data dto.CategoryResponse, err error)
-		Update(id int, req *dto.UpdateCategoryRequest) error
-		Delete(id int) error
-		ToggleStatus(id int) error
+		Update(req *dto.UpdateCategoryRequest) (err error)
+		Delete(req *dto.DeleteCategoryRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusCategoryRequest) (err error)
 	}
 
 	categoryService struct {
@@ -20,6 +20,6 @@ type (
 	}
 )
 
-func NewCategoryService(repo repo.CategoryRepoInterface) CategoryServiceInterface {
+func NewCategoryService(repo repo.CategoryRepoInterface) *categoryService {
 	return &categoryService{repo: repo}
 }
