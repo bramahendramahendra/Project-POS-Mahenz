@@ -12,16 +12,16 @@ import (
 
 func ProductCategoryRoutes(r *gin.RouterGroup) {
 	categoryRepo := category_repo.NewCategoryRepo(pkgdatabase.DB)
-	categorySvc := category_service.NewCategoryService(categoryRepo)
-	categoryHand := category_handler.NewCategoryHandler(categorySvc)
+	categoryService := category_service.NewCategoryService(categoryRepo)
+	categoryHandler := category_handler.NewCategoryHandler(categoryService)
 
 	g := r.Group("/categories")
 	{
-		g.POST("/list", categoryHand.GetAll)
-		g.POST("/detail/:id", categoryHand.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), categoryHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), categoryHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), categoryHand.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), categoryHand.ToggleStatus)
+		g.POST("/list", categoryHandler.GetAll)
+		g.POST("/detail/:id", categoryHandler.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), categoryHandler.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), categoryHandler.ToggleStatus)
 	}
 }

@@ -17,10 +17,9 @@ type (
 		CountProductsByCategory(categoryID int) (int, error)
 		CountActiveProductsByCategory(categoryID int) (int, error)
 		Create(req *dto.CreateCategoryRequest) (int64, error)
-		GenerateUniqueCode(name string) (string, error)
-		Update(id int, name, description string) error
-		Delete(id int) error
-		ToggleStatus(id int) error
+		Update(req *dto.UpdateCategoryRequest) error
+		Delete(req *dto.DeleteCategoryRequest) error
+		ToggleStatus(req *dto.ToggleStatusCategoryRequest) error
 		GetDB() *gorm.DB
 	}
 

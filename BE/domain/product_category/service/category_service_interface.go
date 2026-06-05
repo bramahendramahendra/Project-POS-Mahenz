@@ -10,7 +10,7 @@ type (
 		GetAll() (data []dto.CategoryResponse, err error)
 		GetByID(id int) (data dto.CategoryResponse, err error)
 		Create(req *dto.CreateCategoryRequest) (data dto.CategoryResponse, err error)
-		Update(req *dto.UpdateCategoryRequest) (err error)
+		Update(req *dto.UpdateCategoryRequest) (data dto.CategoryResponse, err error)
 		Delete(req *dto.DeleteCategoryRequest) (err error)
 		ToggleStatus(req *dto.ToggleStatusCategoryRequest) (err error)
 	}

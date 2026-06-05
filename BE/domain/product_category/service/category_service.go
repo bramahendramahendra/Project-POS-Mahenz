@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	dto "pos_api/domain/product_category/dto"
-	model "pos_api/domain/product_category/model"
 	"pos_api/errors"
 )
 
@@ -62,7 +61,7 @@ func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.Categ
 		return data, &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
 	}
 
-	code, err := s.repo.GenerateUniqueCode(req.Name)
+	code, err := s.generateUniqueCode(req.Name)
 	if err != nil {
 		return data, err
 	}
@@ -92,35 +91,56 @@ func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.Categ
 	return data, nil
 }
 
-func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (err error) {
+func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (data dto.CategoryResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
 
-	c, err := s.repo.GetByID(req.ID)
+	existsUpdate, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return err
+		return data, err
 	}
-	if c == nil {
-		return &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
+	if existsUpdate == nil {
+		return data, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
 	exists, err := s.repo.CheckNameExists(req.Name, req.ID)
 	if err != nil {
-		return err
+		return data, err
 	}
 	if exists {
-		return &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
 	}
 
-	return s.repo.Update(req.ID, req.Name, req.Description)
+	err = s.repo.Update(req)
+	if err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+
+	data = dto.CategoryResponse{
+		ID:                 dataDB.ID,
+		Name:               dataDB.Name,
+		Code:               dataDB.Code,
+		Description:        dataDB.Description,
+		IsActive:           dataDB.IsActive,
+		ProductCount:       dataDB.ProductCount,
+		ActiveProductCount: dataDB.ActiveProductCount,
+		CreatedAt:          dataDB.CreatedAt,
+	}
+
+	return data, nil
 }
 
-func (s *categoryService) Delete(req *dto.UpdateCategoryRequest) (err error) {
-	c, err := s.repo.GetByID(req.ID)
+func (s *categoryService) Delete(req *dto.DeleteCategoryRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if c == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
@@ -132,19 +152,19 @@ func (s *categoryService) Delete(req *dto.UpdateCategoryRequest) (err error) {
 		return &errors.BadRequestError{Message: "Kategori masih digunakan oleh produk"}
 	}
 
-	return s.repo.Delete(req.ID)
+	return s.repo.Delete(req)
 }
 
-func (s *categoryService) ToggleStatus(req *dto.UpdateCategoryRequest) (err error) {
-	c, err := s.repo.GetByID(req.ID)
+func (s *categoryService) ToggleStatus(req *dto.ToggleStatusCategoryRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if c == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
-	if c.IsActive {
+	if exists.IsActive {
 		activeCount, err := s.repo.CountActiveProductsByCategory(req.ID)
 		if err != nil {
 			return &errors.InternalServerError{Message: err.Error()}
@@ -154,18 +174,5 @@ func (s *categoryService) ToggleStatus(req *dto.UpdateCategoryRequest) (err erro
 		}
 	}
 
-	return s.repo.ToggleStatus(req.ID)
-}
-
-func toCategoryResponse(c *model.Category) dto.CategoryResponse {
-	return dto.CategoryResponse{
-		ID:                 c.ID,
-		Name:               c.Name,
-		Code:               c.Code,
-		Description:        c.Description,
-		IsActive:           c.IsActive,
-		ProductCount:       c.ProductCount,
-		ActiveProductCount: c.ActiveProductCount,
-		CreatedAt:          c.CreatedAt,
-	}
+	return s.repo.ToggleStatus(req)
 }

@@ -1,10 +1,6 @@
 package repo
 
 import (
-	"fmt"
-	"strings"
-	"unicode"
-
 	dto "pos_api/domain/product_category/dto"
 	model "pos_api/domain/product_category/model"
 )
@@ -52,16 +48,17 @@ func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
 
 func (r *categoryRepo) CheckNameExists(name string, excludeID int) (bool, error) {
 	var id int
-	result := r.db.Raw(checkCategoryNameQuery, name, excludeID).Scan(&id)
-	if result.Error != nil {
-		return false, result.Error
+	err := r.db.Raw(checkCategoryNameQuery, name, excludeID).Scan(&id).Error
+	if err != nil {
+		return false, err
 	}
-	return result.RowsAffected > 0, nil
+	return id > 0, nil
 }
 
 func (r *categoryRepo) CountProductsByCategory(categoryID int) (int, error) {
 	var count int
-	if err := r.db.Raw(checkCategoryUsedQuery, categoryID).Scan(&count).Error; err != nil {
+	err := r.db.Raw(checkCategoryUsedQuery, categoryID).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -69,49 +66,21 @@ func (r *categoryRepo) CountProductsByCategory(categoryID int) (int, error) {
 
 func (r *categoryRepo) CountActiveProductsByCategory(categoryID int) (int, error) {
 	var count int
-	if err := r.db.Raw(checkCategoryActiveProductsQuery, categoryID).Scan(&count).Error; err != nil {
+	err := r.db.Raw(checkCategoryActiveProductsQuery, categoryID).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
-func (r *categoryRepo) GenerateUniqueCode(name string) (string, error) {
-	letters := strings.Map(func(ru rune) rune {
-		if unicode.IsLetter(ru) {
-			return unicode.ToUpper(ru)
-		}
-		return -1
-	}, name)
-
-	base := letters
-	if len(base) > 3 {
-		base = base[:3]
-	}
-	for len(base) < 3 {
-		base += "X"
-	}
-
-	candidate := base
-	for i := 2; i <= 99; i++ {
-		exists, err := r.CheckCodeExists(candidate)
-		if err != nil {
-			return "", err
-		}
-		if !exists {
-			return candidate, nil
-		}
-		candidate = fmt.Sprintf("%s%d", base, i)
-	}
-	return "", fmt.Errorf("tidak bisa generate kode kategori yang unik")
-}
 
 func (r *categoryRepo) CheckCodeExists(code string) (bool, error) {
 	var id int
-	result := r.db.Raw(checkCategoryCodeQuery, code).Scan(&id)
-	if result.Error != nil {
-		return false, result.Error
+	err := r.db.Raw(checkCategoryCodeQuery, code).Scan(&id).Error
+	if err != nil {
+		return false, err
 	}
-	return result.RowsAffected > 0, nil
+	return id > 0, nil
 }
 
 func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
@@ -129,14 +98,14 @@ func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *categoryRepo) Update(id int, name, description string) error {
-	return r.db.Exec(updateCategoryQuery, name, description, id).Error
+func (r *categoryRepo) Update(req *dto.UpdateCategoryRequest) error {
+	return r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
 }
 
-func (r *categoryRepo) Delete(id int) error {
-	return r.db.Exec(deleteCategoryQuery, id).Error
+func (r *categoryRepo) Delete(req *dto.DeleteCategoryRequest) error {
+	return r.db.Exec(deleteCategoryQuery, req.ID).Error
 }
 
-func (r *categoryRepo) ToggleStatus(id int) error {
-	return r.db.Exec(toggleCategoryStatusQuery, id).Error
+func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error {
+	return r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
 }

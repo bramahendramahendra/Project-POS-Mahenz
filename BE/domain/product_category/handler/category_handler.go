@@ -107,7 +107,8 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Update(&req); err != nil {
+	data, err := h.service.Update(&req)
+	if err != nil {
 		c.Error(err)
 		return
 	}
@@ -116,6 +117,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Kategori berhasil diperbarui",
+		Data:    data,
 	})
 }
 
