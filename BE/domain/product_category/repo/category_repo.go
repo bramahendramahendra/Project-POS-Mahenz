@@ -14,6 +14,7 @@ const (
 	checkCategoryUsedQuery           = `SELECT COUNT(*) FROM products WHERE category_id = ?`
 	checkCategoryActiveProductsQuery = `SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1`
 	createCategoryQuery              = `INSERT INTO categories (name, code, description) VALUES (?, ?, ?)`
+	getLastInsertIDQuery             = `SELECT LAST_INSERT_ID()`
 	updateCategoryQuery              = `UPDATE categories SET name = ?, description = ?, updated_at = NOW() WHERE id = ?`
 	deleteCategoryQuery              = `DELETE FROM categories WHERE id = ?`
 	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
@@ -28,6 +29,42 @@ func (r *categoryRepo) GetAll() ([]*model.Category, error) {
 	return categories, nil
 }
 
+func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
+	var category model.Category
+	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&category).Error
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
+func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
+	err := r.db.Exec(createCategoryQuery, req.Name, req.Code, req.Description).Error
+	if err != nil {
+		return 0, err
+	}
+
+	var id int64
+	err = r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+func (r *categoryRepo) Update(req *dto.UpdateCategoryRequest) error {
+	return r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
+}
+
+func (r *categoryRepo) Delete(req *dto.DeleteCategoryRequest) error {
+	return r.db.Exec(deleteCategoryQuery, req.ID).Error
+}
+
+func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error {
+	return r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
+}
+
 func (r *categoryRepo) GetByName(name string) (*model.Category, error) {
 	var category model.Category
 	err := r.db.Raw(getCategoryByNameQuery, name).Scan(&category).Error
@@ -37,13 +74,13 @@ func (r *categoryRepo) GetByName(name string) (*model.Category, error) {
 	return &category, nil
 }
 
-func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
-	var category model.Category
-	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&category).Error
+func (r *categoryRepo) CheckCodeExists(code string) (bool, error) {
+	var id int
+	err := r.db.Raw(checkCategoryCodeQuery, code).Scan(&id).Error
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return &category, nil
+	return id > 0, nil
 }
 
 func (r *categoryRepo) CheckNameExists(name string, excludeID int) (bool, error) {
@@ -71,41 +108,4 @@ func (r *categoryRepo) CountActiveProductsByCategory(categoryID int) (int, error
 		return 0, err
 	}
 	return count, nil
-}
-
-
-func (r *categoryRepo) CheckCodeExists(code string) (bool, error) {
-	var id int
-	err := r.db.Raw(checkCategoryCodeQuery, code).Scan(&id).Error
-	if err != nil {
-		return false, err
-	}
-	return id > 0, nil
-}
-
-func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
-	err := r.db.Exec(createCategoryQuery, req.Name, req.Code, req.Description).Error
-	if err != nil {
-		return 0, err
-	}
-
-	var id int64
-	err = r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-func (r *categoryRepo) Update(req *dto.UpdateCategoryRequest) error {
-	return r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
-}
-
-func (r *categoryRepo) Delete(req *dto.DeleteCategoryRequest) error {
-	return r.db.Exec(deleteCategoryQuery, req.ID).Error
-}
-
-func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error {
-	return r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
 }

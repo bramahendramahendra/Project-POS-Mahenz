@@ -11,15 +11,17 @@ type (
 	CategoryRepoInterface interface {
 		GetAll() ([]*model.Category, error)
 		GetByID(id int) (*model.Category, error)
-		GetByName(name string) (*model.Category, error)
-		CheckNameExists(name string, excludeID int) (bool, error)
-		CheckCodeExists(code string) (bool, error)
-		CountProductsByCategory(categoryID int) (int, error)
-		CountActiveProductsByCategory(categoryID int) (int, error)
 		Create(req *dto.CreateCategoryRequest) (int64, error)
 		Update(req *dto.UpdateCategoryRequest) error
 		Delete(req *dto.DeleteCategoryRequest) error
 		ToggleStatus(req *dto.ToggleStatusCategoryRequest) error
+
+		GetByName(name string) (*model.Category, error)
+		CheckCodeExists(code string) (bool, error)
+		CheckNameExists(name string, excludeID int) (bool, error)
+		CountProductsByCategory(categoryID int) (int, error)
+		CountActiveProductsByCategory(categoryID int) (int, error)
+
 		GetDB() *gorm.DB
 	}
 
