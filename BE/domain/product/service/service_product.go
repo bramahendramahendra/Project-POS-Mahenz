@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	dto_category "pos_api/domain/product_category/dto"
 	repo_category "pos_api/domain/product_category/repo"
 	dto_product "pos_api/domain/product/dto"
 	model_product "pos_api/domain/product/model"
@@ -21,14 +22,14 @@ import (
 
 type productService struct {
 	repo           repo_product.ProductRepo
-	catRepo        repo_category.CategoryRepo
+	catRepo        repo_category.CategoryRepoInterface
 	packageRepo    repo_product.ProductPackageRepo
 	masterUnitRepo repo_unit.UnitRepo
 }
 
 func NewProductService(
 	repo repo_product.ProductRepo,
-	catRepo repo_category.CategoryRepo,
+	catRepo repo_category.CategoryRepoInterface,
 	packageRepo repo_product.ProductPackageRepo,
 	masterUnitRepo repo_unit.UnitRepo,
 ) ProductService {
@@ -351,7 +352,7 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_produc
 				continue
 			}
 			if cat == nil {
-				newID, err := s.catRepo.CreateWithGeneratedCode(categoryName, "")
+				newID, err := s.createCategoryWithCode(categoryName, "")
 				if err != nil {
 					result.Failed++
 					result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
@@ -458,7 +459,7 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 				continue
 			}
 			if cat == nil {
-				newID, err := s.catRepo.CreateWithGeneratedCode(kategori, "")
+				newID, err := s.createCategoryWithCode(kategori, "")
 				if err != nil {
 					addFailed(fmt.Sprintf("Gagal membuat kategori: %s", kategori))
 					continue
@@ -806,6 +807,42 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		Rows:   previewRows,
 		Grosir: previewGrosir,
 	}, nil
+}
+
+func (s *productService) createCategoryWithCode(name, description string) (int64, error) {
+	base := ""
+	for _, r := range name {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
+			if r >= 'a' {
+				r -= 32
+			}
+			base += string(r)
+		}
+	}
+	if len(base) > 3 {
+		base = base[:3]
+	}
+	for len(base) < 3 {
+		base += "X"
+	}
+
+	candidate := base
+	for i := 2; i <= 99; i++ {
+		exists, err := s.catRepo.CheckCodeExists(candidate)
+		if err != nil {
+			return 0, err
+		}
+		if !exists {
+			break
+		}
+		candidate = fmt.Sprintf("%s%d", base, i)
+	}
+
+	return s.catRepo.Create(&dto_category.CreateCategoryRequest{
+		Name:        name,
+		Code:        candidate,
+		Description: description,
+	})
 }
 
 func toProductResponse(p *model_product.Product, categoryName string) *dto_product.ProductResponse {
