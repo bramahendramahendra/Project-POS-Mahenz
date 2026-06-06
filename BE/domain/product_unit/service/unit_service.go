@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	dto "pos_api/domain/product_unit/dto"
-	model "pos_api/domain/product_unit/model"
 	"pos_api/errors"
 )
 
@@ -15,7 +14,13 @@ func (s *unitService) GetAll() (data []dto.UnitResponse, err error) {
 	}
 
 	for _, v := range dataDB {
-		data = append(data, toUnitResponse(v))
+		data = append(data, dto.UnitResponse{
+			ID:           v.ID,
+			Name:         v.Name,
+			Abbreviation: v.Abbreviation,
+			IsActive:     v.IsActive,
+			CreatedAt:    v.CreatedAt,
+		})
 	}
 
 	return data, nil
@@ -28,7 +33,11 @@ func (s *unitService) GetActive() (data []dto.UnitActiveResponse, err error) {
 	}
 
 	for _, v := range dataDB {
-		data = append(data, toUnitActiveResponse(v))
+		data = append(data, dto.UnitActiveResponse{
+			ID:           v.ID,
+			Name:         v.Name,
+			Abbreviation: v.Abbreviation,
+		})
 	}
 
 	return data, nil
@@ -39,11 +48,15 @@ func (s *unitService) GetByID(id int) (data dto.UnitResponse, err error) {
 	if err != nil {
 		return data, err
 	}
-	if dataDB == nil || dataDB.ID == 0 {
-		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
+
+	data = dto.UnitResponse{
+		ID:           dataDB.ID,
+		Name:         dataDB.Name,
+		Abbreviation: dataDB.Abbreviation,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
 	}
 
-	data = toUnitResponse(dataDB)
 	return data, nil
 }
 
@@ -69,7 +82,14 @@ func (s *unitService) Create(req *dto.CreateUnitRequest) (data dto.UnitResponse,
 		return data, err
 	}
 
-	data = toUnitResponse(dataDB)
+	data = dto.UnitResponse{
+		ID:           dataDB.ID,
+		Name:         dataDB.Name,
+		Abbreviation: dataDB.Abbreviation,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
+	}
+
 	return data, nil
 }
 
@@ -81,7 +101,7 @@ func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse,
 	if err != nil {
 		return data, err
 	}
-	if existsUpdate == nil || existsUpdate.ID == 0 {
+	if existsUpdate == nil {
 		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
@@ -103,7 +123,14 @@ func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse,
 		return data, err
 	}
 
-	data = toUnitResponse(dataDB)
+	data = dto.UnitResponse{
+		ID:           dataDB.ID,
+		Name:         dataDB.Name,
+		Abbreviation: dataDB.Abbreviation,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
+	}
+
 	return data, nil
 }
 
@@ -112,7 +139,7 @@ func (s *unitService) Delete(req *dto.DeleteUnitRequest) (err error) {
 	if err != nil {
 		return err
 	}
-	if exists == nil || exists.ID == 0 {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
@@ -132,27 +159,9 @@ func (s *unitService) ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error)
 	if err != nil {
 		return err
 	}
-	if exists == nil || exists.ID == 0 {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
 	return s.repo.ToggleStatus(req)
-}
-
-func toUnitResponse(u *model.Unit) dto.UnitResponse {
-	return dto.UnitResponse{
-		ID:           u.ID,
-		Name:         u.Name,
-		Abbreviation: u.Abbreviation,
-		IsActive:     u.IsActive,
-		CreatedAt:    u.CreatedAt,
-	}
-}
-
-func toUnitActiveResponse(u *model.Unit) dto.UnitActiveResponse {
-	return dto.UnitActiveResponse{
-		ID:           u.ID,
-		Name:         u.Name,
-		Abbreviation: u.Abbreviation,
-	}
 }

@@ -24,14 +24,14 @@ type productService struct {
 	repo           repo_product.ProductRepo
 	catRepo        repo_category.CategoryRepoInterface
 	packageRepo    repo_product.ProductPackageRepo
-	masterUnitRepo repo_unit.UnitRepo
+	masterUnitRepo repo_unit.UnitRepoInterface
 }
 
 func NewProductService(
 	repo repo_product.ProductRepo,
 	catRepo repo_category.CategoryRepoInterface,
 	packageRepo repo_product.ProductPackageRepo,
-	masterUnitRepo repo_unit.UnitRepo,
+	masterUnitRepo repo_unit.UnitRepoInterface,
 ) ProductService {
 	return &productService{repo: repo, catRepo: catRepo, packageRepo: packageRepo, masterUnitRepo: masterUnitRepo}
 }
