@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useDisclosure, usePagination } from '@/shared/hooks'
+import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useExpensesQuery, useDeleteExpenseMutation } from './expenses.api'
 import type { Expense, ExpenseCategory, ExpenseFilter } from './expenses.types'
@@ -44,6 +44,7 @@ export function ExpensesPage() {
   const [category, setCategory] = useState<ExpenseCategory | 'all'>('all')
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
@@ -146,7 +147,7 @@ export function ExpensesPage() {
       <ExpenseTable
         data={items}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,7 +11,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
-import { useDebounce, useDisclosure, usePagination } from '@/shared/hooks'
+import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import {
@@ -29,16 +29,16 @@ const categorySchema = z.object({
 })
 type CategoryFormValues = z.infer<typeof categorySchema>
 
-interface CategoryTableProps {
-  openAdd?: boolean
-  onOpenAddChange?: (open: boolean) => void
+export interface CategoryTableHandle {
+  openAdd: () => void
 }
 
-export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) {
+export const CategoryTable = forwardRef<CategoryTableHandle, object>(function CategoryTable(_, ref) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
+  const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useDisclosure()
@@ -70,19 +70,13 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
     formState: { errors },
   } = useForm<CategoryFormValues>({ resolver: zodResolver(categorySchema) })
 
-  useEffect(() => {
-    if (openAdd) {
-      handleOpenAdd()
-      onOpenAddChange?.(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openAdd])
-
   const handleOpenAdd = () => {
     setEditingCategory(null)
     reset({ name: '', description: '' })
     openForm()
   }
+
+  useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
 
   const handleOpenEdit = (category: Category) => {
     setEditingCategory(category)
@@ -283,7 +277,7 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
           total,
           onPageChange,
           onPageSizeChange,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions,
         }}
         emptyMessage={debouncedSearch ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
         emptyDescription={
@@ -357,4 +351,4 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
       />
     </div>
   )
-}
+})

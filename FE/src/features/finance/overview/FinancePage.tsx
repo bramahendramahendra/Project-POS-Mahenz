@@ -1,9 +1,9 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { usePagination } from '@/shared/hooks'
+import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useCashflowQuery, useFinanceSummaryQuery } from './finance.api'
 import type { FinanceFilter } from './finance.types'
@@ -33,6 +33,7 @@ export function FinancePage() {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   const filter: FinanceFilter = {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -98,7 +99,7 @@ export function FinancePage() {
         <FinanceTable
           data={cashflows}
           isLoading={cashflowLoading}
-          pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+          pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         />
       </div>
     </div>

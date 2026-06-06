@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Download } from 'lucide-react'
 
 import { DataTable } from '@/shared/components'
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { formatRupiah } from '@/shared/utils'
-import { usePagination } from '@/shared/hooks'
+import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import { useSalesReportQuery } from '../reports.api'
@@ -85,6 +85,7 @@ export function SalesReportTab() {
   const [paymentMethod, setPaymentMethod] = useState<string | undefined>()
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   const filter: SalesReportFilter = {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -226,7 +227,7 @@ export function SalesReportTab() {
         isLoading={isLoading}
         emptyMessage="Belum ada data penjualan"
         emptyDescription="Data penjualan akan muncul sesuai filter periode yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 25, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
       />
     </div>
   )

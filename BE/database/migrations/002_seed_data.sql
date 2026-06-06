@@ -54,7 +54,8 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('tax_enabled',                '0'),
     ('tax_percent',                '11'),
     ('receipt_footer',             'Terima kasih telah berbelanja'),
-    ('stock_notification_enabled', '1');
+    ('stock_notification_enabled', '1'),
+    ('pagination_sizes',           '[10,20,50]');
 
 -- -------------------------------------------------------------
 -- Menus — mengikuti struktur navigasi web-v2

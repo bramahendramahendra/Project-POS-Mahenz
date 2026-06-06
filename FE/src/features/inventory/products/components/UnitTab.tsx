@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,7 +10,7 @@ import { ConfirmDialog, DataTable, FormModal, RoleGuard, StatusBadge } from '@/s
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
-import { useDebounce, useDisclosure, usePagination } from '@/shared/hooks'
+import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import {
@@ -45,6 +45,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
 
+  const pageSizeOptions = usePageSizeOptions()
   const { data: unitData, isLoading } = useUnitListQuery({ page, limit: pageSize, search: debouncedSearch })
   const units = unitData?.data ?? []
   const totalUnits = unitData?.total ?? 0
@@ -253,7 +254,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
           total: totalUnits,
           onPageChange,
           onPageSizeChange,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions,
         }}
         emptyMessage={debouncedSearch ? 'Satuan tidak ditemukan' : 'Belum ada satuan'}
         emptyDescription={

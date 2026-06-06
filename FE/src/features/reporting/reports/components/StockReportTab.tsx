@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Search } from 'lucide-react'
 
 import { DataTable } from '@/shared/components'
@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { formatRupiah } from '@/shared/utils'
-import { useDebounce, usePagination } from '@/shared/hooks'
+import { useDebounce, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import { useStockReportQuery } from '../reports.api'
@@ -23,6 +23,7 @@ export function StockReportTab() {
   const debouncedSearch = useDebounce(search, 300)
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   // Get categories from products API categories endpoint
   const categories: { id: number; name: string }[] = []
 
@@ -136,7 +137,7 @@ export function StockReportTab() {
         isLoading={isLoading}
         emptyMessage="Belum ada data stok"
         emptyDescription="Data stok produk akan muncul sesuai filter yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 25, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
       />
     </div>
   )

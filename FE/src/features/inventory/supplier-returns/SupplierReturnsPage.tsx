@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Truck } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useDisclosure, usePagination } from '@/shared/hooks'
+import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
 import { useProductListQuery } from '@/features/inventory/products/products.api'
 
@@ -39,6 +39,7 @@ export function SupplierReturnsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
@@ -213,7 +214,7 @@ export function SupplierReturnsPage() {
       <ReturnTable
         data={returns}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         onDetail={handleDetail}
         onDelete={handleDelete}
       />

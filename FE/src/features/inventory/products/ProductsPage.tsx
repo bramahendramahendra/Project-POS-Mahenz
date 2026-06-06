@@ -1,10 +1,10 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Upload, Tag, Ruler } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { usePagination, useDisclosure } from '@/shared/hooks'
+import { usePagination, useDisclosure, usePageSizeOptions } from '@/shared/hooks'
 
 import { useDeleteProductMutation, useProductListQuery, useUnitOptionsQuery } from './products.api'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
@@ -22,6 +22,7 @@ export function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([])
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const {
     openProductModal,
     productModalOpen,
@@ -160,7 +161,7 @@ export function ProductsPage() {
             total,
             onPageChange,
             onPageSizeChange,
-            pageSizeOptions: [10, 20, 50],
+            pageSizeOptions,
           }}
           onSelectionChange={setSelectedProducts}
           onPrintLabel={() => openLabel()}

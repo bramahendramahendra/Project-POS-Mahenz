@@ -1,11 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, RotateCcw, Search } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { useDebounce, useDisclosure, usePagination } from '@/shared/hooks'
+import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useCustomerListQuery, useDeleteCustomerMutation } from './customers.api'
 import type { Customer } from './customers.types'
@@ -16,6 +16,7 @@ export function CustomersPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
@@ -111,7 +112,7 @@ export function CustomersPage() {
           total,
           onPageChange,
           onPageSizeChange,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions,
         }}
         onEdit={handleOpenEdit}
         onDelete={handleOpenDelete}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Search } from 'lucide-react'
 
 import { PageHeader } from '@/shared/components'
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useDebounce, usePagination } from '@/shared/hooks'
+import { useDebounce, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useReceivableListQuery } from './receivables.api'
 import type { Receivable, ReceivableFilter, ReceivableStatus } from './receivables.types'
@@ -25,6 +25,7 @@ export function ReceivablesPage() {
   const debouncedSearch = useDebounce(search, 400)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   const filter: ReceivableFilter = {
     search: debouncedSearch || undefined,
     status: status === 'all' ? undefined : status,
@@ -69,7 +70,7 @@ export function ReceivablesPage() {
       <ReceivableTable
         data={receivables}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         onPay={(r) => setPayTarget(r)}
       />
 

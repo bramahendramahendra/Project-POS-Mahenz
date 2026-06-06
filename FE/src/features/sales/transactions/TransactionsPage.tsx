@@ -1,7 +1,7 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
-import { usePagination } from '@/shared/hooks'
+import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useTransactionListQuery } from './transactions.api'
 import type { TransactionFilter } from './transactions.types'
@@ -16,6 +16,7 @@ export function TransactionsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   const { data: txData, isLoading } = useTransactionListQuery({
     ...filter,
     page,
@@ -53,7 +54,7 @@ export function TransactionsPage() {
           total,
           onPageChange,
           onPageSizeChange,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions,
         }}
         onDetail={(t) => setSelectedId(t.id)}
         onVoid={(t) => setSelectedId(t.id)}

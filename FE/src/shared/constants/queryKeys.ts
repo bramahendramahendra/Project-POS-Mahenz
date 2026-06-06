@@ -76,6 +76,7 @@ export const queryKeys = {
     store: () => ['settings', 'store'] as const,
     users: () => ['settings', 'users'] as const,
     appVersions: () => ['settings', 'appVersions'] as const,
+    pageSizeOptions: () => ['settings', 'pageSizeOptions'] as const,
   },
 
   sync: {

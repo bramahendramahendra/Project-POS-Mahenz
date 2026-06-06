@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Clock, Plus } from 'lucide-react'
 
 import { PageHeader } from '@/shared/components'
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { usePagination } from '@/shared/hooks'
+import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useActiveShiftQuery, useShiftListQuery } from './shifts.api'
 import type { Shift, ShiftFilter, ShiftStatus } from './shifts.types'
@@ -37,6 +37,7 @@ export function ShiftsPage() {
   const [closeTarget, setCloseTarget] = useState<Shift | null>(null)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { data: activeShift } = useActiveShiftQuery()
 
   const filter: ShiftFilter = {
@@ -124,7 +125,7 @@ export function ShiftsPage() {
       <ShiftTable
         data={shifts}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         onClose={(shift) => setCloseTarget(shift)}
       />
 

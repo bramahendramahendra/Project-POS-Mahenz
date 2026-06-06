@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, Truck } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useDisclosure, usePagination } from '@/shared/hooks'
+import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
 import { useProductListQuery } from '@/features/inventory/products/products.api'
 
@@ -43,6 +43,7 @@ export function SupplierPurchasesPage() {
   const [status, setStatus] = useState<PaymentStatus | 'all'>('all')
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: payOpen, open: openPay, close: closePay } = useDisclosure()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
@@ -227,7 +228,7 @@ export function SupplierPurchasesPage() {
       <PurchaseTable
         data={purchases}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         suppliers={suppliers}
         onDetail={handleDetail}
         onPay={handlePay}

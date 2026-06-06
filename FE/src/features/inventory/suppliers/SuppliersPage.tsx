@@ -1,11 +1,11 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Plus, RotateCcw, Search } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { useDebounce, useDisclosure, usePagination } from '@/shared/hooks'
+import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import {
   Select,
   SelectContent,
@@ -25,6 +25,7 @@ export function SuppliersPage() {
   const [isActiveFilter, setIsActiveFilter] = useState<'all' | 'true' | 'false'>('all')
   const debouncedSearch = useDebounce(search, 300)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
@@ -150,7 +151,7 @@ export function SuppliersPage() {
           total,
           onPageChange,
           onPageSizeChange,
-          pageSizeOptions: [10, 20, 50],
+          pageSizeOptions,
         }}
         onDetail={handleOpenDetail}
         onEdit={handleOpenEdit}

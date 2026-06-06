@@ -10,7 +10,7 @@ const (
 	getAllSettingsQuery  = `SELECT setting_key, setting_value FROM settings ORDER BY setting_key`
 	getSettingByKeyQuery = `SELECT setting_key, setting_value FROM settings WHERE setting_key = ?`
 	upsertSettingQuery   = `INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()`
-	resetSettingsQuery   = `UPDATE settings SET setting_value = CASE setting_key WHEN 'store_name' THEN 'Toko Retail' WHEN 'tax_enabled' THEN '0' WHEN 'tax_percent' THEN '11' WHEN 'receipt_footer' THEN 'Terima kasih telah berbelanja' WHEN 'stock_notification_enabled' THEN '1' ELSE '' END`
+	resetSettingsQuery   = `UPDATE settings SET setting_value = CASE setting_key WHEN 'store_name' THEN 'Toko Retail' WHEN 'tax_enabled' THEN '0' WHEN 'tax_percent' THEN '11' WHEN 'receipt_footer' THEN 'Terima kasih telah berbelanja' WHEN 'stock_notification_enabled' THEN '1' WHEN 'pagination_sizes' THEN '[10,20,50]' ELSE '' END`
 )
 
 type settingRepo struct {

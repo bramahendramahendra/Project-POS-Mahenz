@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -14,7 +14,7 @@ import {
 } from '@/shared/components/ui/dialog'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
-import { usePagination } from '@/shared/hooks'
+import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useCashDrawerCurrentQuery, useCashDrawerListQuery, useCloseCashDrawerMutation } from './cash-drawer.api'
 import type { CashDrawerFilter, CashDrawer } from './cash-drawer.types'
@@ -52,6 +52,7 @@ export function CashDrawerPage() {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
+  const pageSizeOptions = usePageSizeOptions()
   const filter: CashDrawerFilter = {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
@@ -150,7 +151,7 @@ export function CashDrawerPage() {
       <CashDrawerTable
         data={items}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions: [10, 20, 50] }}
+        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         onRowClick={(row) => setSelectedId(row.id)}
       />
 
