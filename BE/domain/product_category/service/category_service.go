@@ -50,6 +50,9 @@ func (s *categoryService) GetByID(id int) (data dto.CategoryResponse, err error)
 	if err != nil {
 		return data, err
 	}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
+	}
 
 	data = dto.CategoryResponse{
 		ID:                 dataDB.ID,
@@ -162,7 +165,7 @@ func (s *categoryService) Delete(req *dto.DeleteCategoryRequest) (err error) {
 
 	count, err := s.repo.CountProductsByCategory(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return &errors.InternalServerError{Message: "Gagal memeriksa penggunaan kategori"}
 	}
 	if count > 0 {
 		return &errors.BadRequestError{Message: "Kategori masih digunakan oleh produk"}
@@ -183,7 +186,7 @@ func (s *categoryService) ToggleStatus(req *dto.ToggleStatusCategoryRequest) (er
 	if exists.IsActive {
 		activeCount, err := s.repo.CountActiveProductsByCategory(req.ID)
 		if err != nil {
-			return &errors.InternalServerError{Message: err.Error()}
+			return &errors.InternalServerError{Message: "Gagal memeriksa produk aktif kategori"}
 		}
 		if activeCount > 0 {
 			return &errors.BadRequestError{Message: "Kategori tidak bisa dinonaktifkan karena masih memiliki produk aktif"}

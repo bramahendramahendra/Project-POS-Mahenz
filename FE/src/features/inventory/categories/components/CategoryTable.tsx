@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Lock, LockOpen, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, DataTable, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
@@ -23,8 +24,8 @@ import {
 import type { Category } from '../categories.types'
 
 const categorySchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
-  description: z.string().optional(),
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
+  description: z.string().max(500, 'Deskripsi maksimal 500 karakter').optional(),
 })
 type CategoryFormValues = z.infer<typeof categorySchema>
 
@@ -45,7 +46,7 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
-  const [pendingValues, setPendingValues] = useState<CategoryFormValues | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ values: CategoryFormValues; category: Category | null } | null>(null)
 
   const { data: categoryData, isLoading } = useCategoryListQuery({
     page,
@@ -101,40 +102,41 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
   }
 
   const onSubmit = (values: CategoryFormValues) => {
-    setPendingValues(values)
+    setPendingAction({ values, category: editingCategory })
     closeForm()
     openConfirm()
   }
 
   const handleConfirmCancel = () => {
     closeConfirm()
-    if (pendingValues) {
-      reset(pendingValues)
+    if (pendingAction) {
+      setEditingCategory(pendingAction.category)
+      reset(pendingAction.values)
       openForm()
     }
-    setPendingValues(null)
+    setPendingAction(null)
   }
 
   const handleConfirmSave = () => {
-    if (!pendingValues) return
-    if (editingCategory !== null) {
+    if (!pendingAction) return
+    if (pendingAction.category !== null) {
       updateCategory(
-        { id: editingCategory.id, ...pendingValues },
+        { id: pendingAction.category.id, ...pendingAction.values },
         {
           onSuccess: () => {
             closeConfirm()
             setEditingCategory(null)
             reset({ name: '', description: '' })
-            setPendingValues(null)
+            setPendingAction(null)
           },
         }
       )
     } else {
-      createCategory(pendingValues, {
+      createCategory(pendingAction.values, {
         onSuccess: () => {
           closeConfirm()
           reset({ name: '', description: '' })
-          setPendingValues(null)
+          setPendingAction(null)
         },
       })
     }
@@ -151,7 +153,10 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
   }
 
   const handleToggleStatus = (row: Category) => {
-    toggleStatus(row.id)
+    toggleStatus(row.id, {
+      onSuccess: () =>
+        toast.success(`Kategori berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
+    })
   }
 
   const columns: ColumnDef<Category>[] = [
@@ -292,7 +297,7 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
       <FormModal
         open={formOpen}
         onOpenChange={(open) => {
-          if (!open && pendingValues !== null) return
+          if (!open && pendingAction !== null) return
           if (!open) handleCloseForm()
         }}
         title={editingCategory !== null ? 'Edit Kategori' : 'Tambah Kategori'}
@@ -330,8 +335,8 @@ export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) 
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={(open) => { if (!open) handleConfirmCancel() }}
-        title={editingCategory !== null ? 'Update Kategori' : 'Tambah Kategori'}
-        description={`Yakin ingin ${editingCategory !== null ? 'mengupdate' : 'menambahkan'} kategori "${pendingValues?.name}"?`}
+        title={pendingAction?.category !== null ? 'Update Kategori' : 'Tambah Kategori'}
+        description={`Yakin ingin ${pendingAction?.category !== null ? 'mengupdate' : 'menambahkan'} kategori "${pendingAction?.values.name}"?`}
         confirmLabel="Ya, Simpan"
         isLoading={isPending}
         onConfirm={handleConfirmSave}

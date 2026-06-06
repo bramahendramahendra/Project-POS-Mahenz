@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"strings"
 	"unicode"
+
+	"pos_api/errors"
 )
+
+const categoryCodeLength = 3
 
 func buildCategoryCode(name string) string {
 	letters := strings.Map(func(ru rune) rune {
@@ -15,10 +19,10 @@ func buildCategoryCode(name string) string {
 	}, name)
 
 	base := letters
-	if len(base) > 3 {
-		base = base[:3]
+	if len(base) > categoryCodeLength {
+		base = base[:categoryCodeLength]
 	}
-	for len(base) < 3 {
+	for len(base) < categoryCodeLength {
 		base += "X"
 	}
 	return base
@@ -26,9 +30,17 @@ func buildCategoryCode(name string) string {
 
 func (s *categoryService) generateUniqueCode(name string) (string, error) {
 	base := buildCategoryCode(name)
-	candidate := base
+
+	exists, err := s.repo.CheckCodeExists(base)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return base, nil
+	}
 
 	for i := 2; i <= 99; i++ {
+		candidate := fmt.Sprintf("%s%d", base, i)
 		exists, err := s.repo.CheckCodeExists(candidate)
 		if err != nil {
 			return "", err
@@ -36,7 +48,6 @@ func (s *categoryService) generateUniqueCode(name string) (string, error) {
 		if !exists {
 			return candidate, nil
 		}
-		candidate = fmt.Sprintf("%s%d", base, i)
 	}
-	return "", fmt.Errorf("tidak bisa generate kode kategori yang unik")
+	return "", &errors.InternalServerError{Message: "tidak bisa generate kode kategori yang unik"}
 }

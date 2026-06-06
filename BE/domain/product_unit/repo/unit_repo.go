@@ -75,6 +75,9 @@ func (r *unitRepo) GetByID(id int) (*model.Unit, error) {
 	if err != nil {
 		return nil, err
 	}
+	if unit.ID == 0 {
+		return nil, nil
+	}
 	return &unit, nil
 }
 

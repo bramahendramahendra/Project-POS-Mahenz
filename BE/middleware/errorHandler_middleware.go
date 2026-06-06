@@ -36,7 +36,7 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 			switch e := err.(type) {
 			case *errors.NotFoundError:
 				code = helper.StatusNotFound
-				httpCode = http.StatusOK
+				httpCode = http.StatusNotFound
 				status = false
 				responseMessage = actualMessage
 			case *errors.MethodNotAllowedError:

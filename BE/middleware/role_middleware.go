@@ -17,7 +17,12 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		userRole := role.(string)
+		userRole, ok := role.(string)
+		if !ok {
+			c.Error(&errors.UnauthenticatedError{Message: "Unauthorized"})
+			c.Abort()
+			return
+		}
 		for _, allowed := range allowedRoles {
 			if userRole == allowed {
 				c.Next()

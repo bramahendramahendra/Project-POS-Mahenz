@@ -10,7 +10,7 @@ type (
 	CategoryListRequest struct {
 		Page   int    `json:"page"`
 		Limit  int    `json:"limit"`
-		Search string `json:"search"`
+		Search string `json:"search" validate:"max=100"`
 	}
 
 	CategoryOptionResponse struct {
@@ -30,8 +30,8 @@ type (
 	}
 
 	CreateCategoryRequest struct {
-		Name        string `json:"name" validate:"required,min=2"`
-		Description string `json:"description"`
+		Name        string `json:"name" validate:"required,min=2,max=100"`
+		Description string `json:"description" validate:"max=500"`
 		Code        string `json:"code"`
 	}
 
@@ -41,8 +41,8 @@ type (
 
 	UpdateCategoryRequest struct {
 		ID          int    `json:"-"`
-		Name        string `json:"name" validate:"required,min=2"`
-		Description string `json:"description"`
+		Name        string `json:"name" validate:"required,min=2,max=100"`
+		Description string `json:"description" validate:"max=500"`
 	}
 
 	DeleteCategoryRequest struct {

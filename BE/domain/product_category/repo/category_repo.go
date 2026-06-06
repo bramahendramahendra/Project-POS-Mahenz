@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"fmt"
-
 	dto "pos_api/domain/product_category/dto"
 	model "pos_api/domain/product_category/model"
 )
@@ -32,7 +30,7 @@ func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, 
 	if page <= 0 {
 		page = 1
 	}
-	if limit <= 0 {
+	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
 	offset := (page - 1) * limit
@@ -56,7 +54,8 @@ func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, 
 		args = append(args, "%"+req.Search+"%")
 	}
 	query += getAllCategoriesGroupOrder
-	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+	query += " LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
 	var categories []*model.Category
 	if err := r.db.Raw(query, args...).Scan(&categories).Error; err != nil {
@@ -78,6 +77,9 @@ func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
 	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&category).Error
 	if err != nil {
 		return nil, err
+	}
+	if category.ID == 0 {
+		return nil, nil
 	}
 	return &category, nil
 }
@@ -114,6 +116,9 @@ func (r *categoryRepo) GetByName(name string) (*model.Category, error) {
 	err := r.db.Raw(getCategoryByNameQuery, name).Scan(&category).Error
 	if err != nil {
 		return nil, err
+	}
+	if category.ID == 0 {
+		return nil, nil
 	}
 	return &category, nil
 }
