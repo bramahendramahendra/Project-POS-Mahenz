@@ -48,10 +48,7 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null)
   const [detailSupplierId, setDetailSupplierId] = useState<number | null>(null)
-  const [pendingAction, setPendingAction] = useState<{
-    values: SupplierFormValues
-    supplier: Supplier | null
-  } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ values: SupplierFormValues; supplier: Supplier | null} | null>(null)
 
   const isActiveValue = isActiveFilter === 'all' ? undefined : isActiveFilter === 'true'
 
