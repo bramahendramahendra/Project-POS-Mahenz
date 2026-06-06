@@ -1,13 +1,18 @@
 package repo
 
 import (
+	"fmt"
+
 	dto "pos_api/domain/product_unit/dto"
 	model "pos_api/domain/product_unit/model"
 )
 
 const (
-	getAllUnitsQuery       = `SELECT id, name, abbreviation, is_active, created_at FROM units ORDER BY name`
-	getActiveUnitsQuery   = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE is_active = 1 ORDER BY name`
+	countUnitsQuery       = `SELECT COUNT(*) FROM units WHERE 1=1`
+	countUnitsSearchQuery = `SELECT COUNT(*) FROM units WHERE name LIKE ?`
+	getAllUnitsQuery       = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
+	getAllUnitsOrder       = ` ORDER BY name`
+	getActiveUnitsQuery   = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
 	getUnitByIDQuery      = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery    = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
 	checkUnitUsedQuery    = `SELECT COUNT(*) FROM product_units WHERE unit_id = ?`
@@ -18,19 +23,47 @@ const (
 	toggleUnitStatusQuery = `UPDATE units SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-func (r *unitRepo) GetAll() ([]*model.Unit, error) {
-	var units []*model.Unit
-	err := r.db.Raw(getAllUnitsQuery).Scan(&units).Error
-	if err != nil {
-		return nil, err
+func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error) {
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
 	}
-	return units, nil
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	var total int64
+	if req.Search != "" {
+		if err := r.db.Raw(countUnitsSearchQuery, "%"+req.Search+"%").Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		if err := r.db.Raw(countUnitsQuery).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	query := getAllUnitsQuery
+	var args []any
+	if req.Search != "" {
+		query += ` AND name LIKE ?`
+		args = append(args, "%"+req.Search+"%")
+	}
+	query += getAllUnitsOrder
+	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+
+	var units []*model.Unit
+	if err := r.db.Raw(query, args...).Scan(&units).Error; err != nil {
+		return nil, 0, err
+	}
+	return units, total, nil
 }
 
-func (r *unitRepo) GetActive() ([]*model.Unit, error) {
-	var units []*model.Unit
-	err := r.db.Raw(getActiveUnitsQuery).Scan(&units).Error
-	if err != nil {
+func (r *unitRepo) GetActive() ([]*dto.UnitActiveResponse, error) {
+	var units []*dto.UnitActiveResponse
+	if err := r.db.Raw(getActiveUnitsQuery).Scan(&units).Error; err != nil {
 		return nil, err
 	}
 	return units, nil

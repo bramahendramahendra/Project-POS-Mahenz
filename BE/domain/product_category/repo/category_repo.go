@@ -1,12 +1,18 @@
 package repo
 
 import (
+	"fmt"
+
 	dto "pos_api/domain/product_category/dto"
 	model "pos_api/domain/product_category/model"
 )
 
 const (
-	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c ORDER BY c.name`
+	countCategoriesQuery            = `SELECT COUNT(*) FROM categories c WHERE 1=1`
+	countCategoriesSearchQuery      = `SELECT COUNT(*) FROM categories c WHERE c.name LIKE ?`
+	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, COUNT(p.id) AS product_count, COUNT(CASE WHEN p.is_active = 1 THEN 1 END) AS active_product_count, c.created_at FROM categories c LEFT JOIN products p ON p.category_id = c.id WHERE 1=1`
+	getAllCategoriesGroupOrder       = ` GROUP BY c.id, c.name, c.code, c.description, c.is_active, c.created_at ORDER BY c.name`
+	getAllCategoryOptionsQuery       = `SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name`
 	getCategoryByIDQuery             = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c WHERE c.id = ? LIMIT 1`
 	getCategoryByNameQuery           = `SELECT id, name, COALESCE(code, '') as code, description, COALESCE(is_active, 1) as is_active, created_at FROM categories WHERE name = ? LIMIT 1`
 	checkCategoryNameQuery           = `SELECT id FROM categories WHERE name = ? AND id != ? LIMIT 1`
@@ -20,13 +26,51 @@ const (
 	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-func (r *categoryRepo) GetAll() ([]*model.Category, error) {
+func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, int64, error) {
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	var total int64
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		if err := r.db.Raw(countCategoriesSearchQuery, search).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		if err := r.db.Raw(countCategoriesQuery).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	query := getAllCategoriesQuery
+	var args []any
+	if req.Search != "" {
+		query += ` AND c.name LIKE ?`
+		args = append(args, "%"+req.Search+"%")
+	}
+	query += getAllCategoriesGroupOrder
+	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+
 	var categories []*model.Category
-	err := r.db.Raw(getAllCategoriesQuery).Scan(&categories).Error
-	if err != nil {
+	if err := r.db.Raw(query, args...).Scan(&categories).Error; err != nil {
+		return nil, 0, err
+	}
+	return categories, total, nil
+}
+
+func (r *categoryRepo) GetOptions() ([]*dto.CategoryOptionResponse, error) {
+	var options []*dto.CategoryOptionResponse
+	if err := r.db.Raw(getAllCategoryOptionsQuery).Scan(&options).Error; err != nil {
 		return nil, err
 	}
-	return categories, nil
+	return options, nil
 }
 
 func (r *categoryRepo) GetByID(id int) (*model.Category, error) {

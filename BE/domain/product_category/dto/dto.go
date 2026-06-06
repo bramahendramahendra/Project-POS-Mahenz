@@ -7,6 +7,17 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	CategoryListRequest struct {
+		Page   int    `json:"page"`
+		Limit  int    `json:"limit"`
+		Search string `json:"search"`
+	}
+
+	CategoryOptionResponse struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
 	CategoryResponse struct {
 		ID                 int       `json:"id"`
 		Name               string    `json:"name"`

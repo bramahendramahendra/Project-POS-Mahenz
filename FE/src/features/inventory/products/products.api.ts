@@ -6,16 +6,21 @@ import { queryKeys } from '@/shared/constants'
 
 import type {
   Category,
+  CategoryListFilter,
+  CategoryOption,
   CreateCategoryPayload,
   CreatePriceTierPayload,
   CreateProductPackagePayload,
   CreateProductPayload,
   CreateUnitPayload,
+  PaginatedResponse,
   PriceTier,
   Product,
   ProductFilter,
   ProductPackage,
   Unit,
+  UnitListFilter,
+  UnitOption,
   UpdateCategoryPayload,
   UpdatePriceTierPayload,
   UpdateProductPayload,
@@ -174,17 +179,31 @@ export function useProductBarcodeQuery(code: string, enabled: boolean) {
   })
 }
 
-export function useCategoryListQuery() {
+export function useCategoryListQuery(filter: CategoryListFilter) {
   return useQuery({
-    queryKey: queryKeys.categories.list(),
-    queryFn: () => api.post<Category[]>('/categories/list', {}),
+    queryKey: queryKeys.categories.list(filter),
+    queryFn: () => api.post<PaginatedResponse<Category>>('/categories/list', filter),
   })
 }
 
-export function useUnitListQuery() {
+export function useCategoryOptionsQuery() {
   return useQuery({
-    queryKey: queryKeys.units.list(),
-    queryFn: () => api.post<Unit[]>('/units/list', {}),
+    queryKey: queryKeys.categories.options(),
+    queryFn: () => api.post<CategoryOption[]>('/categories/options', {}),
+  })
+}
+
+export function useUnitListQuery(filter: UnitListFilter) {
+  return useQuery({
+    queryKey: queryKeys.units.list(filter),
+    queryFn: () => api.post<PaginatedResponse<Unit>>('/units/list', filter),
+  })
+}
+
+export function useUnitOptionsQuery() {
+  return useQuery({
+    queryKey: queryKeys.units.options(),
+    queryFn: () => api.post<UnitOption[]>('/units/options', {}),
   })
 }
 

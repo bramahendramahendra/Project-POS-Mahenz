@@ -47,7 +47,10 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
 
-  const { data: categories = [], isLoading } = useCategoryListQuery()
+  const { data: categoryData, isLoading } = useCategoryListQuery({ page, limit: pageSize, search: debouncedSearch })
+  const categories = categoryData?.data ?? []
+  const totalCategories = categoryData?.pagination?.total ?? 0
+
   const { mutate: createCategory, isPending: isCreating } = useCreateCategoryMutation()
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategoryMutation()
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategoryMutation()
@@ -62,12 +65,6 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAdd])
-
-  const filtered = debouncedSearch
-    ? categories.filter((c) => c.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    : categories
-
-  const paginatedCategories = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const {
     register,
@@ -282,11 +279,11 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
 
       <DataTable<Category & Record<string, unknown>>
         columns={columns}
-        data={paginatedCategories as (Category & Record<string, unknown>)[]}
+        data={categories as (Category & Record<string, unknown>)[]}
         pagination={{
           page,
           pageSize,
-          total: filtered.length,
+          total: totalCategories,
           onPageChange,
           onPageSizeChange,
           pageSizeOptions: [10, 20, 50],

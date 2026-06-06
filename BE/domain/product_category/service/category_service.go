@@ -7,10 +7,10 @@ import (
 	"pos_api/errors"
 )
 
-func (s *categoryService) GetAll() (data []dto.CategoryResponse, err error) {
-	dataDB, err := s.repo.GetAll()
+func (s *categoryService) GetAll(req *dto.CategoryListRequest) (data []dto.CategoryResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return data, err
+		return data, 0, err
 	}
 
 	for _, v := range dataDB {
@@ -23,6 +23,22 @@ func (s *categoryService) GetAll() (data []dto.CategoryResponse, err error) {
 			ProductCount:       v.ProductCount,
 			ActiveProductCount: v.ActiveProductCount,
 			CreatedAt:          v.CreatedAt,
+		})
+	}
+
+	return data, total, nil
+}
+
+func (s *categoryService) GetOptions() (data []dto.CategoryOptionResponse, err error) {
+	dataDB, err := s.repo.GetOptions()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, dto.CategoryOptionResponse{
+			ID:   v.ID,
+			Name: v.Name,
 		})
 	}
 

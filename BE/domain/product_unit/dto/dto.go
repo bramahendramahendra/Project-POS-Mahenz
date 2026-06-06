@@ -7,6 +7,12 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	UnitListRequest struct {
+		Page   int    `json:"page"`
+		Limit  int    `json:"limit"`
+		Search string `json:"search"`
+	}
+
 	UnitResponse struct {
 		ID           int       `json:"id"`
 		Name         string    `json:"name"`

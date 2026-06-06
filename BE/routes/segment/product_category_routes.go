@@ -18,6 +18,7 @@ func ProductCategoryRoutes(r *gin.RouterGroup) {
 	g := r.Group("/categories")
 	{
 		g.POST("/list", categoryHandler.GetAll)
+		g.POST("/options", categoryHandler.GetOptions)
 		g.POST("/detail/:id", categoryHandler.GetByID)
 		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Create)
 		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Update)

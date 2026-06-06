@@ -45,7 +45,10 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
 
-  const { data: units = [], isLoading } = useUnitListQuery()
+  const { data: unitData, isLoading } = useUnitListQuery({ page, limit: pageSize, search: debouncedSearch })
+  const units = unitData?.data ?? []
+  const totalUnits = unitData?.pagination?.total ?? 0
+
   const { mutate: createUnit, isPending: isCreating } = useCreateUnitMutation()
   const { mutate: updateUnit, isPending: isUpdating } = useUpdateUnitMutation()
   const { mutate: deleteUnit, isPending: isDeleting } = useDeleteUnitMutation()
@@ -60,12 +63,6 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAdd])
-
-  const filtered = debouncedSearch
-    ? units.filter((u) => u.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
-    : units
-
-  const paginatedUnits = filtered.slice((page - 1) * pageSize, page * pageSize)
 
   const {
     register,
@@ -248,12 +245,12 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
       <DataTable<Unit & Record<string, unknown>>
         columns={columns}
-        data={paginatedUnits as (Unit & Record<string, unknown>)[]}
+        data={units as (Unit & Record<string, unknown>)[]}
         isLoading={isLoading}
         pagination={{
           page,
           pageSize,
-          total: filtered.length,
+          total: totalUnits,
           onPageChange,
           onPageSizeChange,
           pageSizeOptions: [10, 20, 50],

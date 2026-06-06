@@ -7,10 +7,10 @@ import (
 	"pos_api/errors"
 )
 
-func (s *unitService) GetAll() (data []dto.UnitResponse, err error) {
-	dataDB, err := s.repo.GetAll()
+func (s *unitService) GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return data, err
+		return data, 0, err
 	}
 
 	for _, v := range dataDB {
@@ -23,7 +23,7 @@ func (s *unitService) GetAll() (data []dto.UnitResponse, err error) {
 		})
 	}
 
-	return data, nil
+	return data, total, nil
 }
 
 func (s *unitService) GetActive() (data []dto.UnitActiveResponse, err error) {

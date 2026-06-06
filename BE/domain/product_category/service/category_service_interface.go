@@ -7,7 +7,8 @@ import (
 
 type (
 	CategoryServiceInterface interface {
-		GetAll() (data []dto.CategoryResponse, err error)
+		GetAll(req *dto.CategoryListRequest) (data []dto.CategoryResponse, total int64, err error)
+		GetOptions() (data []dto.CategoryOptionResponse, err error)
 		GetByID(id int) (data dto.CategoryResponse, err error)
 		Create(req *dto.CreateCategoryRequest) (data dto.CategoryResponse, err error)
 		Update(req *dto.UpdateCategoryRequest) (data dto.CategoryResponse, err error)

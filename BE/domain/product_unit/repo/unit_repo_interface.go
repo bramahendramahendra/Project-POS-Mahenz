@@ -9,8 +9,8 @@ import (
 
 type (
 	UnitRepoInterface interface {
-		GetAll() ([]*model.Unit, error)
-		GetActive() ([]*model.Unit, error)
+		GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error)
+		GetActive() ([]*dto.UnitActiveResponse, error)
 		GetByID(id int) (*model.Unit, error)
 		Create(req *dto.CreateUnitRequest) (int64, error)
 		Update(req *dto.UpdateUnitRequest) error

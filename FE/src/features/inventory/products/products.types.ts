@@ -9,11 +9,46 @@ export interface Category {
   created_at: string
 }
 
+export interface CategoryOption {
+  id: number
+  name: string
+}
+
 export interface Unit {
   id: number
   name: string
   abbreviation: string
   is_active: boolean
+}
+
+export interface UnitOption {
+  id: number
+  name: string
+  abbreviation: string
+}
+
+export interface CategoryListFilter {
+  page: number
+  limit: number
+  search: string
+}
+
+export interface UnitListFilter {
+  page: number
+  limit: number
+  search: string
+}
+
+export interface PaginationMeta {
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  pagination: PaginationMeta
 }
 
 export interface ProductPackage {

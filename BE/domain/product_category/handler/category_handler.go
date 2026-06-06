@@ -22,7 +22,29 @@ func NewCategoryHandler(service service.CategoryServiceInterface) *CategoryHandl
 }
 
 func (h *CategoryHandler) GetAll(c *gin.Context) {
-	data, err := h.service.GetAll()
+	req, err := binder.BindJSON[dto.CategoryListRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar kategori",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *CategoryHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
 	if err != nil {
 		c.Error(err)
 		return
@@ -31,7 +53,7 @@ func (h *CategoryHandler) GetAll(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar kategori",
+		Message: "Opsi kategori",
 		Data:    data,
 	})
 }

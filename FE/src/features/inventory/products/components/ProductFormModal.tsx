@@ -19,13 +19,13 @@ import {
 } from '@/shared/components/ui/select'
 
 import {
-  useCategoryListQuery,
+  useCategoryOptionsQuery,
   useCreateProductMutation,
   useGenerateBarcodeQuery,
   useGenerateSkuQuery,
   useProductDetailQuery,
   useProductPackagesQuery,
-  useUnitListQuery,
+  useUnitOptionsQuery,
   useUpdateProductMutation,
   useSaveProductPackagesBulkMutation,
 } from '../products.api'
@@ -229,8 +229,8 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
   const { data: existingPackages = [] } = useProductPackagesQuery(
     isEdit && open ? (productId as number) : 0
   )
-  const { data: categories = [] } = useCategoryListQuery()
-  const { data: units = [] } = useUnitListQuery()
+  const { data: categories = [] } = useCategoryOptionsQuery()
+  const { data: units = [] } = useUnitOptionsQuery()
 
   const { mutate: createProduct, isPending: isCreating } = useCreateProductMutation()
   const { mutate: updateProduct, isPending: isUpdating } = useUpdateProductMutation()

@@ -18,7 +18,7 @@ func ProductUnitRoutes(r *gin.RouterGroup) {
 	g := r.Group("/units")
 	{
 		g.POST("/list", unitHand.GetAll)
-		g.POST("/list-active", unitHand.GetActive)
+		g.POST("/options", unitHand.GetOptions)
 		g.POST("/detail/:id", unitHand.GetByID)
 		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), unitHand.Create)
 		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Update)

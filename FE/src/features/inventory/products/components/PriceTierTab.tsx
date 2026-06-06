@@ -26,7 +26,7 @@ import {
   useDeletePriceTierMutation,
   useProductPackagesQuery,
   useProductPricesQuery,
-  useUnitListQuery,
+  useUnitOptionsQuery,
   useUpdatePriceTierMutation,
 } from '../products.api'
 import type { PriceTier, ProductPackage } from '../products.types'
@@ -48,7 +48,7 @@ interface PriceTierTabProps {
 }
 
 export function PriceTierTab({ productId }: PriceTierTabProps) {
-  const { data: units = [] } = useUnitListQuery()
+  const { data: units = [] } = useUnitOptionsQuery()
   const { data: productPackages = [], isLoading: isLoadingPackages } = useProductPackagesQuery(productId)
   const { data: priceTiers = [], isLoading: isLoadingPrices } = useProductPricesQuery(productId)
 

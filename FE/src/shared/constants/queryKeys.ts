@@ -16,12 +16,14 @@ export const queryKeys = {
 
   categories: {
     all: () => ['categories'] as const,
-    list: () => ['categories', 'list'] as const,
+    list: (filter?: Filter) => ['categories', 'list', filter] as const,
+    options: () => ['categories', 'options'] as const,
   },
 
   units: {
     all: () => ['units'] as const,
-    list: () => ['units', 'list'] as const,
+    list: (filter?: Filter) => ['units', 'list', filter] as const,
+    options: () => ['units', 'options'] as const,
   },
 
   suppliers: {

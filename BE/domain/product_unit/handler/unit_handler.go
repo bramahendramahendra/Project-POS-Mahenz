@@ -22,21 +22,28 @@ func NewUnitHandler(service service.UnitServiceInterface) *UnitHandler {
 }
 
 func (h *UnitHandler) GetAll(c *gin.Context) {
-	data, err := h.service.GetAll()
+	req, err := binder.BindJSON[dto.UnitListRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar satuan",
-		Data:    data,
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar satuan",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 
-func (h *UnitHandler) GetActive(c *gin.Context) {
+func (h *UnitHandler) GetOptions(c *gin.Context) {
 	data, err := h.service.GetActive()
 	if err != nil {
 		c.Error(err)
@@ -46,7 +53,7 @@ func (h *UnitHandler) GetActive(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar satuan aktif",
+		Message: "Opsi satuan",
 		Data:    data,
 	})
 }
