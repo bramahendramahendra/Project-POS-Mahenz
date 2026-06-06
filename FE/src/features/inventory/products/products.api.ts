@@ -5,15 +5,10 @@ import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
 
 import type {
-  Category,
-  CategoryListFilter,
-  CategoryOption,
-  CreateCategoryPayload,
   CreatePriceTierPayload,
   CreateProductPackagePayload,
   CreateProductPayload,
   CreateUnitPayload,
-  PaginatedResponse,
   PriceTier,
   Product,
   ProductFilter,
@@ -21,11 +16,11 @@ import type {
   Unit,
   UnitListFilter,
   UnitOption,
-  UpdateCategoryPayload,
   UpdatePriceTierPayload,
   UpdateProductPayload,
   UpdateUnitPayload,
 } from './products.types'
+import type { PaginatedData } from '@/shared/types'
 
 // ─── Import ───────────────────────────────────────────────────────────────────
 
@@ -179,24 +174,10 @@ export function useProductBarcodeQuery(code: string, enabled: boolean) {
   })
 }
 
-export function useCategoryListQuery(filter: CategoryListFilter) {
-  return useQuery({
-    queryKey: queryKeys.categories.list(filter),
-    queryFn: () => api.post<PaginatedResponse<Category>>('/categories/list', filter),
-  })
-}
-
-export function useCategoryOptionsQuery() {
-  return useQuery({
-    queryKey: queryKeys.categories.options(),
-    queryFn: () => api.post<CategoryOption[]>('/categories/options', {}),
-  })
-}
-
 export function useUnitListQuery(filter: UnitListFilter) {
   return useQuery({
-    queryKey: queryKeys.units.list(filter),
-    queryFn: () => api.post<PaginatedResponse<Unit>>('/units/list', filter),
+    queryKey: queryKeys.units.list(filter as unknown as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<Unit>>('/units/list', filter),
   })
 }
 
@@ -266,53 +247,6 @@ export function useToggleProductStatusMutation() {
     mutationFn: (id: number) => api.patch<void>(`/products/${id}/toggle-status`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-// ─── Category Mutations ───────────────────────────────────────────────────────
-
-export function useCreateCategoryMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateCategoryPayload) => api.post<Category>('/categories/create', payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useUpdateCategoryMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...payload }: UpdateCategoryPayload & { id: number }) =>
-      api.post<Category>(`/categories/update/${id}`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useDeleteCategoryMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/categories/delete/${id}`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useToggleCategoryStatusMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/categories/toggle-status/${id}`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
     },
     onError: (e: Error) => toast.error(e.message),
   })

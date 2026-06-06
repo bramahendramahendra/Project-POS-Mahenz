@@ -1,11 +1,11 @@
-import { Plus } from 'lucide-react'
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
-import { CategoryTab } from './components/CategoryTab'
+import { CategoryTable } from './components/CategoryTable'
 
 export function CategoryPage() {
   const [openAdd, setOpenAdd] = useState(false)
@@ -24,7 +24,7 @@ export function CategoryPage() {
           </RoleGuard>
         }
       />
-      <CategoryTab openAdd={openAdd} onOpenAddChange={setOpenAdd} />
+      <CategoryTable openAdd={openAdd} onOpenAddChange={setOpenAdd} />
     </div>
   )
 }

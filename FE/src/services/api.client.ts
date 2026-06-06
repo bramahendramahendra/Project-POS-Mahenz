@@ -45,12 +45,27 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 apiClient.interceptors.response.use(
   (response) => {
     if (response.config.responseType === 'blob') return response
-    const body = response.data as { status: boolean; message: string; data: unknown }
+    const body = response.data as {
+      status: boolean
+      message: string
+      data: unknown
+      pagination?: { page: number; per_page: number; total: number; total_pages: number }
+    }
     if (body.status === false) {
       throw new ApiError(body.message, response.status)
     }
-    // Unwrap: kembalikan data langsung
-    response.data = body.data
+    // Jika BE kirim pagination terpisah, normalize ke format PaginatedData<T>
+    if (body.pagination !== undefined) {
+      response.data = {
+        data: body.data,
+        total: body.pagination.total,
+        page: body.pagination.page,
+        page_size: body.pagination.per_page,
+        total_page: body.pagination.total_pages,
+      }
+    } else {
+      response.data = body.data
+    }
     return response
   },
   async (error) => {

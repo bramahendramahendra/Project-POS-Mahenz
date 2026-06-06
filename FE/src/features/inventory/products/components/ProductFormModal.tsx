@@ -19,7 +19,6 @@ import {
 } from '@/shared/components/ui/select'
 
 import {
-  useCategoryOptionsQuery,
   useCreateProductMutation,
   useGenerateBarcodeQuery,
   useGenerateSkuQuery,
@@ -29,6 +28,7 @@ import {
   useUpdateProductMutation,
   useSaveProductPackagesBulkMutation,
 } from '../products.api'
+import { useCategoryOptionsQuery } from '@/features/inventory/categories'
 import type { CreateProductPackagePayload, Product } from '../products.types'
 
 const productSchema = z
@@ -474,7 +474,7 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
                         <SelectValue placeholder="Pilih Satuan" />
                       </SelectTrigger>
                       <SelectContent>
-                        {units.filter((u) => u.is_active).map((u) => (
+                        {units.map((u) => (
                           <SelectItem key={u.id} value={String(u.id)}>
                             {u.name} ({u.abbreviation})
                           </SelectItem>
@@ -723,7 +723,7 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
                         baseUnitName={units.find((u) => u.id === unitIdValue)?.name ?? ''}
                         basePurchase={purchasePriceValue}
                         baseSelling={sellingPriceValue}
-                        availableUnits={units.filter((u) => u.is_active)}
+                        availableUnits={units}
                         initialValues={
                           editingGrosirIdx !== null
                             ? {

@@ -47,7 +47,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
   const { data: unitData, isLoading } = useUnitListQuery({ page, limit: pageSize, search: debouncedSearch })
   const units = unitData?.data ?? []
-  const totalUnits = unitData?.pagination?.total ?? 0
+  const totalUnits = unitData?.total ?? 0
 
   const { mutate: createUnit, isPending: isCreating } = useCreateUnitMutation()
   const { mutate: updateUnit, isPending: isUpdating } = useUpdateUnitMutation()

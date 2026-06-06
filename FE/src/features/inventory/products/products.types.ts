@@ -1,19 +1,3 @@
-export interface Category {
-  id: number
-  name: string
-  code: string
-  description: string
-  is_active: boolean
-  product_count: number
-  active_product_count: number
-  created_at: string
-}
-
-export interface CategoryOption {
-  id: number
-  name: string
-}
-
 export interface Unit {
   id: number
   name: string
@@ -27,28 +11,10 @@ export interface UnitOption {
   abbreviation: string
 }
 
-export interface CategoryListFilter {
-  page: number
-  limit: number
-  search: string
-}
-
 export interface UnitListFilter {
   page: number
   limit: number
   search: string
-}
-
-export interface PaginationMeta {
-  page: number
-  per_page: number
-  total: number
-  total_pages: number
-}
-
-export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: PaginationMeta
 }
 
 export interface ProductPackage {
@@ -121,16 +87,6 @@ export interface CreateProductPayload {
 }
 
 export type UpdateProductPayload = Partial<CreateProductPayload>
-
-export interface CreateCategoryPayload {
-  name: string
-  description?: string
-}
-
-export interface UpdateCategoryPayload {
-  name: string
-  description?: string
-}
 
 export interface CreateUnitPayload {
   name: string

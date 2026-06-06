@@ -6,7 +6,8 @@ import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { usePagination, useDisclosure } from '@/shared/hooks'
 
-import { useCategoryListQuery, useDeleteProductMutation, useProductListQuery, useUnitListQuery } from './products.api'
+import { useDeleteProductMutation, useProductListQuery, useUnitOptionsQuery } from './products.api'
+import { useCategoryOptionsQuery } from '@/features/inventory/categories'
 import { useProductsStore } from './products.store'
 import type { Product, ProductFilter } from './products.types'
 import { ImportCsvModal } from './components/ImportCsvModal'
@@ -43,12 +44,12 @@ export function ProductsPage() {
     page,
     page_size: pageSize,
   })
-  const { data: categories = [], isLoading: isCatLoading } = useCategoryListQuery()
-  const { data: units = [], isLoading: isUnitLoading } = useUnitListQuery()
+  const { data: categories = [], isLoading: isCatLoading } = useCategoryOptionsQuery()
+  const { data: units = [], isLoading: isUnitLoading } = useUnitOptionsQuery()
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductMutation()
 
   const hasCategories = categories.length > 0
-  const hasActiveUnits = units.some((u) => u.is_active)
+  const hasActiveUnits = units.length > 0
 
   const products = productData?.items ?? []
   const total = productData?.total ?? 0

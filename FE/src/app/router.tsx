@@ -17,7 +17,7 @@ const CustomersPage    = lazy(() => import('@/features/customers/CustomersPage')
 
 // Inventory
 const ProductsPage     = lazy(() => import('@/features/inventory/products/ProductsPage').then(m => ({ default: m.ProductsPage })))
-const CategoryPage     = lazy(() => import('@/features/inventory/products/CategoryPage').then(m => ({ default: m.CategoryPage })))
+const CategoryPage     = lazy(() => import('@/features/inventory/categories/CategoryPage').then(m => ({ default: m.CategoryPage })))
 const UnitPage         = lazy(() => import('@/features/inventory/products/UnitPage').then(m => ({ default: m.UnitPage })))
 const SuppliersPage    = lazy(() => import('@/features/inventory/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })))
 const SupplierPurchasesPage = lazy(() => import('@/features/inventory/supplier-purchases/SupplierPurchasesPage').then(m => ({ default: m.SupplierPurchasesPage })))

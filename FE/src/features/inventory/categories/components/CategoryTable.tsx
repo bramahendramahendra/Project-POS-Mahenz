@@ -1,10 +1,8 @@
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Lock, LockOpen, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, DataTable, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
@@ -19,10 +17,10 @@ import {
   useCategoryListQuery,
   useCreateCategoryMutation,
   useDeleteCategoryMutation,
-  useUpdateCategoryMutation,
   useToggleCategoryStatusMutation,
-} from '../products.api'
-import type { Category } from '../products.types'
+  useUpdateCategoryMutation,
+} from '../categories.api'
+import type { Category } from '../categories.types'
 
 const categorySchema = z.object({
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
@@ -30,26 +28,32 @@ const categorySchema = z.object({
 })
 type CategoryFormValues = z.infer<typeof categorySchema>
 
-interface CategoryTabProps {
+interface CategoryTableProps {
   openAdd?: boolean
   onOpenAddChange?: (open: boolean) => void
 }
 
-export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
+export function CategoryTable({ openAdd, onOpenAddChange }: CategoryTableProps) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
+
+  const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
+
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
-  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
   const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
   const [pendingValues, setPendingValues] = useState<CategoryFormValues | null>(null)
 
-  const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
-
-  const { data: categoryData, isLoading } = useCategoryListQuery({ page, limit: pageSize, search: debouncedSearch })
+  const { data: categoryData, isLoading } = useCategoryListQuery({
+    page,
+    limit: pageSize,
+    search: debouncedSearch,
+  })
   const categories = categoryData?.data ?? []
-  const totalCategories = categoryData?.pagination?.total ?? 0
+  const total = categoryData?.total ?? 0
 
   const { mutate: createCategory, isPending: isCreating } = useCreateCategoryMutation()
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategoryMutation()
@@ -58,6 +62,13 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
 
   const isPending = isCreating || isUpdating
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CategoryFormValues>({ resolver: zodResolver(categorySchema) })
+
   useEffect(() => {
     if (openAdd) {
       handleOpenAdd()
@@ -65,13 +76,6 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openAdd])
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CategoryFormValues>({ resolver: zodResolver(categorySchema) })
 
   const handleOpenAdd = () => {
     setEditingCategory(null)
@@ -113,38 +117,33 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
 
   const handleConfirmSave = () => {
     if (!pendingValues) return
-    const values = pendingValues
     if (editingCategory !== null) {
       updateCategory(
-        { id: editingCategory.id, name: values.name, description: values.description },
+        { id: editingCategory.id, ...pendingValues },
         {
           onSuccess: () => {
-            toast.success('Kategori berhasil diperbarui')
             closeConfirm()
             setEditingCategory(null)
             reset({ name: '', description: '' })
+            setPendingValues(null)
           },
         }
       )
     } else {
-      createCategory(
-        { name: values.name, description: values.description },
-        {
-          onSuccess: () => {
-            toast.success('Kategori berhasil ditambahkan')
-            closeConfirm()
-            reset({ name: '', description: '' })
-          },
-        }
-      )
+      createCategory(pendingValues, {
+        onSuccess: () => {
+          closeConfirm()
+          reset({ name: '', description: '' })
+          setPendingValues(null)
+        },
+      })
     }
   }
 
   const handleDelete = () => {
-    if (deletingCategory === null) return
+    if (!deletingCategory) return
     deleteCategory(deletingCategory.id, {
       onSuccess: () => {
-        toast.success('Kategori berhasil dihapus')
         closeDelete()
         setDeletingCategory(null)
       },
@@ -152,16 +151,7 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
   }
 
   const handleToggleStatus = (row: Category) => {
-    if (row.is_active && row.active_product_count > 0) {
-      toast.error(
-        `Kategori tidak bisa dinonaktifkan karena masih memiliki ${row.active_product_count} produk aktif`
-      )
-      return
-    }
-    toggleStatus(row.id, {
-      onSuccess: () =>
-        toast.success(`Kategori berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
-    })
+    toggleStatus(row.id)
   }
 
   const columns: ColumnDef<Category>[] = [
@@ -194,7 +184,7 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
       key: 'product_count',
       header: 'Jumlah Produk',
       align: 'center',
-      width: '120px',
+      width: '130px',
       cell: (row) => (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
           {row.product_count} produk
@@ -253,7 +243,7 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filter */}
+      {/* Search */}
       <div className="flex items-center gap-2 rounded-lg border bg-white p-3">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -277,18 +267,19 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
         )}
       </div>
 
+      {/* Table */}
       <DataTable<Category & Record<string, unknown>>
         columns={columns}
         data={categories as (Category & Record<string, unknown>)[]}
+        isLoading={isLoading}
         pagination={{
           page,
           pageSize,
-          total: totalCategories,
+          total,
           onPageChange,
           onPageSizeChange,
           pageSizeOptions: [10, 20, 50],
         }}
-        isLoading={isLoading}
         emptyMessage={debouncedSearch ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
         emptyDescription={
           debouncedSearch
@@ -335,12 +326,10 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
         </div>
       </FormModal>
 
-      {/* Save Confirm */}
+      {/* Confirm Save */}
       <ConfirmDialog
         open={confirmOpen}
-        onOpenChange={(open) => {
-          if (!open) handleConfirmCancel()
-        }}
+        onOpenChange={(open) => { if (!open) handleConfirmCancel() }}
         title={editingCategory !== null ? 'Update Kategori' : 'Tambah Kategori'}
         description={`Yakin ingin ${editingCategory !== null ? 'mengupdate' : 'menambahkan'} kategori "${pendingValues?.name}"?`}
         confirmLabel="Ya, Simpan"
@@ -348,14 +337,11 @@ export function CategoryTab({ openAdd, onOpenAddChange }: CategoryTabProps) {
         onConfirm={handleConfirmSave}
       />
 
-      {/* Delete Confirm */}
+      {/* Confirm Delete */}
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            closeDelete()
-            setDeletingCategory(null)
-          }
+          if (!open) { closeDelete(); setDeletingCategory(null) }
         }}
         title="Hapus Kategori"
         description={`Yakin ingin menghapus kategori "${deletingCategory?.name}"? Tindakan ini tidak bisa dibatalkan.`}

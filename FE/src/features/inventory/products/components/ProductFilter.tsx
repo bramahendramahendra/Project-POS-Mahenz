@@ -12,13 +12,14 @@ import {
 } from '@/shared/components/ui/select'
 import { useDebounce } from '@/shared/hooks'
 
-import type { Category, ProductFilter } from '../products.types'
+import type { ProductFilter } from '../products.types'
+import type { CategoryOption } from '@/features/inventory/categories'
 
 interface ProductFilterProps {
   filter: ProductFilter
   onChange: (filter: ProductFilter) => void
   onReset: () => void
-  categories: Category[]
+  categories: CategoryOption[]
 }
 
 export function ProductFilterBar({ filter, onChange, onReset, categories }: ProductFilterProps) {
