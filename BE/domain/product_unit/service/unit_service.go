@@ -1,112 +1,122 @@
-package service_product_unit
+package service
 
 import (
 	"strings"
 
-	dto_product_unit "pos_api/domain/product_unit/dto"
-	model_product_unit "pos_api/domain/product_unit/model"
-	repo_product_unit "pos_api/domain/product_unit/repo"
+	dto "pos_api/domain/product_unit/dto"
+	model "pos_api/domain/product_unit/model"
 	"pos_api/errors"
 )
 
-type unitService struct {
-	repo repo_product_unit.UnitRepo
-}
-
-func NewUnitService(repo repo_product_unit.UnitRepo) UnitService {
-	return &unitService{repo: repo}
-}
-
-func (s *unitService) GetAll() ([]*dto_product_unit.UnitResponse, error) {
-	units, err := s.repo.GetAll()
+func (s *unitService) GetAll() (data []dto.UnitResponse, err error) {
+	dataDB, err := s.repo.GetAll()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	result := make([]*dto_product_unit.UnitResponse, 0, len(units))
-	for _, u := range units {
-		result = append(result, toUnitResponse(u))
+
+	for _, v := range dataDB {
+		data = append(data, toUnitResponse(v))
 	}
-	return result, nil
+
+	return data, nil
 }
 
-func (s *unitService) GetActive() ([]*dto_product_unit.UnitActiveResponse, error) {
-	units, err := s.repo.GetActive()
+func (s *unitService) GetActive() (data []dto.UnitActiveResponse, err error) {
+	dataDB, err := s.repo.GetActive()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	result := make([]*dto_product_unit.UnitActiveResponse, 0, len(units))
-	for _, u := range units {
-		result = append(result, toUnitActiveResponse(u))
+
+	for _, v := range dataDB {
+		data = append(data, toUnitActiveResponse(v))
 	}
-	return result, nil
+
+	return data, nil
 }
 
-func (s *unitService) GetByID(id int) (*dto_product_unit.UnitResponse, error) {
-	u, err := s.repo.GetByID(id)
+func (s *unitService) GetByID(id int) (data dto.UnitResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	if u == nil {
-		return nil, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
+	if dataDB == nil || dataDB.ID == 0 {
+		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
-	return toUnitResponse(u), nil
+
+	data = toUnitResponse(dataDB)
+	return data, nil
 }
 
-func (s *unitService) Create(req *dto_product_unit.CreateUnitRequest) (*dto_product_unit.UnitResponse, error) {
+func (s *unitService) Create(req *dto.CreateUnitRequest) (data dto.UnitResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Abbreviation = strings.TrimSpace(req.Abbreviation)
+
 	exists, err := s.repo.CheckNameExists(req.Name, 0)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if exists {
-		return nil, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
 	}
 
-	newID, err := s.repo.Create(req.Name, req.Abbreviation)
+	newID, err := s.repo.Create(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 
-	created, err := s.repo.GetByID(int(newID))
-	if err != nil || created == nil {
-		return nil, &errors.InternalServerError{Message: "Gagal mengambil data satuan baru"}
+	dataDB, err := s.repo.GetByID(int(newID))
+	if err != nil {
+		return data, err
 	}
-	return toUnitResponse(created), nil
+
+	data = toUnitResponse(dataDB)
+	return data, nil
 }
 
-func (s *unitService) Update(id int, req *dto_product_unit.UpdateUnitRequest) error {
+func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Abbreviation = strings.TrimSpace(req.Abbreviation)
-	u, err := s.repo.GetByID(id)
+
+	existsUpdate, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	if u == nil {
-		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
+	if existsUpdate == nil || existsUpdate.ID == 0 {
+		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
-	exists, err := s.repo.CheckNameExists(req.Name, id)
+	exists, err := s.repo.CheckNameExists(req.Name, req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if exists {
-		return &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
 	}
 
-	return s.repo.Update(id, req.Name, req.Abbreviation)
+	err = s.repo.Update(req)
+	if err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+
+	data = toUnitResponse(dataDB)
+	return data, nil
 }
 
-func (s *unitService) Delete(id int) error {
-	u, err := s.repo.GetByID(id)
+func (s *unitService) Delete(req *dto.DeleteUnitRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if u == nil {
+	if exists == nil || exists.ID == 0 {
 		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
-	count, err := s.repo.CountProductUnitsByUnit(id)
+	count, err := s.repo.CountProductUnitsByUnit(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -114,31 +124,33 @@ func (s *unitService) Delete(id int) error {
 		return &errors.BadRequestError{Message: "Satuan masih digunakan oleh produk"}
 	}
 
-	return s.repo.Delete(id)
+	return s.repo.Delete(req)
 }
 
-func (s *unitService) ToggleStatus(id int) error {
-	u, err := s.repo.GetByID(id)
+func (s *unitService) ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if u == nil {
+	if exists == nil || exists.ID == 0 {
 		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
-	return s.repo.ToggleStatus(id)
+
+	return s.repo.ToggleStatus(req)
 }
 
-func toUnitResponse(u *model_product_unit.Unit) *dto_product_unit.UnitResponse {
-	return &dto_product_unit.UnitResponse{
+func toUnitResponse(u *model.Unit) dto.UnitResponse {
+	return dto.UnitResponse{
 		ID:           u.ID,
 		Name:         u.Name,
 		Abbreviation: u.Abbreviation,
 		IsActive:     u.IsActive,
+		CreatedAt:    u.CreatedAt,
 	}
 }
 
-func toUnitActiveResponse(u *model_product_unit.Unit) *dto_product_unit.UnitActiveResponse {
-	return &dto_product_unit.UnitActiveResponse{
+func toUnitActiveResponse(u *model.Unit) dto.UnitActiveResponse {
+	return dto.UnitActiveResponse{
 		ID:           u.ID,
 		Name:         u.Name,
 		Abbreviation: u.Abbreviation,

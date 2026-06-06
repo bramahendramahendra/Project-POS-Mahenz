@@ -1,13 +1,26 @@
-package service_product_unit
+package service
 
-import dto_product_unit "pos_api/domain/product_unit/dto"
+import (
+	dto "pos_api/domain/product_unit/dto"
+	repo "pos_api/domain/product_unit/repo"
+)
 
-type UnitService interface {
-	GetAll() ([]*dto_product_unit.UnitResponse, error)
-	GetActive() ([]*dto_product_unit.UnitActiveResponse, error)
-	GetByID(id int) (*dto_product_unit.UnitResponse, error)
-	Create(req *dto_product_unit.CreateUnitRequest) (*dto_product_unit.UnitResponse, error)
-	Update(id int, req *dto_product_unit.UpdateUnitRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	UnitServiceInterface interface {
+		GetAll() (data []dto.UnitResponse, err error)
+		GetActive() (data []dto.UnitActiveResponse, err error)
+		GetByID(id int) (data dto.UnitResponse, err error)
+		Create(req *dto.CreateUnitRequest) (data dto.UnitResponse, err error)
+		Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse, err error)
+		Delete(req *dto.DeleteUnitRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error)
+	}
+
+	unitService struct {
+		repo repo.UnitRepoInterface
+	}
+)
+
+func NewUnitService(repo repo.UnitRepoInterface) *unitService {
+	return &unitService{repo: repo}
 }

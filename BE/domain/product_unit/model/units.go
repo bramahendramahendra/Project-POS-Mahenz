@@ -1,12 +1,14 @@
-package model_product_unit
+package model
 
 import "time"
 
-type Unit struct {
-	ID           int       `db:"id"`
-	Name         string    `db:"name"`
-	Abbreviation string    `db:"abbreviation"`
-	IsActive     bool      `db:"is_active"`
-	CreatedAt    time.Time `db:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at"`
-}
+type (
+	Unit struct {
+		ID           int       `gorm:"column:id"`
+		Name         string    `gorm:"column:name"`
+		Abbreviation string    `gorm:"column:abbreviation"`
+		IsActive     bool      `gorm:"column:is_active"`
+		CreatedAt    time.Time `gorm:"column:created_at"`
+		UpdatedAt    time.Time `gorm:"column:updated_at"`
+	}
+)

@@ -1,24 +1,46 @@
-package dto_product_unit
+package dto
 
-type CreateUnitRequest struct {
-	Name         string `json:"name" validate:"required,min=1"`
-	Abbreviation string `json:"abbreviation" validate:"required,min=1"`
-}
+import "time"
 
-type UpdateUnitRequest struct {
-	Name         string `json:"name" validate:"required,min=1"`
-	Abbreviation string `json:"abbreviation" validate:"required,min=1"`
-}
+type (
+	GetUnitByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type UnitResponse struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Abbreviation string `json:"abbreviation"`
-	IsActive     bool   `json:"is_active"`
-}
+	UnitResponse struct {
+		ID           int       `json:"id"`
+		Name         string    `json:"name"`
+		Abbreviation string    `json:"abbreviation"`
+		IsActive     bool      `json:"is_active"`
+		CreatedAt    time.Time `json:"created_at"`
+	}
 
-type UnitActiveResponse struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Abbreviation string `json:"abbreviation"`
-}
+	UnitActiveResponse struct {
+		ID           int    `json:"id"`
+		Name         string `json:"name"`
+		Abbreviation string `json:"abbreviation"`
+	}
+
+	CreateUnitRequest struct {
+		Name         string `json:"name" validate:"required,min=1"`
+		Abbreviation string `json:"abbreviation" validate:"required,min=1"`
+	}
+
+	UpdateUnitUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	UpdateUnitRequest struct {
+		ID           int    `json:"-"`
+		Name         string `json:"name" validate:"required,min=1"`
+		Abbreviation string `json:"abbreviation" validate:"required,min=1"`
+	}
+
+	DeleteUnitRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	ToggleStatusUnitRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+)

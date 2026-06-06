@@ -1,15 +1,37 @@
-package repo_product_unit
+package repo
 
-import model_product_unit "pos_api/domain/product_unit/model"
+import (
+	dto "pos_api/domain/product_unit/dto"
+	model "pos_api/domain/product_unit/model"
 
-type UnitRepo interface {
-	GetAll() ([]*model_product_unit.Unit, error)
-	GetActive() ([]*model_product_unit.Unit, error)
-	GetByID(id int) (*model_product_unit.Unit, error)
-	CheckNameExists(name string, excludeID int) (bool, error)
-	CountProductUnitsByUnit(unitID int) (int, error)
-	Create(name, abbreviation string) (int64, error)
-	Update(id int, name, abbreviation string) error
-	Delete(id int) error
-	ToggleStatus(id int) error
+	"gorm.io/gorm"
+)
+
+type (
+	UnitRepoInterface interface {
+		GetAll() ([]*model.Unit, error)
+		GetActive() ([]*model.Unit, error)
+		GetByID(id int) (*model.Unit, error)
+		Create(req *dto.CreateUnitRequest) (int64, error)
+		Update(req *dto.UpdateUnitRequest) error
+		Delete(req *dto.DeleteUnitRequest) error
+		ToggleStatus(req *dto.ToggleStatusUnitRequest) error
+
+		CheckNameExists(name string, excludeID int) (bool, error)
+		CountProductUnitsByUnit(unitID int) (int, error)
+
+		GetDB() *gorm.DB
+	}
+
+	unitRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewUnitRepo(db *gorm.DB) *unitRepo {
+	return &unitRepo{db: db}
+}
+
+func (r *unitRepo) GetDB() *gorm.DB {
+	return r.db
 }
