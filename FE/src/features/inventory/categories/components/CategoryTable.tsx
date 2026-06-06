@@ -17,9 +17,9 @@ import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 import {
   useCategoryListQuery,
   useCreateCategoryMutation,
+  useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useToggleCategoryStatusMutation,
-  useUpdateCategoryMutation,
 } from '../categories.api'
 import type { Category } from '../categories.types'
 

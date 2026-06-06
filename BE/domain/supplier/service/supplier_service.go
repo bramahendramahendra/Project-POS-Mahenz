@@ -1,45 +1,11 @@
 package service
 
 import (
-	"fmt"
 	"strings"
 
 	dto "pos_api/domain/supplier/dto"
-	model "pos_api/domain/supplier/model"
 	"pos_api/errors"
 )
-
-func mapSupplierToDTO(v *model.Supplier) dto.SupplierResponse {
-	return dto.SupplierResponse{
-		ID:            v.ID,
-		SupplierCode:  v.SupplierCode,
-		Name:          v.Name,
-		Address:       v.Address,
-		Phone:         v.Phone,
-		Email:         v.Email,
-		ContactPerson: v.ContactPerson,
-		Notes:         v.Notes,
-		IsActive:      v.IsActive,
-		CreatedAt:     v.CreatedAt,
-	}
-}
-
-func (s *supplierService) generateUniqueCode() (string, error) {
-	count, err := s.repo.GetCount()
-	if err != nil {
-		return "", err
-	}
-	for i := count + 1; ; i++ {
-		code := fmt.Sprintf("SUP-%03d", i)
-		exists, err := s.repo.CheckCodeExists(code)
-		if err != nil {
-			return "", err
-		}
-		if !exists {
-			return code, nil
-		}
-	}
-}
 
 func (s *supplierService) GetAll(req *dto.SupplierListRequest) (data []dto.SupplierResponse, total int64, err error) {
 	dataDB, total, err := s.repo.GetAll(req)
@@ -48,7 +14,18 @@ func (s *supplierService) GetAll(req *dto.SupplierListRequest) (data []dto.Suppl
 	}
 
 	for _, v := range dataDB {
-		data = append(data, mapSupplierToDTO(v))
+		data = append(data, dto.SupplierResponse{
+			ID:            v.ID,
+			SupplierCode:  v.SupplierCode,
+			Name:          v.Name,
+			Address:       v.Address,
+			Phone:         v.Phone,
+			Email:         v.Email,
+			ContactPerson: v.ContactPerson,
+			Notes:         v.Notes,
+			IsActive:      v.IsActive,
+			CreatedAt:     v.CreatedAt,
+		})
 	}
 
 	return data, total, nil
@@ -146,7 +123,20 @@ func (s *supplierService) Create(req *dto.CreateSupplierRequest) (data dto.Suppl
 		return data, err
 	}
 
-	return mapSupplierToDTO(dataDB), nil
+	data = dto.SupplierResponse{
+		ID:            dataDB.ID,
+		SupplierCode:  dataDB.SupplierCode,
+		Name:          dataDB.Name,
+		Address:       dataDB.Address,
+		Phone:         dataDB.Phone,
+		Email:         dataDB.Email,
+		ContactPerson: dataDB.ContactPerson,
+		Notes:         dataDB.Notes,
+		IsActive:      dataDB.IsActive,
+		CreatedAt:     dataDB.CreatedAt,
+	}
+
+	return data, nil
 }
 
 func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.SupplierResponse, err error) {
@@ -178,7 +168,20 @@ func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.Suppl
 		return data, err
 	}
 
-	return mapSupplierToDTO(dataDB), nil
+	data = dto.SupplierResponse{
+		ID:            dataDB.ID,
+		SupplierCode:  dataDB.SupplierCode,
+		Name:          dataDB.Name,
+		Address:       dataDB.Address,
+		Phone:         dataDB.Phone,
+		Email:         dataDB.Email,
+		ContactPerson: dataDB.ContactPerson,
+		Notes:         dataDB.Notes,
+		IsActive:      dataDB.IsActive,
+		CreatedAt:     dataDB.CreatedAt,
+	}
+
+	return data, nil
 }
 
 func (s *supplierService) Delete(req *dto.DeleteSupplierRequest) error {
