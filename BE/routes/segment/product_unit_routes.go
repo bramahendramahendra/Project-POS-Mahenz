@@ -17,12 +17,12 @@ func ProductUnitRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/units")
 	{
-		g.GET("", unitHand.GetAll)
-		g.GET("/active", unitHand.GetActive)
-		g.GET("/:id", unitHand.GetByID)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), unitHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner", "admin"), unitHand.ToggleStatus)
+		g.POST("/list", unitHand.GetAll)
+		g.POST("/list-active", unitHand.GetActive)
+		g.POST("/detail/:id", unitHand.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), unitHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.ToggleStatus)
 	}
 }

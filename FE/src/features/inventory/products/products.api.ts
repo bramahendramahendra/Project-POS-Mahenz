@@ -177,14 +177,14 @@ export function useProductBarcodeQuery(code: string, enabled: boolean) {
 export function useCategoryListQuery() {
   return useQuery({
     queryKey: queryKeys.categories.list(),
-    queryFn: () => api.get<Category[]>('/categories'),
+    queryFn: () => api.post<Category[]>('/categories/list', {}),
   })
 }
 
 export function useUnitListQuery() {
   return useQuery({
     queryKey: queryKeys.units.list(),
-    queryFn: () => api.get<Unit[]>('/units'),
+    queryFn: () => api.post<Unit[]>('/units/list', {}),
   })
 }
 
@@ -257,7 +257,7 @@ export function useToggleProductStatusMutation() {
 export function useCreateCategoryMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateCategoryPayload) => api.post<Category>('/categories', payload),
+    mutationFn: (payload: CreateCategoryPayload) => api.post<Category>('/categories/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
     },
@@ -269,7 +269,7 @@ export function useUpdateCategoryMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateCategoryPayload & { id: number }) =>
-      api.put<Category>(`/categories/${id}`, payload),
+      api.post<Category>(`/categories/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
     },
@@ -280,7 +280,7 @@ export function useUpdateCategoryMutation() {
 export function useDeleteCategoryMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete<void>(`/categories/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/categories/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
     },
@@ -291,7 +291,7 @@ export function useDeleteCategoryMutation() {
 export function useToggleCategoryStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.patch<void>(`/categories/${id}/toggle-status`),
+    mutationFn: (id: number) => api.post<void>(`/categories/toggle-status/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
     },
@@ -304,7 +304,7 @@ export function useToggleCategoryStatusMutation() {
 export function useCreateUnitMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateUnitPayload) => api.post<Unit>('/units', payload),
+    mutationFn: (payload: CreateUnitPayload) => api.post<Unit>('/units/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
     },
@@ -316,7 +316,7 @@ export function useUpdateUnitMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateUnitPayload & { id: number }) =>
-      api.put<Unit>(`/units/${id}`, payload),
+      api.post<Unit>(`/units/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
     },
@@ -327,7 +327,7 @@ export function useUpdateUnitMutation() {
 export function useDeleteUnitMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete<void>(`/units/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/units/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
     },
@@ -338,7 +338,7 @@ export function useDeleteUnitMutation() {
 export function useToggleUnitStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.patch<void>(`/units/${id}/toggle-status`),
+    mutationFn: (id: number) => api.post<void>(`/units/toggle-status/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
     },
