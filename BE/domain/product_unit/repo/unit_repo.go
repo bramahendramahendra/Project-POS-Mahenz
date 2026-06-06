@@ -1,26 +1,25 @@
 package repo
 
 import (
-	"fmt"
-
 	dto "pos_api/domain/product_unit/dto"
 	model "pos_api/domain/product_unit/model"
 )
 
 const (
-	countUnitsQuery        = `SELECT COUNT(*) FROM units WHERE 1=1`
-	countUnitsSearchQuery  = `SELECT COUNT(*) FROM units WHERE name LIKE ?`
-	getAllUnitsQuery       = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
-	getAllUnitsOrder       = ` ORDER BY name`
-	getAllUnitOptionsQuery = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
-	getUnitByIDQuery       = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
-	checkUnitNameQuery     = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
-	checkUnitUsedQuery     = `SELECT COUNT(*) FROM product_units WHERE unit_id = ?`
-	createUnitQuery        = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
-	getLastInsertIDQuery   = `SELECT LAST_INSERT_ID()`
-	updateUnitQuery        = `UPDATE units SET name = ?, abbreviation = ?, updated_at = NOW() WHERE id = ?`
-	deleteUnitQuery        = `DELETE FROM units WHERE id = ?`
-	toggleUnitStatusQuery  = `UPDATE units SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	countUnitsQuery                = `SELECT COUNT(*) FROM units WHERE 1=1`
+	countUnitsSearchQuery          = `SELECT COUNT(*) FROM units WHERE name LIKE ?`
+	getAllUnitsQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
+	getAllUnitsOrder               = ` ORDER BY name`
+	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
+	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
+	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
+	checkUnitUsedQuery             = `SELECT COUNT(*) FROM product_units WHERE unit_id = ?`
+	checkActiveProductsByUnitQuery = `SELECT COUNT(*) FROM product_units pu JOIN products p ON p.id = pu.product_id WHERE pu.unit_id = ? AND p.is_active = 1`
+	createUnitQuery                = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
+	getLastInsertIDQuery           = `SELECT LAST_INSERT_ID()`
+	updateUnitQuery                = `UPDATE units SET name = ?, abbreviation = ?, updated_at = NOW() WHERE id = ?`
+	deleteUnitQuery                = `DELETE FROM units WHERE id = ?`
+	toggleUnitStatusQuery          = `UPDATE units SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
 func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error) {
@@ -29,14 +28,15 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	if page <= 0 {
 		page = 1
 	}
-	if limit <= 0 {
+	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
 	offset := (page - 1) * limit
 
 	var total int64
 	if req.Search != "" {
-		if err := r.db.Raw(countUnitsSearchQuery, "%"+req.Search+"%").Scan(&total).Error; err != nil {
+		search := "%" + req.Search + "%"
+		if err := r.db.Raw(countUnitsSearchQuery, search).Scan(&total).Error; err != nil {
 			return nil, 0, err
 		}
 	} else {
@@ -52,7 +52,8 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 		args = append(args, "%"+req.Search+"%")
 	}
 	query += getAllUnitsOrder
-	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+	query += " LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
 	var units []*model.Unit
 	if err := r.db.Raw(query, args...).Scan(&units).Error; err != nil {
@@ -61,8 +62,8 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	return units, total, nil
 }
 
-func (r *unitRepo) GetOptions() ([]*dto.UnitActiveResponse, error) {
-	var units []*dto.UnitActiveResponse
+func (r *unitRepo) GetOptions() ([]*dto.UnitOptionResponse, error) {
+	var units []*dto.UnitOptionResponse
 	if err := r.db.Raw(getAllUnitOptionsQuery).Scan(&units).Error; err != nil {
 		return nil, err
 	}
@@ -120,6 +121,15 @@ func (r *unitRepo) CheckNameExists(name string, excludeID int) (bool, error) {
 func (r *unitRepo) CountProductUnitsByUnit(unitID int) (int, error) {
 	var count int
 	err := r.db.Raw(checkUnitUsedQuery, unitID).Scan(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *unitRepo) CountActiveProductsByUnit(unitID int) (int, error) {
+	var count int
+	err := r.db.Raw(checkActiveProductsByUnitQuery, unitID).Scan(&count).Error
 	if err != nil {
 		return 0, err
 	}

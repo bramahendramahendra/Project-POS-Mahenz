@@ -1,22 +1,3 @@
-export interface Unit {
-  id: number
-  name: string
-  abbreviation: string
-  is_active: boolean
-}
-
-export interface UnitOption {
-  id: number
-  name: string
-  abbreviation: string
-}
-
-export interface UnitListFilter {
-  page: number
-  limit: number
-  search: string
-}
-
 export interface ProductPackage {
   id: number
   product_id: number
@@ -87,12 +68,6 @@ export interface CreateProductPayload {
 }
 
 export type UpdateProductPayload = Partial<CreateProductPayload>
-
-export interface CreateUnitPayload {
-  name: string
-  abbreviation: string
-}
-export type UpdateUnitPayload = Partial<CreateUnitPayload>
 
 export interface CreateProductPackagePayload {
   unit_id: number

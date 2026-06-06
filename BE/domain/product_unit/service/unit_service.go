@@ -26,14 +26,14 @@ func (s *unitService) GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse,
 	return data, total, nil
 }
 
-func (s *unitService) GetOptions() (data []dto.UnitActiveResponse, err error) {
+func (s *unitService) GetOptions() (data []dto.UnitOptionResponse, err error) {
 	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.UnitActiveResponse{
+		data = append(data, dto.UnitOptionResponse{
 			ID:           v.ID,
 			Name:         v.Name,
 			Abbreviation: v.Abbreviation,
@@ -47,6 +47,9 @@ func (s *unitService) GetByID(id int) (data dto.UnitResponse, err error) {
 	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
 		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
 	}
 
 	data = dto.UnitResponse{
@@ -145,7 +148,7 @@ func (s *unitService) Delete(req *dto.DeleteUnitRequest) (err error) {
 
 	count, err := s.repo.CountProductUnitsByUnit(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return &errors.InternalServerError{Message: "Gagal memeriksa penggunaan satuan"}
 	}
 	if count > 0 {
 		return &errors.BadRequestError{Message: "Satuan masih digunakan oleh produk"}
@@ -161,6 +164,16 @@ func (s *unitService) ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error)
 	}
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
+	}
+
+	if exists.IsActive {
+		activeCount, err := s.repo.CountActiveProductsByUnit(req.ID)
+		if err != nil {
+			return &errors.InternalServerError{Message: "Gagal memeriksa produk aktif satuan"}
+		}
+		if activeCount > 0 {
+			return &errors.BadRequestError{Message: "Satuan tidak bisa dinonaktifkan karena masih digunakan oleh produk aktif"}
+		}
 	}
 
 	return s.repo.ToggleStatus(req)

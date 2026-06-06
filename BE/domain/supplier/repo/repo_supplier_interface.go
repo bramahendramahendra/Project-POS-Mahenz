@@ -1,20 +1,42 @@
-package repo_supplier
+package repo
 
 import (
-	dto_supplier "pos_api/domain/supplier/dto"
-	model_supplier "pos_api/domain/supplier/model"
+	dto "pos_api/domain/supplier/dto"
+	model "pos_api/domain/supplier/model"
+
+	"gorm.io/gorm"
 )
 
-type SupplierRepo interface {
-	GetAll(filter *dto_supplier.SupplierFilter) ([]*dto_supplier.SupplierResponse, int, error)
-	GetActiveList() ([]*dto_supplier.SupplierActiveItem, error)
-	GetByID(id int) (*model_supplier.Supplier, error)
-	GetPurchaseHistory(supplierID int) ([]dto_supplier.SupplierPurchaseItem, error)
-	GetReturnHistory(supplierID int) ([]dto_supplier.SupplierReturnHistoryItem, error)
-	GetCount() (int, error)
-	CountPurchasesBySupplier(supplierID int) (int, error)
-	Create(code string, req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error)
-	Update(id int, req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error)
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	SupplierRepo interface {
+		GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, int64, error)
+		GetOptions() ([]*dto.SupplierOptionResponse, error)
+		GetByID(id int) (*model.Supplier, error)
+		Create(req *dto.CreateSupplierRequest, code string) (int64, error)
+		Update(req *dto.UpdateSupplierRequest) error
+		Delete(req *dto.DeleteSupplierRequest) error
+		ToggleStatus(req *dto.ToggleStatusSupplierRequest) error
+
+		GetPurchaseHistory(supplierID int) ([]dto.SupplierPurchaseItem, error)
+		GetReturnHistory(supplierID int) ([]dto.SupplierReturnHistoryItem, error)
+		CheckCodeExists(code string) (bool, error)
+		CheckNameExists(name string, excludeID int) (bool, error)
+		GetCount() (int, error)
+		CountPurchasesBySupplier(supplierID int) (int, error)
+		CountActiveDebtBySupplier(supplierID int) (int, error)
+
+		GetDB() *gorm.DB
+	}
+
+	supplierRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewSupplierRepo(db *gorm.DB) *supplierRepo {
+	return &supplierRepo{db: db}
+}
+
+func (r *supplierRepo) GetDB() *gorm.DB {
+	return r.db
 }

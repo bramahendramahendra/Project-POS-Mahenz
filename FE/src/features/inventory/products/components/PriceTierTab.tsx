@@ -26,9 +26,9 @@ import {
   useDeletePriceTierMutation,
   useProductPackagesQuery,
   useProductPricesQuery,
-  useUnitOptionsQuery,
   useUpdatePriceTierMutation,
 } from '../products.api'
+import { useUnitOptionsQuery } from '@/features/inventory/units'
 import type { PriceTier, ProductPackage } from '../products.types'
 
 // ─── Price Tier Form ──────────────────────────────────────────────────────────

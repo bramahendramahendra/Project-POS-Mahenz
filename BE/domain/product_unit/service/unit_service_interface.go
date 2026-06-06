@@ -8,7 +8,7 @@ import (
 type (
 	UnitServiceInterface interface {
 		GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse, total int64, err error)
-		GetOptions() (data []dto.UnitActiveResponse, err error)
+		GetOptions() (data []dto.UnitOptionResponse, err error)
 		GetByID(id int) (data dto.UnitResponse, err error)
 		Create(req *dto.CreateUnitRequest) (data dto.UnitResponse, err error)
 		Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse, err error)

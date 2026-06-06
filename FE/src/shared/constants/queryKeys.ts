@@ -29,6 +29,7 @@ export const queryKeys = {
   suppliers: {
     all: () => ['suppliers'] as const,
     list: (filter?: Filter) => ['suppliers', 'list', filter] as const,
+    options: () => ['suppliers', 'options'] as const,
     detail: (id: number) => ['suppliers', 'detail', id] as const,
   },
 

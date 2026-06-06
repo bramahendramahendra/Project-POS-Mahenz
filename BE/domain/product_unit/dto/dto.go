@@ -10,7 +10,7 @@ type (
 	UnitListRequest struct {
 		Page   int    `json:"page"`
 		Limit  int    `json:"limit"`
-		Search string `json:"search"`
+		Search string `json:"search" validate:"max=100"`
 	}
 
 	UnitResponse struct {
@@ -21,15 +21,15 @@ type (
 		CreatedAt    time.Time `json:"created_at"`
 	}
 
-	UnitActiveResponse struct {
+	UnitOptionResponse struct {
 		ID           int    `json:"id"`
 		Name         string `json:"name"`
 		Abbreviation string `json:"abbreviation"`
 	}
 
 	CreateUnitRequest struct {
-		Name         string `json:"name" validate:"required,min=1"`
-		Abbreviation string `json:"abbreviation" validate:"required,min=1"`
+		Name         string `json:"name" validate:"required,min=2,max=100"`
+		Abbreviation string `json:"abbreviation" validate:"required,min=2,max=20"`
 	}
 
 	UpdateUnitUriRequest struct {
@@ -38,8 +38,8 @@ type (
 
 	UpdateUnitRequest struct {
 		ID           int    `json:"-"`
-		Name         string `json:"name" validate:"required,min=1"`
-		Abbreviation string `json:"abbreviation" validate:"required,min=1"`
+		Name         string `json:"name" validate:"required,min=2,max=100"`
+		Abbreviation string `json:"abbreviation" validate:"required,min=2,max=20"`
 	}
 
 	DeleteUnitRequest struct {

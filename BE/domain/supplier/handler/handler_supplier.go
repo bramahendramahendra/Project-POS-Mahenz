@@ -1,44 +1,50 @@
-package handler_supplier
+package handler
 
 import (
-	"strconv"
-
-	dto_supplier "pos_api/domain/supplier/dto"
-	service_supplier "pos_api/domain/supplier/service"
+	dto "pos_api/domain/supplier/dto"
+	service "pos_api/domain/supplier/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type SupplierHandler struct {
-	service service_supplier.SupplierService
+	service service.SupplierServiceInterface
 }
 
-func NewSupplierHandler(service service_supplier.SupplierService) *SupplierHandler {
+func NewSupplierHandler(service service.SupplierServiceInterface) *SupplierHandler {
 	return &SupplierHandler{service: service}
 }
 
-// GET /api/suppliers
 func (h *SupplierHandler) GetAll(c *gin.Context) {
-	filter := &dto_supplier.SupplierFilter{
-		Search: c.Query("search"),
+	req, err := binder.BindJSON[dto.SupplierListRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	if isActiveStr := c.Query("is_active"); isActiveStr != "" {
-		val := isActiveStr == "true" || isActiveStr == "1"
-		filter.IsActive = &val
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	filter.Page = page
-	filter.Limit = limit
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar supplier",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
 
-	items, total, err := h.service.GetAll(filter)
+func (h *SupplierHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
 	if err != nil {
 		c.Error(err)
 		return
@@ -47,41 +53,24 @@ func (h *SupplierHandler) GetAll(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar supplier",
-		Data: gin.H{
-			"items": items,
-			"total": total,
-			"page":  filter.Page,
-			"limit": filter.Limit,
-		},
+		Message: "Opsi supplier",
+		Data:    data,
 	})
 }
 
-// GET /api/suppliers/active
-func (h *SupplierHandler) GetActiveList(c *gin.Context) {
-	items, err := h.service.GetActiveList()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar supplier aktif",
-		Data:    items,
-	})
-}
-
-// GET /api/suppliers/:id
 func (h *SupplierHandler) GetDetail(c *gin.Context) {
-	id, err := parseSupplierID(c)
+	req, err := binder.BindURI[dto.GetSupplierByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	item, svcErr := h.service.GetDetail(id)
+	data, svcErr := h.service.GetDetail(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -91,55 +80,56 @@ func (h *SupplierHandler) GetDetail(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail supplier",
-		Data:    item,
+		Data:    data,
 	})
 }
 
-// POST /api/suppliers
 func (h *SupplierHandler) Create(c *gin.Context) {
-	var req dto_supplier.SupplierRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.CreateSupplierRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	item, svcErr := h.service.Create(&req)
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, svcErr := h.service.Create(&req)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
 
 	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusCreated,
+		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Supplier berhasil ditambahkan",
-		Data:    item,
+		Data:    data,
 	})
 }
 
-// PUT /api/suppliers/:id
 func (h *SupplierHandler) Update(c *gin.Context) {
-	id, err := parseSupplierID(c)
+	uriReq, err := binder.BindURI[dto.UpdateSupplierUriRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdateSupplierRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	var req dto_supplier.SupplierRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	item, svcErr := h.service.Update(id, &req)
+	data, svcErr := h.service.Update(&req)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -149,19 +139,23 @@ func (h *SupplierHandler) Update(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Supplier berhasil diperbarui",
-		Data:    item,
+		Data:    data,
 	})
 }
 
-// DELETE /api/suppliers/:id
 func (h *SupplierHandler) Delete(c *gin.Context) {
-	id, err := parseSupplierID(c)
+	req, err := binder.BindURI[dto.DeleteSupplierRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Delete(id); svcErr != nil {
+	if svcErr := h.service.Delete(&req); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -173,15 +167,19 @@ func (h *SupplierHandler) Delete(c *gin.Context) {
 	})
 }
 
-// PATCH /api/suppliers/:id/toggle-status
 func (h *SupplierHandler) ToggleStatus(c *gin.Context) {
-	id, err := parseSupplierID(c)
+	req, err := binder.BindURI[dto.ToggleStatusSupplierRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.ToggleStatus(id); svcErr != nil {
+	if svcErr := h.service.ToggleStatus(&req); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -191,12 +189,4 @@ func (h *SupplierHandler) ToggleStatus(c *gin.Context) {
 		Status:  true,
 		Message: "Status supplier berhasil diubah",
 	})
-}
-
-func parseSupplierID(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
 }

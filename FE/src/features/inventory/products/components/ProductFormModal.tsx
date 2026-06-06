@@ -24,10 +24,10 @@ import {
   useGenerateSkuQuery,
   useProductDetailQuery,
   useProductPackagesQuery,
-  useUnitOptionsQuery,
   useUpdateProductMutation,
   useSaveProductPackagesBulkMutation,
 } from '../products.api'
+import { useUnitOptionsQuery } from '@/features/inventory/units'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
 import type { CreateProductPackagePayload, Product } from '../products.types'
 

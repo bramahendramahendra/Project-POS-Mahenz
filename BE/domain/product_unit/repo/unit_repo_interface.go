@@ -10,7 +10,7 @@ import (
 type (
 	UnitRepoInterface interface {
 		GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error)
-		GetOptions() ([]*dto.UnitActiveResponse, error)
+		GetOptions() ([]*dto.UnitOptionResponse, error)
 		GetByID(id int) (*model.Unit, error)
 		Create(req *dto.CreateUnitRequest) (int64, error)
 		Update(req *dto.UpdateUnitRequest) error
@@ -19,6 +19,7 @@ type (
 
 		CheckNameExists(name string, excludeID int) (bool, error)
 		CountProductUnitsByUnit(unitID int) (int, error)
+		CountActiveProductsByUnit(unitID int) (int, error)
 
 		GetDB() *gorm.DB
 	}

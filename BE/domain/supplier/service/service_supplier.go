@@ -1,46 +1,93 @@
-package service_supplier
+package service
 
 import (
 	"fmt"
+	"strings"
 
-	dto_supplier "pos_api/domain/supplier/dto"
-	repo_supplier "pos_api/domain/supplier/repo"
+	dto "pos_api/domain/supplier/dto"
+	model "pos_api/domain/supplier/model"
 	"pos_api/errors"
 )
 
-type supplierService struct {
-	repo repo_supplier.SupplierRepo
+func mapSupplierToDTO(v *model.Supplier) dto.SupplierResponse {
+	return dto.SupplierResponse{
+		ID:            v.ID,
+		SupplierCode:  v.SupplierCode,
+		Name:          v.Name,
+		Address:       v.Address,
+		Phone:         v.Phone,
+		Email:         v.Email,
+		ContactPerson: v.ContactPerson,
+		Notes:         v.Notes,
+		IsActive:      v.IsActive,
+		CreatedAt:     v.CreatedAt,
+	}
 }
 
-func NewSupplierService(repo repo_supplier.SupplierRepo) SupplierService {
-	return &supplierService{repo: repo}
+func (s *supplierService) generateUniqueCode() (string, error) {
+	count, err := s.repo.GetCount()
+	if err != nil {
+		return "", err
+	}
+	for i := count + 1; ; i++ {
+		code := fmt.Sprintf("SUP-%03d", i)
+		exists, err := s.repo.CheckCodeExists(code)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return code, nil
+		}
+	}
 }
 
-func (s *supplierService) GetAll(filter *dto_supplier.SupplierFilter) ([]*dto_supplier.SupplierResponse, int, error) {
-	return s.repo.GetAll(filter)
+func (s *supplierService) GetAll(req *dto.SupplierListRequest) (data []dto.SupplierResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
+	if err != nil {
+		return data, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, mapSupplierToDTO(v))
+	}
+
+	return data, total, nil
 }
 
-func (s *supplierService) GetActiveList() ([]*dto_supplier.SupplierActiveItem, error) {
-	return s.repo.GetActiveList()
+func (s *supplierService) GetOptions() (data []dto.SupplierOptionResponse, err error) {
+	dataDB, err := s.repo.GetOptions()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, dto.SupplierOptionResponse{
+			ID:           v.ID,
+			SupplierCode: v.SupplierCode,
+			Name:         v.Name,
+		})
+	}
+
+	return data, nil
 }
 
-func (s *supplierService) GetDetail(id int) (*dto_supplier.SupplierDetailResponse, error) {
+func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, err error) {
 	supplier, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return data, err
 	}
 	if supplier == nil {
-		return nil, &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
 	}
 
 	purchases, _ := s.repo.GetPurchaseHistory(id)
 	if purchases == nil {
-		purchases = []dto_supplier.SupplierPurchaseItem{}
+		purchases = []dto.SupplierPurchaseItem{}
 	}
 
 	returns, _ := s.repo.GetReturnHistory(id)
 	if returns == nil {
-		returns = []dto_supplier.SupplierReturnHistoryItem{}
+		returns = []dto.SupplierReturnHistoryItem{}
 	}
 
 	var totalAmount, totalDebt, totalReturnAmount float64
@@ -52,7 +99,7 @@ func (s *supplierService) GetDetail(id int) (*dto_supplier.SupplierDetailRespons
 		totalReturnAmount += r.TotalReturn
 	}
 
-	return &dto_supplier.SupplierDetailResponse{
+	data = dto.SupplierDetailResponse{
 		ID:              supplier.ID,
 		SupplierCode:    supplier.SupplierCode,
 		Name:            supplier.Name,
@@ -68,55 +115,110 @@ func (s *supplierService) GetDetail(id int) (*dto_supplier.SupplierDetailRespons
 		TotalReturn:     totalReturnAmount,
 		PurchaseHistory: purchases,
 		ReturnHistory:   returns,
-	}, nil
+	}
+
+	return data, nil
 }
 
-func (s *supplierService) Create(req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error) {
-	count, err := s.repo.GetCount()
+func (s *supplierService) Create(req *dto.CreateSupplierRequest) (data dto.SupplierResponse, err error) {
+	req.Name = strings.TrimSpace(req.Name)
+
+	exists, err := s.repo.CheckNameExists(req.Name, 0)
 	if err != nil {
-		return nil, err
+		return data, err
 	}
-	code := fmt.Sprintf("SUP-%03d", count+1)
-	return s.repo.Create(code, req)
-}
+	if exists {
+		return data, &errors.BadRequestError{Message: "Nama supplier sudah digunakan"}
+	}
 
-func (s *supplierService) Update(id int, req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error) {
-	supplier, err := s.repo.GetByID(id)
+	code, err := s.generateUniqueCode()
 	if err != nil {
-		return nil, err
+		return data, err
 	}
-	if supplier == nil {
-		return nil, &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
+
+	newID, err := s.repo.Create(req, code)
+	if err != nil {
+		return data, err
 	}
-	return s.repo.Update(id, req)
+
+	dataDB, err := s.repo.GetByID(int(newID))
+	if err != nil {
+		return data, err
+	}
+
+	return mapSupplierToDTO(dataDB), nil
 }
 
-func (s *supplierService) Delete(id int) error {
-	supplier, err := s.repo.GetByID(id)
+func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.SupplierResponse, err error) {
+	req.Name = strings.TrimSpace(req.Name)
+
+	existsUpdate, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if existsUpdate == nil {
+		return data, &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
+	}
+
+	exists, err := s.repo.CheckNameExists(req.Name, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if exists {
+		return data, &errors.BadRequestError{Message: "Nama supplier sudah digunakan"}
+	}
+
+	err = s.repo.Update(req)
+	if err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+
+	return mapSupplierToDTO(dataDB), nil
+}
+
+func (s *supplierService) Delete(req *dto.DeleteSupplierRequest) error {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}
-	if supplier == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
 	}
 
-	count, err := s.repo.CountPurchasesBySupplier(id)
+	count, err := s.repo.CountPurchasesBySupplier(req.ID)
 	if err != nil {
-		return err
+		return &errors.InternalServerError{Message: "Gagal memeriksa penggunaan supplier"}
 	}
 	if count > 0 {
 		return &errors.BadRequestError{Message: "Supplier tidak bisa dihapus karena sudah ada Purchase Order"}
 	}
-	return s.repo.Delete(id)
+
+	return s.repo.Delete(req)
 }
 
-func (s *supplierService) ToggleStatus(id int) error {
-	supplier, err := s.repo.GetByID(id)
+func (s *supplierService) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}
-	if supplier == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
 	}
-	return s.repo.ToggleStatus(id)
+
+	if exists.IsActive {
+		debtCount, err := s.repo.CountActiveDebtBySupplier(req.ID)
+		if err != nil {
+			return &errors.InternalServerError{Message: "Gagal memeriksa hutang aktif supplier"}
+		}
+		if debtCount > 0 {
+			return &errors.BadRequestError{Message: "Supplier tidak bisa dinonaktifkan karena masih memiliki hutang yang belum lunas"}
+		}
+	}
+
+	return s.repo.ToggleStatus(req)
 }

@@ -1,13 +1,26 @@
-package service_supplier
+package service
 
-import dto_supplier "pos_api/domain/supplier/dto"
+import (
+	dto "pos_api/domain/supplier/dto"
+	repo "pos_api/domain/supplier/repo"
+)
 
-type SupplierService interface {
-	GetAll(filter *dto_supplier.SupplierFilter) ([]*dto_supplier.SupplierResponse, int, error)
-	GetActiveList() ([]*dto_supplier.SupplierActiveItem, error)
-	GetDetail(id int) (*dto_supplier.SupplierDetailResponse, error)
-	Create(req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error)
-	Update(id int, req *dto_supplier.SupplierRequest) (*dto_supplier.SupplierResponse, error)
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	SupplierServiceInterface interface {
+		GetAll(req *dto.SupplierListRequest) (data []dto.SupplierResponse, total int64, err error)
+		GetOptions() (data []dto.SupplierOptionResponse, err error)
+		GetDetail(id int) (data dto.SupplierDetailResponse, err error)
+		Create(req *dto.CreateSupplierRequest) (data dto.SupplierResponse, err error)
+		Update(req *dto.UpdateSupplierRequest) (data dto.SupplierResponse, err error)
+		Delete(req *dto.DeleteSupplierRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusSupplierRequest) (err error)
+	}
+
+	supplierService struct {
+		repo repo.SupplierRepo
+	}
+)
+
+func NewSupplierService(repo repo.SupplierRepo) *supplierService {
+	return &supplierService{repo: repo}
 }

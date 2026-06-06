@@ -17,12 +17,12 @@ func SupplierRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/suppliers")
 	{
-		g.GET("", supplierHand.GetAll)
-		g.GET("/active", supplierHand.GetActiveList)
-		g.GET("/:id", supplierHand.GetDetail)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), supplierHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner", "admin"), supplierHand.ToggleStatus)
+		g.POST("/list", supplierHand.GetAll)
+		g.POST("/options", supplierHand.GetOptions)
+		g.POST("/detail/:id", supplierHand.GetDetail)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), supplierHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.ToggleStatus)
 	}
 }

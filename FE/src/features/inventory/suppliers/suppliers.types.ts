@@ -2,12 +2,13 @@ export interface Supplier {
   id: number
   supplier_code: string
   name: string
-  contact_person?: string
-  phone?: string
-  email?: string
-  address?: string
-  notes?: string
+  address: string
+  phone: string
+  email: string
+  contact_person: string
+  notes: string
   is_active: boolean
+  created_at: string
 }
 
 export interface SupplierPurchaseItem {
@@ -46,20 +47,22 @@ export interface SupplierDetail {
   return_history: SupplierReturnHistoryItem[]
 }
 
-export interface SupplierFilter {
-  search?: string
+export interface SupplierListFilter {
+  page: number
+  limit: number
+  search: string
   is_active?: boolean
-  page?: number
-  page_size?: number
 }
 
 export interface CreateSupplierPayload {
   name: string
-  contact_person?: string
+  address?: string
   phone?: string
   email?: string
-  address?: string
+  contact_person?: string
   notes?: string
 }
 
-export type UpdateSupplierPayload = Partial<CreateSupplierPayload>
+export interface UpdateSupplierPayload extends CreateSupplierPayload {
+  id: number
+}

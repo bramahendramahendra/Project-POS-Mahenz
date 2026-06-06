@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { forwardRef, useImperativeHandle, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,41 +14,46 @@ import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import {
+  useUnitListQuery,
   useCreateUnitMutation,
+  useUpdateUnitMutation,
   useDeleteUnitMutation,
   useToggleUnitStatusMutation,
-  useUnitListQuery,
-  useUpdateUnitMutation,
-} from '../products.api'
-import type { Unit } from '../products.types'
+} from '../units.api'
+import type { Unit } from '../units.types'
 
 const unitSchema = z.object({
-  name: z.string().min(1, 'Nama satuan wajib diisi'),
-  abbreviation: z.string().min(1, 'Singkatan wajib diisi'),
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
+  abbreviation: z.string().trim().min(2, 'Singkatan minimal 2 karakter').max(20, 'Singkatan maksimal 20 karakter'),
 })
 type UnitFormValues = z.infer<typeof unitSchema>
 
-interface UnitTabProps {
-  openAdd?: boolean
-  onOpenAddChange?: (open: boolean) => void
+export interface UnitTableHandle {
+  openAdd: () => void
 }
 
-export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
+export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(_, ref) {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
-  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
-  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
-  const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useDisclosure()
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
-  const [pendingValues, setPendingValues] = useState<UnitFormValues | null>(null)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
-
   const pageSizeOptions = usePageSizeOptions()
-  const { data: unitData, isLoading } = useUnitListQuery({ page, limit: pageSize, search: debouncedSearch })
+
+  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
+  const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
+  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ values: UnitFormValues; unit: Unit | null } | null>(null)
+
+  const { data: unitData, isLoading } = useUnitListQuery({
+    page,
+    limit: pageSize,
+    search: debouncedSearch,
+  })
   const units = unitData?.data ?? []
-  const totalUnits = unitData?.total ?? 0
+  const total = unitData?.total ?? 0
 
   const { mutate: createUnit, isPending: isCreating } = useCreateUnitMutation()
   const { mutate: updateUnit, isPending: isUpdating } = useUpdateUnitMutation()
@@ -56,14 +61,6 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
   const { mutate: toggleStatus } = useToggleUnitStatusMutation()
 
   const isPending = isCreating || isUpdating
-
-  useEffect(() => {
-    if (openAdd) {
-      handleOpenAdd()
-      onOpenAddChange?.(false)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openAdd])
 
   const {
     register,
@@ -73,13 +70,15 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
   } = useForm<UnitFormValues>({ resolver: zodResolver(unitSchema) })
 
   const handleOpenAdd = () => {
-    setEditingId(null)
+    setEditingUnit(null)
     reset({ name: '', abbreviation: '' })
     openForm()
   }
 
+  useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
+
   const handleOpenEdit = (unit: Unit) => {
-    setEditingId(unit.id)
+    setEditingUnit(unit)
     reset({ name: unit.name, abbreviation: unit.abbreviation })
     openForm()
   }
@@ -91,62 +90,65 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
   const handleCloseForm = () => {
     closeForm()
-    setEditingId(null)
+    setEditingUnit(null)
     reset({ name: '', abbreviation: '' })
   }
 
   const onSubmit = (values: UnitFormValues) => {
-    setPendingValues(values)
+    setPendingAction({ values, unit: editingUnit })
     closeForm()
     openConfirm()
   }
 
   const handleConfirmCancel = () => {
     closeConfirm()
-    if (pendingValues) {
-      reset(pendingValues)
+    if (pendingAction) {
+      setEditingUnit(pendingAction.unit)
+      reset(pendingAction.values)
       openForm()
     }
-    setPendingValues(null)
+    setPendingAction(null)
   }
 
   const handleConfirmSave = () => {
-    if (!pendingValues) return
-    const values = pendingValues
-    if (editingId !== null) {
+    if (!pendingAction) return
+    if (pendingAction.unit !== null) {
       updateUnit(
-        { id: editingId, name: values.name, abbreviation: values.abbreviation },
+        { id: pendingAction.unit.id, ...pendingAction.values },
         {
           onSuccess: () => {
-            toast.success('Satuan berhasil diperbarui')
             closeConfirm()
-            setEditingId(null)
+            setEditingUnit(null)
             reset({ name: '', abbreviation: '' })
+            setPendingAction(null)
           },
         }
       )
     } else {
-      createUnit(
-        { name: values.name, abbreviation: values.abbreviation },
-        {
-          onSuccess: () => {
-            toast.success('Satuan berhasil ditambahkan')
-            closeConfirm()
-            reset({ name: '', abbreviation: '' })
-          },
-        }
-      )
+      createUnit(pendingAction.values, {
+        onSuccess: () => {
+          closeConfirm()
+          reset({ name: '', abbreviation: '' })
+          setPendingAction(null)
+        },
+      })
     }
   }
 
   const handleDelete = () => {
-    if (deletingUnit === null) return
+    if (!deletingUnit) return
     deleteUnit(deletingUnit.id, {
       onSuccess: () => {
-        toast.success('Satuan berhasil dihapus')
         closeDelete()
         setDeletingUnit(null)
       },
+    })
+  }
+
+  const handleToggleStatus = (row: Unit) => {
+    toggleStatus(row.id, {
+      onSuccess: () =>
+        toast.success(`Satuan berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
     })
   }
 
@@ -154,14 +156,17 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
     {
       key: 'name',
       header: 'Nama Satuan',
-      sortable: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
     },
     {
       key: 'abbreviation',
       header: 'Singkatan',
       width: '100px',
-      cell: (row) => <code className="text-sm">{row.abbreviation}</code>,
+      cell: (row) => (
+        <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+          {row.abbreviation}
+        </span>
+      ),
     },
     {
       key: 'is_active',
@@ -191,12 +196,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
               variant="ghost"
               size="icon"
               className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
-              onClick={() =>
-                toggleStatus(row.id, {
-                  onSuccess: () =>
-                    toast.success(`Satuan berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
-                })
-              }
+              onClick={() => handleToggleStatus(row)}
               title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
             >
               {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}
@@ -220,7 +220,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filter */}
+      {/* Search */}
       <div className="flex items-center gap-2 rounded-lg border bg-white p-3">
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -244,6 +244,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
         )}
       </div>
 
+      {/* Table */}
       <DataTable<Unit & Record<string, unknown>>
         columns={columns}
         data={units as (Unit & Record<string, unknown>)[]}
@@ -251,7 +252,7 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
         pagination={{
           page,
           pageSize,
-          total: totalUnits,
+          total,
           onPageChange,
           onPageSizeChange,
           pageSizeOptions,
@@ -268,10 +269,10 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
       <FormModal
         open={formOpen}
         onOpenChange={(open) => {
-          if (!open && pendingValues !== null) return
+          if (!open && pendingAction !== null) return
           if (!open) handleCloseForm()
         }}
-        title={editingId !== null ? 'Edit Satuan' : 'Tambah Satuan'}
+        title={editingUnit !== null ? 'Edit Satuan' : 'Tambah Satuan'}
         size="sm"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
@@ -306,27 +307,22 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
         </div>
       </FormModal>
 
-      {/* Save Confirm */}
+      {/* Confirm Save */}
       <ConfirmDialog
         open={confirmOpen}
-        onOpenChange={(open) => {
-          if (!open) handleConfirmCancel()
-        }}
-        title={editingId !== null ? 'Update Satuan' : 'Tambah Satuan'}
-        description={`Yakin ingin ${editingId !== null ? 'mengupdate' : 'menambahkan'} satuan "${pendingValues?.name}"?`}
+        onOpenChange={(open) => { if (!open) handleConfirmCancel() }}
+        title={pendingAction?.unit !== null ? 'Update Satuan' : 'Tambah Satuan'}
+        description={`Yakin ingin ${pendingAction?.unit !== null ? 'mengupdate' : 'menambahkan'} satuan "${pendingAction?.values.name}"?`}
         confirmLabel="Ya, Simpan"
         isLoading={isPending}
         onConfirm={handleConfirmSave}
       />
 
-      {/* Delete Confirm */}
+      {/* Confirm Delete */}
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={(open) => {
-          if (!open) {
-            closeDelete()
-            setDeletingUnit(null)
-          }
+          if (!open) { closeDelete(); setDeletingUnit(null) }
         }}
         title="Hapus Satuan"
         description={`Yakin ingin menghapus satuan "${deletingUnit?.name}"? Tindakan ini tidak bisa dibatalkan.`}
@@ -337,4 +333,4 @@ export function UnitTab({ openAdd, onOpenAddChange }: UnitTabProps) {
       />
     </div>
   )
-}
+})

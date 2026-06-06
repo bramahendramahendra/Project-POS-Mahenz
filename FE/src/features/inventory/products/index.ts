@@ -4,17 +4,12 @@ export {
   useProductListQuery,
   useProductDetailQuery,
   useProductBarcodeQuery,
-  useUnitListQuery,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
-  useCreateUnitMutation,
-  useUpdateUnitMutation,
-  useDeleteUnitMutation,
 } from './products.api'
 export type {
   Product,
-  Unit,
   ProductPackage,
   PriceTier,
   ProductFilter,

@@ -1,49 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreateSupplierPayload,
   Supplier,
   SupplierDetail,
-  SupplierFilter,
+  SupplierListFilter,
   UpdateSupplierPayload,
 } from './suppliers.types'
 
-export interface SupplierListData {
-  items: Supplier[]
-  total: number
-  page: number
-  limit: number
-}
-
-export function useSupplierListQuery(filter?: SupplierFilter) {
+export function useSupplierListQuery(filter: SupplierListFilter) {
   return useQuery({
     queryKey: queryKeys.suppliers.list(filter as Record<string, unknown>),
-    queryFn: () => {
-      const { page_size, ...rest } = filter ?? {}
-      return api.get<SupplierListData>('/suppliers', { ...rest, limit: page_size })
-    },
+    queryFn: () => api.post<PaginatedData<Supplier>>('/suppliers/list', filter),
   })
 }
 
-export function useToggleSupplierStatusMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.patch<void>(`/suppliers/${id}/toggle-status`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
-    },
-    onError: (e: Error) => toast.error(e.message),
+export function useSupplierOptionsQuery() {
+  return useQuery({
+    queryKey: queryKeys.suppliers.options(),
+    queryFn: () => api.post<Supplier[]>('/suppliers/options', {}),
   })
 }
 
 export function useSupplierDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.suppliers.detail(id),
-    queryFn: () => api.get<SupplierDetail>(`/suppliers/${id}`),
+    queryFn: () => api.post<SupplierDetail>(`/suppliers/detail/${id}`, {}),
     enabled: id > 0,
   })
 }
@@ -51,9 +38,10 @@ export function useSupplierDetailQuery(id: number) {
 export function useCreateSupplierMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateSupplierPayload) => api.post<Supplier>('/suppliers', payload),
+    mutationFn: (payload: CreateSupplierPayload) => api.post<Supplier>('/suppliers/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success('Supplier berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -62,10 +50,11 @@ export function useCreateSupplierMutation() {
 export function useUpdateSupplierMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...payload }: UpdateSupplierPayload & { id: number }) =>
-      api.put<Supplier>(`/suppliers/${id}`, payload),
+    mutationFn: ({ id, ...payload }: UpdateSupplierPayload) =>
+      api.post<Supplier>(`/suppliers/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success('Supplier berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -74,7 +63,19 @@ export function useUpdateSupplierMutation() {
 export function useDeleteSupplierMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete<void>(`/suppliers/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/suppliers/delete/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success('Supplier berhasil dihapus')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useToggleSupplierStatusMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/suppliers/toggle-status/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
     },

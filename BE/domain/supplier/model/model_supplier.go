@@ -1,25 +1,17 @@
-package model_supplier
+package model
 
 import "time"
 
 type Supplier struct {
-	ID            int        `db:"id"`
-	SupplierCode  string     `db:"supplier_code"`
-	Name          string     `db:"name"`
-	Address       string     `db:"address"`
-	Phone         string     `db:"phone"`
-	Email         string     `db:"email"`
-	ContactPerson string     `db:"contact_person"`
-	Notes         string     `db:"notes"`
-	IsActive      bool       `db:"is_active"`
-	CreatedAt     time.Time  `db:"created_at"`
-	UpdatedAt     *time.Time `db:"updated_at"`
-}
-
-type SupplierPurchase struct {
-	ID            int     `db:"id"`
-	PurchaseCode  string  `db:"purchase_code"`
-	PurchaseDate  string  `db:"purchase_date"`
-	TotalAmount   float64 `db:"total_amount"`
-	PaymentStatus string  `db:"payment_status"`
+	ID            int        `gorm:"column:id"`
+	SupplierCode  string     `gorm:"column:supplier_code"`
+	Name          string     `gorm:"column:name"`
+	Address       string     `gorm:"column:address"`
+	Phone         string     `gorm:"column:phone"`
+	Email         string     `gorm:"column:email"`
+	ContactPerson string     `gorm:"column:contact_person"`
+	Notes         string     `gorm:"column:notes"`
+	IsActive      bool       `gorm:"column:is_active"`
+	CreatedAt     time.Time  `gorm:"column:created_at"`
+	UpdatedAt     *time.Time `gorm:"column:updated_at"`
 }

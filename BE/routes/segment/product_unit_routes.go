@@ -22,7 +22,7 @@ func ProductUnitRoutes(r *gin.RouterGroup) {
 		g.POST("/detail/:id", unitHand.GetByID)
 		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), unitHand.Create)
 		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.Delete)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), unitHand.Delete)
 		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), unitHand.ToggleStatus)
 	}
 }
