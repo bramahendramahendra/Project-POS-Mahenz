@@ -36,11 +36,14 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	var total int64
 	if req.Search != "" {
 		search := "%" + req.Search + "%"
-		if err := r.db.Raw(countUnitsSearchQuery, search).Scan(&total).Error; err != nil {
+		countQuery := countUnitsSearchQuery
+		countArgs := []any{search}
+		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
 			return nil, 0, err
 		}
 	} else {
-		if err := r.db.Raw(countUnitsQuery).Scan(&total).Error; err != nil {
+		countQuery := countUnitsQuery
+		if err := r.db.Raw(countQuery).Scan(&total).Error; err != nil {
 			return nil, 0, err
 		}
 	}
@@ -48,8 +51,9 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	query := getAllUnitsQuery
 	var args []any
 	if req.Search != "" {
+		search := "%" + req.Search + "%"
 		query += ` AND name LIKE ?`
-		args = append(args, "%"+req.Search+"%")
+		args = append(args, search)
 	}
 	query += getAllUnitsOrder
 	query += " LIMIT ? OFFSET ?"

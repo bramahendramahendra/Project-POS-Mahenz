@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	countSuppliersBaseQuery        = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
+	countSuppliersQuery            = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
+	countSuppliersSearchQuery      = `SELECT COUNT(*) FROM suppliers WHERE (name LIKE ? OR supplier_code LIKE ? OR phone LIKE ?)`
 	getAllSuppliersQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
 	getAllSuppliersOrder           = ` ORDER BY name ASC`
-	getActiveSupplierListQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
+	getAllSupplierOptionsQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
 	getSupplierByIDQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
 	getSupplierPurchasesQuery      = `SELECT id, purchase_code, purchase_date, total_amount, payment_status, remaining_amount FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC LIMIT 10`
 	getSupplierReturnsQuery        = `SELECT id, return_code, return_date, total_return_amount AS total_return, reason, status FROM supplier_returns WHERE supplier_id = ? ORDER BY return_date DESC LIMIT 10`
@@ -36,21 +37,28 @@ func (r *supplierRepo) GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, 
 	}
 	offset := (page - 1) * limit
 
-	countQuery := countSuppliersBaseQuery
-	var countArgs []any
+	var total int64
 	if req.Search != "" {
 		search := "%" + req.Search + "%"
-		countQuery += ` AND (name LIKE ? OR supplier_code LIKE ? OR phone LIKE ?)`
-		countArgs = append(countArgs, search, search, search)
-	}
-	if req.IsActive != nil {
-		countQuery += ` AND is_active = ?`
-		countArgs = append(countArgs, *req.IsActive)
-	}
-
-	var total int64
-	if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-		return nil, 0, err
+		countQuery := countSuppliersSearchQuery
+		countArgs := []any{search, search, search}
+		if req.IsActive != nil {
+			countQuery += ` AND is_active = ?`
+			countArgs = append(countArgs, *req.IsActive)
+		}
+		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		countQuery := countSuppliersQuery
+		var countArgs []any
+		if req.IsActive != nil {
+			countQuery += ` AND is_active = ?`
+			countArgs = append(countArgs, *req.IsActive)
+		}
+		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
 	}
 
 	query := getAllSuppliersQuery
@@ -76,78 +84,23 @@ func (r *supplierRepo) GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, 
 }
 
 func (r *supplierRepo) GetOptions() ([]*dto.SupplierOptionResponse, error) {
-	var items []*dto.SupplierOptionResponse
-	if err := r.db.Raw(getActiveSupplierListQuery).Scan(&items).Error; err != nil {
+	var options []*dto.SupplierOptionResponse
+	if err := r.db.Raw(getAllSupplierOptionsQuery).Scan(&options).Error; err != nil {
 		return nil, err
 	}
-	return items, nil
+	return options, nil
 }
 
 func (r *supplierRepo) GetByID(id int) (*model.Supplier, error) {
-	var s model.Supplier
-	if err := r.db.Raw(getSupplierByIDQuery, id).Scan(&s).Error; err != nil {
+	var supplier model.Supplier
+	err := r.db.Raw(getSupplierByIDQuery, id).Scan(&supplier).Error
+	if err != nil {
 		return nil, err
 	}
-	if s.ID == 0 {
+	if supplier.ID == 0 {
 		return nil, nil
 	}
-	return &s, nil
-}
-
-func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]dto.SupplierPurchaseItem, error) {
-	var items []dto.SupplierPurchaseItem
-	if err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&items).Error; err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-func (r *supplierRepo) GetReturnHistory(supplierID int) ([]dto.SupplierReturnHistoryItem, error) {
-	var items []dto.SupplierReturnHistoryItem
-	if err := r.db.Raw(getSupplierReturnsQuery, supplierID).Scan(&items).Error; err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-func (r *supplierRepo) GetCount() (int, error) {
-	var count int
-	if err := r.db.Raw(generateSupplierCodeQuery).Scan(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-func (r *supplierRepo) CheckCodeExists(code string) (bool, error) {
-	var id int
-	if err := r.db.Raw(checkSupplierCodeExistsQuery, code).Scan(&id).Error; err != nil {
-		return false, err
-	}
-	return id > 0, nil
-}
-
-func (r *supplierRepo) CheckNameExists(name string, excludeID int) (bool, error) {
-	var id int
-	if err := r.db.Raw(checkSupplierNameExistsQuery, name, excludeID).Scan(&id).Error; err != nil {
-		return false, err
-	}
-	return id > 0, nil
-}
-
-func (r *supplierRepo) CountPurchasesBySupplier(supplierID int) (int, error) {
-	var count int
-	if err := r.db.Raw(countPurchasesBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-func (r *supplierRepo) CountActiveDebtBySupplier(supplierID int) (int, error) {
-	var count int
-	if err := r.db.Raw(countActiveDebtBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
+	return &supplier, nil
 }
 
 func (r *supplierRepo) Create(req *dto.CreateSupplierRequest, code string) (int64, error) {
@@ -172,4 +125,60 @@ func (r *supplierRepo) Delete(req *dto.DeleteSupplierRequest) error {
 
 func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error {
 	return r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
+}
+
+func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]dto.SupplierPurchaseItem, error) {
+	var items []dto.SupplierPurchaseItem
+	if err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *supplierRepo) GetReturnHistory(supplierID int) ([]dto.SupplierReturnHistoryItem, error) {
+	var items []dto.SupplierReturnHistoryItem
+	if err := r.db.Raw(getSupplierReturnsQuery, supplierID).Scan(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *supplierRepo) CheckCodeExists(code string) (bool, error) {
+	var id int
+	if err := r.db.Raw(checkSupplierCodeExistsQuery, code).Scan(&id).Error; err != nil {
+		return false, err
+	}
+	return id > 0, nil
+}
+
+func (r *supplierRepo) CheckNameExists(name string, excludeID int) (bool, error) {
+	var id int
+	if err := r.db.Raw(checkSupplierNameExistsQuery, name, excludeID).Scan(&id).Error; err != nil {
+		return false, err
+	}
+	return id > 0, nil
+}
+
+func (r *supplierRepo) GetCount() (int, error) {
+	var count int
+	if err := r.db.Raw(generateSupplierCodeQuery).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *supplierRepo) CountPurchasesBySupplier(supplierID int) (int, error) {
+	var count int
+	if err := r.db.Raw(countPurchasesBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *supplierRepo) CountActiveDebtBySupplier(supplierID int) (int, error) {
+	var count int
+	if err := r.db.Raw(countActiveDebtBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
