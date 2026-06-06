@@ -37,7 +37,7 @@ func NewProductService(
 }
 
 func (s *productService) GetCategoryNames() ([]string, error) {
-	cats, err := s.catRepo.GetAll()
+	cats, err := s.catRepo.GetOptions()
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -49,7 +49,7 @@ func (s *productService) GetCategoryNames() ([]string, error) {
 }
 
 func (s *productService) GetUnitNames() ([]string, error) {
-	units, err := s.masterUnitRepo.GetActive()
+	units, err := s.masterUnitRepo.GetOptions()
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -61,7 +61,7 @@ func (s *productService) GetUnitNames() ([]string, error) {
 }
 
 func (s *productService) GetUnitInfos() ([]*dto_product.UnitInfo, error) {
-	units, err := s.masterUnitRepo.GetActive()
+	units, err := s.masterUnitRepo.GetOptions()
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -566,7 +566,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 
 	// Fetch master data untuk validasi
 	validCategories := make(map[string]bool)
-	if cats, err := s.catRepo.GetAll(); err == nil {
+	if cats, err := s.catRepo.GetOptions(); err == nil {
 		for _, c := range cats {
 			validCategories[strings.ToLower(strings.TrimSpace(c.Name))] = true
 		}
@@ -574,7 +574,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 
 	// unitIDMap: key = lowercase nama/singkatan → unit_id
 	unitIDMap := make(map[string]int)
-	if units, err := s.masterUnitRepo.GetAll(); err == nil {
+	if units, err := s.masterUnitRepo.GetOptions(); err == nil {
 		for _, u := range units {
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Name))] = u.ID
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Abbreviation))] = u.ID

@@ -44,7 +44,7 @@ func (h *UnitHandler) GetAll(c *gin.Context) {
 }
 
 func (h *UnitHandler) GetOptions(c *gin.Context) {
-	data, err := h.service.GetActive()
+	data, err := h.service.GetOptions()
 	if err != nil {
 		c.Error(err)
 		return

@@ -26,8 +26,8 @@ func (s *unitService) GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse,
 	return data, total, nil
 }
 
-func (s *unitService) GetActive() (data []dto.UnitActiveResponse, err error) {
-	dataDB, err := s.repo.GetActive()
+func (s *unitService) GetOptions() (data []dto.UnitActiveResponse, err error) {
+	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
