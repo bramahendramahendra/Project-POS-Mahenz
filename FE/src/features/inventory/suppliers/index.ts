@@ -19,3 +19,5 @@ export type {
   CreateSupplierPayload,
   UpdateSupplierPayload,
 } from './suppliers.types'
+export { supplierSchema } from './suppliers.schema'
+export type { SupplierFormValues } from './suppliers.schema'

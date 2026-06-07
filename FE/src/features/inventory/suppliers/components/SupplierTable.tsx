@@ -26,7 +26,7 @@ import {
 import type { Supplier } from '../suppliers.types'
 import { SupplierFormModal } from './SupplierFormModal'
 import { SupplierDetailModal } from './SupplierDetailModal'
-import type { SupplierFormValues } from './SupplierFormModal'
+import type { SupplierFormValues } from '../suppliers.schema'
 
 export interface SupplierTableHandle {
   openAdd: () => void

@@ -18,7 +18,7 @@ import {
 } from '../categories.api'
 import type { Category } from '../categories.types'
 import { CategoryFormModal } from './CategoryFormModal'
-import type { CategoryFormValues } from './CategoryFormModal'
+import type { CategoryFormValues } from '../categories.schema'
 
 export interface CategoryTableHandle {
   openAdd: () => void

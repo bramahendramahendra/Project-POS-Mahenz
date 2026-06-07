@@ -14,3 +14,5 @@ export type {
   CreateCategoryPayload,
   UpdateCategoryPayload,
 } from './categories.types'
+export { categorySchema } from './categories.schema'
+export type { CategoryFormValues } from './categories.schema'

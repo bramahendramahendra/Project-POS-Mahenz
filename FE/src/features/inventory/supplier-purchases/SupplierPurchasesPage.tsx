@@ -55,7 +55,7 @@ export function SupplierPurchasesPage() {
 
   const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page_size: 200 })
   const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page_size: 1 })
-  const suppliers = suppliersData?.items ?? []
+  const suppliers = suppliersData?.data ?? []
   const hasSuppliers = suppliers.length > 0
   const hasProducts = (productsData?.total ?? 0) > 0
 

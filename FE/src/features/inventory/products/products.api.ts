@@ -15,8 +15,6 @@ import type {
   UpdatePriceTierPayload,
   UpdateProductPayload,
 } from './products.types'
-import type { PaginatedData } from '@/shared/types'
-
 // ─── Import ───────────────────────────────────────────────────────────────────
 
 export interface ImportPreviewRow {

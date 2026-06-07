@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -9,13 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 
 import type { Category } from '../categories.types'
-
-export const categorySchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
-  description: z.string().max(500, 'Deskripsi maksimal 500 karakter').optional().or(z.literal('')),
-})
-
-export type CategoryFormValues = z.infer<typeof categorySchema>
+import { categorySchema, type CategoryFormValues } from '../categories.schema'
 
 const defaultValues: CategoryFormValues = {
   name: '',

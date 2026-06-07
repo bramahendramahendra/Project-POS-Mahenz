@@ -15,7 +15,7 @@ import type {
 
 export function useSupplierListQuery(filter: SupplierListFilter) {
   return useQuery({
-    queryKey: queryKeys.suppliers.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.suppliers.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Supplier>>('/suppliers/list', filter),
   })
 }

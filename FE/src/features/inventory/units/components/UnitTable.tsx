@@ -18,7 +18,7 @@ import {
 } from '../units.api'
 import type { Unit } from '../units.types'
 import { UnitFormModal } from './UnitFormModal'
-import type { UnitFormValues } from './UnitFormModal'
+import type { UnitFormValues } from '../units.schema'
 
 export interface UnitTableHandle {
   openAdd: () => void
