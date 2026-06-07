@@ -2,48 +2,44 @@ package service
 
 import (
 	dto "pos_api/domain/product/dto"
-	repo "pos_api/domain/product/repo"
 	"pos_api/errors"
 )
 
-type (
-	ProductPriceServiceInterface interface {
-		GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error)
-		Save(req *dto.SaveProductPricesRequest) error
-	}
-
-	productPriceService struct {
-		repo     repo.ProductPriceRepo
-		prodRepo repo.ProductRepo
-	}
-)
-
-func NewProductPriceService(repo repo.ProductPriceRepo, prodRepo repo.ProductRepo) *productPriceService {
-	return &productPriceService{repo: repo, prodRepo: prodRepo}
-}
-
 func (s *productPriceService) GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error) {
-	if err = s.checkProductExists(productID); err != nil {
-		return
+	dataDB, err := s.prodRepo.GetByID(productID)
+	if err != nil {
+		return data, err
 	}
-	data, err = s.repo.GetByProduct(productID)
-	return
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	prices, err := s.repo.GetByProduct(productID)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range prices {
+		data = append(data, &dto.ProductPriceResponse{
+			ID:        v.ID,
+			ProductID: v.ProductID,
+			TierName:  v.TierName,
+			MinQty:    v.MinQty,
+			Price:     v.Price,
+		})
+	}
+
+	return data, nil
 }
 
-func (s *productPriceService) Save(req *dto.SaveProductPricesRequest) error {
-	if err := s.checkProductExists(req.ProductID); err != nil {
-		return err
-	}
-	return s.repo.Save(req.ProductID, req.Prices)
-}
-
-func (s *productPriceService) checkProductExists(productID int) error {
-	p, err := s.prodRepo.GetByID(productID)
+func (s *productPriceService) Save(req *dto.SaveProductPricesRequest) (err error) {
+	exists, err := s.prodRepo.GetByID(req.ProductID)
 	if err != nil {
 		return err
 	}
-	if p == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
-	return nil
+
+	return s.repo.Save(req.ProductID, req.Prices)
 }

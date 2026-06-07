@@ -2,6 +2,7 @@ package repo_product
 
 import (
 	dto_product "pos_api/domain/product/dto"
+	model_product "pos_api/domain/product/model"
 
 	"gorm.io/gorm"
 )
@@ -12,38 +13,13 @@ const (
 	insertProductPriceQuery  = `INSERT INTO product_prices (product_id, tier_name, min_qty, price) VALUES (?, ?, ?, ?)`
 )
 
-type ProductPriceRepo interface {
-	GetByProduct(productID int) ([]*dto_product.ProductPriceResponse, error)
-	Save(productID int, prices []dto_product.ProductPriceRequest) error
-}
-
-type productPriceRepo struct {
-	db *gorm.DB
-}
-
-func NewProductPriceRepo(db *gorm.DB) ProductPriceRepo {
-	return &productPriceRepo{db: db}
-}
-
-func (r *productPriceRepo) GetByProduct(productID int) ([]*dto_product.ProductPriceResponse, error) {
-	rows, err := r.db.Raw(getProductPricesQuery, productID).Rows()
+func (r *productPriceRepo) GetByProduct(productID int) ([]*model_product.ProductPrice, error) {
+	var dataDB []*model_product.ProductPrice
+	err := r.db.Raw(getProductPricesQuery, productID).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var prices []*dto_product.ProductPriceResponse
-	for rows.Next() {
-		var p dto_product.ProductPriceResponse
-		if err := rows.Scan(&p.ID, &p.ProductID, &p.TierName, &p.MinQty, &p.Price); err != nil {
-			return nil, err
-		}
-		prices = append(prices, &p)
-	}
-	if prices == nil {
-		prices = []*dto_product.ProductPriceResponse{}
-	}
-	return prices, nil
+	return dataDB, nil
 }
 
 func (r *productPriceRepo) Save(productID int, prices []dto_product.ProductPriceRequest) error {
