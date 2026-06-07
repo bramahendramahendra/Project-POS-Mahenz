@@ -1,7 +1,7 @@
 package handler_product
 
 import (
-	dto_product "pos_api/domain/product/dto"
+	dto "pos_api/domain/product/dto"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -30,7 +30,7 @@ func (h *ProductHandler) GenerateBarcode(c *gin.Context) {
 
 // POST /products/generate-sku
 func (h *ProductHandler) GenerateSku(c *gin.Context) {
-	req, err := binder.BindJSON[dto_product.GenerateSkuRequest](c)
+	req, err := binder.BindJSON[dto.GenerateSkuRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

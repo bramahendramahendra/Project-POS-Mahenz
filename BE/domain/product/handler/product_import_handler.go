@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	dto_product "pos_api/domain/product/dto"
+	dto "pos_api/domain/product/dto"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -67,7 +67,7 @@ func (h *ProductHandler) ImportPreview(c *gin.Context) {
 
 // POST /products/import-bulk
 func (h *ProductHandler) ImportBulk(c *gin.Context) {
-	req, err := binder.BindJSON[dto_product.BulkImportRequest](c)
+	req, err := binder.BindJSON[dto.BulkImportRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

@@ -1,8 +1,8 @@
 package handler_product
 
 import (
-	dto_product "pos_api/domain/product/dto"
-	service_product "pos_api/domain/product/service"
+	dto "pos_api/domain/product/dto"
+	service "pos_api/domain/product/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -14,10 +14,10 @@ import (
 )
 
 type ProductPriceHandler struct {
-	service service_product.ProductPriceService
+	service service.ProductPriceService
 }
 
-func NewProductPriceHandler(service service_product.ProductPriceService) *ProductPriceHandler {
+func NewProductPriceHandler(service service.ProductPriceService) *ProductPriceHandler {
 	return &ProductPriceHandler{service: service}
 }
 
@@ -56,7 +56,7 @@ func (h *ProductPriceHandler) Save(c *gin.Context) {
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto_product.SaveProductPricesRequest](c)
+	req, bindErr := binder.BindJSON[dto.SaveProductPricesRequest](c)
 	if bindErr != nil {
 		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
 		return
