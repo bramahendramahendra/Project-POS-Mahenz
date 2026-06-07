@@ -15,5 +15,6 @@ type ProductPriceResponse struct {
 }
 
 type SaveProductPricesRequest struct {
-	Prices []ProductPriceRequest `json:"prices" validate:"dive"`
+	ProductID int                   `json:"-"`
+	Prices    []ProductPriceRequest `json:"prices" validate:"dive"`
 }

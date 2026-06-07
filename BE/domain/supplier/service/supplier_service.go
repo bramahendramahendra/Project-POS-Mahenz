@@ -74,12 +74,12 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 	returns := make([]dto.SupplierReturnHistoryItem, 0, len(returnsDB))
 	for _, v := range returnsDB {
 		returns = append(returns, dto.SupplierReturnHistoryItem{
-			ID:         v.ID,
-			ReturnCode: v.ReturnCode,
-			ReturnDate: v.ReturnDate,
+			ID:          v.ID,
+			ReturnCode:  v.ReturnCode,
+			ReturnDate:  v.ReturnDate,
 			TotalReturn: v.TotalReturn,
-			Reason:     v.Reason,
-			Status:     v.Status,
+			Reason:      v.Reason,
+			Status:      v.Status,
 		})
 	}
 
@@ -138,6 +138,9 @@ func (s *supplierService) Create(req *dto.CreateSupplierRequest) (data dto.Suppl
 	if err != nil {
 		return data, err
 	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data supplier"}
+	}
 
 	data = dto.SupplierResponse{
 		ID:            dataDB.ID,
@@ -174,14 +177,16 @@ func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.Suppl
 		return data, &errors.BadRequestError{Message: "Nama supplier sudah digunakan"}
 	}
 
-	err = s.repo.Update(req)
-	if err != nil {
+	if err = s.repo.Update(req); err != nil {
 		return data, err
 	}
 
 	dataDB, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data supplier"}
 	}
 
 	data = dto.SupplierResponse{

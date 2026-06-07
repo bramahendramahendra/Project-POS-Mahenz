@@ -10,7 +10,7 @@ type (
 	ProductPackageServiceInterface interface {
 		GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error)
 		Save(req *dto.SaveProductPackagesRequest) error
-		DeleteOne(id, productID int) error
+		DeleteOne(req *dto.PackageIDUriRequest) error
 	}
 
 	productPackageService struct {
@@ -38,11 +38,11 @@ func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) error 
 	return s.repo.Save(req.ProductID, req.Packages)
 }
 
-func (s *productPackageService) DeleteOne(id, productID int) error {
-	if err := s.checkProductExists(productID); err != nil {
+func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) error {
+	if err := s.checkProductExists(req.ID); err != nil {
 		return err
 	}
-	return s.repo.DeleteOne(id, productID)
+	return s.repo.DeleteOne(req.PackageID, req.ID)
 }
 
 func (s *productPackageService) checkProductExists(productID int) error {

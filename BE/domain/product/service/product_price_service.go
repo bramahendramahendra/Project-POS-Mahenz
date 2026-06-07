@@ -9,7 +9,7 @@ import (
 type (
 	ProductPriceServiceInterface interface {
 		GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error)
-		Save(productID int, prices []dto.ProductPriceRequest) error
+		Save(req *dto.SaveProductPricesRequest) error
 	}
 
 	productPriceService struct {
@@ -30,11 +30,11 @@ func (s *productPriceService) GetByProduct(productID int) (data []*dto.ProductPr
 	return
 }
 
-func (s *productPriceService) Save(productID int, prices []dto.ProductPriceRequest) error {
-	if err := s.checkProductExists(productID); err != nil {
+func (s *productPriceService) Save(req *dto.SaveProductPricesRequest) error {
+	if err := s.checkProductExists(req.ProductID); err != nil {
 		return err
 	}
-	return s.repo.Save(productID, prices)
+	return s.repo.Save(req.ProductID, req.Prices)
 }
 
 func (s *productPriceService) checkProductExists(productID int) error {

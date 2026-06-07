@@ -90,7 +90,7 @@ func (h *ProductPackageHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteOne(req.PackageID, req.ID); err != nil {
+	if err := h.service.DeleteOne(&req); err != nil {
 		c.Error(err)
 		return
 	}

@@ -11,7 +11,7 @@ import (
 
 type (
 	ProductServiceInterface interface {
-		GetAll(req *dto.ProductListRequest) (data []*dto.ProductResponse, total int64, err error)
+		GetAll(req *dto.ProductListRequest) (data []dto.ProductResponse, total int64, err error)
 		GetOptions() (data []*dto.ProductOption, err error)
 		GetCategoryNames() (data []string, err error)
 		GetUnitNames() (data []string, err error)
@@ -24,8 +24,8 @@ type (
 		GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error)
 		Create(req *dto.ProductRequest) (data dto.ProductResponse, err error)
 		Update(req *dto.UpdateProductRequest) (data dto.ProductResponse, err error)
-		Delete(id int) error
-		ToggleStatus(id int) error
+		Delete(req *dto.DeleteProductRequest) error
+		ToggleStatus(req *dto.ToggleStatusProductRequest) error
 		ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error)
 		ImportBulk(req dto.BulkImportRequest) (data dto.BulkImportResult, err error)
 		ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error)

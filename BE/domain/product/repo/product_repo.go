@@ -74,7 +74,7 @@ func NewProductRepo(db *gorm.DB) ProductRepo {
 	return &productRepo{db: db}
 }
 
-func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int, error) {
+func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int64, error) {
 	var args []interface{}
 	var countArgs []interface{}
 	conditions := ""
@@ -108,7 +108,7 @@ func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_produc
 	}
 
 	// Count total
-	var total int
+	var total int64
 	countQuery := countProductsBase + countConditions
 	if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
 		return nil, 0, err
@@ -271,12 +271,12 @@ func (r *productRepo) Update(req *dto_product.UpdateProductRequest) error {
 	).Error
 }
 
-func (r *productRepo) Delete(id int) error {
-	return r.db.Exec(deleteProductQuery, id).Error
+func (r *productRepo) Delete(req *dto_product.DeleteProductRequest) error {
+	return r.db.Exec(deleteProductQuery, req.ID).Error
 }
 
-func (r *productRepo) ToggleStatus(id int) error {
-	return r.db.Exec(toggleProductStatusQuery, id).Error
+func (r *productRepo) ToggleStatus(req *dto_product.ToggleStatusProductRequest) error {
+	return r.db.Exec(toggleProductStatusQuery, req.ID).Error
 }
 
 func (r *productRepo) UpdateStock(id int, delta float64) error {

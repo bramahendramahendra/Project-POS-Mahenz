@@ -95,6 +95,9 @@ func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.Categ
 	if err != nil {
 		return data, err
 	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data kategori"}
+	}
 
 	data = dto.CategoryResponse{
 		ID:                 dataDB.ID,
@@ -130,14 +133,16 @@ func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (data dto.Categ
 		return data, &errors.BadRequestError{Message: "Nama kategori sudah digunakan"}
 	}
 
-	err = s.repo.Update(req)
-	if err != nil {
+	if err = s.repo.Update(req); err != nil {
 		return data, err
 	}
 
 	dataDB, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data kategori"}
 	}
 
 	data = dto.CategoryResponse{

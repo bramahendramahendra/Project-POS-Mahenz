@@ -213,7 +213,7 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(req.ID); err != nil {
+	if err := h.service.Delete(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -237,7 +237,7 @@ func (h *ProductHandler) ToggleStatus(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.ToggleStatus(req.ID); err != nil {
+	if err := h.service.ToggleStatus(&req); err != nil {
 		c.Error(err)
 		return
 	}

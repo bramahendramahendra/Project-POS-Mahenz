@@ -84,6 +84,9 @@ func (s *unitService) Create(req *dto.CreateUnitRequest) (data dto.UnitResponse,
 	if err != nil {
 		return data, err
 	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data satuan"}
+	}
 
 	data = dto.UnitResponse{
 		ID:           dataDB.ID,
@@ -116,14 +119,16 @@ func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse,
 		return data, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
 	}
 
-	err = s.repo.Update(req)
-	if err != nil {
+	if err = s.repo.Update(req); err != nil {
 		return data, err
 	}
 
 	dataDB, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data satuan"}
 	}
 
 	data = dto.UnitResponse{

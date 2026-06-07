@@ -6,7 +6,7 @@ import (
 )
 
 type ProductRepo interface {
-	GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int, error)
+	GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int64, error)
 	GetOptions() ([]*dto_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
@@ -18,7 +18,7 @@ type ProductRepo interface {
 	CountTransactionItems(productID int) (int, error)
 	Create(req *dto_product.ProductRequest) (int64, error)
 	Update(req *dto_product.UpdateProductRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
+	Delete(req *dto_product.DeleteProductRequest) error
+	ToggleStatus(req *dto_product.ToggleStatusProductRequest) error
 	UpdateStock(id int, delta float64) error
 }

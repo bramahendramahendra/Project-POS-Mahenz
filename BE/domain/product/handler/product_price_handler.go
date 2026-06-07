@@ -59,13 +59,14 @@ func (h *ProductPriceHandler) Save(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+	req.ProductID = uriReq.ID
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if err := h.service.Save(uriReq.ID, req.Prices); err != nil {
+	if err := h.service.Save(&req); err != nil {
 		c.Error(err)
 		return
 	}
