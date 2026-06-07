@@ -1,5 +1,4 @@
 export { ProductsPage } from './ProductsPage'
-export { useProductsStore } from './products.store'
 export {
   useProductListQuery,
   useProductDetailQuery,
@@ -7,12 +6,16 @@ export {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useToggleProductStatusMutation,
 } from './products.api'
 export type {
   Product,
   ProductPackage,
   PriceTier,
+  ProductListFilter,
   ProductFilter,
   CreateProductPayload,
   UpdateProductPayload,
 } from './products.types'
+export { productSchema, grosirSchema } from './products.schema'
+export type { ProductFormValues, GrosirFormValues } from './products.schema'

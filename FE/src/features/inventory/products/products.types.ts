@@ -14,8 +14,6 @@ export interface ProductPackage {
 export interface PriceTier {
   id: number
   product_id: number
-  unit_id: number
-  unit_name: string
   tier_name: string
   min_qty: number
   price: number
@@ -44,13 +42,14 @@ export interface Product {
   price_tiers_count: number
 }
 
-export interface ProductFilter {
-  search?: string
+// Sesuai standar: page + limit (bukan page_size)
+export interface ProductListFilter {
+  page: number
+  limit: number
+  search: string
   category_id?: number
   is_active?: boolean
   low_stock?: boolean
-  page?: number
-  page_size?: number
 }
 
 export interface CreateProductPayload {
@@ -79,7 +78,6 @@ export interface CreateProductPackagePayload {
 }
 
 export interface CreatePriceTierPayload {
-  unit_id: number
   tier_name: string
   min_qty: number
   price: number
@@ -88,3 +86,6 @@ export interface CreatePriceTierPayload {
 export interface UpdatePriceTierPayload extends Partial<CreatePriceTierPayload> {
   priceId: number
 }
+
+// Alias untuk backward compat
+export type ProductFilter = ProductListFilter

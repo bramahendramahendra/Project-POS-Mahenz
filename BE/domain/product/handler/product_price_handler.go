@@ -7,7 +7,8 @@ import (
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,15 +21,20 @@ func NewProductPriceHandler(service service_product.ProductPriceService) *Produc
 	return &ProductPriceHandler{service: service}
 }
 
-// GET /api/products/:product_id/prices
+// POST /products/:id/prices/list
 func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
-	productID, err := parseParamID(c, "id")
+	req, err := binder.BindURI[productIDUriRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	prices, svcErr := h.service.GetByProduct(productID)
+	if valErr := validator.Validate.Struct(req); valErr != nil {
+		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+		return
+	}
+
+	prices, svcErr := h.service.GetByProduct(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -42,25 +48,26 @@ func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
 	})
 }
 
-// POST /api/products/:product_id/prices
+// POST /products/:id/prices/save
 func (h *ProductPriceHandler) Save(c *gin.Context) {
-	productID, err := parseParamID(c, "id")
+	uriReq, err := binder.BindURI[productIDUriRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	var req dto_product.SaveProductPricesRequest
-	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
+	req, bindErr := binder.BindJSON[dto_product.SaveProductPricesRequest](c)
+	if bindErr != nil {
 		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
 		return
 	}
-	if valErr := validation.Validate.Struct(req); valErr != nil {
+
+	if valErr := validator.Validate.Struct(req); valErr != nil {
 		c.Error(&errors.BadRequestError{Message: valErr.Error()})
 		return
 	}
 
-	if svcErr := h.service.Save(productID, req.Prices); svcErr != nil {
+	if svcErr := h.service.Save(uriReq.ID, req.Prices); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}

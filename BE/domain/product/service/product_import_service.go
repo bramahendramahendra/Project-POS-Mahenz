@@ -1,262 +1,18 @@
 package service_product
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math"
-	"math/big"
 	"mime/multipart"
 	"strconv"
 	"strings"
 
 	dto_category "pos_api/domain/product_category/dto"
-	repo_category "pos_api/domain/product_category/repo"
 	dto_product "pos_api/domain/product/dto"
-	model_product "pos_api/domain/product/model"
-	repo_product "pos_api/domain/product/repo"
-	repo_unit "pos_api/domain/product_unit/repo"
 	"pos_api/errors"
 
 	"github.com/xuri/excelize/v2"
 )
-
-type productService struct {
-	repo           repo_product.ProductRepo
-	catRepo        repo_category.CategoryRepoInterface
-	packageRepo    repo_product.ProductPackageRepo
-	masterUnitRepo repo_unit.UnitRepoInterface
-}
-
-func NewProductService(
-	repo repo_product.ProductRepo,
-	catRepo repo_category.CategoryRepoInterface,
-	packageRepo repo_product.ProductPackageRepo,
-	masterUnitRepo repo_unit.UnitRepoInterface,
-) ProductService {
-	return &productService{repo: repo, catRepo: catRepo, packageRepo: packageRepo, masterUnitRepo: masterUnitRepo}
-}
-
-func (s *productService) GetCategoryNames() ([]string, error) {
-	cats, err := s.catRepo.GetOptions()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	names := make([]string, 0, len(cats))
-	for _, c := range cats {
-		names = append(names, c.Name)
-	}
-	return names, nil
-}
-
-func (s *productService) GetUnitNames() ([]string, error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	names := make([]string, 0, len(units))
-	for _, u := range units {
-		names = append(names, u.Name)
-	}
-	return names, nil
-}
-
-func (s *productService) GetUnitInfos() ([]*dto_product.UnitInfo, error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	infos := make([]*dto_product.UnitInfo, 0, len(units))
-	for _, u := range units {
-		infos = append(infos, &dto_product.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
-	}
-	return infos, nil
-}
-
-func (s *productService) GetAll(filter *dto_product.ProductFilter) ([]*dto_product.ProductResponse, int, error) {
-	products, total, err := s.repo.GetAll(filter)
-	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
-	}
-	return products, total, nil
-}
-
-func (s *productService) GetByID(id int) (*dto_product.ProductResponse, error) {
-	p, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if p == nil {
-		return nil, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-	return toProductResponse(p, ""), nil
-}
-
-func (s *productService) GetByBarcode(barcode string) (*dto_product.ProductResponse, error) {
-	p, err := s.repo.GetByBarcode(barcode)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if p == nil {
-		return nil, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-	return toProductResponse(p, ""), nil
-}
-
-func (s *productService) Search(keyword string, limit int) ([]*dto_product.ProductSearchResult, error) {
-	if limit <= 0 || limit > 50 {
-		limit = 20
-	}
-	results, err := s.repo.Search(keyword, limit)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return results, nil
-}
-
-func (s *productService) GetLowStock() ([]*dto_product.LowStockProduct, error) {
-	results, err := s.repo.GetLowStock()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return results, nil
-}
-
-func (s *productService) GenerateBarcode() (*dto_product.GenerateBarcodeResponse, error) {
-	// EAN-13 dengan prefix 899 (Indonesia)
-	digits := make([]int, 12)
-	digits[0], digits[1], digits[2] = 8, 9, 9
-	for i := 3; i < 12; i++ {
-		n, err := rand.Int(rand.Reader, big.NewInt(10))
-		if err != nil {
-			return nil, &errors.InternalServerError{Message: "Gagal generate barcode"}
-		}
-		digits[i] = int(n.Int64())
-	}
-	// Hitung checksum EAN-13
-	sum := 0
-	for i, d := range digits {
-		if i%2 == 0 {
-			sum += d
-		} else {
-			sum += d * 3
-		}
-	}
-	checksum := (10 - (sum % 10)) % 10
-
-	barcode := ""
-	for _, d := range digits {
-		barcode += strconv.Itoa(d)
-	}
-	barcode += strconv.Itoa(checksum)
-
-	return &dto_product.GenerateBarcodeResponse{Barcode: barcode}, nil
-}
-
-func (s *productService) GenerateSku(categoryID int) (*dto_product.GenerateSkuResponse, error) {
-	cat, err := s.catRepo.GetByID(categoryID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if cat == nil {
-		return nil, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
-	}
-
-	count, err := s.repo.CountSkuByCategory(categoryID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-
-	sku := fmt.Sprintf("%s-%04d", cat.Code, count+1)
-	return &dto_product.GenerateSkuResponse{SKU: sku}, nil
-}
-
-func (s *productService) Create(req *dto_product.ProductRequest) (*dto_product.ProductResponse, error) {
-	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if exists {
-		return nil, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
-	}
-
-	skuExists, err := s.repo.CheckSkuExists(req.SKU, 0)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if skuExists {
-		return nil, &errors.BadRequestError{Message: "SKU sudah digunakan"}
-	}
-
-	newID, err := s.repo.Create(req)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-
-	created, err := s.repo.GetByID(int(newID))
-	if err != nil || created == nil {
-		return nil, &errors.InternalServerError{Message: "Gagal mengambil data produk baru"}
-	}
-	return toProductResponse(created, ""), nil
-}
-
-func (s *productService) Update(id int, req *dto_product.ProductRequest) error {
-	p, err := s.repo.GetByID(id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if p == nil {
-		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-
-	exists, err := s.repo.CheckBarcodeExists(req.Barcode, id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if exists {
-		return &errors.BadRequestError{Message: "Barcode sudah digunakan"}
-	}
-
-	skuExists, err := s.repo.CheckSkuExists(req.SKU, id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if skuExists {
-		return &errors.BadRequestError{Message: "SKU sudah digunakan"}
-	}
-
-	return s.repo.Update(id, req)
-}
-
-func (s *productService) Delete(id int) error {
-	p, err := s.repo.GetByID(id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if p == nil {
-		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-
-	count, err := s.repo.CountTransactionItems(id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if count > 0 {
-		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah ada di transaksi"}
-	}
-
-	return s.repo.Delete(id)
-}
-
-func (s *productService) ToggleStatus(id int) error {
-	p, err := s.repo.GetByID(id)
-	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	if p == nil {
-		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-	return s.repo.ToggleStatus(id)
-}
 
 func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_product.ImportResult, error) {
 	src, err := file.Open()
@@ -408,9 +164,7 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 		Failed: []dto_product.BulkImportFailed{},
 	}
 
-	// noToProductID maps the Excel row "no" to the saved product ID for grosir cross-reference
 	noToProductID := make(map[int]int)
-	// defaultPackages menyimpan default package per productID, dikumpulkan dulu sebelum disimpan
 	defaultPackages := make(map[int]dto_product.ProductPackageRequest)
 
 	for i, row := range bulkReq.Rows {
@@ -429,13 +183,12 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			continue
 		}
 
-		// Resolve unit_id dari nama atau singkatan satuan
 		satuanKey := strings.ToLower(strings.TrimSpace(row.Satuan))
 		if satuanKey == "" {
 			addFailed("Satuan kosong")
 			continue
 		}
-		resolvedUnitID := row.SatuanID // sudah di-resolve saat ImportPreview
+		resolvedUnitID := row.SatuanID
 		if resolvedUnitID == 0 {
 			addFailed(fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", row.Satuan))
 			continue
@@ -471,7 +224,6 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			}
 		}
 
-		// Auto-generate barcode jika kosong
 		if req.Barcode == "" {
 			gen, err := s.GenerateBarcode()
 			if err != nil {
@@ -491,7 +243,6 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			}
 		}
 
-		// Auto-generate SKU dari kategori
 		if req.CategoryID != nil {
 			skuResp, err := s.GenerateSku(*req.CategoryID)
 			if err == nil {
@@ -509,8 +260,6 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			noToProductID[row.No] = int(productID)
 		}
 
-		// Catat default package per productID — belum disimpan, dikumpulkan dulu
-		// agar tidak ada dua kali Save untuk produk yang juga punya grosir
 		defaultPackages[int(productID)] = dto_product.ProductPackageRequest{
 			UnitID:        resolvedUnitID,
 			ConversionQty: 1,
@@ -522,7 +271,6 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 		result.Success++
 	}
 
-	// Kumpulkan grosir per productID
 	grosirByProduct := make(map[int][]dto_product.ProductPackageRequest)
 	for _, g := range bulkReq.Grosir {
 		productID, ok := noToProductID[g.NoProduk]
@@ -539,7 +287,6 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 		})
 	}
 
-	// Simpan packages sekali per produk: default dulu, baru grosir (jika ada)
 	for productID, defaultPkg := range defaultPackages {
 		allPkgs := []dto_product.ProductPackageRequest{defaultPkg}
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
@@ -564,7 +311,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	}
 	defer f.Close()
 
-	// Fetch master data untuk validasi
 	validCategories := make(map[string]bool)
 	if cats, err := s.catRepo.GetOptions(); err == nil {
 		for _, c := range cats {
@@ -572,7 +318,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		}
 	}
 
-	// unitIDMap: key = lowercase nama/singkatan → unit_id
 	unitIDMap := make(map[string]int)
 	if units, err := s.masterUnitRepo.GetOptions(); err == nil {
 		for _, u := range units {
@@ -581,7 +326,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		}
 	}
 
-	// Parse sheet Produk
 	sheetProduk := "Produk"
 	if idx, _ := f.GetSheetIndex(sheetProduk); idx == -1 {
 		sheetProduk = f.GetSheetName(0)
@@ -610,8 +354,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		return strings.TrimSpace(row[idx])
 	}
 	toFloat := func(s string) float64 {
-		// excelize memformat NumFmt 3 (#,##0) dengan koma sebagai pemisah ribuan: "20,000"
-		// Hapus koma agar "20,000" → "20000" sebelum di-parse
 		s = strings.ReplaceAll(s, ",", "")
 		v, _ := strconv.ParseFloat(s, 64)
 		return v
@@ -621,8 +363,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		return v
 	}
 
-	// Urutan kolom: No, Produk, Barcode, Kategori, Harga Beli, Harga Jual, Margin(*), Stok, Stok Minimum, Satuan
-	// (*) Margin diabaikan — kolom formula, tidak dibaca
 	colNo := colIdx(headerProduk, "No")
 	colNama := colIdx(headerProduk, "Produk")
 	colBarcode := colIdx(headerProduk, "Barcode")
@@ -655,7 +395,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		stok := toFloat(getCell(row, colStok))
 		stokMin := toFloat(getCell(row, colStokMin))
 
-		// Validasi wajib
 		if nama == "" {
 			errs = append(errs, "Nama produk wajib diisi")
 		}
@@ -678,14 +417,12 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 			errs = append(errs, "Stok minimum tidak boleh negatif")
 		}
 
-		// Validasi kategori
 		if kategori == "" {
 			warns = append(warns, "Kategori kosong — produk akan masuk tanpa kategori")
 		} else if !validCategories[strings.ToLower(kategori)] {
 			errs = append(errs, fmt.Sprintf("Kategori \"%s\" tidak ditemukan di master data", kategori))
 		}
 
-		// Validasi & generate barcode
 		if barcode == "" {
 			gen, genErr := s.GenerateBarcode()
 			if genErr == nil {
@@ -735,7 +472,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 		})
 	}
 
-	// Parse sheet Grosir
 	sheetGrosir := "Grosir"
 	if idx, _ := f.GetSheetIndex(sheetGrosir); idx == -1 {
 		sheetGrosir = f.GetSheetName(1)
@@ -745,8 +481,6 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	var previewGrosir []dto_product.ImportPreviewGrosirRow
 	if len(grosirRows) >= 2 {
 		headerGrosir := grosirRows[0]
-		// Urutan kolom: No Produk, Nama Paket, Satuan, Konversi, Ref Harga Beli(*), Harga Beli, Ref Harga Jual(*), Harga Jual
-		// (*) Ref diabaikan — kolom formula, tidak dibaca
 		gColNoProduk := colIdx(headerGrosir, "No Produk")
 		gColNamaPaket := colIdx(headerGrosir, "Nama Paket")
 		gColSatuan := colIdx(headerGrosir, "Satuan")
@@ -843,27 +577,4 @@ func (s *productService) createCategoryWithCode(name, description string) (int64
 		Code:        candidate,
 		Description: description,
 	})
-}
-
-func toProductResponse(p *model_product.Product, categoryName string) *dto_product.ProductResponse {
-	catName := categoryName
-	if catName == "" {
-		catName = p.CategoryName
-	}
-	return &dto_product.ProductResponse{
-		ID:               p.ID,
-		Barcode:          p.Barcode,
-		SKU:              p.SKU,
-		Name:             p.Name,
-		CategoryID:       p.CategoryID,
-		CategoryName:     catName,
-		PurchasePrice:    p.PurchasePrice,
-		SellingPrice:     p.SellingPrice,
-		Stock:            p.Stock,
-		MinStock:         p.MinStock,
-		UnitID:           p.UnitID,
-		UnitName:         p.UnitName,
-		UnitAbbreviation: p.UnitAbbreviation,
-		IsActive:         p.IsActive,
-	}
 }

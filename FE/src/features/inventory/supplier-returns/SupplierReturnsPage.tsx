@@ -47,7 +47,7 @@ export function SupplierReturnsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
 
-  const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page_size: 200 })
+  const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page_size: 1 })
   const suppliers = suppliersData?.data ?? []
   const hasSuppliers = suppliers.length > 0

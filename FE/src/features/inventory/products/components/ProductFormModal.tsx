@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from 'sonner'
 import { Lock, Pencil, Plus, Trash2, Unlock } from 'lucide-react'
 
@@ -29,33 +28,14 @@ import {
 } from '../products.api'
 import { useUnitOptionsQuery } from '@/features/inventory/units'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
+import { productSchema, grosirSchema } from '../products.schema'
+import type { ProductFormValues, GrosirFormValues } from '../products.schema'
 import type { CreateProductPackagePayload, Product } from '../products.types'
-
-const productSchema = z
-  .object({
-    name: z.string().min(1, 'Nama produk wajib diisi').max(100),
-    sku: z.string().min(1, 'SKU wajib digenerate'),
-    barcode: z.string().min(1, 'Barcode wajib digenerate'),
-    category_id: z.number({ error: 'Kategori wajib dipilih' }).min(1, 'Kategori wajib dipilih'),
-    description: z.string().optional(),
-    purchase_price: z.number().min(0, 'Harga beli tidak boleh negatif'),
-    selling_price: z.number().min(1, 'Harga jual harus lebih dari 0'),
-    stock: z.number().min(0, 'Stok tidak boleh negatif'),
-    min_stock: z.number().min(0, 'Stok minimum tidak boleh negatif'),
-    unit_id: z.number({ error: 'Satuan wajib dipilih' }).min(1, 'Satuan wajib dipilih'),
-    is_active: z.boolean(),
-  })
-  .refine((v) => v.selling_price >= v.purchase_price, {
-    message: 'Harga jual tidak boleh lebih rendah dari harga beli',
-    path: ['selling_price'],
-  })
-
-type ProductFormValues = z.infer<typeof productSchema>
 
 interface ProductFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  productId?: number
+  product?: Product | null
 }
 
 function calcMargin(purchasePrice: number, sellingPrice: number): number {
@@ -80,15 +60,6 @@ function mapProductToForm(product: Product): ProductFormValues {
 }
 
 // ─── Grosiran row form ────────────────────────────────────────────────────────
-
-const grosirSchema = z.object({
-  unit_id: z.number({ error: 'Satuan wajib dipilih' }).min(1, 'Satuan wajib dipilih'),
-  package_name: z.string().optional(),
-  conversion_qty: z.number().min(1, 'Konversi harus > 0'),
-  purchase_price: z.number().min(0),
-  selling_price: z.number().min(1, 'Harga jual harus > 0'),
-})
-type GrosirFormValues = z.infer<typeof grosirSchema>
 
 function GrosirRowForm({
   baseUnitName,
@@ -210,15 +181,19 @@ function GrosirRowForm({
 
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
-export function ProductFormModal({ open, onOpenChange, productId }: ProductFormModalProps) {
-  const isEdit = productId !== undefined
-  const [generateSkuEnabled, setGenerateSkuEnabled] = useState(false)
+const defaultValues: ProductFormValues = {
+  name: '', sku: '', barcode: '', category_id: 0, description: '',
+  purchase_price: 0, selling_price: 0, stock: 0, min_stock: 5, unit_id: 0, is_active: true,
+}
 
-  // Grosiran state
+export function ProductFormModal({ open, onOpenChange, product }: ProductFormModalProps) {
+  const isEdit = product != null
+  const productId = product?.id
+
+  const [generateSkuEnabled, setGenerateSkuEnabled] = useState(false)
   const [grosirRows, setGrosirRows] = useState<CreateProductPackagePayload[]>([])
   const [showGrosirForm, setShowGrosirForm] = useState(false)
   const [editingGrosirIdx, setEditingGrosirIdx] = useState<number | null>(null)
-
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingValues, setPendingValues] = useState<ProductFormValues | null>(null)
   const [barcodeLocked, setBarcodeLocked] = useState(true)
@@ -237,24 +212,10 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
   const { mutate: savePackages } = useSaveProductPackagesBulkMutation()
   const isPending = isCreating || isUpdating
 
-  const form = useForm<ProductFormValues>({
+  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: {
-      name: '',
-      sku: '',
-      barcode: '',
-      category_id: undefined,
-      description: '',
-      purchase_price: 0,
-      selling_price: 0,
-      stock: 0,
-      min_stock: 5,
-      unit_id: 0,
-      is_active: true,
-    },
+    defaultValues,
   })
-
-  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = form
 
   const categoryIdValue = watch('category_id')
   const unitIdValue = watch('unit_id')
@@ -306,10 +267,7 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
 
   useEffect(() => {
     if (!open) {
-      reset({
-        name: '', sku: '', barcode: '', category_id: undefined, description: '',
-        purchase_price: 0, selling_price: 0, stock: 0, min_stock: 5, unit_id: 0, is_active: true,
-      })
+      reset(defaultValues)
       setGenerateSkuEnabled(false)
       setGrosirRows([])
       setShowGrosirForm(false)
@@ -342,7 +300,6 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
       is_active: pendingValues.is_active,
     }
 
-    // Paket default (satuan dasar) selalu dimasukkan sebagai is_default=true
     const allPackages: CreateProductPackagePayload[] = [
       {
         unit_id: pendingValues.unit_id,
@@ -354,12 +311,12 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
       ...grosirRows,
     ]
 
-    if (isEdit) {
+    if (isEdit && productId) {
       updateProduct(
         { id: productId, ...payload },
         {
           onSuccess: () => {
-            savePackages({ productId: productId as number, packages: allPackages })
+            savePackages({ productId, packages: allPackages })
             toast.success('Produk berhasil diperbarui')
             setIsConfirming(false)
             onOpenChange(false)
@@ -418,330 +375,325 @@ export function ProductFormModal({ open, onOpenChange, productId }: ProductFormM
           </div>
         ) : (
           <div className="space-y-4">
-                {/* Nama Produk */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">
-                    Nama Produk <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    {...register('name')}
-                    placeholder="Nama produk"
-                    className={errors.name ? 'border-red-500' : ''}
-                  />
-                  {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-                </div>
+            {/* Nama Produk */}
+            <div className="space-y-1.5">
+              <Label htmlFor="name">
+                Nama Produk <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                {...register('name')}
+                placeholder="Nama produk"
+                className={errors.name ? 'border-red-500' : ''}
+              />
+              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+            </div>
 
-                {/* Kategori + Satuan */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label>
-                      Kategori <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={categoryIdValue !== undefined ? String(categoryIdValue) : ''}
-                      onValueChange={(v) => {
-                        setValue('category_id', Number(v))
-                        if (!generateSkuEnabled) return
-                        setGenerateSkuEnabled(false)
-                        setValue('sku', '')
-                      }}
-                    >
-                      <SelectTrigger className={errors.category_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Pilih Kategori" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.category_id && (
-                      <p className="text-xs text-red-500">{errors.category_id.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>
-                      Satuan Dasar <span className="text-red-500">*</span>
-                    </Label>
-                    <Select
-                      value={unitIdValue > 0 ? String(unitIdValue) : ''}
-                      onValueChange={(v) => setValue('unit_id', Number(v))}
-                    >
-                      <SelectTrigger className={errors.unit_id ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Pilih Satuan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {units.map((u) => (
-                          <SelectItem key={u.id} value={String(u.id)}>
-                            {u.name} ({u.abbreviation})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.unit_id && <p className="text-xs text-red-500">{errors.unit_id.message}</p>}
-                  </div>
-                </div>
-
-                {/* Barcode + SKU */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="barcode">
-                      Barcode <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex gap-1.5">
-                      <div className="relative flex-1">
-                        <Input
-                          id="barcode"
-                          {...register('barcode')}
-                          readOnly={barcodeLocked}
-                          placeholder={isEdit ? '' : (barcodeLocked ? 'Klik 🔓 untuk edit manual' : 'Ketik barcode manual')}
-                          className={`pr-9 ${barcodeLocked ? 'bg-gray-50 text-gray-700' : ''} ${errors.barcode ? 'border-red-500' : ''}`}
-                        />
-                        {!isEdit && (
-                          <button
-                            type="button"
-                            onClick={() => setBarcodeLocked((v) => !v)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            title={barcodeLocked ? 'Klik untuk edit manual' : 'Kunci barcode'}
-                          >
-                            {barcodeLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                          </button>
-                        )}
-                      </div>
-                      {!isEdit && barcodeLocked && (
-                        <button
-                          type="button"
-                          disabled={isFetchingBarcode}
-                          onClick={() => refetchBarcode()}
-                          className="shrink-0 rounded-md border border-gray-300 px-2.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {isFetchingBarcode ? '...' : 'Generate'}
-                        </button>
-                      )}
-                    </div>
-                    {errors.barcode && <p className="text-xs text-red-500">{errors.barcode.message}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sku">
-                      SKU / Kode <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="flex gap-1.5">
-                      <Input
-                        id="sku"
-                        {...register('sku')}
-                        readOnly
-                        placeholder={isEdit ? '' : (categoryIdValue ? 'Klik Generate' : 'Pilih kategori dulu')}
-                        className={`bg-gray-50 text-gray-700 ${errors.sku ? 'border-red-500' : ''}`}
-                      />
-                      {!isEdit && (
-                        <button
-                          type="button"
-                          disabled={!categoryIdValue || generateSkuEnabled || isFetchingSku}
-                          onClick={() => setGenerateSkuEnabled(true)}
-                          className="shrink-0 rounded-md border border-gray-300 px-2.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {isFetchingSku ? '...' : 'Generate'}
-                        </button>
-                      )}
-                    </div>
-                    {errors.sku && <p className="text-xs text-red-500">{errors.sku.message}</p>}
-                  </div>
-                </div>
-
-                {/* Harga Beli + Harga Jual + Margin */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="purchase_price">Harga Beli</Label>
-                    <Controller
-                      name="purchase_price"
-                      control={control}
-                      render={({ field }) => (
-                        <RupiahInput
-                          id="purchase_price"
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={errors.purchase_price ? 'border-red-500' : ''}
-                        />
-                      )}
-                    />
-                    {errors.purchase_price && (
-                      <p className="text-xs text-red-500">{errors.purchase_price.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="selling_price">
-                      Harga Jual <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                      name="selling_price"
-                      control={control}
-                      render={({ field }) => (
-                        <RupiahInput
-                          id="selling_price"
-                          value={field.value}
-                          onChange={field.onChange}
-                          className={errors.selling_price ? 'border-red-500' : ''}
-                        />
-                      )}
-                    />
-                    {errors.selling_price && (
-                      <p className="text-xs text-red-500">{errors.selling_price.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Margin</Label>
-                    <div
-                      className={`flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
-                        margin >= 30
-                          ? 'border-green-200 bg-green-50 text-green-700'
-                          : margin >= 15
-                            ? 'border-amber-200 bg-amber-50 text-amber-700'
-                            : margin > 0
-                              ? 'border-red-200 bg-red-50 text-red-600'
-                              : 'border-gray-200 bg-gray-50 text-gray-400'
-                      }`}
-                    >
-                      {margin}%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stok + Stok Minimum */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="stock">Stok</Label>
-                    <Input
-                      id="stock"
-                      type="number"
-                      min={0}
-                      {...register('stock', { valueAsNumber: true })}
-                      className={errors.stock ? 'border-red-500' : ''}
-                    />
-                    {errors.stock && <p className="text-xs text-red-500">{errors.stock.message}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="min_stock">Stok Minimum</Label>
-                    <Input
-                      id="min_stock"
-                      type="number"
-                      min={0}
-                      {...register('min_stock', { valueAsNumber: true })}
-                      className={errors.min_stock ? 'border-red-500' : ''}
-                    />
-                    <p className="text-xs text-gray-500">
-                      Batas stok terendah sebelum muncul peringatan stok hampir habis.
-                    </p>
-                    {errors.min_stock && (
-                      <p className="text-xs text-red-500">{errors.min_stock.message}</p>
-                    )}
-                  </div>
-                </div>
-
-
-                {/* Grosiran / Satuan Lain */}
-                <div className="space-y-2 border-t pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-sm font-semibold">Grosiran / Satuan Lain</Label>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          Baris Dasar mengikuti harga di atas. Tambahkan paket lain seperti 1 Dus, 3 Botol, dll.
-                        </p>
-                      </div>
-                      {!showGrosirForm && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 h-7 text-xs"
-                          onClick={() => { setEditingGrosirIdx(null); setShowGrosirForm(true) }}
-                        >
-                          <Plus size={12} /> Tambah Paket
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Tabel grosiran */}
-                    {grosirRows.length > 0 && (
-                      <div className="rounded-md border text-xs overflow-hidden">
-                        <table className="w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              {['Nama Paket', 'Isi', 'H. Beli', 'H. Jual', ''].map((h) => (
-                                <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {grosirRows.map((row, idx) => (
-                              <tr key={idx} className="border-t">
-                                <td className="px-2 py-1.5 font-medium">
-                                  {units.find((u) => u.id === row.unit_id)?.name ?? '—'}
-                                  {row.package_name && <span className="text-gray-400 ml-1">({row.package_name})</span>}
-                                </td>
-                                <td className="px-2 py-1.5 text-gray-600">
-                                  {row.conversion_qty} {units.find((u) => u.id === unitIdValue)?.name || 'satuan dasar'}
-                                </td>
-                                <td className="px-2 py-1.5">Rp {row.purchase_price.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5">Rp {row.selling_price.toLocaleString('id-ID')}</td>
-                                <td className="px-2 py-1.5">
-                                  <div className="flex gap-1 justify-end">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 text-gray-500 hover:text-blue-600"
-                                      onClick={() => {
-                                        setEditingGrosirIdx(idx)
-                                        setShowGrosirForm(true)
-                                      }}
-                                    >
-                                      <Pencil size={12} />
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 text-gray-500 hover:text-red-600"
-                                      onClick={() => setGrosirRows((prev) => prev.filter((_, i) => i !== idx))}
-                                    >
-                                      <Trash2 size={12} />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {showGrosirForm && (
-                      <GrosirRowForm
-                        baseUnitName={units.find((u) => u.id === unitIdValue)?.name ?? ''}
-                        basePurchase={purchasePriceValue}
-                        baseSelling={sellingPriceValue}
-                        availableUnits={units}
-                        initialValues={
-                          editingGrosirIdx !== null
-                            ? {
-                                unit_id: grosirRows[editingGrosirIdx].unit_id,
-                                package_name: grosirRows[editingGrosirIdx].package_name ?? '',
-                                conversion_qty: grosirRows[editingGrosirIdx].conversion_qty,
-                                purchase_price: grosirRows[editingGrosirIdx].purchase_price,
-                                selling_price: grosirRows[editingGrosirIdx].selling_price,
-                              }
-                            : undefined
-                        }
-                        onSave={handleAddGrosir}
-                        onCancel={() => { setShowGrosirForm(false); setEditingGrosirIdx(null) }}
-                      />
-                    )}
-                  </div>
+            {/* Kategori + Satuan */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>
+                  Kategori <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={categoryIdValue !== undefined && categoryIdValue > 0 ? String(categoryIdValue) : ''}
+                  onValueChange={(v) => {
+                    setValue('category_id', Number(v))
+                    if (!generateSkuEnabled) return
+                    setGenerateSkuEnabled(false)
+                    setValue('sku', '')
+                  }}
+                >
+                  <SelectTrigger className={errors.category_id ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Pilih Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.category_id && (
+                  <p className="text-xs text-red-500">{errors.category_id.message}</p>
+                )}
               </div>
-            )}
+              <div className="space-y-1.5">
+                <Label>
+                  Satuan Dasar <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={unitIdValue > 0 ? String(unitIdValue) : ''}
+                  onValueChange={(v) => setValue('unit_id', Number(v))}
+                >
+                  <SelectTrigger className={errors.unit_id ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Pilih Satuan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((u) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.name} ({u.abbreviation})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.unit_id && <p className="text-xs text-red-500">{errors.unit_id.message}</p>}
+              </div>
+            </div>
+
+            {/* Barcode + SKU */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="barcode">
+                  Barcode <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-1.5">
+                  <div className="relative flex-1">
+                    <Input
+                      id="barcode"
+                      {...register('barcode')}
+                      readOnly={barcodeLocked}
+                      placeholder={isEdit ? '' : (barcodeLocked ? 'Klik 🔓 untuk edit manual' : 'Ketik barcode manual')}
+                      className={`pr-9 ${barcodeLocked ? 'bg-gray-50 text-gray-700' : ''} ${errors.barcode ? 'border-red-500' : ''}`}
+                    />
+                    {!isEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setBarcodeLocked((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        title={barcodeLocked ? 'Klik untuk edit manual' : 'Kunci barcode'}
+                      >
+                        {barcodeLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                      </button>
+                    )}
+                  </div>
+                  {!isEdit && barcodeLocked && (
+                    <button
+                      type="button"
+                      disabled={isFetchingBarcode}
+                      onClick={() => refetchBarcode()}
+                      className="shrink-0 rounded-md border border-gray-300 px-2.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isFetchingBarcode ? '...' : 'Generate'}
+                    </button>
+                  )}
+                </div>
+                {errors.barcode && <p className="text-xs text-red-500">{errors.barcode.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sku">
+                  SKU / Kode <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-1.5">
+                  <Input
+                    id="sku"
+                    {...register('sku')}
+                    readOnly
+                    placeholder={isEdit ? '' : (categoryIdValue ? 'Klik Generate' : 'Pilih kategori dulu')}
+                    className={`bg-gray-50 text-gray-700 ${errors.sku ? 'border-red-500' : ''}`}
+                  />
+                  {!isEdit && (
+                    <button
+                      type="button"
+                      disabled={!categoryIdValue || generateSkuEnabled || isFetchingSku}
+                      onClick={() => setGenerateSkuEnabled(true)}
+                      className="shrink-0 rounded-md border border-gray-300 px-2.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isFetchingSku ? '...' : 'Generate'}
+                    </button>
+                  )}
+                </div>
+                {errors.sku && <p className="text-xs text-red-500">{errors.sku.message}</p>}
+              </div>
+            </div>
+
+            {/* Harga Beli + Harga Jual + Margin */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="purchase_price">Harga Beli</Label>
+                <Controller
+                  name="purchase_price"
+                  control={control}
+                  render={({ field }) => (
+                    <RupiahInput
+                      id="purchase_price"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className={errors.purchase_price ? 'border-red-500' : ''}
+                    />
+                  )}
+                />
+                {errors.purchase_price && (
+                  <p className="text-xs text-red-500">{errors.purchase_price.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="selling_price">
+                  Harga Jual <span className="text-red-500">*</span>
+                </Label>
+                <Controller
+                  name="selling_price"
+                  control={control}
+                  render={({ field }) => (
+                    <RupiahInput
+                      id="selling_price"
+                      value={field.value}
+                      onChange={field.onChange}
+                      className={errors.selling_price ? 'border-red-500' : ''}
+                    />
+                  )}
+                />
+                {errors.selling_price && (
+                  <p className="text-xs text-red-500">{errors.selling_price.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Margin</Label>
+                <div
+                  className={`flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
+                    margin >= 30
+                      ? 'border-green-200 bg-green-50 text-green-700'
+                      : margin >= 15
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : margin > 0
+                          ? 'border-red-200 bg-red-50 text-red-600'
+                          : 'border-gray-200 bg-gray-50 text-gray-400'
+                  }`}
+                >
+                  {margin}%
+                </div>
+              </div>
+            </div>
+
+            {/* Stok + Stok Minimum */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="stock">Stok</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  min={0}
+                  {...register('stock', { valueAsNumber: true })}
+                  className={errors.stock ? 'border-red-500' : ''}
+                />
+                {errors.stock && <p className="text-xs text-red-500">{errors.stock.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="min_stock">Stok Minimum</Label>
+                <Input
+                  id="min_stock"
+                  type="number"
+                  min={0}
+                  {...register('min_stock', { valueAsNumber: true })}
+                  className={errors.min_stock ? 'border-red-500' : ''}
+                />
+                <p className="text-xs text-gray-500">
+                  Batas stok terendah sebelum muncul peringatan stok hampir habis.
+                </p>
+                {errors.min_stock && (
+                  <p className="text-xs text-red-500">{errors.min_stock.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Grosiran / Satuan Lain */}
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm font-semibold">Grosiran / Satuan Lain</Label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Baris Dasar mengikuti harga di atas. Tambahkan paket lain seperti 1 Dus, 3 Botol, dll.
+                  </p>
+                </div>
+                {!showGrosirForm && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 h-7 text-xs"
+                    onClick={() => { setEditingGrosirIdx(null); setShowGrosirForm(true) }}
+                  >
+                    <Plus size={12} /> Tambah Paket
+                  </Button>
+                )}
+              </div>
+
+              {grosirRows.length > 0 && (
+                <div className="rounded-md border text-xs overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {['Nama Paket', 'Isi', 'H. Beli', 'H. Jual', ''].map((h) => (
+                          <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grosirRows.map((row, idx) => (
+                        <tr key={idx} className="border-t">
+                          <td className="px-2 py-1.5 font-medium">
+                            {units.find((u) => u.id === row.unit_id)?.name ?? '—'}
+                            {row.package_name && <span className="text-gray-400 ml-1">({row.package_name})</span>}
+                          </td>
+                          <td className="px-2 py-1.5 text-gray-600">
+                            {row.conversion_qty} {units.find((u) => u.id === unitIdValue)?.name || 'satuan dasar'}
+                          </td>
+                          <td className="px-2 py-1.5">Rp {row.purchase_price.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5">Rp {row.selling_price.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5">
+                            <div className="flex gap-1 justify-end">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-gray-500 hover:text-blue-600"
+                                onClick={() => { setEditingGrosirIdx(idx); setShowGrosirForm(true) }}
+                              >
+                                <Pencil size={12} />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-gray-500 hover:text-red-600"
+                                onClick={() => setGrosirRows((prev) => prev.filter((_, i) => i !== idx))}
+                              >
+                                <Trash2 size={12} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {showGrosirForm && (
+                <GrosirRowForm
+                  baseUnitName={units.find((u) => u.id === unitIdValue)?.name ?? ''}
+                  basePurchase={purchasePriceValue}
+                  baseSelling={sellingPriceValue}
+                  availableUnits={units}
+                  initialValues={
+                    editingGrosirIdx !== null
+                      ? {
+                          unit_id: grosirRows[editingGrosirIdx].unit_id,
+                          package_name: grosirRows[editingGrosirIdx].package_name ?? '',
+                          conversion_qty: grosirRows[editingGrosirIdx].conversion_qty,
+                          purchase_price: grosirRows[editingGrosirIdx].purchase_price,
+                          selling_price: grosirRows[editingGrosirIdx].selling_price,
+                        }
+                      : undefined
+                  }
+                  onSave={handleAddGrosir}
+                  onCancel={() => { setShowGrosirForm(false); setEditingGrosirIdx(null) }}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </FormModal>
 
       <ConfirmDialog

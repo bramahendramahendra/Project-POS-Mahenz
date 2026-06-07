@@ -10,12 +10,12 @@ import type {
   CreateProductPayload,
   PriceTier,
   Product,
-  ProductFilter,
+  ProductListFilter,
   ProductPackage,
-  UpdatePriceTierPayload,
   UpdateProductPayload,
 } from './products.types'
-// ─── Import ───────────────────────────────────────────────────────────────────
+
+// ─── Import Types ─────────────────────────────────────────────────────────────
 
 export interface ImportPreviewRow {
   no: number
@@ -84,6 +84,8 @@ export interface ImportBulkPayload {
   grosir: GrosirImportRow[]
 }
 
+// ─── Import Mutations ─────────────────────────────────────────────────────────
+
 export function useImportPreviewMutation() {
   return useMutation({
     mutationFn: (file: File) => {
@@ -117,7 +119,7 @@ export function useImportProductsBulkMutation() {
 export function useGenerateBarcodeQuery() {
   return useQuery({
     queryKey: ['generate-barcode'],
-    queryFn: () => api.get<{ barcode: string }>('/products/generate-barcode'),
+    queryFn: () => api.post<{ barcode: string }>('/products/generate-barcode', {}),
     enabled: false,
   })
 }
@@ -125,7 +127,7 @@ export function useGenerateBarcodeQuery() {
 export function useGenerateSkuQuery(categoryId: number, enabled: boolean) {
   return useQuery({
     queryKey: ['generate-sku', categoryId],
-    queryFn: () => api.get<{ sku: string }>('/products/generate-sku', { category_id: categoryId }),
+    queryFn: () => api.post<{ sku: string }>('/products/generate-sku', { category_id: categoryId }),
     enabled: enabled && categoryId > 0,
     staleTime: Infinity,
     gcTime: 0,
@@ -141,20 +143,17 @@ export interface ProductListData {
   limit: number
 }
 
-export function useProductListQuery(filter?: ProductFilter) {
+export function useProductListQuery(filter?: ProductListFilter) {
   return useQuery({
     queryKey: queryKeys.products.list(filter as Record<string, unknown>),
-    queryFn: () => {
-      const { page_size, ...rest } = filter ?? {}
-      return api.get<ProductListData>('/products', { ...rest, limit: page_size })
-    },
+    queryFn: () => api.post<ProductListData>('/products/list', filter ?? {}),
   })
 }
 
 export function useProductDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.products.detail(id),
-    queryFn: () => api.get<Product>(`/products/${id}`),
+    queryFn: () => api.post<Product>(`/products/detail/${id}`, {}),
     enabled: id > 0,
   })
 }
@@ -162,7 +161,7 @@ export function useProductDetailQuery(id: number) {
 export function useProductBarcodeQuery(code: string, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.get<{ product: Product }>(`/products/barcode/${code}`),
+    queryFn: () => api.post<{ product: Product }>(`/products/by-barcode/${code}`, {}),
     enabled: enabled && code.length > 0,
   })
 }
@@ -170,7 +169,7 @@ export function useProductBarcodeQuery(code: string, enabled: boolean) {
 export function useProductPackagesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.productUnits(productId),
-    queryFn: () => api.get<ProductPackage[]>(`/products/${productId}/packages`),
+    queryFn: () => api.post<ProductPackage[]>(`/products/${productId}/packages/list`, {}),
     enabled: productId > 0,
   })
 }
@@ -178,7 +177,7 @@ export function useProductPackagesQuery(productId: number) {
 export function useProductPricesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.priceTiers(productId),
-    queryFn: () => api.get<PriceTier[]>(`/products/${productId}/prices`),
+    queryFn: () => api.post<PriceTier[]>(`/products/${productId}/prices/list`, {}),
     enabled: productId > 0,
   })
 }
@@ -188,7 +187,7 @@ export function useProductPricesQuery(productId: number) {
 export function useCreateProductMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateProductPayload) => api.post<Product>('/products', payload),
+    mutationFn: (payload: CreateProductPayload) => api.post<Product>('/products/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
     },
@@ -200,7 +199,7 @@ export function useUpdateProductMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateProductPayload & { id: number }) =>
-      api.put<Product>(`/products/${id}`, payload),
+      api.post<Product>(`/products/update/${id}`, payload),
     onSuccess: (_data, { id }) => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
       qc.invalidateQueries({ queryKey: queryKeys.products.detail(id) })
@@ -212,7 +211,7 @@ export function useUpdateProductMutation() {
 export function useDeleteProductMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete<void>(`/products/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/products/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
     },
@@ -223,7 +222,7 @@ export function useDeleteProductMutation() {
 export function useToggleProductStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.patch<void>(`/products/${id}/toggle-status`),
+    mutationFn: (id: number) => api.post<void>(`/products/toggle-status/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
     },
@@ -237,7 +236,7 @@ export function useBulkToggleProductStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (ids: number[]) =>
-      Promise.all(ids.map((id) => api.patch<void>(`/products/${id}/toggle-status`))),
+      Promise.all(ids.map((id) => api.post<void>(`/products/toggle-status/${id}`, {}))),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
     },
@@ -251,20 +250,8 @@ export function useSaveProductPackagesBulkMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ productId, packages }: { productId: number; packages: CreateProductPackagePayload[] }) =>
-      api.post<void>(`/products/${productId}/packages`, { packages }),
+      api.post<void>(`/products/${productId}/packages/save`, { packages }),
     onSuccess: (_data, { productId }) => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useAddProductPackageMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateProductPackagePayload) =>
-      api.post<ProductPackage>(`/products/${productId}/packages`, { packages: [payload] }),
-    onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
     },
     onError: (e: Error) => toast.error(e.message),
@@ -274,7 +261,8 @@ export function useAddProductPackageMutation(productId: number) {
 export function useDeleteProductPackageMutation(productId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (packageId: number) => api.delete<void>(`/products/${productId}/packages/${packageId}`),
+    mutationFn: (packageId: number) =>
+      api.post<void>(`/products/${productId}/packages/delete/${packageId}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
     },
@@ -284,34 +272,11 @@ export function useDeleteProductPackageMutation(productId: number) {
 
 // ─── Price Tier Mutations ─────────────────────────────────────────────────────
 
-export function useAddPriceTierMutation(productId: number) {
+export function useSavePriceTiersMutation(productId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreatePriceTierPayload) =>
-      api.post<PriceTier>(`/products/${productId}/prices`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useUpdatePriceTierMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ priceId, ...payload }: UpdatePriceTierPayload) =>
-      api.put<PriceTier>(`/products/${productId}/prices/${priceId}`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useDeletePriceTierMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (priceId: number) => api.delete<void>(`/products/${productId}/prices/${priceId}`),
+    mutationFn: (prices: CreatePriceTierPayload[]) =>
+      api.post<void>(`/products/${productId}/prices/save`, { prices }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
     },

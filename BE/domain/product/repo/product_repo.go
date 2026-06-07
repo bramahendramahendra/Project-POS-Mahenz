@@ -2,7 +2,6 @@ package repo_product
 
 import (
 	"fmt"
-	"strings"
 
 	dto_product "pos_api/domain/product/dto"
 	model_product "pos_api/domain/product/model"
@@ -56,9 +55,6 @@ const (
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.stock <= p.min_stock AND p.is_active = 1`
 
-	checkBarcodeExistsQuery  = `SELECT id FROM products WHERE barcode = ? AND id != ? LIMIT 1`
-	checkSkuExistsQuery      = `SELECT id FROM products WHERE sku = ? AND id != ? LIMIT 1`
-	countSkuByCategoryQuery  = `SELECT COUNT(*) FROM products WHERE category_id = ?`
 	checkProductUsedQuery    = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
 	createProductQuery       = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	updateProductQuery       = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
@@ -233,41 +229,9 @@ func (r *productRepo) GetLowStock() ([]*dto_product.LowStockProduct, error) {
 	return results, nil
 }
 
-func (r *productRepo) CheckBarcodeExists(barcode string, excludeID int) (bool, error) {
-	if strings.TrimSpace(barcode) == "" {
-		return false, nil
-	}
-	var id int
-	result := r.db.Raw(checkBarcodeExistsQuery, barcode, excludeID).Scan(&id)
-	if result.Error != nil {
-		return false, result.Error
-	}
-	return result.RowsAffected > 0, nil
-}
-
 func (r *productRepo) CountTransactionItems(productID int) (int, error) {
 	var count int
 	if err := r.db.Raw(checkProductUsedQuery, productID).Scan(&count).Error; err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-func (r *productRepo) CheckSkuExists(sku string, excludeID int) (bool, error) {
-	if strings.TrimSpace(sku) == "" {
-		return false, nil
-	}
-	var id int
-	result := r.db.Raw(checkSkuExistsQuery, sku, excludeID).Scan(&id)
-	if result.Error != nil {
-		return false, result.Error
-	}
-	return result.RowsAffected > 0, nil
-}
-
-func (r *productRepo) CountSkuByCategory(categoryID int) (int, error) {
-	var count int
-	if err := r.db.Raw(countSkuByCategoryQuery, categoryID).Scan(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

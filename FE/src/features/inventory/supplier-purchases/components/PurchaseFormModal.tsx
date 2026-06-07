@@ -74,7 +74,7 @@ const defaultValues: FormValues = {
 }
 
 export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps) {
-  const { data: suppliersData } = useSupplierListQuery({ page_size: 200 })
+  const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const { data: productsData } = useProductListQuery({ page_size: 200 })
   const suppliers = suppliersData?.data ?? []
   const products: Product[] = productsData?.items ?? []

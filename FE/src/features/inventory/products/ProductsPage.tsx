@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Plus, Upload, Tag, Ruler } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -9,42 +9,38 @@ import { usePagination, useDisclosure, usePageSizeOptions } from '@/shared/hooks
 import { useDeleteProductMutation, useProductListQuery } from './products.api'
 import { useUnitOptionsQuery } from '@/features/inventory/units'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
-import { useProductsStore } from './products.store'
-import type { Product, ProductFilter } from './products.types'
+import type { Product, ProductListFilter } from './products.types'
 import { ImportCsvModal } from './components/ImportCsvModal'
 import { LabelPrintModal } from './components/LabelPrintModal'
 import { ProductDetailModal } from './components/ProductDetailModal'
 import { ProductFilterBar } from './components/ProductFilter'
 import { ProductFormModal } from './components/ProductFormModal'
+import type { ProductTableHandle } from './components/ProductTable'
 import { ProductTable } from './components/ProductTable'
 
 export function ProductsPage() {
-  const [filter, setFilter] = useState<ProductFilter>({})
+  const tableRef = useRef<ProductTableHandle>(null)
+  const [filter, setFilter] = useState<ProductListFilter>({ page: 1, limit: 10, search: '' })
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([])
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
-  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
-  const pageSizeOptions = usePageSizeOptions()
-  const {
-    openProductModal,
-    productModalOpen,
-    editingProductId,
-    closeProductModal,
-    deleteConfirmOpen,
-    deleteTarget,
-    closeDeleteConfirm,
-    detailModalOpen,
-    detailProductId,
-    openDetailModal,
-    closeDetailModal,
-  } = useProductsStore()
 
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+
+  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: importOpen, open: openImport, close: closeImport } = useDisclosure()
   const { isOpen: labelOpen, open: openLabel, close: closeLabel } = useDisclosure()
+
+  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
 
   const { data: productData, isLoading } = useProductListQuery({
     ...filter,
     page,
-    page_size: pageSize,
+    limit: pageSize,
   })
   const { data: categories = [], isLoading: isCatLoading } = useCategoryOptionsQuery()
   const { data: units = [], isLoading: isUnitLoading } = useUnitOptionsQuery()
@@ -56,20 +52,54 @@ export function ProductsPage() {
   const products = productData?.items ?? []
   const total = productData?.total ?? 0
 
-  const handleFilterChange = (newFilter: ProductFilter) => {
+  const handleFilterChange = (newFilter: ProductListFilter) => {
     setFilter(newFilter)
     reset()
   }
 
   const handleReset = () => {
-    setFilter({})
+    setFilter({ page: 1, limit: 10, search: '' })
     reset()
   }
 
-  const handleDelete = () => {
-    if (deleteTarget?.type === 'product') {
-      deleteProduct(deleteTarget.id, { onSuccess: () => closeDeleteConfirm() })
-    }
+  const handleOpenEdit = (product: Product) => {
+    setEditingProduct(product)
+    openForm()
+  }
+
+  const handleOpenAdd = () => {
+    setEditingProduct(null)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingProduct(null)
+  }
+
+  const handleOpenDelete = (product: Product) => {
+    setDeleteTarget(product)
+    openDelete()
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    deleteProduct(deleteTarget.id, {
+      onSuccess: () => {
+        closeDelete()
+        setDeleteTarget(null)
+      },
+    })
+  }
+
+  const handleOpenDetail = (product: Product) => {
+    setDetailProduct(product)
+    openDetail()
+  }
+
+  const handleCloseDetail = () => {
+    closeDetail()
+    setDetailProduct(null)
   }
 
   if (isCatLoading || isUnitLoading) {
@@ -104,9 +134,7 @@ export function ProductsPage() {
               <Ruler size={24} className={!hasActiveUnits ? 'text-amber-500' : 'text-green-500'} />
             </div>
           </div>
-          <h3 className="mb-1 text-base font-semibold text-gray-800">
-            Belum bisa menambah produk
-          </h3>
+          <h3 className="mb-1 text-base font-semibold text-gray-800">Belum bisa menambah produk</h3>
           <p className="mb-1 text-sm text-gray-500">
             Sebelum menambah produk, pastikan data berikut sudah tersedia:
           </p>
@@ -137,7 +165,7 @@ export function ProductsPage() {
                 <Upload size={16} />
                 Import Produk
               </Button>
-              <Button onClick={() => openProductModal()} className="gap-1">
+              <Button onClick={handleOpenAdd} className="gap-1">
                 <Plus size={16} />
                 Tambah Produk
               </Button>
@@ -154,6 +182,7 @@ export function ProductsPage() {
           categories={categories}
         />
         <ProductTable
+          ref={tableRef}
           data={products}
           isLoading={isLoading}
           pagination={{
@@ -165,38 +194,37 @@ export function ProductsPage() {
             pageSizeOptions,
           }}
           onSelectionChange={setSelectedProducts}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+          onDetail={handleOpenDetail}
           onPrintLabel={() => openLabel()}
-          onDetailProduct={(product) => openDetailModal(product.id)}
-          onPrintSingleLabel={(product) => { setSingleLabelProduct(product); openLabel() }}
+          onPrintSingleLabel={(product) => {
+            setSingleLabelProduct(product)
+            openLabel()
+          }}
         />
       </div>
 
       <ProductFormModal
-        open={productModalOpen}
-        onOpenChange={(open) => {
-          if (!open) closeProductModal()
-        }}
-        productId={editingProductId ?? undefined}
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
+        product={editingProduct}
       />
 
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={(open) => {
-          if (!open) closeDeleteConfirm()
-        }}
+        open={deleteOpen}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeleteTarget(null) } }}
         title="Hapus Produk"
         description={`Yakin ingin menghapus produk "${deleteTarget?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
 
       <ImportCsvModal
         open={importOpen}
-        onOpenChange={(open) => {
-          if (!open) closeImport()
-        }}
+        onOpenChange={(open) => { if (!open) closeImport() }}
       />
 
       <LabelPrintModal
@@ -208,11 +236,9 @@ export function ProductsPage() {
       />
 
       <ProductDetailModal
-        open={detailModalOpen}
-        onOpenChange={(open) => {
-          if (!open) closeDetailModal()
-        }}
-        productId={detailProductId ?? undefined}
+        open={detailOpen}
+        onOpenChange={(open) => { if (!open) handleCloseDetail() }}
+        productId={detailProduct?.id}
       />
     </div>
   )
