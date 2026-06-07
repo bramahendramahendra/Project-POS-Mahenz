@@ -14,29 +14,28 @@ import (
 )
 
 type ProductPriceHandler struct {
-	service service.ProductPriceService
+	service service.ProductPriceServiceInterface
 }
 
-func NewProductPriceHandler(service service.ProductPriceService) *ProductPriceHandler {
+func NewProductPriceHandler(service service.ProductPriceServiceInterface) *ProductPriceHandler {
 	return &ProductPriceHandler{service: service}
 }
 
-// POST /products/:id/prices/list
 func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
-	req, err := binder.BindURI[productIDUriRequest](c)
+	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	prices, svcErr := h.service.GetByProduct(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByProduct(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -44,31 +43,30 @@ func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar harga tier produk",
-		Data:    prices,
+		Data:    data,
 	})
 }
 
-// POST /products/:id/prices/save
 func (h *ProductPriceHandler) Save(c *gin.Context) {
-	uriReq, err := binder.BindURI[productIDUriRequest](c)
+	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto.SaveProductPricesRequest](c)
-	if bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
+	req, err := binder.BindJSON[dto.SaveProductPricesRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Save(uriReq.ID, req.Prices); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Save(uriReq.ID, req.Prices); err != nil {
+		c.Error(err)
 		return
 	}
 

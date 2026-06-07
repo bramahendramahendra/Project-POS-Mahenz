@@ -1,61 +1,54 @@
-package service_product
+package service
 
 import (
-	dto_product "pos_api/domain/product/dto"
-	repo_product "pos_api/domain/product/repo"
+	dto "pos_api/domain/product/dto"
+	repo "pos_api/domain/product/repo"
 	"pos_api/errors"
 )
 
-type ProductPackageService interface {
-	GetByProduct(productID int) ([]*dto_product.ProductPackageResponse, error)
-	Save(productID int, packages []dto_product.ProductPackageRequest) error
-	DeleteOne(id, productID int) error
-}
+type (
+	ProductPackageServiceInterface interface {
+		GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error)
+		Save(req *dto.SaveProductPackagesRequest) error
+		DeleteOne(id, productID int) error
+	}
 
-type productPackageService struct {
-	repo     repo_product.ProductPackageRepo
-	prodRepo repo_product.ProductRepo
-}
+	productPackageService struct {
+		repo     repo.ProductPackageRepo
+		prodRepo repo.ProductRepo
+	}
+)
 
-func NewProductPackageService(repo repo_product.ProductPackageRepo, prodRepo repo_product.ProductRepo) ProductPackageService {
+func NewProductPackageService(repo repo.ProductPackageRepo, prodRepo repo.ProductRepo) *productPackageService {
 	return &productPackageService{repo: repo, prodRepo: prodRepo}
 }
 
-func (s *productPackageService) GetByProduct(productID int) ([]*dto_product.ProductPackageResponse, error) {
-	if err := s.checkProductExists(productID); err != nil {
-		return nil, err
+func (s *productPackageService) GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error) {
+	if err = s.checkProductExists(productID); err != nil {
+		return
 	}
-	packages, err := s.repo.GetByProduct(productID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return packages, nil
+	data, err = s.repo.GetByProduct(productID)
+	return
 }
 
-func (s *productPackageService) Save(productID int, packages []dto_product.ProductPackageRequest) error {
-	if err := s.checkProductExists(productID); err != nil {
+func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) error {
+	if err := s.checkProductExists(req.ProductID); err != nil {
 		return err
 	}
-	if err := s.repo.Save(productID, packages); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Save(req.ProductID, req.Packages)
 }
 
 func (s *productPackageService) DeleteOne(id, productID int) error {
 	if err := s.checkProductExists(productID); err != nil {
 		return err
 	}
-	if err := s.repo.DeleteOne(id, productID); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.DeleteOne(id, productID)
 }
 
 func (s *productPackageService) checkProductExists(productID int) error {
 	p, err := s.prodRepo.GetByID(productID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if p == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}

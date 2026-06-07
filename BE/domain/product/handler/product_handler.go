@@ -14,10 +14,10 @@ import (
 )
 
 type ProductHandler struct {
-	service service.ProductService
+	service service.ProductServiceInterface
 }
 
-func NewProductHandler(service service.ProductService) *ProductHandler {
+func NewProductHandler(service service.ProductServiceInterface) *ProductHandler {
 	return &ProductHandler{service: service}
 }
 
@@ -28,31 +28,33 @@ func (h *ProductHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	filter := &dto.ProductFilter{
-		Search:     req.Search,
-		CategoryID: req.CategoryID,
-		IsActive:   req.IsActive,
-		LowStock:   req.LowStock,
-		Page:       req.Page,
-		Limit:      req.Limit,
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
 	}
 
-	products, total, svcErr := h.service.GetAll(filter)
-	if svcErr != nil {
-		c.Error(svcErr)
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar produk",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *ProductHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar produk",
-		Data: gin.H{
-			"items": products,
-			"total": total,
-			"page":  filter.Page,
-			"limit": filter.Limit,
-		},
+		Message: "Opsi produk",
+		Data:    data,
 	})
 }
 
@@ -88,7 +90,6 @@ func (h *ProductHandler) Search(c *gin.Context) {
 	})
 }
 
-// POST /products/by-barcode/:barcode
 func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetProductByBarcodeRequest](c)
 	if err != nil {
@@ -96,14 +97,14 @@ func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	product, svcErr := h.service.GetByBarcode(req.Barcode)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByBarcode(req.Barcode)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -111,11 +112,10 @@ func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail produk",
-		Data:    product,
+		Data:    data,
 	})
 }
 
-// POST /products/detail/:id
 func (h *ProductHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetProductByIDRequest](c)
 	if err != nil {
@@ -123,14 +123,14 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	product, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -138,11 +138,10 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail produk",
-		Data:    product,
+		Data:    data,
 	})
 }
 
-// POST /products/create
 func (h *ProductHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ProductRequest](c)
 	if err != nil {
@@ -150,14 +149,14 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	product, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -165,11 +164,10 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Produk berhasil dibuat",
-		Data:    product,
+		Data:    data,
 	})
 }
 
-// POST /products/update/:id
 func (h *ProductHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateProductUriRequest](c)
 	if err != nil {
@@ -177,19 +175,21 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto.ProductRequest](c)
-	if bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
+	req, err := binder.BindJSON[dto.UpdateProductRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
-		return
-	}
-
-	if svcErr := h.service.Update(uriReq.ID, &req); svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Update(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -197,10 +197,10 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Produk berhasil diperbarui",
+		Data:    data,
 	})
 }
 
-// POST /products/delete/:id
 func (h *ProductHandler) Delete(c *gin.Context) {
 	req, err := binder.BindURI[dto.DeleteProductRequest](c)
 	if err != nil {
@@ -208,13 +208,13 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Delete(req.ID); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Delete(req.ID); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -225,7 +225,6 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 	})
 }
 
-// POST /products/toggle-status/:id
 func (h *ProductHandler) ToggleStatus(c *gin.Context) {
 	req, err := binder.BindURI[dto.ToggleStatusProductRequest](c)
 	if err != nil {
@@ -233,13 +232,13 @@ func (h *ProductHandler) ToggleStatus(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.ToggleStatus(req.ID); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.ToggleStatus(req.ID); err != nil {
+		c.Error(err)
 		return
 	}
 

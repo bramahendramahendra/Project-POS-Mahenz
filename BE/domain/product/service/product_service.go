@@ -1,140 +1,129 @@
-package service_product
+package service
 
 import (
-	dto_product "pos_api/domain/product/dto"
-	model_product "pos_api/domain/product/model"
-	repo_product "pos_api/domain/product/repo"
-	repo_category "pos_api/domain/product_category/repo"
-	repo_unit "pos_api/domain/product_unit/repo"
+	dto "pos_api/domain/product/dto"
+	model "pos_api/domain/product/model"
 	"pos_api/errors"
 )
 
-type productService struct {
-	repo           repo_product.ProductRepo
-	catRepo        repo_category.CategoryRepoInterface
-	packageRepo    repo_product.ProductPackageRepo
-	masterUnitRepo repo_unit.UnitRepoInterface
-}
-
-func NewProductService(
-	repo repo_product.ProductRepo,
-	catRepo repo_category.CategoryRepoInterface,
-	packageRepo repo_product.ProductPackageRepo,
-	masterUnitRepo repo_unit.UnitRepoInterface,
-) ProductService {
-	return &productService{repo: repo, catRepo: catRepo, packageRepo: packageRepo, masterUnitRepo: masterUnitRepo}
-}
-
-func (s *productService) GetAll(filter *dto_product.ProductFilter) ([]*dto_product.ProductResponse, int, error) {
-	products, total, err := s.repo.GetAll(filter)
+func (s *productService) GetAll(req *dto.ProductListRequest) (data []*dto.ProductResponse, total int64, err error) {
+	items, t, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
-	return products, total, nil
+	total = int64(t)
+	data = items
+	return
 }
 
-func (s *productService) GetByID(id int) (*dto_product.ProductResponse, error) {
+func (s *productService) GetOptions() (data []*dto.ProductOption, err error) {
+	return s.repo.GetOptions()
+}
+
+func (s *productService) GetByID(id int) (data dto.ProductResponse, err error) {
 	p, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if p == nil {
-		return nil, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 	return toProductResponse(p, ""), nil
 }
 
-func (s *productService) GetByBarcode(barcode string) (*dto_product.ProductResponse, error) {
+func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse, err error) {
 	p, err := s.repo.GetByBarcode(barcode)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if p == nil {
-		return nil, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 	return toProductResponse(p, ""), nil
 }
 
-func (s *productService) Search(keyword string, limit int) ([]*dto_product.ProductSearchResult, error) {
+func (s *productService) Search(keyword string, limit int) (data []*dto.ProductSearchResult, err error) {
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
-	results, err := s.repo.Search(keyword, limit)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return results, nil
+	data, err = s.repo.Search(keyword, limit)
+	return
 }
 
-func (s *productService) GetLowStock() ([]*dto_product.LowStockProduct, error) {
-	results, err := s.repo.GetLowStock()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return results, nil
+func (s *productService) GetLowStock() (data []*dto.LowStockProduct, err error) {
+	data, err = s.repo.GetLowStock()
+	return
 }
 
-func (s *productService) Create(req *dto_product.ProductRequest) (*dto_product.ProductResponse, error) {
+func (s *productService) Create(req *dto.ProductRequest) (data dto.ProductResponse, err error) {
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if exists {
-		return nil, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
 	}
 
 	skuExists, err := s.repo.CheckSkuExists(req.SKU, 0)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if skuExists {
-		return nil, &errors.BadRequestError{Message: "SKU sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
 	}
 
 	newID, err := s.repo.Create(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 
 	created, err := s.repo.GetByID(int(newID))
 	if err != nil || created == nil {
-		return nil, &errors.InternalServerError{Message: "Gagal mengambil data produk baru"}
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data produk baru"}
 	}
 	return toProductResponse(created, ""), nil
 }
 
-func (s *productService) Update(id int, req *dto_product.ProductRequest) error {
-	p, err := s.repo.GetByID(id)
+func (s *productService) Update(req *dto.UpdateProductRequest) (data dto.ProductResponse, err error) {
+	p, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if p == nil {
-		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	exists, err := s.repo.CheckBarcodeExists(req.Barcode, id)
+	exists, err := s.repo.CheckBarcodeExists(req.Barcode, req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if exists {
-		return &errors.BadRequestError{Message: "Barcode sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
 	}
 
-	skuExists, err := s.repo.CheckSkuExists(req.SKU, id)
+	skuExists, err := s.repo.CheckSkuExists(req.SKU, req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if skuExists {
-		return &errors.BadRequestError{Message: "SKU sudah digunakan"}
+		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
 	}
 
-	return s.repo.Update(id, req)
+	if err = s.repo.Update(req); err != nil {
+		return
+	}
+
+	updated, err := s.repo.GetByID(req.ID)
+	if err != nil || updated == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data produk"}
+	}
+	return toProductResponse(updated, ""), nil
 }
 
 func (s *productService) Delete(id int) error {
 	p, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if p == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
@@ -142,7 +131,7 @@ func (s *productService) Delete(id int) error {
 
 	count, err := s.repo.CountTransactionItems(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return &errors.InternalServerError{Message: "Gagal memeriksa penggunaan produk"}
 	}
 	if count > 0 {
 		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah ada di transaksi"}
@@ -154,7 +143,7 @@ func (s *productService) Delete(id int) error {
 func (s *productService) ToggleStatus(id int) error {
 	p, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if p == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
@@ -162,12 +151,12 @@ func (s *productService) ToggleStatus(id int) error {
 	return s.repo.ToggleStatus(id)
 }
 
-func toProductResponse(p *model_product.Product, categoryName string) *dto_product.ProductResponse {
+func toProductResponse(p *model.Product, categoryName string) dto.ProductResponse {
 	catName := categoryName
 	if catName == "" {
 		catName = p.CategoryName
 	}
-	return &dto_product.ProductResponse{
+	return dto.ProductResponse{
 		ID:               p.ID,
 		Barcode:          p.Barcode,
 		SKU:              p.SKU,

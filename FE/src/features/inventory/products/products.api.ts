@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreatePriceTierPayload,
@@ -11,7 +12,9 @@ import type {
   PriceTier,
   Product,
   ProductListFilter,
+  ProductOption,
   ProductPackage,
+  UpdatePriceTierPayload,
   UpdateProductPayload,
 } from './products.types'
 
@@ -136,17 +139,17 @@ export function useGenerateSkuQuery(categoryId: number, enabled: boolean) {
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
-export interface ProductListData {
-  items: Product[]
-  total: number
-  page: number
-  limit: number
+export function useProductListQuery(filter: ProductListFilter) {
+  return useQuery({
+    queryKey: queryKeys.products.list(filter as unknown as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<Product>>('/products/list', filter),
+  })
 }
 
-export function useProductListQuery(filter?: ProductListFilter) {
+export function useProductOptionsQuery() {
   return useQuery({
-    queryKey: queryKeys.products.list(filter as Record<string, unknown>),
-    queryFn: () => api.post<ProductListData>('/products/list', filter ?? {}),
+    queryKey: queryKeys.products.options(),
+    queryFn: () => api.post<ProductOption[]>('/products/options', {}),
   })
 }
 
@@ -190,6 +193,7 @@ export function useCreateProductMutation() {
     mutationFn: (payload: CreateProductPayload) => api.post<Product>('/products/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success('Produk berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -200,9 +204,9 @@ export function useUpdateProductMutation() {
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateProductPayload & { id: number }) =>
       api.post<Product>(`/products/update/${id}`, payload),
-    onSuccess: (_data, { id }) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
-      qc.invalidateQueries({ queryKey: queryKeys.products.detail(id) })
+      toast.success('Produk berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -214,6 +218,7 @@ export function useDeleteProductMutation() {
     mutationFn: (id: number) => api.post<void>(`/products/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success('Produk berhasil dihapus')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -277,6 +282,42 @@ export function useSavePriceTiersMutation(productId: number) {
   return useMutation({
     mutationFn: (prices: CreatePriceTierPayload[]) =>
       api.post<void>(`/products/${productId}/prices/save`, { prices }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useAddPriceTierMutation(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreatePriceTierPayload) =>
+      api.post<void>(`/products/${productId}/prices/create`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useUpdatePriceTierMutation(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ priceId, ...payload }: UpdatePriceTierPayload) =>
+      api.post<void>(`/products/${productId}/prices/update/${priceId}`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useDeletePriceTierMutation(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (priceId: number) =>
+      api.post<void>(`/products/${productId}/prices/delete/${priceId}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
     },

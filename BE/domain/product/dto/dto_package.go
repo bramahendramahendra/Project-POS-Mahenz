@@ -1,5 +1,14 @@
 package dto_product
 
+type ProductIDUriRequest struct {
+	ID int `uri:"id" validate:"required,min=1"`
+}
+
+type PackageIDUriRequest struct {
+	ID        int `uri:"id" validate:"required,min=1"`
+	PackageID int `uri:"package_id" validate:"required,min=1"`
+}
+
 type ProductPackageRequest struct {
 	UnitID        int     `json:"unit_id" validate:"required,min=1"`
 	PackageName   string  `json:"package_name"`
@@ -23,5 +32,6 @@ type ProductPackageResponse struct {
 }
 
 type SaveProductPackagesRequest struct {
-	Packages []ProductPackageRequest `json:"packages" validate:"required,min=1,dive"`
+	ProductID int                    `json:"-"`
+	Packages  []ProductPackageRequest `json:"packages" validate:"required,min=1,dive"`
 }

@@ -27,7 +27,7 @@ export function ProductFilterBar({ filter, onChange, onReset, categories }: Prod
   const debouncedSearch = useDebounce(search, 300)
 
   useEffect(() => {
-    onChange({ ...filter, search: debouncedSearch || undefined })
+    onChange({ ...filter, search: debouncedSearch ?? '' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch])
 

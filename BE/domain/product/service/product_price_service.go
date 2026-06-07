@@ -1,50 +1,46 @@
-package service_product
+package service
 
 import (
-	dto_product "pos_api/domain/product/dto"
-	repo_product "pos_api/domain/product/repo"
+	dto "pos_api/domain/product/dto"
+	repo "pos_api/domain/product/repo"
 	"pos_api/errors"
 )
 
-type ProductPriceService interface {
-	GetByProduct(productID int) ([]*dto_product.ProductPriceResponse, error)
-	Save(productID int, prices []dto_product.ProductPriceRequest) error
-}
+type (
+	ProductPriceServiceInterface interface {
+		GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error)
+		Save(productID int, prices []dto.ProductPriceRequest) error
+	}
 
-type productPriceService struct {
-	repo     repo_product.ProductPriceRepo
-	prodRepo repo_product.ProductRepo
-}
+	productPriceService struct {
+		repo     repo.ProductPriceRepo
+		prodRepo repo.ProductRepo
+	}
+)
 
-func NewProductPriceService(repo repo_product.ProductPriceRepo, prodRepo repo_product.ProductRepo) ProductPriceService {
+func NewProductPriceService(repo repo.ProductPriceRepo, prodRepo repo.ProductRepo) *productPriceService {
 	return &productPriceService{repo: repo, prodRepo: prodRepo}
 }
 
-func (s *productPriceService) GetByProduct(productID int) ([]*dto_product.ProductPriceResponse, error) {
-	if err := s.checkProductExists(productID); err != nil {
-		return nil, err
+func (s *productPriceService) GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error) {
+	if err = s.checkProductExists(productID); err != nil {
+		return
 	}
-	prices, err := s.repo.GetByProduct(productID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return prices, nil
+	data, err = s.repo.GetByProduct(productID)
+	return
 }
 
-func (s *productPriceService) Save(productID int, prices []dto_product.ProductPriceRequest) error {
+func (s *productPriceService) Save(productID int, prices []dto.ProductPriceRequest) error {
 	if err := s.checkProductExists(productID); err != nil {
 		return err
 	}
-	if err := s.repo.Save(productID, prices); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Save(productID, prices)
 }
 
 func (s *productPriceService) checkProductExists(productID int) error {
 	p, err := s.prodRepo.GetByID(productID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if p == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}

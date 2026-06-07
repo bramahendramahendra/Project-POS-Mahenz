@@ -1,4 +1,4 @@
-package service_product
+package service
 
 import (
 	"crypto/rand"
@@ -6,54 +6,51 @@ import (
 	"math/big"
 	"strconv"
 
-	dto_product "pos_api/domain/product/dto"
+	dto "pos_api/domain/product/dto"
 	"pos_api/errors"
 )
 
-func (s *productService) GetCategoryNames() ([]string, error) {
+func (s *productService) GetCategoryNames() (data []string, err error) {
 	cats, err := s.catRepo.GetOptions()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
-	names := make([]string, 0, len(cats))
 	for _, c := range cats {
-		names = append(names, c.Name)
+		data = append(data, c.Name)
 	}
-	return names, nil
+	return
 }
 
-func (s *productService) GetUnitNames() ([]string, error) {
+func (s *productService) GetUnitNames() (data []string, err error) {
 	units, err := s.masterUnitRepo.GetOptions()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
-	names := make([]string, 0, len(units))
 	for _, u := range units {
-		names = append(names, u.Name)
+		data = append(data, u.Name)
 	}
-	return names, nil
+	return
 }
 
-func (s *productService) GetUnitInfos() ([]*dto_product.UnitInfo, error) {
+func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
 	units, err := s.masterUnitRepo.GetOptions()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
-	infos := make([]*dto_product.UnitInfo, 0, len(units))
 	for _, u := range units {
-		infos = append(infos, &dto_product.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
+		data = append(data, &dto.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
 	}
-	return infos, nil
+	return
 }
 
-func (s *productService) GenerateBarcode() (*dto_product.GenerateBarcodeResponse, error) {
+func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, err error) {
 	// EAN-13 dengan prefix 899 (Indonesia)
 	digits := make([]int, 12)
 	digits[0], digits[1], digits[2] = 8, 9, 9
 	for i := 3; i < 12; i++ {
-		n, err := rand.Int(rand.Reader, big.NewInt(10))
-		if err != nil {
-			return nil, &errors.InternalServerError{Message: "Gagal generate barcode"}
+		n, randErr := rand.Int(rand.Reader, big.NewInt(10))
+		if randErr != nil {
+			return data, &errors.InternalServerError{Message: "Gagal generate barcode"}
 		}
 		digits[i] = int(n.Int64())
 	}
@@ -73,23 +70,22 @@ func (s *productService) GenerateBarcode() (*dto_product.GenerateBarcodeResponse
 	}
 	barcode += strconv.Itoa(checksum)
 
-	return &dto_product.GenerateBarcodeResponse{Barcode: barcode}, nil
+	return dto.GenerateBarcodeResponse{Barcode: barcode}, nil
 }
 
-func (s *productService) GenerateSku(categoryID int) (*dto_product.GenerateSkuResponse, error) {
+func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error) {
 	cat, err := s.catRepo.GetByID(categoryID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 	if cat == nil {
-		return nil, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
 	count, err := s.repo.CountSkuByCategory(categoryID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return
 	}
 
-	sku := fmt.Sprintf("%s-%04d", cat.Code, count+1)
-	return &dto_product.GenerateSkuResponse{SKU: sku}, nil
+	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", cat.Code, count+1)}, nil
 }

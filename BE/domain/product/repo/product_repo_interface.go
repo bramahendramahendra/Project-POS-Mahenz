@@ -6,7 +6,8 @@ import (
 )
 
 type ProductRepo interface {
-	GetAll(filter *dto_product.ProductFilter) ([]*dto_product.ProductResponse, int, error)
+	GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int, error)
+	GetOptions() ([]*dto_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
 	Search(keyword string, limit int) ([]*dto_product.ProductSearchResult, error)
@@ -16,7 +17,7 @@ type ProductRepo interface {
 	CountSkuByCategory(categoryID int) (int, error)
 	CountTransactionItems(productID int) (int, error)
 	Create(req *dto_product.ProductRequest) (int64, error)
-	Update(id int, req *dto_product.ProductRequest) error
+	Update(req *dto_product.UpdateProductRequest) error
 	Delete(id int) error
 	ToggleStatus(id int) error
 	UpdateStock(id int, delta float64) error

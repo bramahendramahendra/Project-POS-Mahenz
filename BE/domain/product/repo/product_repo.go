@@ -55,6 +55,8 @@ const (
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.stock <= p.min_stock AND p.is_active = 1`
 
+	getProductOptionsQuery   = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
+
 	checkProductUsedQuery    = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
 	createProductQuery       = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	updateProductQuery       = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
@@ -72,27 +74,27 @@ func NewProductRepo(db *gorm.DB) ProductRepo {
 	return &productRepo{db: db}
 }
 
-func (r *productRepo) GetAll(filter *dto_product.ProductFilter) ([]*dto_product.ProductResponse, int, error) {
+func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int, error) {
 	var args []interface{}
 	var countArgs []interface{}
 	conditions := ""
 	countConditions := ""
 
-	if filter.Search != "" {
+	if req.Search != "" {
 		conditions += " AND (p.name LIKE ? OR p.barcode LIKE ?)"
-		args = append(args, "%"+filter.Search+"%", "%"+filter.Search+"%")
+		args = append(args, "%"+req.Search+"%", "%"+req.Search+"%")
 		countConditions += " AND (p.name LIKE ? OR p.barcode LIKE ?)"
-		countArgs = append(countArgs, "%"+filter.Search+"%", "%"+filter.Search+"%")
+		countArgs = append(countArgs, "%"+req.Search+"%", "%"+req.Search+"%")
 	}
-	if filter.CategoryID != nil {
+	if req.CategoryID != nil {
 		conditions += " AND p.category_id = ?"
-		args = append(args, *filter.CategoryID)
+		args = append(args, *req.CategoryID)
 		countConditions += " AND p.category_id = ?"
-		countArgs = append(countArgs, *filter.CategoryID)
+		countArgs = append(countArgs, *req.CategoryID)
 	}
-	if filter.IsActive != nil {
+	if req.IsActive != nil {
 		val := 0
-		if *filter.IsActive {
+		if *req.IsActive {
 			val = 1
 		}
 		conditions += " AND p.is_active = ?"
@@ -100,7 +102,7 @@ func (r *productRepo) GetAll(filter *dto_product.ProductFilter) ([]*dto_product.
 		countConditions += " AND p.is_active = ?"
 		countArgs = append(countArgs, val)
 	}
-	if filter.LowStock {
+	if req.LowStock {
 		conditions += " AND p.stock <= p.min_stock"
 		countConditions += " AND p.stock <= p.min_stock"
 	}
@@ -113,8 +115,8 @@ func (r *productRepo) GetAll(filter *dto_product.ProductFilter) ([]*dto_product.
 	}
 
 	// Pagination
-	page := filter.Page
-	limit := filter.Limit
+	page := req.Page
+	limit := req.Limit
 	if page <= 0 {
 		page = 1
 	}
@@ -229,6 +231,17 @@ func (r *productRepo) GetLowStock() ([]*dto_product.LowStockProduct, error) {
 	return results, nil
 }
 
+func (r *productRepo) GetOptions() ([]*dto_product.ProductOption, error) {
+	var data []*dto_product.ProductOption
+	if err := r.db.Raw(getProductOptionsQuery).Scan(&data).Error; err != nil {
+		return nil, err
+	}
+	if data == nil {
+		data = []*dto_product.ProductOption{}
+	}
+	return data, nil
+}
+
 func (r *productRepo) CountTransactionItems(productID int) (int, error) {
 	var count int
 	if err := r.db.Raw(checkProductUsedQuery, productID).Scan(&count).Error; err != nil {
@@ -251,10 +264,10 @@ func (r *productRepo) Create(req *dto_product.ProductRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *productRepo) Update(id int, req *dto_product.ProductRequest) error {
+func (r *productRepo) Update(req *dto_product.UpdateProductRequest) error {
 	return r.db.Exec(updateProductQuery,
 		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-		req.SellingPrice, req.Stock, req.MinStock, req.UnitID, id,
+		req.SellingPrice, req.Stock, req.MinStock, req.UnitID, req.ID,
 	).Error
 }
 

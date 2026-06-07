@@ -86,6 +86,11 @@ type ProductResponse struct {
 	PriceTiersCount int     `json:"price_tiers_count"`
 }
 
+type ProductOption struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type GenerateBarcodeResponse struct {
 	Barcode string `json:"barcode"`
 }
@@ -117,12 +122,3 @@ type UnitInfo struct {
 	Abbreviation string
 }
 
-// ProductFilter kept for backward compat with service layer
-type ProductFilter struct {
-	Search     string
-	CategoryID *int
-	IsActive   *bool
-	LowStock   bool
-	Page       int
-	Limit      int
-}

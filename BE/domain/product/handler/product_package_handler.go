@@ -14,38 +14,28 @@ import (
 )
 
 type ProductPackageHandler struct {
-	service service.ProductPackageService
+	service service.ProductPackageServiceInterface
 }
 
-func NewProductPackageHandler(service service.ProductPackageService) *ProductPackageHandler {
+func NewProductPackageHandler(service service.ProductPackageServiceInterface) *ProductPackageHandler {
 	return &ProductPackageHandler{service: service}
 }
 
-type productIDUriRequest struct {
-	ID int `uri:"id" validate:"required,min=1"`
-}
-
-type packageIDUriRequest struct {
-	ID        int `uri:"id" validate:"required,min=1"`
-	PackageID int `uri:"package_id" validate:"required,min=1"`
-}
-
-// POST /products/:id/packages/list
 func (h *ProductPackageHandler) GetByProduct(c *gin.Context) {
-	req, err := binder.BindURI[productIDUriRequest](c)
+	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	packages, svcErr := h.service.GetByProduct(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByProduct(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -53,31 +43,31 @@ func (h *ProductPackageHandler) GetByProduct(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar paket produk",
-		Data:    packages,
+		Data:    data,
 	})
 }
 
-// POST /products/:id/packages/save
 func (h *ProductPackageHandler) Save(c *gin.Context) {
-	uriReq, err := binder.BindURI[productIDUriRequest](c)
+	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto.SaveProductPackagesRequest](c)
-	if bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
+	req, err := binder.BindJSON[dto.SaveProductPackagesRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ProductID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
-		return
-	}
-
-	if svcErr := h.service.Save(uriReq.ID, req.Packages); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Save(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -88,21 +78,20 @@ func (h *ProductPackageHandler) Save(c *gin.Context) {
 	})
 }
 
-// POST /products/:id/packages/delete/:package_id
 func (h *ProductPackageHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[packageIDUriRequest](c)
+	req, err := binder.BindURI[dto.PackageIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.DeleteOne(req.PackageID, req.ID); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.DeleteOne(req.PackageID, req.ID); err != nil {
+		c.Error(err)
 		return
 	}
 

@@ -54,10 +54,10 @@ export function SupplierPurchasesPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page_size: 1 })
+  const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page: 1, limit: 1, search: '' })
   const suppliers = suppliersData?.data ?? []
   const hasSuppliers = suppliers.length > 0
-  const hasProducts = (productsData?.total ?? 0) > 0
+    const hasProducts = (productsData?.total ?? 0) > 0
 
   const filter: SupplierPurchaseFilter = {
     date_from: dateFrom || undefined,

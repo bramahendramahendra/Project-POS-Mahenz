@@ -49,7 +49,7 @@ export function ProductsPage() {
   const hasCategories = categories.length > 0
   const hasActiveUnits = units.length > 0
 
-  const products = productData?.items ?? []
+  const products = productData?.data ?? []
   const total = productData?.total ?? 0
 
   const handleFilterChange = (newFilter: ProductListFilter) => {

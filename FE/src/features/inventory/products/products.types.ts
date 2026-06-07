@@ -14,6 +14,8 @@ export interface ProductPackage {
 export interface PriceTier {
   id: number
   product_id: number
+  unit_id: number
+  unit_name: string
   tier_name: string
   min_qty: number
   price: number
@@ -89,3 +91,8 @@ export interface UpdatePriceTierPayload extends Partial<CreatePriceTierPayload> 
 
 // Alias untuk backward compat
 export type ProductFilter = ProductListFilter
+
+export interface ProductOption {
+  id: number
+  name: string
+}

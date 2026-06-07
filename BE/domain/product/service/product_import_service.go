@@ -1,4 +1,4 @@
-package service_product
+package service
 
 import (
 	"fmt"
@@ -7,40 +7,40 @@ import (
 	"strconv"
 	"strings"
 
+	dto "pos_api/domain/product/dto"
 	dto_category "pos_api/domain/product_category/dto"
-	dto_product "pos_api/domain/product/dto"
 	"pos_api/errors"
 
 	"github.com/xuri/excelize/v2"
 )
 
-func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_product.ImportResult, error) {
-	src, err := file.Open()
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: "Gagal membuka file"}
+func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error) {
+	src, openErr := file.Open()
+	if openErr != nil {
+		return data, &errors.InternalServerError{Message: "Gagal membuka file"}
 	}
 	defer src.Close()
 
-	f, err := excelize.OpenReader(src)
-	if err != nil {
-		return nil, &errors.BadRequestError{Message: "File tidak dapat dibaca sebagai Excel"}
+	f, readErr := excelize.OpenReader(src)
+	if readErr != nil {
+		return data, &errors.BadRequestError{Message: "File tidak dapat dibaca sebagai Excel"}
 	}
 	defer f.Close()
 
 	sheets := f.GetSheetList()
 	if len(sheets) == 0 {
-		return nil, &errors.BadRequestError{Message: "File tidak memiliki sheet"}
+		return data, &errors.BadRequestError{Message: "File tidak memiliki sheet"}
 	}
 
-	rows, err := f.GetRows(sheets[0])
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: "Gagal membaca baris file"}
+	rows, rowErr := f.GetRows(sheets[0])
+	if rowErr != nil {
+		return data, &errors.InternalServerError{Message: "Gagal membaca baris file"}
 	}
 
-	result := &dto_product.ImportResult{Errors: []dto_product.ImportErrorDetail{}}
+	data.Errors = []dto.ImportErrorDetail{}
 
 	if len(rows) <= 1 {
-		return result, nil
+		return data, nil
 	}
 
 	for i, row := range rows[1:] {
@@ -57,61 +57,61 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_produc
 		sellingPriceStr := getCol(4)
 
 		if name == "" || sellingPriceStr == "" {
-			result.Failed++
-			result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+			data.Failed++
+			data.Errors = append(data.Errors, dto.ImportErrorDetail{
 				Row:     rowNum,
 				Message: "Kolom name dan selling_price wajib diisi",
 			})
 			continue
 		}
 
-		sellingPrice, err := strconv.ParseFloat(sellingPriceStr, 64)
-		if err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+		sellingPrice, parseErr := strconv.ParseFloat(sellingPriceStr, 64)
+		if parseErr != nil {
+			data.Failed++
+			data.Errors = append(data.Errors, dto.ImportErrorDetail{
 				Row:     rowNum,
 				Message: fmt.Sprintf("selling_price tidak valid: %s", sellingPriceStr),
 			})
 			continue
 		}
 
-		req := &dto_product.ProductRequest{
+		req := &dto.ProductRequest{
 			Barcode:      getCol(1),
 			Name:         name,
 			SellingPrice: sellingPrice,
 		}
 
 		if v := getCol(3); v != "" {
-			if pp, err := strconv.ParseFloat(v, 64); err == nil {
+			if pp, e := strconv.ParseFloat(v, 64); e == nil {
 				req.PurchasePrice = pp
 			}
 		}
 		if v := getCol(5); v != "" {
-			if st, err := strconv.ParseFloat(v, 64); err == nil {
+			if st, e := strconv.ParseFloat(v, 64); e == nil {
 				req.Stock = st
 			}
 		}
 		if v := getCol(6); v != "" {
-			if ms, err := strconv.ParseFloat(v, 64); err == nil {
+			if ms, e := strconv.ParseFloat(v, 64); e == nil {
 				req.MinStock = ms
 			}
 		}
 
 		if categoryName := getCol(2); categoryName != "" {
-			cat, err := s.catRepo.GetByName(categoryName)
-			if err != nil {
-				result.Failed++
-				result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+			cat, catErr := s.catRepo.GetByName(categoryName)
+			if catErr != nil {
+				data.Failed++
+				data.Errors = append(data.Errors, dto.ImportErrorDetail{
 					Row:     rowNum,
 					Message: fmt.Sprintf("Gagal mencari kategori: %s", categoryName),
 				})
 				continue
 			}
 			if cat == nil {
-				newID, err := s.createCategoryWithCode(categoryName, "")
-				if err != nil {
-					result.Failed++
-					result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+				newID, createErr := s.createCategoryWithCode(categoryName, "")
+				if createErr != nil {
+					data.Failed++
+					data.Errors = append(data.Errors, dto.ImportErrorDetail{
 						Row:     rowNum,
 						Message: fmt.Sprintf("Gagal membuat kategori: %s", categoryName),
 					})
@@ -125,18 +125,18 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_produc
 		}
 
 		if req.Barcode != "" {
-			exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
-			if err != nil {
-				result.Failed++
-				result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+			exists, checkErr := s.repo.CheckBarcodeExists(req.Barcode, 0)
+			if checkErr != nil {
+				data.Failed++
+				data.Errors = append(data.Errors, dto.ImportErrorDetail{
 					Row:     rowNum,
 					Message: "Gagal memeriksa barcode",
 				})
 				continue
 			}
 			if exists {
-				result.Failed++
-				result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+				data.Failed++
+				data.Errors = append(data.Errors, dto.ImportErrorDetail{
 					Row:     rowNum,
 					Message: fmt.Sprintf("Barcode sudah digunakan: %s", req.Barcode),
 				})
@@ -144,34 +144,32 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (*dto_produc
 			}
 		}
 
-		if _, err := s.repo.Create(req); err != nil {
-			result.Failed++
-			result.Errors = append(result.Errors, dto_product.ImportErrorDetail{
+		if _, createErr := s.repo.Create(req); createErr != nil {
+			data.Failed++
+			data.Errors = append(data.Errors, dto.ImportErrorDetail{
 				Row:     rowNum,
 				Message: "Gagal menyimpan produk",
 			})
 			continue
 		}
 
-		result.Success++
+		data.Success++
 	}
 
-	return result, nil
+	return data, nil
 }
 
-func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto_product.BulkImportResult, error) {
-	result := &dto_product.BulkImportResult{
-		Failed: []dto_product.BulkImportFailed{},
-	}
+func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.BulkImportResult, err error) {
+	data.Failed = []dto.BulkImportFailed{}
 
 	noToProductID := make(map[int]int)
-	defaultPackages := make(map[int]dto_product.ProductPackageRequest)
+	defaultPackages := make(map[int]dto.ProductPackageRequest)
 
 	for i, row := range bulkReq.Rows {
 		rowNum := i + 2
 
 		addFailed := func(alasan string) {
-			result.Failed = append(result.Failed, dto_product.BulkImportFailed{
+			data.Failed = append(data.Failed, dto.BulkImportFailed{
 				Baris:  rowNum,
 				Data:   row,
 				Alasan: alasan,
@@ -194,7 +192,7 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			continue
 		}
 
-		req := &dto_product.ProductRequest{
+		req := &dto.ProductRequest{
 			Barcode:       strings.TrimSpace(row.Barcode),
 			Name:          strings.TrimSpace(row.Nama),
 			PurchasePrice: row.HargaBeli,
@@ -206,14 +204,14 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 
 		kategori := strings.TrimSpace(row.Kategori)
 		if kategori != "" {
-			cat, err := s.catRepo.GetByName(kategori)
-			if err != nil {
+			cat, catErr := s.catRepo.GetByName(kategori)
+			if catErr != nil {
 				addFailed(fmt.Sprintf("Gagal mencari kategori: %s", kategori))
 				continue
 			}
 			if cat == nil {
-				newID, err := s.createCategoryWithCode(kategori, "")
-				if err != nil {
+				newID, createErr := s.createCategoryWithCode(kategori, "")
+				if createErr != nil {
 					addFailed(fmt.Sprintf("Gagal membuat kategori: %s", kategori))
 					continue
 				}
@@ -225,15 +223,15 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 		}
 
 		if req.Barcode == "" {
-			gen, err := s.GenerateBarcode()
-			if err != nil {
+			gen, genErr := s.GenerateBarcode()
+			if genErr != nil {
 				addFailed("Gagal generate barcode")
 				continue
 			}
 			req.Barcode = gen.Barcode
 		} else {
-			exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
-			if err != nil {
+			exists, checkErr := s.repo.CheckBarcodeExists(req.Barcode, 0)
+			if checkErr != nil {
 				addFailed("Gagal memeriksa barcode")
 				continue
 			}
@@ -244,14 +242,14 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 		}
 
 		if req.CategoryID != nil {
-			skuResp, err := s.GenerateSku(*req.CategoryID)
-			if err == nil {
+			skuResp, skuErr := s.GenerateSku(*req.CategoryID)
+			if skuErr == nil {
 				req.SKU = skuResp.SKU
 			}
 		}
 
-		productID, err := s.repo.Create(req)
-		if err != nil {
+		productID, createErr := s.repo.Create(req)
+		if createErr != nil {
 			addFailed("Gagal menyimpan produk")
 			continue
 		}
@@ -260,7 +258,7 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			noToProductID[row.No] = int(productID)
 		}
 
-		defaultPackages[int(productID)] = dto_product.ProductPackageRequest{
+		defaultPackages[int(productID)] = dto.ProductPackageRequest{
 			UnitID:        resolvedUnitID,
 			ConversionQty: 1,
 			PurchasePrice: row.HargaBeli,
@@ -268,16 +266,16 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 			IsDefault:     true,
 		}
 
-		result.Success++
+		data.Success++
 	}
 
-	grosirByProduct := make(map[int][]dto_product.ProductPackageRequest)
+	grosirByProduct := make(map[int][]dto.ProductPackageRequest)
 	for _, g := range bulkReq.Grosir {
 		productID, ok := noToProductID[g.NoProduk]
 		if !ok || g.SatuanID == 0 {
 			continue
 		}
-		grosirByProduct[productID] = append(grosirByProduct[productID], dto_product.ProductPackageRequest{
+		grosirByProduct[productID] = append(grosirByProduct[productID], dto.ProductPackageRequest{
 			UnitID:        g.SatuanID,
 			PackageName:   strings.TrimSpace(g.NamaPaket),
 			ConversionQty: g.Konversi,
@@ -288,38 +286,38 @@ func (s *productService) ImportBulk(bulkReq dto_product.BulkImportRequest) (*dto
 	}
 
 	for productID, defaultPkg := range defaultPackages {
-		allPkgs := []dto_product.ProductPackageRequest{defaultPkg}
+		allPkgs := []dto.ProductPackageRequest{defaultPkg}
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
 			allPkgs = append(allPkgs, grosirPkgs...)
 		}
 		_ = s.packageRepo.Save(productID, allPkgs)
 	}
 
-	return result, nil
+	return data, nil
 }
 
-func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product.ImportPreviewResponse, error) {
-	src, err := file.Open()
-	if err != nil {
-		return nil, fmt.Errorf("Gagal membuka file")
+func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error) {
+	src, openErr := file.Open()
+	if openErr != nil {
+		return data, &errors.InternalServerError{Message: "Gagal membuka file"}
 	}
 	defer src.Close()
 
-	f, err := excelize.OpenReader(src)
-	if err != nil {
-		return nil, fmt.Errorf("Gagal membaca file Excel")
+	f, readErr := excelize.OpenReader(src)
+	if readErr != nil {
+		return data, &errors.BadRequestError{Message: "Gagal membaca file Excel"}
 	}
 	defer f.Close()
 
 	validCategories := make(map[string]bool)
-	if cats, err := s.catRepo.GetOptions(); err == nil {
+	if cats, e := s.catRepo.GetOptions(); e == nil {
 		for _, c := range cats {
 			validCategories[strings.ToLower(strings.TrimSpace(c.Name))] = true
 		}
 	}
 
 	unitIDMap := make(map[string]int)
-	if units, err := s.masterUnitRepo.GetOptions(); err == nil {
+	if units, e := s.masterUnitRepo.GetOptions(); e == nil {
 		for _, u := range units {
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Name))] = u.ID
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Abbreviation))] = u.ID
@@ -330,11 +328,11 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	if idx, _ := f.GetSheetIndex(sheetProduk); idx == -1 {
 		sheetProduk = f.GetSheetName(0)
 	}
-	produkRows, err := f.GetRows(sheetProduk)
-	if err != nil || len(produkRows) < 2 {
-		return &dto_product.ImportPreviewResponse{
-			Rows:   []dto_product.ImportPreviewRow{},
-			Grosir: []dto_product.ImportPreviewGrosirRow{},
+	produkRows, rowErr := f.GetRows(sheetProduk)
+	if rowErr != nil || len(produkRows) < 2 {
+		return dto.ImportPreviewResponse{
+			Rows:   []dto.ImportPreviewRow{},
+			Grosir: []dto.ImportPreviewGrosirRow{},
 		}, nil
 	}
 
@@ -376,15 +374,14 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	seenBarcodes := make(map[string]bool)
 	validNos := make(map[int]bool)
 
-	var previewRows []dto_product.ImportPreviewRow
+	var previewRows []dto.ImportPreviewRow
 	for _, row := range produkRows[1:] {
 		no := toInt(getCell(row, colNo))
 		if no <= 0 {
 			continue
 		}
 
-		errs := []string{}
-		warns := []string{}
+		var errs, warns []string
 
 		nama := getCell(row, colNama)
 		barcode := getCell(row, colBarcode)
@@ -454,7 +451,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 			margin = int(math.Round(((hargaJual - hargaBeli) / hargaJual) * 100))
 		}
 
-		previewRows = append(previewRows, dto_product.ImportPreviewRow{
+		previewRows = append(previewRows, dto.ImportPreviewRow{
 			No:          no,
 			Nama:        nama,
 			Barcode:     barcode,
@@ -478,7 +475,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	}
 	grosirRows, _ := f.GetRows(sheetGrosir)
 
-	var previewGrosir []dto_product.ImportPreviewGrosirRow
+	var previewGrosir []dto.ImportPreviewGrosirRow
 	if len(grosirRows) >= 2 {
 		headerGrosir := grosirRows[0]
 		gColNoProduk := colIdx(headerGrosir, "No Produk")
@@ -493,7 +490,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 			if noProduk <= 0 {
 				continue
 			}
-			errs := []string{}
+			var errs []string
 			namaPaket := getCell(row, gColNamaPaket)
 			satuan := getCell(row, gColSatuan)
 			konversi := toFloat(getCell(row, gColKonversi))
@@ -516,7 +513,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 				errs = append(errs, "Harga jual harus lebih dari 0")
 			}
 
-			previewGrosir = append(previewGrosir, dto_product.ImportPreviewGrosirRow{
+			previewGrosir = append(previewGrosir, dto.ImportPreviewGrosirRow{
 				NoProduk:  noProduk,
 				NamaPaket: namaPaket,
 				Satuan:    satuan,
@@ -531,13 +528,13 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (*dto_product
 	}
 
 	if previewRows == nil {
-		previewRows = []dto_product.ImportPreviewRow{}
+		previewRows = []dto.ImportPreviewRow{}
 	}
 	if previewGrosir == nil {
-		previewGrosir = []dto_product.ImportPreviewGrosirRow{}
+		previewGrosir = []dto.ImportPreviewGrosirRow{}
 	}
 
-	return &dto_product.ImportPreviewResponse{
+	return dto.ImportPreviewResponse{
 		Rows:   previewRows,
 		Grosir: previewGrosir,
 	}, nil

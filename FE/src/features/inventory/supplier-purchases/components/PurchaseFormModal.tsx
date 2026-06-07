@@ -21,14 +21,14 @@ import { formatRupiah } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
-import { useProductListQuery } from '@/features/inventory/products/products.api'
+import { useProductOptionsQuery } from '@/features/inventory/products/products.api'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
 import { useCreateSupplierPurchaseMutation, useGeneratePurchaseCodeQuery } from '../supplier-purchases.api'
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
 import type { PaymentStatus } from '../supplier-purchases.types'
-import type { Product, ProductPackage } from '@/features/inventory/products/products.types'
+import type { ProductPackage } from '@/features/inventory/products/products.types'
 
 interface PurchaseFormModalProps {
   open: boolean
@@ -75,9 +75,8 @@ const defaultValues: FormValues = {
 
 export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps) {
   const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const { data: productsData } = useProductListQuery({ page_size: 200 })
+  const { data: productOptions = [] } = useProductOptionsQuery()
   const suppliers = suppliersData?.data ?? []
-  const products: Product[] = productsData?.items ?? []
 
   const queryClient = useQueryClient()
   const { mutate: create, isPending } = useCreateSupplierPurchaseMutation()
@@ -123,10 +122,8 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
   async function handleProductChange(index: number, productId: string) {
     const id = Number(productId)
     setValue(`items.${index}.product_id`, id)
-    const product = products.find((p) => p.id === id)
-    if (!product) return
 
-    // fetch packages on-demand (list API tidak include units)
+    // fetch packages on-demand
     const packages = await queryClient.fetchQuery<ProductPackage[]>({
       queryKey: queryKeys.products.productUnits(id),
       queryFn: () => api.get<ProductPackage[]>(`/products/${id}/packages`),
@@ -138,14 +135,14 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
     if (validPackages.length > 1) {
       setItemUnitOptions((prev) => ({ ...prev, [index]: validPackages }))
       setItemSelectedPackageId((prev) => ({ ...prev, [index]: defaultPkg?.id ?? 0 }))
-      setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? product.unit_name ?? 'pcs')
-      setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? product.purchase_price ?? 0)
+      setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
+      setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
       setValue(`items.${index}.conversion_qty`, defaultPkg?.conversion_qty ?? 1)
     } else {
       setItemUnitOptions((prev) => { const next = { ...prev }; delete next[index]; return next })
       setItemSelectedPackageId((prev) => { const next = { ...prev }; delete next[index]; return next })
-      setValue(`items.${index}.unit`, product.unit_name ?? 'pcs')
-      setValue(`items.${index}.price`, product.purchase_price ?? 0)
+      setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
+      setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
       setValue(`items.${index}.conversion_qty`, 1)
     }
   }
@@ -293,7 +290,7 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
                             <SelectValue placeholder="Pilih produk" />
                           </SelectTrigger>
                           <SelectContent>
-                            {products.map((p) => (
+                            {productOptions.map((p) => (
                               <SelectItem key={p.id} value={String(p.id)}>
                                 {p.name}
                               </SelectItem>

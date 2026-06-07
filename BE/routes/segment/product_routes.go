@@ -31,6 +31,7 @@ func ProductRoutes(r *gin.RouterGroup) {
 	g := r.Group("/products")
 	{
 		g.POST("/list", productHand.GetAll)
+		g.POST("/options", productHand.GetOptions)
 		g.POST("/search", productHand.Search)
 		g.POST("/detail/:id", productHand.GetByID)
 		g.POST("/by-barcode/:barcode", productHand.GetByBarcode)
