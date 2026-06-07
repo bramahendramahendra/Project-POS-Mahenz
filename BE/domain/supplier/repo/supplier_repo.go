@@ -76,41 +76,45 @@ func (r *supplierRepo) GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, 
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
-	var suppliers []*model.Supplier
-	if err := r.db.Raw(query, args...).Scan(&suppliers).Error; err != nil {
+	var dataDB []*model.Supplier
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
+	if err != nil {
 		return nil, 0, err
 	}
-	return suppliers, total, nil
+	return dataDB, total, nil
 }
 
 func (r *supplierRepo) GetOptions() ([]*dto.SupplierOptionResponse, error) {
-	var options []*dto.SupplierOptionResponse
-	if err := r.db.Raw(getAllSupplierOptionsQuery).Scan(&options).Error; err != nil {
-		return nil, err
-	}
-	return options, nil
-}
-
-func (r *supplierRepo) GetByID(id int) (*model.Supplier, error) {
-	var supplier model.Supplier
-	err := r.db.Raw(getSupplierByIDQuery, id).Scan(&supplier).Error
+	var dataDB []*dto.SupplierOptionResponse
+	err := r.db.Raw(getAllSupplierOptionsQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	if supplier.ID == 0 {
+	return dataDB, nil
+}
+
+func (r *supplierRepo) GetByID(id int) (*model.Supplier, error) {
+	var dataDB model.Supplier
+	err := r.db.Raw(getSupplierByIDQuery, id).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
+	}
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
-	return &supplier, nil
+	return &dataDB, nil
 }
 
 func (r *supplierRepo) Create(req *dto.CreateSupplierRequest, code string) (int64, error) {
-	if err := r.db.Exec(createSupplierQuery, code, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes).Error; err != nil {
+	err := r.db.Exec(createSupplierQuery, code, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes).Error
+	if err != nil {
 		return 0, err
 	}
 
 	var id int64
-	if err := r.db.Raw(getLastSupplierInsertIDQuery).Scan(&id).Error; err != nil {
-		return 0, err
+	errGet := r.db.Raw(getLastSupplierInsertIDQuery).Scan(&id).Error
+	if errGet != nil {
+		return 0, errGet
 	}
 	return id, nil
 }
@@ -129,7 +133,8 @@ func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error 
 
 func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]dto.SupplierPurchaseItem, error) {
 	var items []dto.SupplierPurchaseItem
-	if err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&items).Error; err != nil {
+	err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&items).Error
+	if err != nil {
 		return nil, err
 	}
 	return items, nil

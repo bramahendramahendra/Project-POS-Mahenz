@@ -59,31 +59,31 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
-	var units []*model.Unit
-	if err := r.db.Raw(query, args...).Scan(&units).Error; err != nil {
+	var dataDB []*model.Unit
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
-	return units, total, nil
+	return dataDB, total, nil
 }
 
 func (r *unitRepo) GetOptions() ([]*dto.UnitOptionResponse, error) {
-	var units []*dto.UnitOptionResponse
-	if err := r.db.Raw(getAllUnitOptionsQuery).Scan(&units).Error; err != nil {
+	var dataDB []*dto.UnitOptionResponse
+	if err := r.db.Raw(getAllUnitOptionsQuery).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	return units, nil
+	return dataDB, nil
 }
 
 func (r *unitRepo) GetByID(id int) (*model.Unit, error) {
-	var unit model.Unit
-	err := r.db.Raw(getUnitByIDQuery, id).Scan(&unit).Error
+	var dataDB model.Unit
+	err := r.db.Raw(getUnitByIDQuery, id).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	if unit.ID == 0 {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
-	return &unit, nil
+	return &dataDB, nil
 }
 
 func (r *unitRepo) Create(req *dto.CreateUnitRequest) (int64, error) {
@@ -93,9 +93,9 @@ func (r *unitRepo) Create(req *dto.CreateUnitRequest) (int64, error) {
 	}
 
 	var id int64
-	err = r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
-	if err != nil {
-		return 0, err
+	errGet := r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
+	if errGet != nil {
+		return 0, errGet
 	}
 
 	return id, nil

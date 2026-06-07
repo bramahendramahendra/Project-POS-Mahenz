@@ -61,31 +61,33 @@ func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, 
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
-	var categories []*model.Category
-	if err := r.db.Raw(query, args...).Scan(&categories).Error; err != nil {
+	var dataDB []*model.Category
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
+	if err != nil {
 		return nil, 0, err
 	}
-	return categories, total, nil
+	return dataDB, total, nil
 }
 
 func (r *categoryRepo) GetOptions() ([]*dto.CategoryOptionResponse, error) {
-	var options []*dto.CategoryOptionResponse
-	if err := r.db.Raw(getAllCategoryOptionsQuery).Scan(&options).Error; err != nil {
-		return nil, err
-	}
-	return options, nil
-}
-
-func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
-	var category model.Category
-	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&category).Error
+	var dataDB []*dto.CategoryOptionResponse
+	err := r.db.Raw(getAllCategoryOptionsQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	if category.ID == 0 {
+	return dataDB, nil
+}
+
+func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
+	var dataDB model.Category
+	err := r.db.Raw(getCategoryByIDQuery, id).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
+	}
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
-	return &category, nil
+	return &dataDB, nil
 }
 
 func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
@@ -95,9 +97,9 @@ func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
 	}
 
 	var id int64
-	err = r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
-	if err != nil {
-		return 0, err
+	errGet := r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
+	if errGet != nil {
+		return 0, errGet
 	}
 
 	return id, nil
@@ -116,15 +118,15 @@ func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error 
 }
 
 func (r *categoryRepo) GetByName(name string) (*model.Category, error) {
-	var category model.Category
-	err := r.db.Raw(getCategoryByNameQuery, name).Scan(&category).Error
+	var dataDB model.Category
+	err := r.db.Raw(getCategoryByNameQuery, name).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	if category.ID == 0 {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
-	return &category, nil
+	return &dataDB, nil
 }
 
 func (r *categoryRepo) CheckCodeExists(code string) (bool, error) {
