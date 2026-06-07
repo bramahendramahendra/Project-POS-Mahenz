@@ -66,9 +66,10 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	return dataDB, total, nil
 }
 
-func (r *unitRepo) GetOptions() ([]*dto.UnitOptionResponse, error) {
-	var dataDB []*dto.UnitOptionResponse
-	if err := r.db.Raw(getAllUnitOptionsQuery).Scan(&dataDB).Error; err != nil {
+func (r *unitRepo) GetOptions() ([]*model.UnitOption, error) {
+	var dataDB []*model.UnitOption
+	err := r.db.Raw(getAllUnitOptionsQuery).Scan(&dataDB).Error
+	if err != nil {
 		return nil, err
 	}
 	return dataDB, nil

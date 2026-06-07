@@ -57,14 +57,30 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 		return data, &errors.NotFoundError{Message: "Supplier tidak ditemukan"}
 	}
 
-	purchases, _ := s.repo.GetPurchaseHistory(id)
-	if purchases == nil {
-		purchases = []dto.SupplierPurchaseItem{}
+	purchasesDB, _ := s.repo.GetPurchaseHistory(id)
+	purchases := make([]dto.SupplierPurchaseItem, 0, len(purchasesDB))
+	for _, v := range purchasesDB {
+		purchases = append(purchases, dto.SupplierPurchaseItem{
+			ID:              v.ID,
+			PurchaseCode:    v.PurchaseCode,
+			PurchaseDate:    v.PurchaseDate,
+			TotalAmount:     v.TotalAmount,
+			PaymentStatus:   v.PaymentStatus,
+			RemainingAmount: v.RemainingAmount,
+		})
 	}
 
-	returns, _ := s.repo.GetReturnHistory(id)
-	if returns == nil {
-		returns = []dto.SupplierReturnHistoryItem{}
+	returnsDB, _ := s.repo.GetReturnHistory(id)
+	returns := make([]dto.SupplierReturnHistoryItem, 0, len(returnsDB))
+	for _, v := range returnsDB {
+		returns = append(returns, dto.SupplierReturnHistoryItem{
+			ID:         v.ID,
+			ReturnCode: v.ReturnCode,
+			ReturnDate: v.ReturnDate,
+			TotalReturn: v.TotalReturn,
+			Reason:     v.Reason,
+			Status:     v.Status,
+		})
 	}
 
 	var totalAmount, totalDebt, totalReturnAmount float64

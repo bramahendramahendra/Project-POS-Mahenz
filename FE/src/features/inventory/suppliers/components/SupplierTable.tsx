@@ -164,7 +164,11 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     {
       key: 'name',
       header: 'Nama Supplier',
-      cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
+      cell: (row) => (
+        <span className="font-medium text-gray-800">
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'contact_person',

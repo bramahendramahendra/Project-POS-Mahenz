@@ -1,15 +1,11 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Lock, LockOpen, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
-import { ConfirmDialog, DataTable, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
+import { ConfirmDialog, DataTable, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
 import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -21,12 +17,8 @@ import {
   useToggleUnitStatusMutation,
 } from '../units.api'
 import type { Unit } from '../units.types'
-
-const unitSchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
-  abbreviation: z.string().trim().min(2, 'Singkatan minimal 2 karakter').max(20, 'Singkatan maksimal 20 karakter'),
-})
-type UnitFormValues = z.infer<typeof unitSchema>
+import { UnitFormModal } from './UnitFormModal'
+import type { UnitFormValues } from './UnitFormModal'
 
 export interface UnitTableHandle {
   openAdd: () => void
@@ -62,16 +54,8 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
   const isPending = isCreating || isUpdating
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UnitFormValues>({ resolver: zodResolver(unitSchema) })
-
   const handleOpenAdd = () => {
     setEditingUnit(null)
-    reset({ name: '', abbreviation: '' })
     openForm()
   }
 
@@ -79,7 +63,6 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
   const handleOpenEdit = (unit: Unit) => {
     setEditingUnit(unit)
-    reset({ name: unit.name, abbreviation: unit.abbreviation })
     openForm()
   }
 
@@ -91,10 +74,9 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
   const handleCloseForm = () => {
     closeForm()
     setEditingUnit(null)
-    reset({ name: '', abbreviation: '' })
   }
 
-  const onSubmit = (values: UnitFormValues) => {
+  const onFormSubmit = (values: UnitFormValues) => {
     setPendingAction({ values, unit: editingUnit })
     closeForm()
     openConfirm()
@@ -104,7 +86,6 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     closeConfirm()
     if (pendingAction) {
       setEditingUnit(pendingAction.unit)
-      reset(pendingAction.values)
       openForm()
     }
     setPendingAction(null)
@@ -119,7 +100,6 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
           onSuccess: () => {
             closeConfirm()
             setEditingUnit(null)
-            reset({ name: '', abbreviation: '' })
             setPendingAction(null)
           },
         }
@@ -128,7 +108,6 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
       createUnit(pendingAction.values, {
         onSuccess: () => {
           closeConfirm()
-          reset({ name: '', abbreviation: '' })
           setPendingAction(null)
         },
       })
@@ -156,7 +135,11 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     {
       key: 'name',
       header: 'Nama Satuan',
-      cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
+      cell: (row) => (
+        <span className="font-medium text-gray-800">
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'abbreviation',
@@ -266,46 +249,16 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
       />
 
       {/* Form Modal */}
-      <FormModal
+      <UnitFormModal
         open={formOpen}
         onOpenChange={(open) => {
           if (!open && pendingAction !== null) return
           if (!open) handleCloseForm()
         }}
-        title={editingUnit !== null ? 'Edit Satuan' : 'Tambah Satuan'}
-        size="sm"
+        unit={editingUnit}
+        onSubmit={onFormSubmit}
         isLoading={isPending}
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="unit-name">
-              Nama Satuan <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="unit-name"
-              {...register('name')}
-              placeholder="Nama satuan (contoh: Pieces, Lusin, Kardus)"
-              className={errors.name ? 'border-red-500' : ''}
-            />
-            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="unit-abbreviation">
-              Singkatan <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="unit-abbreviation"
-              {...register('abbreviation')}
-              placeholder="Singkatan (contoh: Pcs, Lsn, Kds)"
-              className={errors.abbreviation ? 'border-red-500' : ''}
-            />
-            {errors.abbreviation && (
-              <p className="text-xs text-red-500">{errors.abbreviation.message}</p>
-            )}
-          </div>
-        </div>
-      </FormModal>
+      />
 
       {/* Confirm Save */}
       <ConfirmDialog

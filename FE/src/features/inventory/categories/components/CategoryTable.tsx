@@ -1,16 +1,11 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Lock, LockOpen, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
-import { ConfirmDialog, DataTable, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
+import { ConfirmDialog, DataTable, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import { Textarea } from '@/shared/components/ui/textarea'
 import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -22,12 +17,8 @@ import {
   useToggleCategoryStatusMutation,
 } from '../categories.api'
 import type { Category } from '../categories.types'
-
-const categorySchema = z.object({
-  name: z.string().trim().min(2, 'Nama minimal 2 karakter').max(100, 'Nama maksimal 100 karakter'),
-  description: z.string().max(500, 'Deskripsi maksimal 500 karakter').optional(),
-})
-type CategoryFormValues = z.infer<typeof categorySchema>
+import { CategoryFormModal } from './CategoryFormModal'
+import type { CategoryFormValues } from './CategoryFormModal'
 
 export interface CategoryTableHandle {
   openAdd: () => void
@@ -63,16 +54,8 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
   const isPending = isCreating || isUpdating
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CategoryFormValues>({ resolver: zodResolver(categorySchema) })
-
   const handleOpenAdd = () => {
     setEditingCategory(null)
-    reset({ name: '', description: '' })
     openForm()
   }
 
@@ -80,7 +63,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
   const handleOpenEdit = (category: Category) => {
     setEditingCategory(category)
-    reset({ name: category.name, description: category.description ?? '' })
     openForm()
   }
 
@@ -92,10 +74,9 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
   const handleCloseForm = () => {
     closeForm()
     setEditingCategory(null)
-    reset({ name: '', description: '' })
   }
 
-  const onSubmit = (values: CategoryFormValues) => {
+  const onFormSubmit = (values: CategoryFormValues) => {
     setPendingAction({ values, category: editingCategory })
     closeForm()
     openConfirm()
@@ -105,7 +86,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     closeConfirm()
     if (pendingAction) {
       setEditingCategory(pendingAction.category)
-      reset(pendingAction.values)
       openForm()
     }
     setPendingAction(null)
@@ -120,7 +100,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
           onSuccess: () => {
             closeConfirm()
             setEditingCategory(null)
-            reset({ name: '', description: '' })
             setPendingAction(null)
           },
         }
@@ -129,7 +108,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
       createCategory(pendingAction.values, {
         onSuccess: () => {
           closeConfirm()
-          reset({ name: '', description: '' })
           setPendingAction(null)
         },
       })
@@ -167,7 +145,11 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     {
       key: 'name',
       header: 'Nama Kategori',
-      cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
+      cell: (row) => (
+        <span className="font-medium text-gray-800">
+          {row.name}
+        </span>
+      ),
     },
     {
       key: 'description',
@@ -288,42 +270,16 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
       />
 
       {/* Form Modal */}
-      <FormModal
+      <CategoryFormModal
         open={formOpen}
         onOpenChange={(open) => {
           if (!open && pendingAction !== null) return
           if (!open) handleCloseForm()
         }}
-        title={editingCategory !== null ? 'Edit Kategori' : 'Tambah Kategori'}
-        size="sm"
+        category={editingCategory}
+        onSubmit={onFormSubmit}
         isLoading={isPending}
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="category-name">
-              Nama Kategori <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="category-name"
-              {...register('name')}
-              placeholder="Nama kategori"
-              className={errors.name ? 'border-red-500' : ''}
-            />
-            {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="category-description">Deskripsi</Label>
-            <Textarea
-              id="category-description"
-              {...register('description')}
-              placeholder="Deskripsi kategori (opsional)"
-              className="resize-none"
-              rows={3}
-            />
-          </div>
-        </div>
-      </FormModal>
+      />
 
       {/* Confirm Save */}
       <ConfirmDialog

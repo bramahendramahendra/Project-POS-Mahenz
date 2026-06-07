@@ -84,8 +84,8 @@ func (r *supplierRepo) GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, 
 	return dataDB, total, nil
 }
 
-func (r *supplierRepo) GetOptions() ([]*dto.SupplierOptionResponse, error) {
-	var dataDB []*dto.SupplierOptionResponse
+func (r *supplierRepo) GetOptions() ([]*model.SupplierOption, error) {
+	var dataDB []*model.SupplierOption
 	err := r.db.Raw(getAllSupplierOptionsQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
@@ -131,26 +131,28 @@ func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error 
 	return r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
 }
 
-func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]dto.SupplierPurchaseItem, error) {
-	var items []dto.SupplierPurchaseItem
-	err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&items).Error
+func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]*model.SupplierPurchase, error) {
+	var dataDB []*model.SupplierPurchase
+	err := r.db.Raw(getSupplierPurchasesQuery, supplierID).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	return items, nil
+	return dataDB, nil
 }
 
-func (r *supplierRepo) GetReturnHistory(supplierID int) ([]dto.SupplierReturnHistoryItem, error) {
-	var items []dto.SupplierReturnHistoryItem
-	if err := r.db.Raw(getSupplierReturnsQuery, supplierID).Scan(&items).Error; err != nil {
+func (r *supplierRepo) GetReturnHistory(supplierID int) ([]*model.SupplierReturn, error) {
+	var dataDB []*model.SupplierReturn
+	err := r.db.Raw(getSupplierReturnsQuery, supplierID).Scan(&dataDB).Error
+	if err != nil {
 		return nil, err
 	}
-	return items, nil
+	return dataDB, nil
 }
 
 func (r *supplierRepo) CheckCodeExists(code string) (bool, error) {
 	var id int
-	if err := r.db.Raw(checkSupplierCodeExistsQuery, code).Scan(&id).Error; err != nil {
+	err := r.db.Raw(checkSupplierCodeExistsQuery, code).Scan(&id).Error
+	if err != nil {
 		return false, err
 	}
 	return id > 0, nil
@@ -158,7 +160,8 @@ func (r *supplierRepo) CheckCodeExists(code string) (bool, error) {
 
 func (r *supplierRepo) CheckNameExists(name string, excludeID int) (bool, error) {
 	var id int
-	if err := r.db.Raw(checkSupplierNameExistsQuery, name, excludeID).Scan(&id).Error; err != nil {
+	err := r.db.Raw(checkSupplierNameExistsQuery, name, excludeID).Scan(&id).Error
+	if err != nil {
 		return false, err
 	}
 	return id > 0, nil
@@ -166,7 +169,8 @@ func (r *supplierRepo) CheckNameExists(name string, excludeID int) (bool, error)
 
 func (r *supplierRepo) GetCount() (int, error) {
 	var count int
-	if err := r.db.Raw(generateSupplierCodeQuery).Scan(&count).Error; err != nil {
+	err := r.db.Raw(generateSupplierCodeQuery).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -174,7 +178,8 @@ func (r *supplierRepo) GetCount() (int, error) {
 
 func (r *supplierRepo) CountPurchasesBySupplier(supplierID int) (int, error) {
 	var count int
-	if err := r.db.Raw(countPurchasesBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
+	err := r.db.Raw(countPurchasesBySupplierQuery, supplierID).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -182,7 +187,8 @@ func (r *supplierRepo) CountPurchasesBySupplier(supplierID int) (int, error) {
 
 func (r *supplierRepo) CountActiveDebtBySupplier(supplierID int) (int, error) {
 	var count int
-	if err := r.db.Raw(countActiveDebtBySupplierQuery, supplierID).Scan(&count).Error; err != nil {
+	err := r.db.Raw(countActiveDebtBySupplierQuery, supplierID).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil

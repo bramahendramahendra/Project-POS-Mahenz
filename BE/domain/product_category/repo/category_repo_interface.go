@@ -10,7 +10,7 @@ import (
 type (
 	CategoryRepoInterface interface {
 		GetAll(req *dto.CategoryListRequest) ([]*model.Category, int64, error)
-		GetOptions() ([]*dto.CategoryOptionResponse, error)
+		GetOptions() ([]*model.CategoryOption, error)
 		GetByID(id int) (*model.Category, error)
 		Create(req *dto.CreateCategoryRequest) (int64, error)
 		Update(req *dto.UpdateCategoryRequest) error

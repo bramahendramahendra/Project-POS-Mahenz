@@ -69,8 +69,8 @@ func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, 
 	return dataDB, total, nil
 }
 
-func (r *categoryRepo) GetOptions() ([]*dto.CategoryOptionResponse, error) {
-	var dataDB []*dto.CategoryOptionResponse
+func (r *categoryRepo) GetOptions() ([]*model.CategoryOption, error) {
+	var dataDB []*model.CategoryOption
 	err := r.db.Raw(getAllCategoryOptionsQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
