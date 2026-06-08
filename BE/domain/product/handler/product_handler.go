@@ -58,7 +58,6 @@ func (h *ProductHandler) GetOptions(c *gin.Context) {
 	})
 }
 
-// POST /products/search
 func (h *ProductHandler) Search(c *gin.Context) {
 	req, err := binder.BindJSON[dto.SearchProductRequest](c)
 	if err != nil {
@@ -90,32 +89,6 @@ func (h *ProductHandler) Search(c *gin.Context) {
 	})
 }
 
-func (h *ProductHandler) GetByBarcode(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetProductByBarcodeRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetByBarcode(req.Barcode)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail produk",
-		Data:    data,
-	})
-}
-
 func (h *ProductHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetProductByIDRequest](c)
 	if err != nil {
@@ -129,6 +102,32 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 	}
 
 	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail produk",
+		Data:    data,
+	})
+}
+
+func (h *ProductHandler) GetByBarcode(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetProductByBarcodeRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByBarcode(req.Barcode)
 	if err != nil {
 		c.Error(err)
 		return

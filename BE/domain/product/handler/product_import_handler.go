@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	dto "pos_api/domain/product/dto"
+	service "pos_api/domain/product/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -15,8 +16,15 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// POST /products/import
-func (h *ProductHandler) Import(c *gin.Context) {
+type ProductImportHandler struct {
+	service service.ProductServiceInterface
+}
+
+func NewProductImportHandler(service service.ProductServiceInterface) *ProductImportHandler {
+	return &ProductImportHandler{service: service}
+}
+
+func (h *ProductImportHandler) Import(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: "File tidak ditemukan"})
@@ -44,7 +52,7 @@ func (h *ProductHandler) Import(c *gin.Context) {
 }
 
 // POST /products/import-preview
-func (h *ProductHandler) ImportPreview(c *gin.Context) {
+func (h *ProductImportHandler) ImportPreview(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: "File tidak ditemukan"})
@@ -66,7 +74,7 @@ func (h *ProductHandler) ImportPreview(c *gin.Context) {
 }
 
 // POST /products/import-bulk
-func (h *ProductHandler) ImportBulk(c *gin.Context) {
+func (h *ProductImportHandler) ImportBulk(c *gin.Context) {
 	req, err := binder.BindJSON[dto.BulkImportRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -88,7 +96,7 @@ func (h *ProductHandler) ImportBulk(c *gin.Context) {
 }
 
 // POST /products/import-template
-func (h *ProductHandler) DownloadImportTemplate(c *gin.Context) {
+func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 	categoryNames, err := h.service.GetCategoryNames()
 	if err != nil {
 		c.Error(err)

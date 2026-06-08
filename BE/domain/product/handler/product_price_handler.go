@@ -14,14 +14,14 @@ import (
 )
 
 type ProductPriceHandler struct {
-	service service.ProductPriceServiceInterface
+	service service.ProductServiceInterface
 }
 
-func NewProductPriceHandler(service service.ProductPriceServiceInterface) *ProductPriceHandler {
+func NewProductPriceHandler(service service.ProductServiceInterface) *ProductPriceHandler {
 	return &ProductPriceHandler{service: service}
 }
 
-func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
+func (h *ProductPriceHandler) GetPricesByProduct(c *gin.Context) {
 	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -33,7 +33,7 @@ func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.GetByProduct(req.ID)
+	data, err := h.service.GetPricesByProduct(req.ID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -47,7 +47,7 @@ func (h *ProductPriceHandler) GetByProduct(c *gin.Context) {
 	})
 }
 
-func (h *ProductPriceHandler) Save(c *gin.Context) {
+func (h *ProductPriceHandler) SavePrices(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -66,7 +66,7 @@ func (h *ProductPriceHandler) Save(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Save(&req); err != nil {
+	if err := h.service.SavePrices(&req); err != nil {
 		c.Error(err)
 		return
 	}

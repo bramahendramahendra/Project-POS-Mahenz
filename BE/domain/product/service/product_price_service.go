@@ -5,12 +5,12 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productPriceService) GetByProduct(productID int) (data []*dto.ProductPriceResponse, err error) {
-	dataDB, err := s.prodRepo.GetByID(productID)
+func (s *productService) GetPricesByProduct(productID int) (data []*dto.ProductPriceResponse, err error) {
+	exists, err := s.repo.GetByID(productID)
 	if err != nil {
 		return data, err
 	}
-	if dataDB == nil {
+	if exists == nil {
 		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
@@ -32,8 +32,8 @@ func (s *productPriceService) GetByProduct(productID int) (data []*dto.ProductPr
 	return data, nil
 }
 
-func (s *productPriceService) Save(req *dto.SaveProductPricesRequest) (err error) {
-	exists, err := s.prodRepo.GetByID(req.ProductID)
+func (s *productService) SavePrices(req *dto.SaveProductPricesRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ProductID)
 	if err != nil {
 		return err
 	}

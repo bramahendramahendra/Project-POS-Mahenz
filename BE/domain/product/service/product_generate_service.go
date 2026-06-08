@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	dto "pos_api/domain/product/dto"
 	"pos_api/errors"
 )
+
 
 func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, err error) {
 	// EAN-13 dengan prefix 899 (Indonesia)
@@ -31,11 +33,12 @@ func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, er
 	}
 	checksum := (10 - (sum % 10)) % 10
 
-	barcode := ""
+	var sb strings.Builder
 	for _, d := range digits {
-		barcode += strconv.Itoa(d)
+		sb.WriteString(strconv.Itoa(d))
 	}
-	barcode += strconv.Itoa(checksum)
+	sb.WriteString(strconv.Itoa(checksum))
+	barcode := sb.String()
 
 	return dto.GenerateBarcodeResponse{Barcode: barcode}, nil
 }
@@ -57,35 +60,3 @@ func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuRespon
 	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", cat.Code, count+1)}, nil
 }
 
-func (s *productService) GetCategoryNames() (data []string, err error) {
-	cats, err := s.catRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, c := range cats {
-		data = append(data, c.Name)
-	}
-	return
-}
-
-func (s *productService) GetUnitNames() (data []string, err error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, u := range units {
-		data = append(data, u.Name)
-	}
-	return
-}
-
-func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, u := range units {
-		data = append(data, &dto.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
-	}
-	return
-}

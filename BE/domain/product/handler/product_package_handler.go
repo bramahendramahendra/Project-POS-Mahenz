@@ -14,14 +14,14 @@ import (
 )
 
 type ProductPackageHandler struct {
-	service service.ProductPackageServiceInterface
+	service service.ProductServiceInterface
 }
 
-func NewProductPackageHandler(service service.ProductPackageServiceInterface) *ProductPackageHandler {
+func NewProductPackageHandler(service service.ProductServiceInterface) *ProductPackageHandler {
 	return &ProductPackageHandler{service: service}
 }
 
-func (h *ProductPackageHandler) GetByProduct(c *gin.Context) {
+func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
 	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -33,7 +33,7 @@ func (h *ProductPackageHandler) GetByProduct(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.GetByProduct(req.ID)
+	data, err := h.service.GetPackagesByProduct(req.ID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -47,7 +47,7 @@ func (h *ProductPackageHandler) GetByProduct(c *gin.Context) {
 	})
 }
 
-func (h *ProductPackageHandler) Save(c *gin.Context) {
+func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -66,7 +66,7 @@ func (h *ProductPackageHandler) Save(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Save(&req); err != nil {
+	if err := h.service.SavePackages(&req); err != nil {
 		c.Error(err)
 		return
 	}
@@ -78,7 +78,7 @@ func (h *ProductPackageHandler) Save(c *gin.Context) {
 	})
 }
 
-func (h *ProductPackageHandler) Delete(c *gin.Context) {
+func (h *ProductPackageHandler) DeletePackage(c *gin.Context) {
 	req, err := binder.BindURI[dto.PackageIDUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
@@ -90,7 +90,7 @@ func (h *ProductPackageHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteOne(&req); err != nil {
+	if err := h.service.DeletePackage(&req); err != nil {
 		c.Error(err)
 		return
 	}

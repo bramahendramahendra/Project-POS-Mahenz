@@ -5,8 +5,8 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productPackageService) GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error) {
-	exists, err := s.prodRepo.GetByID(productID)
+func (s *productService) GetPackagesByProduct(productID int) (data []*dto.ProductPackageResponse, err error) {
+	exists, err := s.repo.GetByID(productID)
 	if err != nil {
 		return data, err
 	}
@@ -37,8 +37,8 @@ func (s *productPackageService) GetByProduct(productID int) (data []*dto.Product
 	return data, nil
 }
 
-func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) (err error) {
-	exists, err := s.prodRepo.GetByID(req.ProductID)
+func (s *productService) SavePackages(req *dto.SaveProductPackagesRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ProductID)
 	if err != nil {
 		return err
 	}
@@ -49,8 +49,8 @@ func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) (err e
 	return s.repo.SavePackages(req.ProductID, req.Packages)
 }
 
-func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) (err error) {
-	exists, err := s.prodRepo.GetByID(req.ID)
+func (s *productService) DeletePackage(req *dto.PackageIDUriRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}

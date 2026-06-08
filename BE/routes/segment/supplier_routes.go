@@ -12,17 +12,17 @@ import (
 
 func SupplierRoutes(r *gin.RouterGroup) {
 	supplierRepo := supplier_repo.NewSupplierRepo(pkgdatabase.DB)
-	supplierSvc := supplier_service.NewSupplierService(supplierRepo)
-	supplierHand := supplier_handler.NewSupplierHandler(supplierSvc)
+	supplierService := supplier_service.NewSupplierService(supplierRepo)
+	supplierHandler := supplier_handler.NewSupplierHandler(supplierService)
 
 	g := r.Group("/suppliers")
 	{
-		g.POST("/list", supplierHand.GetAll)
-		g.POST("/options", supplierHand.GetOptions)
-		g.POST("/detail/:id", supplierHand.GetDetail)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), supplierHand.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierHand.ToggleStatus)
+		g.POST("/list", supplierHandler.GetAll)
+		g.POST("/options", supplierHandler.GetOptions)
+		g.POST("/detail/:id", supplierHandler.GetDetail)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), supplierHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), supplierHandler.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierHandler.ToggleStatus)
 	}
 }

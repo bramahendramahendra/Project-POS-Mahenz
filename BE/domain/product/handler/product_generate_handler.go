@@ -2,6 +2,7 @@ package handler_product
 
 import (
 	dto "pos_api/domain/product/dto"
+	service "pos_api/domain/product/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -12,8 +13,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// POST /products/generate-barcode
-func (h *ProductHandler) GenerateBarcode(c *gin.Context) {
+type ProductGenerateHandler struct {
+	service service.ProductServiceInterface
+}
+
+func NewProductGenerateHandler(service service.ProductServiceInterface) *ProductGenerateHandler {
+	return &ProductGenerateHandler{service: service}
+}
+
+func (h *ProductGenerateHandler) GenerateBarcode(c *gin.Context) {
 	result, err := h.service.GenerateBarcode()
 	if err != nil {
 		c.Error(err)
@@ -28,8 +36,7 @@ func (h *ProductHandler) GenerateBarcode(c *gin.Context) {
 	})
 }
 
-// POST /products/generate-sku
-func (h *ProductHandler) GenerateSku(c *gin.Context) {
+func (h *ProductGenerateHandler) GenerateSku(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GenerateSkuRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	dto "pos_api/domain/product/dto"
-	dto_category "pos_api/domain/product_category/dto"
 	"pos_api/errors"
 
 	"github.com/xuri/excelize/v2"
@@ -290,7 +289,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
 			allPkgs = append(allPkgs, grosirPkgs...)
 		}
-		_ = s.packageRepo.SavePackages(productID, allPkgs)
+		_ = s.repo.SavePackages(productID, allPkgs)
 	}
 
 	return data, nil
@@ -540,38 +539,3 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 	}, nil
 }
 
-func (s *productService) createCategoryWithCode(name, description string) (int64, error) {
-	base := ""
-	for _, r := range name {
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
-			if r >= 'a' {
-				r -= 32
-			}
-			base += string(r)
-		}
-	}
-	if len(base) > 3 {
-		base = base[:3]
-	}
-	for len(base) < 3 {
-		base += "X"
-	}
-
-	candidate := base
-	for i := 2; i <= 99; i++ {
-		exists, err := s.catRepo.CheckCodeExists(candidate)
-		if err != nil {
-			return 0, err
-		}
-		if !exists {
-			break
-		}
-		candidate = fmt.Sprintf("%s%d", base, i)
-	}
-
-	return s.catRepo.Create(&dto_category.CreateCategoryRequest{
-		Name:        name,
-		Code:        candidate,
-		Description: description,
-	})
-}
