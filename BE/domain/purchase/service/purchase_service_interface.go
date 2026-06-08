@@ -3,7 +3,7 @@ package service
 import dto_purchase "pos_api/domain/purchase/dto"
 
 type PurchaseService interface {
-	GetAll(filter *dto_purchase.PurchaseFilter) ([]*dto_purchase.PurchaseResponse, int, error)
+	GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error)
 	GetByID(id int) (*dto_purchase.PurchaseResponse, error)
 	GetItems(purchaseID int) ([]dto_purchase.PurchaseItemResponse, error)
 	GenerateCode() (*dto_purchase.GeneratePurchaseCodeResponse, error)

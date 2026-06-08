@@ -6,7 +6,7 @@ import (
 )
 
 type PurchaseRepo interface {
-	GetAll(filter *dto_purchase.PurchaseFilter) ([]*dto_purchase.PurchaseResponse, int, error)
+	GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error)
 	GetByID(id int) (*dto_purchase.PurchaseResponse, error)
 	GetItems(purchaseID int) ([]model_purchase.PurchaseItem, error)
 	GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error)

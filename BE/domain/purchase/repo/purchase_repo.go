@@ -40,29 +40,29 @@ func NewPurchaseRepo(db *gorm.DB) PurchaseRepo {
 	return &purchaseRepo{db: db}
 }
 
-func (r *purchaseRepo) GetAll(filter *dto_purchase.PurchaseFilter) ([]*dto_purchase.PurchaseResponse, int, error) {
+func (r *purchaseRepo) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
-	if filter.StartDate != "" {
+	if req.StartDate != "" {
 		conditions += " AND DATE(p.purchase_date) >= ?"
-		args = append(args, filter.StartDate)
-		countArgs = append(countArgs, filter.StartDate)
+		args = append(args, req.StartDate)
+		countArgs = append(countArgs, req.StartDate)
 	}
-	if filter.EndDate != "" {
+	if req.EndDate != "" {
 		conditions += " AND DATE(p.purchase_date) <= ?"
-		args = append(args, filter.EndDate)
-		countArgs = append(countArgs, filter.EndDate)
+		args = append(args, req.EndDate)
+		countArgs = append(countArgs, req.EndDate)
 	}
-	if filter.SupplierID != nil {
+	if req.SupplierID != nil {
 		conditions += " AND p.supplier_id = ?"
-		args = append(args, *filter.SupplierID)
-		countArgs = append(countArgs, *filter.SupplierID)
+		args = append(args, *req.SupplierID)
+		countArgs = append(countArgs, *req.SupplierID)
 	}
-	if filter.PaymentStatus != "" {
+	if req.PaymentStatus != "" {
 		conditions += " AND p.payment_status = ?"
-		args = append(args, filter.PaymentStatus)
-		countArgs = append(countArgs, filter.PaymentStatus)
+		args = append(args, req.PaymentStatus)
+		countArgs = append(countArgs, req.PaymentStatus)
 	}
 
 	var total int
@@ -70,8 +70,8 @@ func (r *purchaseRepo) GetAll(filter *dto_purchase.PurchaseFilter) ([]*dto_purch
 		return nil, 0, err
 	}
 
-	page := filter.Page
-	limit := filter.Limit
+	page := req.Page
+	limit := req.Limit
 	if page <= 0 {
 		page = 1
 	}

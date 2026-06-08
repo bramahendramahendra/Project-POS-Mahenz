@@ -9,6 +9,7 @@ import (
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	binder "pos_api/pkg/binder"
 	"pos_api/validation"
 
 	"github.com/gin-gonic/gin"
@@ -37,40 +38,26 @@ func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
 	})
 }
 
+// GET /api/purchases
 func (h *PurchaseHandler) GetAll(c *gin.Context) {
-	filter := &dto_purchase.PurchaseFilter{
-		StartDate:     c.Query("start_date"),
-		EndDate:       c.Query("end_date"),
-		PaymentStatus: c.Query("payment_status"),
+	req, err := binder.BindJSON[dto_purchase.PurchaseListRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	if sidStr := c.Query("supplier_id"); sidStr != "" {
-		if sid, err := strconv.Atoi(sidStr); err == nil {
-			filter.SupplierID = &sid
-		}
-	}
-
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	filter.Page = page
-	filter.Limit = limit
-
-	items, total, err := h.service.GetAll(filter)
+	items, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar purchase order",
-		Data: gin.H{
-			"items": items,
-			"total": total,
-			"page":  filter.Page,
-			"limit": filter.Limit,
-		},
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar purchase order",
+		Data:       items,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, int64(total)),
 	})
 }
 

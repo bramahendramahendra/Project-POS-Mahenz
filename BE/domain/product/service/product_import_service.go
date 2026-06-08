@@ -97,7 +97,7 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.Im
 		}
 
 		if categoryName := getCol(2); categoryName != "" {
-			cat, catErr := s.catRepo.GetByName(categoryName)
+			cat, catErr := s.repoCategory.GetByName(categoryName)
 			if catErr != nil {
 				data.Failed++
 				data.Errors = append(data.Errors, dto.ImportErrorDetail{
@@ -203,7 +203,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 
 		kategori := strings.TrimSpace(row.Kategori)
 		if kategori != "" {
-			cat, catErr := s.catRepo.GetByName(kategori)
+			cat, catErr := s.repoCategory.GetByName(kategori)
 			if catErr != nil {
 				addFailed(fmt.Sprintf("Gagal mencari kategori: %s", kategori))
 				continue
@@ -309,14 +309,14 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 	defer f.Close()
 
 	validCategories := make(map[string]bool)
-	if cats, e := s.catRepo.GetOptions(); e == nil {
+	if cats, e := s.repoCategory.GetOptions(); e == nil {
 		for _, c := range cats {
 			validCategories[strings.ToLower(strings.TrimSpace(c.Name))] = true
 		}
 	}
 
 	unitIDMap := make(map[string]int)
-	if units, e := s.masterUnitRepo.GetOptions(); e == nil {
+	if units, e := s.repoUnit.GetOptions(); e == nil {
 		for _, u := range units {
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Name))] = u.ID
 			unitIDMap[strings.ToLower(strings.TrimSpace(u.Abbreviation))] = u.ID
@@ -462,7 +462,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			StokMinimum: stokMin,
 			Satuan:      satuan,
 			SatuanID:    satuanID,
-			Valid:        valid,
+			Valid:       valid,
 			Errors:      errs,
 			Warnings:    warns,
 		})
@@ -520,7 +520,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 				Konversi:  konversi,
 				HargaBeli: hargaBeli,
 				HargaJual: hargaJual,
-				Valid:      len(errs) == 0,
+				Valid:     len(errs) == 0,
 				Errors:    errs,
 			})
 		}
@@ -538,4 +538,3 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		Grosir: previewGrosir,
 	}, nil
 }
-

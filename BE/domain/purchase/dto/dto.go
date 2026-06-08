@@ -69,11 +69,11 @@ type GeneratePurchaseCodeResponse struct {
 	PurchaseCode string `json:"purchase_code"`
 }
 
-type PurchaseFilter struct {
-	StartDate     string
-	EndDate       string
-	SupplierID    *int
-	PaymentStatus string
-	Page          int
-	Limit         int
+type PurchaseListRequest struct {
+	Page          int    `json:"page"`
+	Limit         int    `json:"limit"`
+	StartDate     string `json:"start_date"`
+	EndDate       string `json:"end_date"`
+	SupplierID    *int   `json:"supplier_id"`
+	PaymentStatus string `json:"payment_status"`
 }

@@ -14,8 +14,8 @@ func NewPurchaseService(repo repo_purchase.PurchaseRepo) PurchaseService {
 	return &purchaseService{repo: repo}
 }
 
-func (s *purchaseService) GetAll(filter *dto_purchase.PurchaseFilter) ([]*dto_purchase.PurchaseResponse, int, error) {
-	items, total, err := s.repo.GetAll(filter)
+func (s *purchaseService) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error) {
+	items, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return nil, 0, &errors.InternalServerError{Message: err.Error()}
 	}

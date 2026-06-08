@@ -11,7 +11,6 @@ import (
 	"pos_api/errors"
 )
 
-
 func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, err error) {
 	// EAN-13 dengan prefix 899 (Indonesia)
 	digits := make([]int, 12)
@@ -44,7 +43,7 @@ func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, er
 }
 
 func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error) {
-	cat, err := s.catRepo.GetByID(categoryID)
+	cat, err := s.repoCategory.GetByID(categoryID)
 	if err != nil {
 		return
 	}
@@ -59,4 +58,3 @@ func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuRespon
 
 	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", cat.Code, count+1)}, nil
 }
-

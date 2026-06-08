@@ -13,12 +13,9 @@ type (
 	ProductServiceInterface interface {
 		GetAll(req *dto.ProductListRequest) (data []dto.ProductResponse, total int64, err error)
 		GetOptions() (data []*dto.ProductOption, err error)
-		GetCategoryNames() (data []string, err error)
-		GetUnitInfos() (data []*dto.UnitInfo, err error)
+		Search(keyword string, limit int) (data []*dto.ProductSearchResult, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
 		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
-		Search(keyword string, limit int) (data []*dto.ProductSearchResult, err error)
-		GetLowStock() (data []*dto.LowStockProduct, err error)
 		Create(req *dto.ProductRequest) (data dto.ProductResponse, err error)
 		Update(req *dto.UpdateProductRequest) (data dto.ProductResponse, err error)
 		Delete(req *dto.DeleteProductRequest) error
@@ -37,19 +34,23 @@ type (
 
 		GetPricesByProduct(productID int) (data []*dto.ProductPriceResponse, err error)
 		SavePrices(req *dto.SaveProductPricesRequest) error
+
+		GetLowStock() (data []*dto.LowStockProduct, err error)
+		GetCategoryNames() (data []string, err error)
+		GetUnitInfos() (data []*dto.UnitInfo, err error)
 	}
 
 	productService struct {
-		repo           repo.ProductRepo
-		catRepo        repo_category.CategoryRepoInterface
-		masterUnitRepo repo_unit.UnitRepoInterface
+		repo         repo.ProductRepo
+		repoCategory repo_category.CategoryRepoInterface
+		repoUnit     repo_unit.UnitRepoInterface
 	}
 )
 
 func NewProductService(
 	repo repo.ProductRepo,
-	catRepo repo_category.CategoryRepoInterface,
-	masterUnitRepo repo_unit.UnitRepoInterface,
+	repoCategory repo_category.CategoryRepoInterface,
+	repoUnit repo_unit.UnitRepoInterface,
 ) *productService {
-	return &productService{repo: repo, catRepo: catRepo, masterUnitRepo: masterUnitRepo}
+	return &productService{repo: repo, repoCategory: repoCategory, repoUnit: repoUnit}
 }

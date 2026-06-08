@@ -8,7 +8,7 @@ import (
 )
 
 func (s *productService) GetCategoryNames() (data []string, err error) {
-	cats, err := s.catRepo.GetOptions()
+	cats, err := s.repoCategory.GetOptions()
 	if err != nil {
 		return
 	}
@@ -19,7 +19,7 @@ func (s *productService) GetCategoryNames() (data []string, err error) {
 }
 
 func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
-	units, err := s.masterUnitRepo.GetOptions()
+	units, err := s.repoUnit.GetOptions()
 	if err != nil {
 		return
 	}
@@ -48,7 +48,7 @@ func (s *productService) createCategoryWithCode(name, description string) (int64
 
 	candidate := base
 	for i := 2; i <= 99; i++ {
-		exists, err := s.catRepo.CheckCodeExists(candidate)
+		exists, err := s.repoCategory.CheckCodeExists(candidate)
 		if err != nil {
 			return 0, err
 		}
@@ -58,7 +58,7 @@ func (s *productService) createCategoryWithCode(name, description string) (int64
 		candidate = fmt.Sprintf("%s%d", base, i)
 	}
 
-	return s.catRepo.Create(&dto_category.CreateCategoryRequest{
+	return s.repoCategory.Create(&dto_category.CreateCategoryRequest{
 		Name:        name,
 		Code:        candidate,
 		Description: description,
