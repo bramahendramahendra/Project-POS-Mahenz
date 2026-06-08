@@ -43,7 +43,7 @@ const (
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id
-		WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?) LIMIT ?`
+		WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?)`
 
 	getLowStockQuery = `
 		SELECT p.id, p.name, p.stock, p.min_stock, COALESCE(u.name, '') as unit_name
@@ -59,64 +59,96 @@ const (
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
 	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	getAllProductsOrder         = ` ORDER BY p.name`
 	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
+	countProductsSearchQuery    = `SELECT COUNT(*) FROM products p WHERE (p.name LIKE ? OR p.barcode LIKE ?)`
 )
 
 func (r *productRepo) GetAll(req *dto.ProductListRequest) ([]*model.Product, int64, error) {
-	var args []any
-	var countArgs []any
-	conditions := ""
-	countConditions := ""
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
 
+	var total int64
 	if req.Search != "" {
-		conditions += " AND (p.name LIKE ? OR p.barcode LIKE ?)"
-		args = append(args, "%"+req.Search+"%", "%"+req.Search+"%")
-		countConditions += " AND (p.name LIKE ? OR p.barcode LIKE ?)"
-		countArgs = append(countArgs, "%"+req.Search+"%", "%"+req.Search+"%")
+		search := "%" + req.Search + "%"
+		countQuery := countProductsSearchQuery
+		countArgs := []any{search, search}
+		if req.CategoryID != nil {
+			countQuery += ` AND p.category_id = ?`
+			countArgs = append(countArgs, *req.CategoryID)
+		}
+		if req.IsActive != nil {
+			val := 0
+			if *req.IsActive {
+				val = 1
+			}
+			countQuery += ` AND p.is_active = ?`
+			countArgs = append(countArgs, val)
+		}
+		if req.LowStock {
+			countQuery += ` AND p.stock <= p.min_stock`
+		}
+		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else {
+		countQuery := countProductsBase
+		var countArgs []any
+		if req.CategoryID != nil {
+			countQuery += ` AND p.category_id = ?`
+			countArgs = append(countArgs, *req.CategoryID)
+		}
+		if req.IsActive != nil {
+			val := 0
+			if *req.IsActive {
+				val = 1
+			}
+			countQuery += ` AND p.is_active = ?`
+			countArgs = append(countArgs, val)
+		}
+		if req.LowStock {
+			countQuery += ` AND p.stock <= p.min_stock`
+		}
+		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+
+	query := getAllProductsBase
+	var args []any
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		query += ` AND (p.name LIKE ? OR p.barcode LIKE ?)`
+		args = append(args, search, search)
 	}
 	if req.CategoryID != nil {
-		conditions += " AND p.category_id = ?"
+		query += ` AND p.category_id = ?`
 		args = append(args, *req.CategoryID)
-		countConditions += " AND p.category_id = ?"
-		countArgs = append(countArgs, *req.CategoryID)
 	}
 	if req.IsActive != nil {
 		val := 0
 		if *req.IsActive {
 			val = 1
 		}
-		conditions += " AND p.is_active = ?"
+		query += ` AND p.is_active = ?`
 		args = append(args, val)
-		countConditions += " AND p.is_active = ?"
-		countArgs = append(countArgs, val)
 	}
 	if req.LowStock {
-		conditions += " AND p.stock <= p.min_stock"
-		countConditions += " AND p.stock <= p.min_stock"
+		query += ` AND p.stock <= p.min_stock`
 	}
-
-	var total int64
-	countQuery := countProductsBase + countConditions
-	err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error
-	if err != nil {
-		return nil, 0, err
-	}
-
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
-
-	query := getAllProductsBase + conditions + " ORDER BY p.name LIMIT ? OFFSET ?"
+	query += getAllProductsOrder
+	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Product
-	err = r.db.Raw(query, args...).Scan(&dataDB).Error
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
 	if err != nil {
 		return nil, 0, err
 	}
@@ -157,9 +189,14 @@ func (r *productRepo) GetByBarcode(barcode string) (*model.Product, error) {
 }
 
 func (r *productRepo) Search(keyword string, limit int) ([]*model.ProductSearchResult, error) {
-	like := "%" + keyword + "%"
+	query := searchProductsQuery
+	var args []any
+	search := "%" + keyword + "%"
+	query += " LIMIT ?"
+	args = append(args, search, search, limit)
+
 	var dataDB []*model.ProductSearchResult
-	err := r.db.Raw(searchProductsQuery, like, like, limit).Scan(&dataDB).Error
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}

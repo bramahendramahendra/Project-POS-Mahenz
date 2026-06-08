@@ -47,5 +47,6 @@ func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductP
 }
 
 func (r *productPackageRepo) DeleteOne(id, productID int) error {
-	return r.db.Exec(deleteProductPackageByIDQuery, id, productID).Error
+	err := r.db.Exec(deleteProductPackageByIDQuery, id, productID).Error
+	return err
 }

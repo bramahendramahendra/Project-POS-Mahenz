@@ -32,3 +32,30 @@ type productRepo struct {
 func NewProductRepo(db *gorm.DB) ProductRepo {
 	return &productRepo{db: db}
 }
+
+type ProductPriceRepo interface {
+	GetByProduct(productID int) ([]*model_product.ProductPrice, error)
+	Save(productID int, prices []dto_product.ProductPriceRequest) error
+}
+
+type productPriceRepo struct {
+	db *gorm.DB
+}
+
+func NewProductPriceRepo(db *gorm.DB) ProductPriceRepo {
+	return &productPriceRepo{db: db}
+}
+
+type ProductPackageRepo interface {
+	GetByProduct(productID int) ([]*model_product.ProductPackage, error)
+	Save(productID int, packages []dto_product.ProductPackageRequest) error
+	DeleteOne(id, productID int) error
+}
+
+type productPackageRepo struct {
+	db *gorm.DB
+}
+
+func NewProductPackageRepo(db *gorm.DB) ProductPackageRepo {
+	return &productPackageRepo{db: db}
+}
