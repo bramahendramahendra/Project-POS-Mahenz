@@ -2,56 +2,61 @@ package service
 
 import (
 	dto "pos_api/domain/product/dto"
-	repo "pos_api/domain/product/repo"
 	"pos_api/errors"
 )
 
-type (
-	ProductPackageServiceInterface interface {
-		GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error)
-		Save(req *dto.SaveProductPackagesRequest) error
-		DeleteOne(req *dto.PackageIDUriRequest) error
-	}
-
-	productPackageService struct {
-		repo     repo.ProductPackageRepo
-		prodRepo repo.ProductRepo
-	}
-)
-
-func NewProductPackageService(repo repo.ProductPackageRepo, prodRepo repo.ProductRepo) *productPackageService {
-	return &productPackageService{repo: repo, prodRepo: prodRepo}
-}
-
 func (s *productPackageService) GetByProduct(productID int) (data []*dto.ProductPackageResponse, err error) {
-	if err = s.checkProductExists(productID); err != nil {
-		return
+	exists, err := s.prodRepo.GetByID(productID)
+	if err != nil {
+		return data, err
 	}
-	data, err = s.repo.GetByProduct(productID)
-	return
+	if exists == nil {
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	dataDB, err := s.repo.GetByProduct(productID)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.ProductPackageResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			UnitID:        v.UnitID,
+			UnitName:      v.UnitName,
+			Abbreviation:  v.Abbreviation,
+			PackageName:   v.PackageName,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			SellingPrice:  v.SellingPrice,
+			IsDefault:     v.IsDefault,
+		})
+	}
+
+	return data, nil
 }
 
-func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) error {
-	if err := s.checkProductExists(req.ProductID); err != nil {
-		return err
-	}
-	return s.repo.Save(req.ProductID, req.Packages)
-}
-
-func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) error {
-	if err := s.checkProductExists(req.ID); err != nil {
-		return err
-	}
-	return s.repo.DeleteOne(req.PackageID, req.ID)
-}
-
-func (s *productPackageService) checkProductExists(productID int) error {
-	p, err := s.prodRepo.GetByID(productID)
+func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) (err error) {
+	exists, err := s.prodRepo.GetByID(req.ProductID)
 	if err != nil {
 		return err
 	}
-	if p == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
-	return nil
+
+	return s.repo.Save(req.ProductID, req.Packages)
+}
+
+func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) (err error) {
+	exists, err := s.prodRepo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	return s.repo.DeleteOne(req.PackageID, req.ID)
 }

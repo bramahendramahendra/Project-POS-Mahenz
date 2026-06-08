@@ -97,24 +97,27 @@ func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
 	}
 
 	var id int64
-	errGet := r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
-	if errGet != nil {
-		return 0, errGet
+	err = r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
+	if err != nil {
+		return 0, err
 	}
 
 	return id, nil
 }
 
 func (r *categoryRepo) Update(req *dto.UpdateCategoryRequest) error {
-	return r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
+	err := r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
+	return err
 }
 
 func (r *categoryRepo) Delete(req *dto.DeleteCategoryRequest) error {
-	return r.db.Exec(deleteCategoryQuery, req.ID).Error
+	err := r.db.Exec(deleteCategoryQuery, req.ID).Error
+	return err
 }
 
 func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error {
-	return r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
+	return err
 }
 
 func (r *categoryRepo) GetByName(name string) (*model.Category, error) {

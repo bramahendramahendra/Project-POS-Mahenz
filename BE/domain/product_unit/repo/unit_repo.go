@@ -60,7 +60,8 @@ func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Unit
-	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
+	if err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil
@@ -94,24 +95,27 @@ func (r *unitRepo) Create(req *dto.CreateUnitRequest) (int64, error) {
 	}
 
 	var id int64
-	errGet := r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
-	if errGet != nil {
-		return 0, errGet
+	err = r.db.Raw(getLastInsertIDQuery).Scan(&id).Error
+	if err != nil {
+		return 0, err
 	}
 
 	return id, nil
 }
 
 func (r *unitRepo) Update(req *dto.UpdateUnitRequest) error {
-	return r.db.Exec(updateUnitQuery, req.Name, req.Abbreviation, req.ID).Error
+	err := r.db.Exec(updateUnitQuery, req.Name, req.Abbreviation, req.ID).Error
+	return err
 }
 
 func (r *unitRepo) Delete(req *dto.DeleteUnitRequest) error {
-	return r.db.Exec(deleteUnitQuery, req.ID).Error
+	err := r.db.Exec(deleteUnitQuery, req.ID).Error
+	return err
 }
 
 func (r *unitRepo) ToggleStatus(req *dto.ToggleStatusUnitRequest) error {
-	return r.db.Exec(toggleUnitStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleUnitStatusQuery, req.ID).Error
+	return err
 }
 
 func (r *unitRepo) CheckNameExists(name string, excludeID int) (bool, error) {

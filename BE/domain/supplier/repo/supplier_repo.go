@@ -112,23 +112,26 @@ func (r *supplierRepo) Create(req *dto.CreateSupplierRequest, code string) (int6
 	}
 
 	var id int64
-	errGet := r.db.Raw(getLastSupplierInsertIDQuery).Scan(&id).Error
-	if errGet != nil {
-		return 0, errGet
+	err = r.db.Raw(getLastSupplierInsertIDQuery).Scan(&id).Error
+	if err != nil {
+		return 0, err
 	}
 	return id, nil
 }
 
 func (r *supplierRepo) Update(req *dto.UpdateSupplierRequest) error {
-	return r.db.Exec(updateSupplierQuery, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes, req.ID).Error
+	err := r.db.Exec(updateSupplierQuery, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes, req.ID).Error
+	return err
 }
 
 func (r *supplierRepo) Delete(req *dto.DeleteSupplierRequest) error {
-	return r.db.Exec(deleteSupplierQuery, req.ID).Error
+	err := r.db.Exec(deleteSupplierQuery, req.ID).Error
+	return err
 }
 
 func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error {
-	return r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
+	return err
 }
 
 func (r *supplierRepo) GetPurchaseHistory(supplierID int) ([]*model.SupplierPurchase, error) {

@@ -2,6 +2,7 @@ package repo_product
 
 import (
 	dto_product "pos_api/domain/product/dto"
+	model_product "pos_api/domain/product/model"
 
 	"gorm.io/gorm"
 )
@@ -13,44 +14,19 @@ const (
 	deleteProductPackageByIDQuery = `DELETE FROM product_packages WHERE id = ? AND product_id = ?`
 )
 
-type ProductPackageRepo interface {
-	GetByProduct(productID int) ([]*dto_product.ProductPackageResponse, error)
-	Save(productID int, packages []dto_product.ProductPackageRequest) error
-	DeleteOne(id, productID int) error
-}
-
-type productPackageRepo struct {
-	db *gorm.DB
-}
-
-func NewProductPackageRepo(db *gorm.DB) ProductPackageRepo {
-	return &productPackageRepo{db: db}
-}
-
-func (r *productPackageRepo) GetByProduct(productID int) ([]*dto_product.ProductPackageResponse, error) {
-	rows, err := r.db.Raw(getProductPackagesQuery, productID).Rows()
+func (r *productPackageRepo) GetByProduct(productID int) ([]*model_product.ProductPackage, error) {
+	var dataDB []*model_product.ProductPackage
+	err := r.db.Raw(getProductPackagesQuery, productID).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var packages []*dto_product.ProductPackageResponse
-	for rows.Next() {
-		var p dto_product.ProductPackageResponse
-		if err := rows.Scan(&p.ID, &p.ProductID, &p.UnitID, &p.UnitName, &p.Abbreviation, &p.PackageName, &p.ConversionQty, &p.PurchasePrice, &p.SellingPrice, &p.IsDefault); err != nil {
-			return nil, err
-		}
-		packages = append(packages, &p)
-	}
-	if packages == nil {
-		packages = []*dto_product.ProductPackageResponse{}
-	}
-	return packages, nil
+	return dataDB, nil
 }
 
 func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductPackageRequest) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(deleteProductPackagesQuery, productID).Error; err != nil {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Exec(deleteProductPackagesQuery, productID).Error
+		if err != nil {
 			return err
 		}
 		for _, p := range packages {
@@ -58,14 +34,16 @@ func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductP
 			if p.PackageName != "" {
 				pkgName = &p.PackageName
 			}
-			if err := tx.Exec(insertProductPackageQuery,
+			err = tx.Exec(insertProductPackageQuery,
 				productID, p.UnitID, pkgName, p.ConversionQty, p.PurchasePrice, p.SellingPrice, p.IsDefault,
-			).Error; err != nil {
+			).Error
+			if err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+	return err
 }
 
 func (r *productPackageRepo) DeleteOne(id, productID int) error {

@@ -3,15 +3,17 @@ package repo_product
 import (
 	dto_product "pos_api/domain/product/dto"
 	model_product "pos_api/domain/product/model"
+
+	"gorm.io/gorm"
 )
 
 type ProductRepo interface {
-	GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int64, error)
-	GetOptions() ([]*dto_product.ProductOption, error)
+	GetAll(req *dto_product.ProductListRequest) ([]*model_product.Product, int64, error)
+	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
-	Search(keyword string, limit int) ([]*dto_product.ProductSearchResult, error)
-	GetLowStock() ([]*dto_product.LowStockProduct, error)
+	Search(keyword string, limit int) ([]*model_product.ProductSearchResult, error)
+	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CheckBarcodeExists(barcode string, excludeID int) (bool, error)
 	CheckSkuExists(sku string, excludeID int) (bool, error)
 	CountSkuByCategory(categoryID int) (int, error)
@@ -21,4 +23,12 @@ type ProductRepo interface {
 	Delete(req *dto_product.DeleteProductRequest) error
 	ToggleStatus(req *dto_product.ToggleStatusProductRequest) error
 	UpdateStock(id int, delta float64) error
+}
+
+type productRepo struct {
+	db *gorm.DB
+}
+
+func NewProductRepo(db *gorm.DB) ProductRepo {
+	return &productRepo{db: db}
 }

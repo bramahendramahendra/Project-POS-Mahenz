@@ -113,13 +113,44 @@ func (s *productService) Search(keyword string, limit int) (data []*dto.ProductS
 	if limit <= 0 || limit > 50 {
 		limit = 20
 	}
-	data, err = s.repo.Search(keyword, limit)
-	return data, err
+
+	dataDB, err := s.repo.Search(keyword, limit)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.ProductSearchResult{
+			ID:           v.ID,
+			Barcode:      v.Barcode,
+			Name:         v.Name,
+			SellingPrice: v.SellingPrice,
+			Stock:        v.Stock,
+			UnitID:       v.UnitID,
+			UnitName:     v.UnitName,
+		})
+	}
+
+	return data, nil
 }
 
 func (s *productService) GetLowStock() (data []*dto.LowStockProduct, err error) {
-	data, err = s.repo.GetLowStock()
-	return data, err
+	dataDB, err := s.repo.GetLowStock()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.LowStockProduct{
+			ID:       v.ID,
+			Name:     v.Name,
+			Stock:    v.Stock,
+			MinStock: v.MinStock,
+			UnitName: v.UnitName,
+		})
+	}
+
+	return data, nil
 }
 
 func (s *productService) Create(req *dto.ProductRequest) (data dto.ProductResponse, err error) {

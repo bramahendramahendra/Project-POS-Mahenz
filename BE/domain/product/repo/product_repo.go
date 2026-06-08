@@ -1,12 +1,8 @@
 package repo_product
 
 import (
-	"fmt"
-
-	dto_product "pos_api/domain/product/dto"
-	model_product "pos_api/domain/product/model"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/product/dto"
+	model "pos_api/domain/product/model"
 )
 
 const (
@@ -55,28 +51,20 @@ const (
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.stock <= p.min_stock AND p.is_active = 1`
 
-	getProductOptionsQuery   = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
-
-	checkProductUsedQuery    = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
-	createProductQuery       = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductQuery       = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
-	deleteProductQuery       = `DELETE FROM products WHERE id = ?`
-	toggleProductStatusQuery = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
-	updateProductStockQuery  = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	countProductsBase        = `SELECT COUNT(*) FROM products p WHERE 1=1`
+	getProductOptionsQuery      = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
+	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
+	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getLastProductInsertIDQuery = `SELECT LAST_INSERT_ID()`
+	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
+	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
+	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
 )
 
-type productRepo struct {
-	db *gorm.DB
-}
-
-func NewProductRepo(db *gorm.DB) ProductRepo {
-	return &productRepo{db: db}
-}
-
-func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_product.ProductResponse, int64, error) {
-	var args []interface{}
-	var countArgs []interface{}
+func (r *productRepo) GetAll(req *dto.ProductListRequest) ([]*model.Product, int64, error) {
+	var args []any
+	var countArgs []any
 	conditions := ""
 	countConditions := ""
 
@@ -107,14 +95,13 @@ func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_produc
 		countConditions += " AND p.stock <= p.min_stock"
 	}
 
-	// Count total
 	var total int64
 	countQuery := countProductsBase + countConditions
-	if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
+	err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error
+	if err != nil {
 		return nil, 0, err
 	}
 
-	// Pagination
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -125,160 +112,114 @@ func (r *productRepo) GetAll(req *dto_product.ProductListRequest) ([]*dto_produc
 	}
 	offset := (page - 1) * limit
 
-	query := getAllProductsBase + conditions + fmt.Sprintf(" ORDER BY p.name LIMIT %d OFFSET %d", limit, offset)
+	query := getAllProductsBase + conditions + " ORDER BY p.name LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
-	rows, err := r.db.Raw(query, args...).Rows()
+	var dataDB []*model.Product
+	err = r.db.Raw(query, args...).Scan(&dataDB).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
-
-	var products []*dto_product.ProductResponse
-	for rows.Next() {
-		var p dto_product.ProductResponse
-		if err := rows.Scan(&p.ID, &p.Barcode, &p.SKU, &p.Name, &p.CategoryID, &p.CategoryName,
-			&p.PurchasePrice, &p.SellingPrice, &p.Stock, &p.MinStock,
-			&p.UnitID, &p.UnitName, &p.UnitAbbreviation,
-			&p.IsActive, &p.ExtraPackages, &p.PriceTiersCount); err != nil {
-			return nil, 0, err
-		}
-		products = append(products, &p)
-	}
-	if products == nil {
-		products = []*dto_product.ProductResponse{}
-	}
-	return products, total, nil
+	return dataDB, total, nil
 }
 
-func (r *productRepo) GetByID(id int) (*model_product.Product, error) {
-	rows, err := r.db.Raw(getProductByIDQuery, id).Rows()
+func (r *productRepo) GetOptions() ([]*model.ProductOption, error) {
+	var dataDB []*model.ProductOption
+	err := r.db.Raw(getProductOptionsQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return nil, nil
-	}
-	var p model_product.Product
-	if err := rows.Scan(&p.ID, &p.Barcode, &p.SKU, &p.Name, &p.CategoryID, &p.CategoryName,
-		&p.PurchasePrice, &p.SellingPrice, &p.Stock, &p.MinStock,
-		&p.UnitID, &p.UnitName, &p.UnitAbbreviation,
-		&p.IsActive, &p.CreatedAt, &p.UpdatedAt); err != nil {
-		return nil, err
-	}
-	return &p, nil
+	return dataDB, nil
 }
 
-func (r *productRepo) GetByBarcode(barcode string) (*model_product.Product, error) {
-	rows, err := r.db.Raw(getProductByBarcodeQuery, barcode).Rows()
+func (r *productRepo) GetByID(id int) (*model.Product, error) {
+	var dataDB model.Product
+	err := r.db.Raw(getProductByIDQuery, id).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
-	var p model_product.Product
-	if err := rows.Scan(&p.ID, &p.Barcode, &p.SKU, &p.Name, &p.CategoryID, &p.CategoryName,
-		&p.PurchasePrice, &p.SellingPrice, &p.Stock, &p.MinStock,
-		&p.UnitID, &p.UnitName, &p.UnitAbbreviation,
-		&p.IsActive, &p.CreatedAt, &p.UpdatedAt); err != nil {
-		return nil, err
-	}
-	return &p, nil
+	return &dataDB, nil
 }
 
-func (r *productRepo) Search(keyword string, limit int) ([]*dto_product.ProductSearchResult, error) {
+func (r *productRepo) GetByBarcode(barcode string) (*model.Product, error) {
+	var dataDB model.Product
+	err := r.db.Raw(getProductByBarcodeQuery, barcode).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
+	}
+	if dataDB.ID == 0 {
+		return nil, nil
+	}
+	return &dataDB, nil
+}
+
+func (r *productRepo) Search(keyword string, limit int) ([]*model.ProductSearchResult, error) {
 	like := "%" + keyword + "%"
-	rows, err := r.db.Raw(searchProductsQuery, like, like, limit).Rows()
+	var dataDB []*model.ProductSearchResult
+	err := r.db.Raw(searchProductsQuery, like, like, limit).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var results []*dto_product.ProductSearchResult
-	for rows.Next() {
-		var p dto_product.ProductSearchResult
-		if err := rows.Scan(&p.ID, &p.Barcode, &p.Name, &p.SellingPrice, &p.Stock, &p.UnitID, &p.UnitName); err != nil {
-			return nil, err
-		}
-		results = append(results, &p)
-	}
-	if results == nil {
-		results = []*dto_product.ProductSearchResult{}
-	}
-	return results, nil
+	return dataDB, nil
 }
 
-func (r *productRepo) GetLowStock() ([]*dto_product.LowStockProduct, error) {
-	rows, err := r.db.Raw(getLowStockQuery).Rows()
+func (r *productRepo) GetLowStock() ([]*model.LowStockProduct, error) {
+	var dataDB []*model.LowStockProduct
+	err := r.db.Raw(getLowStockQuery).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var results []*dto_product.LowStockProduct
-	for rows.Next() {
-		var p dto_product.LowStockProduct
-		if err := rows.Scan(&p.ID, &p.Name, &p.Stock, &p.MinStock, &p.UnitName); err != nil {
-			return nil, err
-		}
-		results = append(results, &p)
-	}
-	if results == nil {
-		results = []*dto_product.LowStockProduct{}
-	}
-	return results, nil
-}
-
-func (r *productRepo) GetOptions() ([]*dto_product.ProductOption, error) {
-	var data []*dto_product.ProductOption
-	if err := r.db.Raw(getProductOptionsQuery).Scan(&data).Error; err != nil {
-		return nil, err
-	}
-	if data == nil {
-		data = []*dto_product.ProductOption{}
-	}
-	return data, nil
+	return dataDB, nil
 }
 
 func (r *productRepo) CountTransactionItems(productID int) (int, error) {
 	var count int
-	if err := r.db.Raw(checkProductUsedQuery, productID).Scan(&count).Error; err != nil {
+	err := r.db.Raw(checkProductUsedQuery, productID).Scan(&count).Error
+	if err != nil {
 		return 0, err
 	}
 	return count, nil
 }
 
-func (r *productRepo) Create(req *dto_product.ProductRequest) (int64, error) {
-	if err := r.db.Exec(createProductQuery,
+func (r *productRepo) Create(req *dto.ProductRequest) (int64, error) {
+	err := r.db.Exec(createProductQuery,
 		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
 		req.SellingPrice, req.Stock, req.MinStock, req.UnitID,
-	).Error; err != nil {
+	).Error
+	if err != nil {
 		return 0, err
 	}
+
 	var id int64
-	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error; err != nil {
+	err = r.db.Raw(getLastProductInsertIDQuery).Scan(&id).Error
+	if err != nil {
 		return 0, err
 	}
 	return id, nil
 }
 
-func (r *productRepo) Update(req *dto_product.UpdateProductRequest) error {
-	return r.db.Exec(updateProductQuery,
+func (r *productRepo) Update(req *dto.UpdateProductRequest) error {
+	err := r.db.Exec(updateProductQuery,
 		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
 		req.SellingPrice, req.Stock, req.MinStock, req.UnitID, req.ID,
 	).Error
+	return err
 }
 
-func (r *productRepo) Delete(req *dto_product.DeleteProductRequest) error {
-	return r.db.Exec(deleteProductQuery, req.ID).Error
+func (r *productRepo) Delete(req *dto.DeleteProductRequest) error {
+	err := r.db.Exec(deleteProductQuery, req.ID).Error
+	return err
 }
 
-func (r *productRepo) ToggleStatus(req *dto_product.ToggleStatusProductRequest) error {
-	return r.db.Exec(toggleProductStatusQuery, req.ID).Error
+func (r *productRepo) ToggleStatus(req *dto.ToggleStatusProductRequest) error {
+	err := r.db.Exec(toggleProductStatusQuery, req.ID).Error
+	return err
 }
 
 func (r *productRepo) UpdateStock(id int, delta float64) error {
-	return r.db.Exec(updateProductStockQuery, delta, id).Error
+	err := r.db.Exec(updateProductStockQuery, delta, id).Error
+	return err
 }
