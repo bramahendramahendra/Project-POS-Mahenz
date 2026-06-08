@@ -17,15 +17,13 @@ func ProductRoutes(r *gin.RouterGroup) {
 	masterUnitRepo := unit_repo.NewUnitRepo(pkgdatabase.DB)
 
 	productRepo := product_repo.NewProductRepo(pkgdatabase.DB)
-	productPackageRepo := product_repo.NewProductPackageRepo(pkgdatabase.DB)
-	productSvc := product_service.NewProductService(productRepo, categoryRepo, productPackageRepo, masterUnitRepo)
+	productSvc := product_service.NewProductService(productRepo, categoryRepo, productRepo, masterUnitRepo)
 	productHand := product_handler.NewProductHandler(productSvc)
 
-	productPackageSvc := product_service.NewProductPackageService(productPackageRepo, productRepo)
+	productPackageSvc := product_service.NewProductPackageService(productRepo, productRepo)
 	productPackageHand := product_handler.NewProductPackageHandler(productPackageSvc)
 
-	productPriceRepo := product_repo.NewProductPriceRepo(pkgdatabase.DB)
-	productPriceSvc := product_service.NewProductPriceService(productPriceRepo, productRepo)
+	productPriceSvc := product_service.NewProductPriceService(productRepo, productRepo)
 	productPriceHand := product_handler.NewProductPriceHandler(productPriceSvc)
 
 	g := r.Group("/products")

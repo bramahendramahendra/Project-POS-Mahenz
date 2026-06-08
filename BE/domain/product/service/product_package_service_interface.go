@@ -13,11 +13,11 @@ type (
 	}
 
 	productPackageService struct {
-		repo     repo.ProductPackageRepo
+		repo     repo.ProductRepo
 		prodRepo repo.ProductRepo
 	}
 )
 
-func NewProductPackageService(repo repo.ProductPackageRepo, prodRepo repo.ProductRepo) *productPackageService {
+func NewProductPackageService(repo repo.ProductRepo, prodRepo repo.ProductRepo) *productPackageService {
 	return &productPackageService{repo: repo, prodRepo: prodRepo}
 }

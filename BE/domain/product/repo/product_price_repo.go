@@ -13,7 +13,7 @@ const (
 	insertProductPriceQuery  = `INSERT INTO product_prices (product_id, tier_name, min_qty, price) VALUES (?, ?, ?, ?)`
 )
 
-func (r *productPriceRepo) GetByProduct(productID int) ([]*model.ProductPrice, error) {
+func (r *productRepo) GetPricesByProduct(productID int) ([]*model.ProductPrice, error) {
 	var dataDB []*model.ProductPrice
 	err := r.db.Raw(getProductPricesQuery, productID).Scan(&dataDB).Error
 	if err != nil {
@@ -22,14 +22,14 @@ func (r *productPriceRepo) GetByProduct(productID int) ([]*model.ProductPrice, e
 	return dataDB, nil
 }
 
-func (r *productPriceRepo) Save(productID int, prices []dto.ProductPriceRequest) error {
+func (r *productRepo) SavePrices(productID int, prices []dto.ProductPriceRequest) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Exec(deleteProductPricesQuery, productID).Error
 		if err != nil {
 			return err
 		}
 		for _, p := range prices {
-			err = tx.Exec(insertProductPriceQuery, productID, p.TierName, p.MinQty, p.Price).Error
+			err := tx.Exec(insertProductPriceQuery, productID, p.TierName, p.MinQty, p.Price).Error
 			if err != nil {
 				return err
 			}

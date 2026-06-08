@@ -7,9 +7,6 @@ const (
 )
 
 func (r *productRepo) CheckBarcodeExists(barcode string, excludeID int) (bool, error) {
-	// if strings.TrimSpace(barcode) == "" {
-	// 	return false, nil
-	// }
 	var id int
 	err := r.db.Raw(checkBarcodeExistsQuery, barcode, excludeID).Scan(&id).Error
 	if err != nil {
@@ -19,9 +16,6 @@ func (r *productRepo) CheckBarcodeExists(barcode string, excludeID int) (bool, e
 }
 
 func (r *productRepo) CheckSkuExists(sku string, excludeID int) (bool, error) {
-	// if strings.TrimSpace(sku) == "" {
-	// 	return false, nil
-	// }
 	var id int
 	err := r.db.Raw(checkSkuExistsQuery, sku, excludeID).Scan(&id).Error
 	if err != nil {

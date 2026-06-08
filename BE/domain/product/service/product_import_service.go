@@ -290,7 +290,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
 			allPkgs = append(allPkgs, grosirPkgs...)
 		}
-		_ = s.packageRepo.Save(productID, allPkgs)
+		_ = s.packageRepo.SavePackages(productID, allPkgs)
 	}
 
 	return data, nil

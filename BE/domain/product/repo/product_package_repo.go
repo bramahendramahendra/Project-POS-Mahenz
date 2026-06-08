@@ -14,7 +14,7 @@ const (
 	deleteProductPackageByIDQuery = `DELETE FROM product_packages WHERE id = ? AND product_id = ?`
 )
 
-func (r *productPackageRepo) GetByProduct(productID int) ([]*model_product.ProductPackage, error) {
+func (r *productRepo) GetPackagesByProduct(productID int) ([]*model_product.ProductPackage, error) {
 	var dataDB []*model_product.ProductPackage
 	err := r.db.Raw(getProductPackagesQuery, productID).Scan(&dataDB).Error
 	if err != nil {
@@ -23,7 +23,7 @@ func (r *productPackageRepo) GetByProduct(productID int) ([]*model_product.Produ
 	return dataDB, nil
 }
 
-func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductPackageRequest) error {
+func (r *productRepo) SavePackages(productID int, packages []dto_product.ProductPackageRequest) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Exec(deleteProductPackagesQuery, productID).Error
 		if err != nil {
@@ -34,7 +34,7 @@ func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductP
 			if p.PackageName != "" {
 				pkgName = &p.PackageName
 			}
-			err = tx.Exec(insertProductPackageQuery,
+			err := tx.Exec(insertProductPackageQuery,
 				productID, p.UnitID, pkgName, p.ConversionQty, p.PurchasePrice, p.SellingPrice, p.IsDefault,
 			).Error
 			if err != nil {
@@ -46,7 +46,7 @@ func (r *productPackageRepo) Save(productID int, packages []dto_product.ProductP
 	return err
 }
 
-func (r *productPackageRepo) DeleteOne(id, productID int) error {
+func (r *productRepo) DeletePackage(id, productID int) error {
 	err := r.db.Exec(deleteProductPackageByIDQuery, id, productID).Error
 	return err
 }

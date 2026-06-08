@@ -14,7 +14,7 @@ func (s *productPackageService) GetByProduct(productID int) (data []*dto.Product
 		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	dataDB, err := s.repo.GetByProduct(productID)
+	dataDB, err := s.repo.GetPackagesByProduct(productID)
 	if err != nil {
 		return data, err
 	}
@@ -46,7 +46,7 @@ func (s *productPackageService) Save(req *dto.SaveProductPackagesRequest) (err e
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	return s.repo.Save(req.ProductID, req.Packages)
+	return s.repo.SavePackages(req.ProductID, req.Packages)
 }
 
 func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) (err error) {
@@ -58,5 +58,5 @@ func (s *productPackageService) DeleteOne(req *dto.PackageIDUriRequest) (err err
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	return s.repo.DeleteOne(req.PackageID, req.ID)
+	return s.repo.DeletePackage(req.PackageID, req.ID)
 }

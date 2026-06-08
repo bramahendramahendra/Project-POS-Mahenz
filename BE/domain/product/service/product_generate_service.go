@@ -10,39 +10,6 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productService) GetCategoryNames() (data []string, err error) {
-	cats, err := s.catRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, c := range cats {
-		data = append(data, c.Name)
-	}
-	return
-}
-
-func (s *productService) GetUnitNames() (data []string, err error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, u := range units {
-		data = append(data, u.Name)
-	}
-	return
-}
-
-func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
-	units, err := s.masterUnitRepo.GetOptions()
-	if err != nil {
-		return
-	}
-	for _, u := range units {
-		data = append(data, &dto.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
-	}
-	return
-}
-
 func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, err error) {
 	// EAN-13 dengan prefix 899 (Indonesia)
 	digits := make([]int, 12)
@@ -88,4 +55,37 @@ func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuRespon
 	}
 
 	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", cat.Code, count+1)}, nil
+}
+
+func (s *productService) GetCategoryNames() (data []string, err error) {
+	cats, err := s.catRepo.GetOptions()
+	if err != nil {
+		return
+	}
+	for _, c := range cats {
+		data = append(data, c.Name)
+	}
+	return
+}
+
+func (s *productService) GetUnitNames() (data []string, err error) {
+	units, err := s.masterUnitRepo.GetOptions()
+	if err != nil {
+		return
+	}
+	for _, u := range units {
+		data = append(data, u.Name)
+	}
+	return
+}
+
+func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
+	units, err := s.masterUnitRepo.GetOptions()
+	if err != nil {
+		return
+	}
+	for _, u := range units {
+		data = append(data, &dto.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
+	}
+	return
 }
