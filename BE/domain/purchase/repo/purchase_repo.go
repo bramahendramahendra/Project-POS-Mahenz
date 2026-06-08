@@ -1,4 +1,4 @@
-package repo_purchase
+package repo
 
 import (
 	"fmt"
@@ -19,13 +19,13 @@ const (
 	getPurchaseItemsQuery     = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
 	createPaymentQuery        = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
 	getPaymentsQuery          = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
-	rollbackStockQuery           = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
-	deleteStockMutationsQuery    = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
-	deletePurchaseItemsQuery     = `DELETE FROM purchase_items WHERE purchase_id = ?`
-	deletePurchaseQuery          = `DELETE FROM purchases WHERE id = ?`
+	rollbackStockQuery        = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
+	deleteStockMutationsQuery = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
+	deletePurchaseItemsQuery  = `DELETE FROM purchase_items WHERE purchase_id = ?`
+	deletePurchaseQuery       = `DELETE FROM purchases WHERE id = ?`
 	getPurchaseByIDQuery      = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
 	getRawPurchaseByIDQuery   = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes FROM purchases WHERE id = ?`
-	getAllPurchasesBase       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
+	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
 	countPurchasesBase        = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
 	createStockMutationQuery  = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getProductStockQuery      = `SELECT stock FROM products WHERE id = ? LIMIT 1`
@@ -213,7 +213,6 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 	var purchaseID int
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. Generate purchase_code: PO-YYYYMMDD-XXX
 		today := time.Now().Format("2006-01-02")
 		var count int
 		if err := tx.Raw(generatePurchaseCodeQuery, today).Scan(&count).Error; err != nil {
@@ -221,7 +220,6 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 		}
 		code := fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1)
 
-		// 2. Hitung total_amount
 		var subtotal float64
 		for _, item := range req.Items {
 			subtotal += item.PurchasePrice * item.Quantity
@@ -231,7 +229,6 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 			totalAmount = 0
 		}
 
-		// Tentukan payment_status dan paid_amount
 		paymentStatus := req.PaymentStatus
 		if paymentStatus == "" {
 			paymentStatus = "unpaid"
@@ -245,7 +242,6 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 		}
 		remainingAmount := totalAmount - paidAmount
 
-		// 3. Simpan PO header
 		if err := tx.Exec(createPurchaseQuery,
 			code, req.InvoiceNumber, req.SupplierID, req.PurchaseDate,
 			req.DiscountAmount, totalAmount, paymentStatus, paidAmount, remainingAmount, userID, req.Notes,
@@ -257,7 +253,6 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 			return err
 		}
 
-		// 4. Catat pembayaran awal jika ada
 		if paidAmount > 0 {
 			paymentDate := req.PurchaseDate
 			if paymentDate == "" {
@@ -270,19 +265,15 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 			}
 		}
 
-		// 5. Loop items
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 
-			// Normalisasi conversion_qty: default 1 jika tidak dikirim
 			conversionQty := item.ConversionQty
 			if conversionQty <= 0 {
 				conversionQty = 1
 			}
-			// Stok yang ditambah = qty × conversion_qty (konversi ke satuan dasar)
 			stockAdd := item.Quantity * conversionQty
 
-			// Simpan item
 			if err := tx.Exec(createPurchaseItemQuery,
 				purchaseID, item.ProductID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
@@ -290,18 +281,15 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 				return err
 			}
 
-			// Ambil stok sebelum
 			var stockBefore float64
 			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
 				return err
 			}
 
-			// Tambah stok dalam satuan dasar
 			if err := tx.Exec(addStockQuery, stockAdd, item.ProductID).Error; err != nil {
 				return err
 			}
 
-			// Catat mutasi stok (dalam satuan dasar)
 			stockAfter := stockBefore + stockAdd
 			notes := fmt.Sprintf("Purchase Order %s", code)
 			if err := tx.Exec(createStockMutationQuery,
@@ -323,13 +311,11 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 
 func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		// Ambil items lama untuk rollback stok
 		oldItems, err := r.GetItems(id)
 		if err != nil {
 			return err
 		}
 
-		// Rollback stok item lama (dalam satuan dasar)
 		for _, item := range oldItems {
 			convQty := item.ConversionQty
 			if convQty <= 0 {
@@ -340,18 +326,15 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 			}
 		}
 
-		// Hapus items lama
 		if err := tx.Exec(deletePurchaseItemsQuery, id).Error; err != nil {
 			return err
 		}
 
-		// Hitung total baru
 		var totalAmount float64
 		for _, item := range req.Items {
 			totalAmount += item.PurchasePrice * item.Quantity
 		}
 
-		// Update PO header
 		if err := tx.Exec(
 			`UPDATE purchases SET invoice_number=?, supplier_id=?, purchase_date=?, total_amount=?, remaining_amount=total_amount-paid_amount, notes=?, updated_at=NOW() WHERE id=?`,
 			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, totalAmount, req.Notes, id,
@@ -359,7 +342,6 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 			return err
 		}
 
-		// Insert items baru + update stok (dalam satuan dasar)
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 			conversionQty := item.ConversionQty

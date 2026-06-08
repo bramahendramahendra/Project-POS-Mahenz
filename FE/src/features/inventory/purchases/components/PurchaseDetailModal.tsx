@@ -2,8 +2,8 @@ import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatDate, formatRupiah } from '@/shared/utils'
 
-import { useSupplierPurchaseDetailQuery, useSupplierPurchasePaymentsQuery } from '../supplier-purchases.api'
-import type { PaymentStatus } from '../supplier-purchases.types'
+import { useSupplierPurchaseDetailQuery, useSupplierPurchasePaymentsQuery } from '../purchases.api'
+import type { PaymentStatus } from '../purchases.types'
 
 interface PurchaseDetailModalProps {
   open: boolean

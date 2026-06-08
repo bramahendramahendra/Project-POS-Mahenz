@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef, PaginationProps } from '@/shared/components/DataTable/DataTable.types'
 
-import type { SupplierReturn } from '../supplier-returns.types'
+import type { SupplierReturn } from '../returns.types'
 
 interface ReturnTableProps {
   data: SupplierReturn[]

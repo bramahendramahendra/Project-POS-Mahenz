@@ -1,4 +1,4 @@
-package dto_purchase
+package dto
 
 type PurchaseItemRequest struct {
 	ProductID     int     `json:"product_id" validate:"required,gt=0"`

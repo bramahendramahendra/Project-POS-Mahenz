@@ -1,4 +1,4 @@
-package dto_supplier_return
+package dto
 
 type SupplierReturnItemRequest struct {
 	PurchaseItemID int     `json:"purchase_item_id" validate:"required,gt=0"`

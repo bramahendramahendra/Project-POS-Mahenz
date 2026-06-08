@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus, Truck } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -16,11 +16,15 @@ import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks
 import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
 import { useProductListQuery } from '@/features/inventory/products/products.api'
 
-import { useSupplierReturnsQuery, useDeleteSupplierReturnMutation } from './supplier-returns.api'
-import type { SupplierReturn, SupplierReturnFilter } from './supplier-returns.types'
-import { ReturnTable } from './components/ReturnTable'
-import { ReturnFormModal } from './components/ReturnFormModal'
-import { ReturnDetailModal } from './components/ReturnDetailModal'
+import {
+  useSupplierPurchasesQuery,
+  useDeleteSupplierPurchaseMutation,
+} from './purchases.api'
+import type { PaymentStatus, SupplierPurchase, SupplierPurchaseFilter } from './purchases.types'
+import { PurchaseTable } from './components/PurchaseTable'
+import { PurchaseFormModal } from './components/PurchaseFormModal'
+import { PurchaseDetailModal } from './components/PurchaseDetailModal'
+import { PaymentModal } from './components/PaymentModal'
 
 function monthStartString() {
   const d = new Date()
@@ -31,21 +35,23 @@ function todayString() {
   return new Date().toISOString().split('T')[0]
 }
 
-export function SupplierReturnsPage() {
+export function PurchasesPage() {
   const today = todayString()
   const [dateFrom, setDateFrom] = useState(monthStartString())
   const [dateTo, setDateTo] = useState(today)
   const [supplierId, setSupplierId] = useState<number | undefined>()
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [status, setStatus] = useState<PaymentStatus | 'all'>('all')
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
-  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: payOpen, open: openPay, close: closePay } = useDisclosure()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [payingPurchase, setPayingPurchase] = useState<SupplierPurchase | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page: 1, limit: 1, search: '' })
@@ -53,34 +59,39 @@ export function SupplierReturnsPage() {
   const hasSuppliers = suppliers.length > 0
     const hasProducts = (productsData?.total ?? 0) > 0
 
-  const filter: SupplierReturnFilter = {
+  const filter: SupplierPurchaseFilter = {
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
     supplier_id: supplierId,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
+    status: status === 'all' ? undefined : status,
     page,
     page_size: pageSize,
   }
 
-  const { data, isLoading } = useSupplierReturnsQuery(filter)
-  const { mutate: deleteReturn, isPending: isDeleting } = useDeleteSupplierReturnMutation()
+  const { data, isLoading } = useSupplierPurchasesQuery(filter)
+  const { mutate: deletePurchase, isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
 
-  const returns = data?.items ?? []
+  const purchases = data?.items ?? []
   const total = data?.total ?? 0
 
-  function handleDetail(row: SupplierReturn) {
-    setDetailId(row.id)
-    openDetail()
+  function handlePay(purchase: SupplierPurchase) {
+    setPayingPurchase(purchase)
+    openPay()
   }
 
-  function handleDelete(row: SupplierReturn) {
-    setDeletingId(row.id)
+  function handleDelete(purchase: SupplierPurchase) {
+    setDeletingId(purchase.id)
     openDelete()
+  }
+
+  function handleDetail(purchase: SupplierPurchase) {
+    setDetailId(purchase.id)
+    openDetail()
   }
 
   function confirmDelete() {
     if (!deletingId) return
-    deleteReturn(deletingId, {
+    deletePurchase(deletingId, {
       onSuccess: () => {
         closeDelete()
         setDeletingId(null)
@@ -92,8 +103,8 @@ export function SupplierReturnsPage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Retur Pembelian"
-          breadcrumbs={[{ label: 'Inventori' }, { label: 'Retur' }]}
+          title="Pembelian Supplier"
+          breadcrumbs={[{ label: 'Inventori' }, { label: 'Pembelian' }]}
         />
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -108,8 +119,8 @@ export function SupplierReturnsPage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="Retur Pembelian"
-          breadcrumbs={[{ label: 'Inventori' }, { label: 'Retur' }]}
+          title="Pembelian Supplier"
+          breadcrumbs={[{ label: 'Inventori' }, { label: 'Pembelian' }]}
         />
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-white px-6 py-16 text-center">
           <div className="mb-4 flex gap-3">
@@ -118,10 +129,10 @@ export function SupplierReturnsPage() {
             </div>
           </div>
           <h3 className="mb-1 text-base font-semibold text-gray-800">
-            Belum bisa menambah retur
+            Belum bisa menambah pembelian
           </h3>
           <p className="mb-1 text-sm text-gray-500">
-            Sebelum menambah retur, pastikan data berikut sudah tersedia:
+            Sebelum menambah pembelian, pastikan data berikut sudah tersedia:
           </p>
           <ul className="mb-6 space-y-1 text-sm">
             {!hasSuppliers && (
@@ -145,13 +156,13 @@ export function SupplierReturnsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Retur Pembelian"
-        breadcrumbs={[{ label: 'Inventori' }, { label: 'Retur' }]}
+        title="Pembelian Supplier"
+        breadcrumbs={[{ label: 'Inventori' }, { label: 'Pembelian' }]}
         actions={
           <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
             <Button onClick={openForm} className="gap-1">
               <Plus size={16} />
-              Tambah Retur
+              Tambah Pembelian
             </Button>
           </RoleGuard>
         }
@@ -197,32 +208,36 @@ export function SupplierReturnsPage() {
         </div>
         <div className="space-y-1">
           <label className="text-xs text-gray-500">Status</label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-9">
-              <SelectValue placeholder="Semua Status" />
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(v as PaymentStatus | 'all')}
+          >
+            <SelectTrigger className="w-36 h-9">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Disetujui</SelectItem>
-              <SelectItem value="rejected">Ditolak</SelectItem>
+              <SelectItem value="paid">Lunas</SelectItem>
+              <SelectItem value="unpaid">Hutang</SelectItem>
+              <SelectItem value="partial">Bayar Sebagian</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <ReturnTable
-        data={returns}
+      <PurchaseTable
+        data={purchases}
         isLoading={isLoading}
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        suppliers={suppliers}
         onDetail={handleDetail}
+        onPay={handlePay}
         onDelete={handleDelete}
       />
 
-      <ReturnFormModal open={formOpen} onOpenChange={(o) => !o && closeForm()} />
+      <PurchaseFormModal open={formOpen} onOpenChange={(o) => !o && closeForm()} />
 
-      <ReturnDetailModal
-        returnId={detailId}
+      <PurchaseDetailModal
         open={detailOpen}
         onOpenChange={(o) => {
           if (!o) {
@@ -230,6 +245,18 @@ export function SupplierReturnsPage() {
             setDetailId(null)
           }
         }}
+        purchaseId={detailId}
+      />
+
+      <PaymentModal
+        open={payOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            closePay()
+            setPayingPurchase(null)
+          }
+        }}
+        purchase={payingPurchase}
       />
 
       <ConfirmDialog
@@ -240,8 +267,8 @@ export function SupplierReturnsPage() {
             setDeletingId(null)
           }
         }}
-        title="Hapus Retur"
-        description="Data retur yang dihapus tidak bisa dikembalikan. Yakin ingin melanjutkan?"
+        title="Hapus Pembelian"
+        description="Data pembelian yang dihapus tidak bisa dikembalikan. Yakin ingin melanjutkan?"
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}

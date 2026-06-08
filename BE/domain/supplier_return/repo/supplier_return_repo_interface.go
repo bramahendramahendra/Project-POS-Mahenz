@@ -1,4 +1,4 @@
-package repo_supplier_return
+package repo
 
 import (
 	dto_supplier_return "pos_api/domain/supplier_return/dto"

@@ -1,4 +1,4 @@
-package model_supplier_return
+package model
 
 import "time"
 

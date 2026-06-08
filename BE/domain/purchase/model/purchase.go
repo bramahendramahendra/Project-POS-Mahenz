@@ -1,4 +1,4 @@
-package model_purchase
+package model
 
 import "time"
 

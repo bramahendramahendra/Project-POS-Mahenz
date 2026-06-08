@@ -7,7 +7,7 @@ import type {
   CreateSupplierReturnPayload,
   SupplierReturn,
   SupplierReturnFilter,
-} from './supplier-returns.types'
+} from './returns.types'
 
 interface SupplierReturnListData {
   items: SupplierReturn[]

@@ -19,9 +19,9 @@ import { formatRupiah } from '@/shared/utils'
 import {
   useSupplierPurchasesQuery,
   useSupplierPurchaseDetailQuery,
-} from '@/features/inventory/supplier-purchases/supplier-purchases.api'
+} from '@/features/inventory/purchases/purchases.api'
 
-import { useCreateSupplierReturnMutation } from '../supplier-returns.api'
+import { useCreateSupplierReturnMutation } from '../returns.api'
 
 interface ReturnFormModalProps {
   open: boolean

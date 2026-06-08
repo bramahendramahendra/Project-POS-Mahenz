@@ -8,8 +8,8 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
 import { formatRupiah } from '@/shared/utils'
 
-import { useSupplierReturnDetailQuery, useUpdateSupplierReturnStatusMutation } from '../supplier-returns.api'
-import type { SupplierReturn } from '../supplier-returns.types'
+import { useSupplierReturnDetailQuery, useUpdateSupplierReturnStatusMutation } from '../returns.api'
+import type { SupplierReturn } from '../returns.types'
 
 interface ReturnDetailModalProps {
   returnId: number | null

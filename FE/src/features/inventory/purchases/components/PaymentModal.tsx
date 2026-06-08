@@ -18,9 +18,9 @@ import {
 } from '@/shared/components/ui/select'
 import { formatRupiah } from '@/shared/utils'
 
-import { usePaySupplierPurchaseMutation } from '../supplier-purchases.api'
+import { usePaySupplierPurchaseMutation } from '../purchases.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
-import type { SupplierPurchase } from '../supplier-purchases.types'
+import type { SupplierPurchase } from '../purchases.types'
 
 interface PaymentModalProps {
   open: boolean

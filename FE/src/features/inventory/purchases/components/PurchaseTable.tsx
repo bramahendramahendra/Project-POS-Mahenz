@@ -6,7 +6,7 @@ import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef, PaginationProps } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Supplier } from '../../suppliers/suppliers.types'
-import type { PaymentStatus, SupplierPurchase } from '../supplier-purchases.types'
+import type { PaymentStatus, SupplierPurchase } from '../purchases.types'
 
 interface PurchaseTableProps {
   data: SupplierPurchase[]

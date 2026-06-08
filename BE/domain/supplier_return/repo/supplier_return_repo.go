@@ -1,4 +1,4 @@
-package repo_supplier_return
+package repo
 
 import (
 	"errors"
@@ -13,26 +13,25 @@ import (
 )
 
 const (
-	generateReturnCodeQuery  = `SELECT COUNT(*) FROM supplier_returns WHERE DATE(return_date) = ?`
-	createReturnQuery        = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
-	createReturnItemQuery    = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	updateReturnStatusQuery  = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
-	reduceStockQuery         = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
-	getReturnItemsQuery      = `SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
+	generateReturnCodeQuery       = `SELECT COUNT(*) FROM supplier_returns WHERE DATE(return_date) = ?`
+	createReturnQuery             = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+	createReturnItemQuery         = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	updateReturnStatusQuery       = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
+	reduceStockQuery              = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
+	getReturnItemsQuery           = `SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
 	checkReturnApprovedQuery      = `SELECT status FROM supplier_returns WHERE id = ?`
 	getPurchaseIDAndAmountQuery   = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
 	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= ? THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getReturnByIDQuery       = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
-	getAllReturnsBase        = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
-	countReturnsBase         = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
+	getReturnByIDQuery            = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
+	getAllReturnsBase              = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
+	countReturnsBase              = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
 	getPurchaseDateQuery          = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
 	getPurchaseItemQtyQuery       = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
 	getTotalReturnedQtyQuery      = `SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = ? AND sr.status IN ('pending', 'approved')`
-	deleteReturnItemsQuery   = `DELETE FROM supplier_return_items WHERE return_id = ?`
-	deleteReturnQuery        = `DELETE FROM supplier_returns WHERE id = ?`
-	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
+	deleteReturnItemsQuery        = `DELETE FROM supplier_return_items WHERE return_id = ?`
+	deleteReturnQuery             = `DELETE FROM supplier_returns WHERE id = ?`
 	getProductStockForUpdateQuery = `SELECT stock FROM products WHERE id = ? LIMIT 1 FOR UPDATE`
-	createStockMutationQuery = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 )
 
 type supplierReturnRepo struct {

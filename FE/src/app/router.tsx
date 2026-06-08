@@ -20,8 +20,8 @@ const ProductsPage     = lazy(() => import('@/features/inventory/products/Produc
 const CategoryPage     = lazy(() => import('@/features/inventory/categories/CategoryPage').then(m => ({ default: m.CategoryPage })))
 const UnitPage         = lazy(() => import('@/features/inventory/units/UnitPage').then(m => ({ default: m.UnitPage })))
 const SuppliersPage    = lazy(() => import('@/features/inventory/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })))
-const SupplierPurchasesPage = lazy(() => import('@/features/inventory/supplier-purchases/SupplierPurchasesPage').then(m => ({ default: m.SupplierPurchasesPage })))
-const SupplierReturnsPage   = lazy(() => import('@/features/inventory/supplier-returns/SupplierReturnsPage').then(m => ({ default: m.SupplierReturnsPage })))
+const PurchasesPage = lazy(() => import('@/features/inventory/purchases/PurchasesPage').then(m => ({ default: m.PurchasesPage })))
+const ReturnsPage   = lazy(() => import('@/features/inventory/returns/ReturnsPage').then(m => ({ default: m.ReturnsPage })))
 
 // Finance
 const FinancePage           = lazy(() => import('@/features/finance/overview/FinancePage').then(m => ({ default: m.FinancePage })))
@@ -82,8 +82,8 @@ export const router = createBrowserRouter([
       { path: ROUTES.PRODUCTS_CATEGORIES, element: <LazyRoute><CategoryPage /></LazyRoute> },
       { path: ROUTES.PRODUCTS_UNITS,      element: <LazyRoute><UnitPage /></LazyRoute> },
       { path: ROUTES.SUPPLIERS,           element: <LazyRoute><SuppliersPage /></LazyRoute> },
-      { path: ROUTES.SUPPLIER_PURCHASES,  element: <LazyRoute><SupplierPurchasesPage /></LazyRoute> },
-      { path: ROUTES.SUPPLIER_RETURNS,    element: <LazyRoute><SupplierReturnsPage /></LazyRoute> },
+      { path: ROUTES.SUPPLIER_PURCHASES,  element: <LazyRoute><PurchasesPage /></LazyRoute> },
+      { path: ROUTES.SUPPLIER_RETURNS,    element: <LazyRoute><ReturnsPage /></LazyRoute> },
 
       // Penjualan
       { path: ROUTES.TRANSACTIONS, element: <LazyRoute><TransactionsPage /></LazyRoute> },

@@ -1,4 +1,4 @@
-package handler_purchase
+package handler
 
 import (
 	"strconv"
@@ -22,9 +22,8 @@ func NewPurchaseHandler(service service_purchase.PurchaseService) *PurchaseHandl
 	return &PurchaseHandler{service: service}
 }
 
-// GET /api/purchases/generate-code
 func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
-	result, err := h.service.GenerateCode()
+	data, err := h.service.GenerateCode()
 	if err != nil {
 		c.Error(err)
 		return
@@ -34,11 +33,10 @@ func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Generate kode PO",
-		Data:    result,
+		Data:    data,
 	})
 }
 
-// GET /api/purchases
 func (h *PurchaseHandler) GetAll(c *gin.Context) {
 	filter := &dto_purchase.PurchaseFilter{
 		StartDate:     c.Query("start_date"),

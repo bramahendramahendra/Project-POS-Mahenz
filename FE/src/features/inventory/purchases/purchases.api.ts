@@ -9,7 +9,7 @@ import type {
   SupplierPurchase,
   SupplierPurchaseFilter,
   SupplierPurchasePayment,
-} from './supplier-purchases.types'
+} from './purchases.types'
 
 interface SupplierPurchaseListData {
   items: SupplierPurchase[]

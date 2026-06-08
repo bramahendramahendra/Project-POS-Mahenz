@@ -24,10 +24,10 @@ import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.a
 import { useProductOptionsQuery } from '@/features/inventory/products/products.api'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
-import { useCreateSupplierPurchaseMutation, useGeneratePurchaseCodeQuery } from '../supplier-purchases.api'
+import { useCreateSupplierPurchaseMutation, useGeneratePurchaseCodeQuery } from '../purchases.api'
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
-import type { PaymentStatus } from '../supplier-purchases.types'
+import type { PaymentStatus } from '../purchases.types'
 import type { ProductPackage } from '@/features/inventory/products/products.types'
 
 interface PurchaseFormModalProps {
@@ -99,7 +99,6 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
 
-  // unit options per item index: hanya terisi jika produk punya >1 package
   const [itemUnitOptions, setItemUnitOptions] = useState<Record<number, ProductPackage[]>>({})
   const [itemSelectedPackageId, setItemSelectedPackageId] = useState<Record<number, number>>({})
 
@@ -123,7 +122,6 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
     const id = Number(productId)
     setValue(`items.${index}.product_id`, id)
 
-    // fetch packages on-demand
     const packages = await queryClient.fetchQuery<ProductPackage[]>({
       queryKey: queryKeys.products.productUnits(id),
       queryFn: () => api.get<ProductPackage[]>(`/products/${id}/packages`),

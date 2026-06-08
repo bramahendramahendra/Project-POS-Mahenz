@@ -22,7 +22,7 @@ func NewProductGenerateHandler(service service.ProductServiceInterface) *Product
 }
 
 func (h *ProductGenerateHandler) GenerateBarcode(c *gin.Context) {
-	result, err := h.service.GenerateBarcode()
+	data, err := h.service.GenerateBarcode()
 	if err != nil {
 		c.Error(err)
 		return
@@ -32,7 +32,7 @@ func (h *ProductGenerateHandler) GenerateBarcode(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Barcode berhasil digenerate",
-		Data:    result,
+		Data:    data,
 	})
 }
 
@@ -43,14 +43,14 @@ func (h *ProductGenerateHandler) GenerateSku(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	result, svcErr := h.service.GenerateSku(req.CategoryID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GenerateSku(req.CategoryID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -58,6 +58,6 @@ func (h *ProductGenerateHandler) GenerateSku(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "SKU berhasil digenerate",
-		Data:    result,
+		Data:    data,
 	})
 }

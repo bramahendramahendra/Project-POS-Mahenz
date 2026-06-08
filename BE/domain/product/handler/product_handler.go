@@ -65,8 +65,8 @@ func (h *ProductHandler) Search(c *gin.Context) {
 		return
 	}
 
-	if valErr := validator.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -75,9 +75,9 @@ func (h *ProductHandler) Search(c *gin.Context) {
 		limit = 20
 	}
 
-	results, svcErr := h.service.Search(req.Q, limit)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Search(req.Q, limit)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -85,7 +85,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Hasil pencarian produk",
-		Data:    results,
+		Data:    data,
 	})
 }
 

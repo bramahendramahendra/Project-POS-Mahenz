@@ -1,4 +1,4 @@
-package service_purchase
+package service
 
 import (
 	dto_purchase "pos_api/domain/purchase/dto"

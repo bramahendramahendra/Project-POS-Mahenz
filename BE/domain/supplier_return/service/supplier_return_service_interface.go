@@ -1,4 +1,4 @@
-package service_supplier_return
+package service
 
 import dto_supplier_return "pos_api/domain/supplier_return/dto"
 

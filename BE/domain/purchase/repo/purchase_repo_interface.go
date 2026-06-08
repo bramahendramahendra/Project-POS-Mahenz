@@ -1,4 +1,4 @@
-package repo_purchase
+package repo
 
 import (
 	dto_purchase "pos_api/domain/purchase/dto"
