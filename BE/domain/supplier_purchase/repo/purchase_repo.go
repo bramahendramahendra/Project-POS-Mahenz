@@ -4,31 +4,31 @@ import (
 	"fmt"
 	"time"
 
-	dto_purchase "pos_api/domain/purchase/dto"
-	model_purchase "pos_api/domain/purchase/model"
+	dto_purchase "pos_api/domain/supplier_purchase/dto"
+	model_purchase "pos_api/domain/supplier_purchase/model"
 
 	"gorm.io/gorm"
 )
 
 const (
-	generatePurchaseCodeQuery = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
-	createPurchaseQuery       = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createPurchaseItemQuery   = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	addStockQuery             = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	payPurchaseQuery          = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount - ? <= 0 THEN 'paid' WHEN paid_amount + ? > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getPurchaseItemsQuery     = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
-	createPaymentQuery        = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
-	getPaymentsQuery          = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
-	rollbackStockQuery        = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
-	deleteStockMutationsQuery = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
-	deletePurchaseItemsQuery  = `DELETE FROM purchase_items WHERE purchase_id = ?`
-	deletePurchaseQuery       = `DELETE FROM purchases WHERE id = ?`
-	getPurchaseByIDQuery      = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
-	getRawPurchaseByIDQuery   = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes FROM purchases WHERE id = ?`
+	generatePurchaseCodeQuery  = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
+	createPurchaseQuery        = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createPurchaseItemQuery    = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	addStockQuery              = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	payPurchaseQuery           = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount - ? <= 0 THEN 'paid' WHEN paid_amount + ? > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPurchaseItemsQuery      = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
+	createPaymentQuery         = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+	getPaymentsQuery           = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
+	rollbackStockQuery         = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
+	deleteStockMutationsQuery  = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
+	deletePurchaseItemsQuery   = `DELETE FROM purchase_items WHERE purchase_id = ?`
+	deletePurchaseQuery        = `DELETE FROM purchases WHERE id = ?`
+	getPurchaseByIDQuery       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
+	getRawPurchaseByIDQuery    = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes FROM purchases WHERE id = ?`
 	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
-	countPurchasesBase        = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
-	createStockMutationQuery  = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	getProductStockQuery      = `SELECT stock FROM products WHERE id = ? LIMIT 1`
+	countPurchasesBase         = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
+	createStockMutationQuery   = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getProductStockQuery       = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
 )
 

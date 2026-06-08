@@ -1,9 +1,9 @@
 package segment
 
 import (
-	purchase_handler "pos_api/domain/purchase/handler"
-	purchase_repo "pos_api/domain/purchase/repo"
-	purchase_service "pos_api/domain/purchase/service"
+	purchase_handler "pos_api/domain/supplier_purchase/handler"
+	purchase_repo "pos_api/domain/supplier_purchase/repo"
+	purchase_service "pos_api/domain/supplier_purchase/service"
 	middleware "pos_api/middleware"
 	pkgdatabase "pos_api/pkg/database"
 

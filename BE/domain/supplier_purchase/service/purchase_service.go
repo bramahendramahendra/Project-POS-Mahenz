@@ -1,8 +1,8 @@
 package service
 
 import (
-	dto_purchase "pos_api/domain/purchase/dto"
-	repo_purchase "pos_api/domain/purchase/repo"
+	dto_purchase "pos_api/domain/supplier_purchase/dto"
+	repo_purchase "pos_api/domain/supplier_purchase/repo"
 	"pos_api/errors"
 )
 

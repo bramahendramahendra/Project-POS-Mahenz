@@ -1,8 +1,8 @@
 package handler
 
 import (
-	dto "pos_api/domain/purchase/dto"
-	service "pos_api/domain/purchase/service"
+	dto "pos_api/domain/supplier_purchase/dto"
+	service "pos_api/domain/supplier_purchase/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"

@@ -1,6 +1,6 @@
 package service
 
-import dto_purchase "pos_api/domain/purchase/dto"
+import dto_purchase "pos_api/domain/supplier_purchase/dto"
 
 type PurchaseService interface {
 	GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error)
