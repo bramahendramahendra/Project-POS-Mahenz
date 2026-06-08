@@ -70,12 +70,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 		return
 	}
 
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-
-	data, err := h.service.Search(req.Q, limit)
+	data, err := h.service.Search(&req)
 	if err != nil {
 		c.Error(err)
 		return

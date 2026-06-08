@@ -12,7 +12,7 @@ type ProductRepo interface {
 	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
-	Search(keyword string, limit int) ([]*model_product.ProductSearchResult, error)
+	Search(req *dto_product.SearchProductRequest) ([]*model_product.ProductSearchResult, error)
 	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
 	Create(req *dto_product.ProductRequest) (int64, error)

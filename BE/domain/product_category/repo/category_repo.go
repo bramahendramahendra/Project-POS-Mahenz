@@ -24,7 +24,7 @@ const (
 	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-func (r *categoryRepo) GetAll(req *dto.CategoryListRequest) ([]*model.Category, int64, error) {
+func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64, error) {
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -90,7 +90,7 @@ func (r *categoryRepo) GetByID(id int) (*model.Category, error) {
 	return &dataDB, nil
 }
 
-func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
+func (r *categoryRepo) Create(req *dto.CreateRequest) (int64, error) {
 	err := r.db.Exec(createCategoryQuery, req.Name, req.Code, req.Description).Error
 	if err != nil {
 		return 0, err
@@ -105,17 +105,17 @@ func (r *categoryRepo) Create(req *dto.CreateCategoryRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *categoryRepo) Update(req *dto.UpdateCategoryRequest) error {
+func (r *categoryRepo) Update(req *dto.UpdateRequest) error {
 	err := r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
 	return err
 }
 
-func (r *categoryRepo) Delete(req *dto.DeleteCategoryRequest) error {
+func (r *categoryRepo) Delete(req *dto.DeleteRequest) error {
 	err := r.db.Exec(deleteCategoryQuery, req.ID).Error
 	return err
 }
 
-func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusCategoryRequest) error {
+func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	err := r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
 	return err
 }

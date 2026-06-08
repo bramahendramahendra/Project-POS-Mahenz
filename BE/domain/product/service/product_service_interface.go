@@ -13,7 +13,7 @@ type (
 	ProductServiceInterface interface {
 		GetAll(req *dto.ProductListRequest) (data []dto.ProductResponse, total int64, err error)
 		GetOptions() (data []*dto.ProductOption, err error)
-		Search(keyword string, limit int) (data []*dto.ProductSearchResult, err error)
+		Search(req *dto.SearchProductRequest) (data []*dto.ProductSearchResult, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
 		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
 		Create(req *dto.ProductRequest) (data dto.ProductResponse, err error)

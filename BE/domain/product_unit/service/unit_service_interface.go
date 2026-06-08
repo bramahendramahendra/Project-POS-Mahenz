@@ -7,13 +7,13 @@ import (
 
 type (
 	UnitServiceInterface interface {
-		GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse, total int64, err error)
-		GetOptions() (data []dto.UnitOptionResponse, err error)
+		GetAll(req *dto.GetAllRequest) (data []dto.UnitResponse, total int64, err error)
+		GetOptions() (data []dto.GetOptionResponse, err error)
 		GetByID(id int) (data dto.UnitResponse, err error)
-		Create(req *dto.CreateUnitRequest) (data dto.UnitResponse, err error)
-		Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse, err error)
-		Delete(req *dto.DeleteUnitRequest) (err error)
-		ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error)
+		Create(req *dto.CreateRequest) (data dto.UnitResponse, err error)
+		Update(req *dto.UpdateRequest) (data dto.UnitResponse, err error)
+		Delete(req *dto.DeleteRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusRequest) (err error)
 	}
 
 	unitService struct {

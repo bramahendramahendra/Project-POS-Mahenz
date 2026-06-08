@@ -22,7 +22,7 @@ func NewSupplierHandler(service service.SupplierServiceInterface) *SupplierHandl
 }
 
 func (h *SupplierHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.SupplierListRequest](c)
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -59,7 +59,7 @@ func (h *SupplierHandler) GetOptions(c *gin.Context) {
 }
 
 func (h *SupplierHandler) GetDetail(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetSupplierByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *SupplierHandler) GetDetail(c *gin.Context) {
 }
 
 func (h *SupplierHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateSupplierRequest](c)
+	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -111,13 +111,13 @@ func (h *SupplierHandler) Create(c *gin.Context) {
 }
 
 func (h *SupplierHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateSupplierUriRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.UpdateSupplierRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -144,7 +144,7 @@ func (h *SupplierHandler) Update(c *gin.Context) {
 }
 
 func (h *SupplierHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.DeleteSupplierRequest](c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -168,7 +168,7 @@ func (h *SupplierHandler) Delete(c *gin.Context) {
 }
 
 func (h *SupplierHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.ToggleStatusSupplierRequest](c)
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

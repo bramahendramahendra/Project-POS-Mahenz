@@ -6,12 +6,12 @@ import (
 )
 
 type SupplierReturnRepo interface {
-	GetAll(filter *dto_supplier_return.SupplierReturnFilter) ([]*dto_supplier_return.SupplierReturnResponse, int, error)
+	GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error)
 	GetByID(id int) (*dto_supplier_return.SupplierReturnResponse, error)
 	GetStatus(id int) (string, error)
 	GetItems(returnID int) ([]model_supplier_return.SupplierReturnItem, error)
 	GetPurchaseDate(purchaseID int) (string, error)
-	Create(req *dto_supplier_return.CreateSupplierReturnRequest, userID int) (*dto_supplier_return.SupplierReturnResponse, error)
+	Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error)
 	UpdateStatus(id int, status, notes string) error
 	ApproveWithStockReduction(id int, userID int) error
 	Delete(id int) error

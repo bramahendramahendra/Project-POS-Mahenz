@@ -7,7 +7,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *unitService) GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse, total int64, err error) {
+func (s *unitService) GetAll(req *dto.GetAllRequest) (data []dto.UnitResponse, total int64, err error) {
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
@@ -26,14 +26,14 @@ func (s *unitService) GetAll(req *dto.UnitListRequest) (data []dto.UnitResponse,
 	return data, total, nil
 }
 
-func (s *unitService) GetOptions() (data []dto.UnitOptionResponse, err error) {
+func (s *unitService) GetOptions() (data []dto.GetOptionResponse, err error) {
 	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.UnitOptionResponse{
+		data = append(data, dto.GetOptionResponse{
 			ID:           v.ID,
 			Name:         v.Name,
 			Abbreviation: v.Abbreviation,
@@ -63,7 +63,7 @@ func (s *unitService) GetByID(id int) (data dto.UnitResponse, err error) {
 	return data, nil
 }
 
-func (s *unitService) Create(req *dto.CreateUnitRequest) (data dto.UnitResponse, err error) {
+func (s *unitService) Create(req *dto.CreateRequest) (data dto.UnitResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Abbreviation = strings.TrimSpace(req.Abbreviation)
 
@@ -99,7 +99,7 @@ func (s *unitService) Create(req *dto.CreateUnitRequest) (data dto.UnitResponse,
 	return data, nil
 }
 
-func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse, err error) {
+func (s *unitService) Update(req *dto.UpdateRequest) (data dto.UnitResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Abbreviation = strings.TrimSpace(req.Abbreviation)
 
@@ -142,7 +142,7 @@ func (s *unitService) Update(req *dto.UpdateUnitRequest) (data dto.UnitResponse,
 	return data, nil
 }
 
-func (s *unitService) Delete(req *dto.DeleteUnitRequest) (err error) {
+func (s *unitService) Delete(req *dto.DeleteRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func (s *unitService) Delete(req *dto.DeleteUnitRequest) (err error) {
 	return s.repo.Delete(req)
 }
 
-func (s *unitService) ToggleStatus(req *dto.ToggleStatusUnitRequest) (err error) {
+func (s *unitService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err

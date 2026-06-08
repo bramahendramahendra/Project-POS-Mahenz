@@ -7,7 +7,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *supplierService) GetAll(req *dto.SupplierListRequest) (data []dto.SupplierResponse, total int64, err error) {
+func (s *supplierService) GetAll(req *dto.GetAllRequest) (data []dto.SupplierResponse, total int64, err error) {
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
@@ -31,14 +31,14 @@ func (s *supplierService) GetAll(req *dto.SupplierListRequest) (data []dto.Suppl
 	return data, total, nil
 }
 
-func (s *supplierService) GetOptions() (data []dto.SupplierOptionResponse, err error) {
+func (s *supplierService) GetOptions() (data []dto.GetOptionResponse, err error) {
 	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.SupplierOptionResponse{
+		data = append(data, dto.GetOptionResponse{
 			ID:           v.ID,
 			SupplierCode: v.SupplierCode,
 			Name:         v.Name,
@@ -48,7 +48,7 @@ func (s *supplierService) GetOptions() (data []dto.SupplierOptionResponse, err e
 	return data, nil
 }
 
-func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, err error) {
+func (s *supplierService) GetDetail(id int) (data dto.GetDetailResponse, err error) {
 	supplier, err := s.repo.GetByID(id)
 	if err != nil {
 		return data, err
@@ -58,9 +58,9 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 	}
 
 	purchasesDB, _ := s.repo.GetPurchaseHistory(id)
-	purchases := make([]dto.SupplierPurchaseItem, 0, len(purchasesDB))
+	purchases := make([]dto.GetDetailPurchaseResponse, 0, len(purchasesDB))
 	for _, v := range purchasesDB {
-		purchases = append(purchases, dto.SupplierPurchaseItem{
+		purchases = append(purchases, dto.GetDetailPurchaseResponse{
 			ID:              v.ID,
 			PurchaseCode:    v.PurchaseCode,
 			PurchaseDate:    v.PurchaseDate,
@@ -71,9 +71,9 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 	}
 
 	returnsDB, _ := s.repo.GetReturnHistory(id)
-	returns := make([]dto.SupplierReturnHistoryItem, 0, len(returnsDB))
+	returns := make([]dto.GetDetailReturnResponse, 0, len(returnsDB))
 	for _, v := range returnsDB {
-		returns = append(returns, dto.SupplierReturnHistoryItem{
+		returns = append(returns, dto.GetDetailReturnResponse{
 			ID:          v.ID,
 			ReturnCode:  v.ReturnCode,
 			ReturnDate:  v.ReturnDate,
@@ -92,7 +92,7 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 		totalReturnAmount += r.TotalReturn
 	}
 
-	data = dto.SupplierDetailResponse{
+	data = dto.GetDetailResponse{
 		ID:              supplier.ID,
 		SupplierCode:    supplier.SupplierCode,
 		Name:            supplier.Name,
@@ -113,7 +113,7 @@ func (s *supplierService) GetDetail(id int) (data dto.SupplierDetailResponse, er
 	return data, nil
 }
 
-func (s *supplierService) Create(req *dto.CreateSupplierRequest) (data dto.SupplierResponse, err error) {
+func (s *supplierService) Create(req *dto.CreateRequest) (data dto.SupplierResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 
 	exists, err := s.repo.CheckNameExists(req.Name, 0)
@@ -158,7 +158,7 @@ func (s *supplierService) Create(req *dto.CreateSupplierRequest) (data dto.Suppl
 	return data, nil
 }
 
-func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.SupplierResponse, err error) {
+func (s *supplierService) Update(req *dto.UpdateRequest) (data dto.SupplierResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 
 	existsUpdate, err := s.repo.GetByID(req.ID)
@@ -205,7 +205,7 @@ func (s *supplierService) Update(req *dto.UpdateSupplierRequest) (data dto.Suppl
 	return data, nil
 }
 
-func (s *supplierService) Delete(req *dto.DeleteSupplierRequest) error {
+func (s *supplierService) Delete(req *dto.DeleteRequest) error {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (s *supplierService) Delete(req *dto.DeleteSupplierRequest) error {
 	return s.repo.Delete(req)
 }
 
-func (s *supplierService) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error {
+func (s *supplierService) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err

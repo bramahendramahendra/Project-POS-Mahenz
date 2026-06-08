@@ -22,7 +22,7 @@ func NewUnitHandler(service service.UnitServiceInterface) *UnitHandler {
 }
 
 func (h *UnitHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.UnitListRequest](c)
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -59,7 +59,7 @@ func (h *UnitHandler) GetOptions(c *gin.Context) {
 }
 
 func (h *UnitHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetUnitByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *UnitHandler) GetByID(c *gin.Context) {
 }
 
 func (h *UnitHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateUnitRequest](c)
+	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -111,13 +111,13 @@ func (h *UnitHandler) Create(c *gin.Context) {
 }
 
 func (h *UnitHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateUnitUriRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.UpdateUnitRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -144,7 +144,7 @@ func (h *UnitHandler) Update(c *gin.Context) {
 }
 
 func (h *UnitHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.DeleteUnitRequest](c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -168,7 +168,7 @@ func (h *UnitHandler) Delete(c *gin.Context) {
 }
 
 func (h *UnitHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.ToggleStatusUnitRequest](c)
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

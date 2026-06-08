@@ -77,7 +77,7 @@ func (s *productService) createCategoryWithCode(name, description string) (int64
 		candidate = fmt.Sprintf("%s%d", base, i)
 	}
 
-	return s.repoCategory.Create(&dto_category.CreateCategoryRequest{
+	return s.repoCategory.Create(&dto_category.CreateRequest{
 		Name:        name,
 		Code:        candidate,
 		Description: description,

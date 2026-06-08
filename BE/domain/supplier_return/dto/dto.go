@@ -9,7 +9,12 @@ type SupplierReturnItemRequest struct {
 	PurchasePrice  float64 `json:"purchase_price" validate:"required,gt=0"`
 }
 
+type GetSupplierReturnByIDRequest struct {
+	ID int `uri:"id" validate:"required,min=1"`
+}
+
 type CreateSupplierReturnRequest struct {
+	UserID       int                         `json:"-"`
 	PurchaseID   int                         `json:"purchase_id" validate:"required,gt=0"`
 	SupplierID   *int                        `json:"supplier_id"`
 	SupplierName string                      `json:"supplier_name" validate:"required"`
@@ -20,6 +25,8 @@ type CreateSupplierReturnRequest struct {
 }
 
 type UpdateStatusRequest struct {
+	ID     int    `json:"-"`
+	UserID int    `json:"-"`
 	Status string `json:"status" validate:"required,oneof=approved rejected"`
 	Notes  string `json:"notes"`
 }
@@ -56,13 +63,4 @@ type SupplierReturnListRequest struct {
 	EndDate    string `json:"end_date"`
 	SupplierID *int   `json:"supplier_id"`
 	Status     string `json:"status"`
-}
-
-type SupplierReturnFilter struct {
-	StartDate  string
-	EndDate    string
-	SupplierID *int
-	Status     string
-	Page       int
-	Limit      int
 }

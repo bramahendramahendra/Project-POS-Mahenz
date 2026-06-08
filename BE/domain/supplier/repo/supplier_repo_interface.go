@@ -9,13 +9,13 @@ import (
 
 type (
 	SupplierRepo interface {
-		GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, int64, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error)
 		GetOptions() ([]*model.SupplierOption, error)
 		GetByID(id int) (*model.Supplier, error)
-		Create(req *dto.CreateSupplierRequest, code string) (int64, error)
-		Update(req *dto.UpdateSupplierRequest) error
-		Delete(req *dto.DeleteSupplierRequest) error
-		ToggleStatus(req *dto.ToggleStatusSupplierRequest) error
+		Create(req *dto.CreateRequest, code string) (int64, error)
+		Update(req *dto.UpdateRequest) error
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
 
 		GetPurchaseHistory(supplierID int) ([]*model.SupplierPurchase, error)
 		GetReturnHistory(supplierID int) ([]*model.SupplierReturn, error)

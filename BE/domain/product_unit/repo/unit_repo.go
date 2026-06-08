@@ -22,7 +22,7 @@ const (
 	toggleUnitStatusQuery          = `UPDATE units SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-func (r *unitRepo) GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error) {
+func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) {
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -88,7 +88,7 @@ func (r *unitRepo) GetByID(id int) (*model.Unit, error) {
 	return &dataDB, nil
 }
 
-func (r *unitRepo) Create(req *dto.CreateUnitRequest) (int64, error) {
+func (r *unitRepo) Create(req *dto.CreateRequest) (int64, error) {
 	err := r.db.Exec(createUnitQuery, req.Name, req.Abbreviation).Error
 	if err != nil {
 		return 0, err
@@ -103,17 +103,17 @@ func (r *unitRepo) Create(req *dto.CreateUnitRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *unitRepo) Update(req *dto.UpdateUnitRequest) error {
+func (r *unitRepo) Update(req *dto.UpdateRequest) error {
 	err := r.db.Exec(updateUnitQuery, req.Name, req.Abbreviation, req.ID).Error
 	return err
 }
 
-func (r *unitRepo) Delete(req *dto.DeleteUnitRequest) error {
+func (r *unitRepo) Delete(req *dto.DeleteRequest) error {
 	err := r.db.Exec(deleteUnitQuery, req.ID).Error
 	return err
 }
 
-func (r *unitRepo) ToggleStatus(req *dto.ToggleStatusUnitRequest) error {
+func (r *unitRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	err := r.db.Exec(toggleUnitStatusQuery, req.ID).Error
 	return err
 }

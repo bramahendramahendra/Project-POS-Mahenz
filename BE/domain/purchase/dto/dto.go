@@ -14,6 +14,7 @@ type PurchaseItemRequest struct {
 
 type PurchaseRequest struct {
 	ID             int                   `json:"-"`
+	UserID         int                   `json:"-"`
 	InvoiceNumber  string                `json:"invoice_number" validate:"required"`
 	SupplierID     *int                  `json:"supplier_id"`
 	PurchaseDate   string                `json:"purchase_date" validate:"required"`
@@ -27,6 +28,7 @@ type PurchaseRequest struct {
 
 type PayPurchaseRequest struct {
 	ID            int     `json:"-"`
+	UserID        int     `json:"-"`
 	Amount        float64 `json:"amount" validate:"required,gt=0"`
 	PaymentDate   string  `json:"payment_date" validate:"required"`
 	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`

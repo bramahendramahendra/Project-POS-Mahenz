@@ -13,7 +13,7 @@ import type { CheckoutResponse, PaymentPayload, ProductSearchResult } from './ca
 export function useProductSearchQuery(keyword: string, enabled: boolean) {
   return useQuery({
     queryKey: ['cashier', 'search', keyword],
-    queryFn: () => api.get<ProductSearchResult[]>('/products/search', { q: keyword, limit: 20 }),
+    queryFn: () => api.post<ProductSearchResult[]>('/products/search', { q: keyword, limit: 20 }),
     enabled: enabled && keyword.length >= 2,
   })
 }

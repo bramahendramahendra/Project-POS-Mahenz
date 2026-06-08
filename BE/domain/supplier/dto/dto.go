@@ -3,17 +3,50 @@ package dto
 import "time"
 
 type (
-	GetSupplierByIDRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	SupplierListRequest struct {
+	// REQUEST
+	GetAllRequest struct {
 		Page     int    `json:"page"`
 		Limit    int    `json:"limit"`
 		Search   string `json:"search" validate:"max=100"`
 		IsActive *bool  `json:"is_active"`
 	}
 
+	GetByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	CreateRequest struct {
+		Name          string `json:"name" validate:"required,min=2,max=100"`
+		Address       string `json:"address" validate:"omitempty,max=255"`
+		Phone         string `json:"phone" validate:"omitempty,max=20"`
+		Email         string `json:"email" validate:"omitempty,max=100,email"`
+		ContactPerson string `json:"contact_person" validate:"omitempty,max=100"`
+		Notes         string `json:"notes" validate:"omitempty,max=500"`
+	}
+
+	UpdateUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	UpdateRequest struct {
+		ID            int    `json:"-"`
+		Name          string `json:"name" validate:"required,min=2,max=100"`
+		Address       string `json:"address" validate:"omitempty,max=255"`
+		Phone         string `json:"phone" validate:"omitempty,max=20"`
+		Email         string `json:"email" validate:"omitempty,max=100,email"`
+		ContactPerson string `json:"contact_person" validate:"omitempty,max=100"`
+		Notes         string `json:"notes" validate:"omitempty,max=500"`
+	}
+
+	DeleteRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	ToggleStatusRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	// RESPONSE
 	SupplierResponse struct {
 		ID            int       `json:"id"`
 		SupplierCode  string    `json:"supplier_code"`
@@ -27,13 +60,13 @@ type (
 		CreatedAt     time.Time `json:"created_at"`
 	}
 
-	SupplierOptionResponse struct {
+	GetOptionResponse struct {
 		ID           int    `json:"id"`
 		SupplierCode string `json:"supplier_code"`
 		Name         string `json:"name"`
 	}
 
-	SupplierPurchaseItem struct {
+	GetDetailPurchaseResponse struct {
 		ID              int     `json:"id"`
 		PurchaseCode    string  `json:"purchase_code"`
 		PurchaseDate    string  `json:"purchase_date"`
@@ -42,7 +75,7 @@ type (
 		RemainingAmount float64 `json:"remaining_amount"`
 	}
 
-	SupplierReturnHistoryItem struct {
+	GetDetailReturnResponse struct {
 		ID          int     `json:"id"`
 		ReturnCode  string  `json:"return_code"`
 		ReturnDate  string  `json:"return_date"`
@@ -51,7 +84,7 @@ type (
 		Status      string  `json:"status"`
 	}
 
-	SupplierDetailResponse struct {
+	GetDetailResponse struct {
 		ID              int                         `json:"id"`
 		SupplierCode    string                      `json:"supplier_code"`
 		Name            string                      `json:"name"`
@@ -65,38 +98,7 @@ type (
 		TotalAmount     float64                     `json:"total_amount"`
 		TotalDebt       float64                     `json:"total_debt"`
 		TotalReturn     float64                     `json:"total_return"`
-		PurchaseHistory []SupplierPurchaseItem      `json:"purchase_history"`
-		ReturnHistory   []SupplierReturnHistoryItem `json:"return_history"`
-	}
-
-	CreateSupplierRequest struct {
-		Name          string `json:"name" validate:"required,min=2,max=100"`
-		Address       string `json:"address" validate:"omitempty,max=255"`
-		Phone         string `json:"phone" validate:"omitempty,max=20"`
-		Email         string `json:"email" validate:"omitempty,max=100,email"`
-		ContactPerson string `json:"contact_person" validate:"omitempty,max=100"`
-		Notes         string `json:"notes" validate:"omitempty,max=500"`
-	}
-
-	UpdateSupplierUriRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	UpdateSupplierRequest struct {
-		ID            int    `json:"-"`
-		Name          string `json:"name" validate:"required,min=2,max=100"`
-		Address       string `json:"address" validate:"omitempty,max=255"`
-		Phone         string `json:"phone" validate:"omitempty,max=20"`
-		Email         string `json:"email" validate:"omitempty,max=100,email"`
-		ContactPerson string `json:"contact_person" validate:"omitempty,max=100"`
-		Notes         string `json:"notes" validate:"omitempty,max=500"`
-	}
-
-	DeleteSupplierRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	ToggleStatusSupplierRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
+		PurchaseHistory []GetDetailPurchaseResponse `json:"purchase_history"`
+		ReturnHistory   []GetDetailReturnResponse   `json:"return_history"`
 	}
 )

@@ -7,7 +7,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *categoryService) GetAll(req *dto.CategoryListRequest) (data []dto.CategoryResponse, total int64, err error) {
+func (s *categoryService) GetAll(req *dto.GetAllRequest) (data []dto.CategoryResponse, total int64, err error) {
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
@@ -29,14 +29,14 @@ func (s *categoryService) GetAll(req *dto.CategoryListRequest) (data []dto.Categ
 	return data, total, nil
 }
 
-func (s *categoryService) GetOptions() (data []dto.CategoryOptionResponse, err error) {
+func (s *categoryService) GetOptions() (data []dto.GetOptionResponse, err error) {
 	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, dto.CategoryOptionResponse{
+		data = append(data, dto.GetOptionResponse{
 			ID:   v.ID,
 			Name: v.Name,
 		})
@@ -68,7 +68,7 @@ func (s *categoryService) GetByID(id int) (data dto.CategoryResponse, err error)
 	return data, nil
 }
 
-func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.CategoryResponse, err error) {
+func (s *categoryService) Create(req *dto.CreateRequest) (data dto.CategoryResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
 
@@ -113,7 +113,7 @@ func (s *categoryService) Create(req *dto.CreateCategoryRequest) (data dto.Categ
 	return data, nil
 }
 
-func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (data dto.CategoryResponse, err error) {
+func (s *categoryService) Update(req *dto.UpdateRequest) (data dto.CategoryResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
 
@@ -159,7 +159,7 @@ func (s *categoryService) Update(req *dto.UpdateCategoryRequest) (data dto.Categ
 	return data, nil
 }
 
-func (s *categoryService) Delete(req *dto.DeleteCategoryRequest) (err error) {
+func (s *categoryService) Delete(req *dto.DeleteRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func (s *categoryService) Delete(req *dto.DeleteCategoryRequest) (err error) {
 	return s.repo.Delete(req)
 }
 
-func (s *categoryService) ToggleStatus(req *dto.ToggleStatusCategoryRequest) (err error) {
+func (s *categoryService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err

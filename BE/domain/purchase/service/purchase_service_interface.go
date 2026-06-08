@@ -7,9 +7,9 @@ type PurchaseService interface {
 	GetByID(id int) (*dto_purchase.PurchaseResponse, error)
 	GetItems(purchaseID int) ([]dto_purchase.PurchaseItemResponse, error)
 	GenerateCode() (*dto_purchase.GeneratePurchaseCodeResponse, error)
-	Create(req *dto_purchase.PurchaseRequest, userID int) (*dto_purchase.PurchaseResponse, error)
-	Update(id int, req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
+	Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
+	Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
 	Delete(id int) error
-	Pay(id int, req *dto_purchase.PayPurchaseRequest, userID int) error
+	Pay(req *dto_purchase.PayPurchaseRequest) error
 	GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error)
 }

@@ -209,7 +209,7 @@ func (r *purchaseRepo) GenerateCode() (string, error) {
 	return fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1), nil
 }
 
-func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*dto_purchase.PurchaseResponse, error) {
+func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
 	var purchaseID int
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
@@ -244,7 +244,7 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 
 		if err := tx.Exec(createPurchaseQuery,
 			code, req.InvoiceNumber, req.SupplierID, req.PurchaseDate,
-			req.DiscountAmount, totalAmount, paymentStatus, paidAmount, remainingAmount, userID, req.Notes,
+			req.DiscountAmount, totalAmount, paymentStatus, paidAmount, remainingAmount, req.UserID, req.Notes,
 		).Error; err != nil {
 			return err
 		}
@@ -259,7 +259,7 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 				paymentDate = time.Now().Format("2006-01-02")
 			}
 			if err := tx.Exec(createPaymentQuery,
-				purchaseID, paymentDate, paidAmount, req.PaymentMethod, req.Notes, userID,
+				purchaseID, paymentDate, paidAmount, req.PaymentMethod, req.Notes, req.UserID,
 			).Error; err != nil {
 				return err
 			}
@@ -294,7 +294,7 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 			notes := fmt.Sprintf("Purchase Order %s", code)
 			if err := tx.Exec(createStockMutationQuery,
 				item.ProductID, "in", stockAdd, stockBefore, stockAfter,
-				"purchase", purchaseID, notes, userID,
+				"purchase", purchaseID, notes, req.UserID,
 			).Error; err != nil {
 				return err
 			}
@@ -309,9 +309,9 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest, userID int) (*d
 	return r.GetByID(purchaseID)
 }
 
-func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+func (r *purchaseRepo) Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		oldItems, err := r.GetItems(id)
+		oldItems, err := r.GetItems(req.ID)
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 			}
 		}
 
-		if err := tx.Exec(deletePurchaseItemsQuery, id).Error; err != nil {
+		if err := tx.Exec(deletePurchaseItemsQuery, req.ID).Error; err != nil {
 			return err
 		}
 
@@ -337,7 +337,7 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 
 		if err := tx.Exec(
 			`UPDATE purchases SET invoice_number=?, supplier_id=?, purchase_date=?, total_amount=?, remaining_amount=total_amount-paid_amount, notes=?, updated_at=NOW() WHERE id=?`,
-			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, totalAmount, req.Notes, id,
+			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, totalAmount, req.Notes, req.ID,
 		).Error; err != nil {
 			return err
 		}
@@ -349,7 +349,7 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 				conversionQty = 1
 			}
 			if err := tx.Exec(createPurchaseItemQuery,
-				id, item.ProductID,
+				req.ID, item.ProductID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
@@ -365,7 +365,7 @@ func (r *purchaseRepo) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_p
 	if err != nil {
 		return nil, err
 	}
-	return r.GetByID(id)
+	return r.GetByID(req.ID)
 }
 
 func (r *purchaseRepo) Delete(id int) error {
@@ -405,9 +405,9 @@ func (r *purchaseRepo) IsValidPaymentMethod(code string) (bool, error) {
 	return count > 0, nil
 }
 
-func (r *purchaseRepo) Pay(id int, req *dto_purchase.PayPurchaseRequest, userID int) error {
+func (r *purchaseRepo) Pay(req *dto_purchase.PayPurchaseRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(payPurchaseQuery, req.Amount, req.Amount, req.Amount, req.Amount, id).Error; err != nil {
+		if err := tx.Exec(payPurchaseQuery, req.Amount, req.Amount, req.Amount, req.Amount, req.ID).Error; err != nil {
 			return err
 		}
 
@@ -415,6 +415,6 @@ func (r *purchaseRepo) Pay(id int, req *dto_purchase.PayPurchaseRequest, userID 
 		if paymentDate == "" {
 			paymentDate = time.Now().Format("2006-01-02")
 		}
-		return tx.Exec(createPaymentQuery, id, paymentDate, req.Amount, req.PaymentMethod, req.Notes, userID).Error
+		return tx.Exec(createPaymentQuery, req.ID, paymentDate, req.Amount, req.PaymentMethod, req.Notes, req.UserID).Error
 	})
 }

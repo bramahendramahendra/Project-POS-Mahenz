@@ -26,7 +26,7 @@ const (
 	toggleSupplierStatusQuery      = `UPDATE suppliers SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-func (r *supplierRepo) GetAll(req *dto.SupplierListRequest) ([]*model.Supplier, int64, error) {
+func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error) {
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -105,7 +105,7 @@ func (r *supplierRepo) GetByID(id int) (*model.Supplier, error) {
 	return &dataDB, nil
 }
 
-func (r *supplierRepo) Create(req *dto.CreateSupplierRequest, code string) (int64, error) {
+func (r *supplierRepo) Create(req *dto.CreateRequest, code string) (int64, error) {
 	err := r.db.Exec(createSupplierQuery, code, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes).Error
 	if err != nil {
 		return 0, err
@@ -119,17 +119,17 @@ func (r *supplierRepo) Create(req *dto.CreateSupplierRequest, code string) (int6
 	return id, nil
 }
 
-func (r *supplierRepo) Update(req *dto.UpdateSupplierRequest) error {
+func (r *supplierRepo) Update(req *dto.UpdateRequest) error {
 	err := r.db.Exec(updateSupplierQuery, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes, req.ID).Error
 	return err
 }
 
-func (r *supplierRepo) Delete(req *dto.DeleteSupplierRequest) error {
+func (r *supplierRepo) Delete(req *dto.DeleteRequest) error {
 	err := r.db.Exec(deleteSupplierQuery, req.ID).Error
 	return err
 }
 
-func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusSupplierRequest) error {
+func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	err := r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
 	return err
 }

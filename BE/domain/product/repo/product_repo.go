@@ -188,10 +188,14 @@ func (r *productRepo) GetByBarcode(barcode string) (*model.Product, error) {
 	return &dataDB, nil
 }
 
-func (r *productRepo) Search(keyword string, limit int) ([]*model.ProductSearchResult, error) {
+func (r *productRepo) Search(req *dto.SearchProductRequest) ([]*model.ProductSearchResult, error) {
+	limit := req.Limit
+	if limit <= 0 || limit > 50 {
+		limit = 20
+	}
 	query := searchProductsQuery
 	var args []any
-	search := "%" + keyword + "%"
+	search := "%" + req.Q + "%"
 	query += " LIMIT ?"
 	args = append(args, search, search, limit)
 

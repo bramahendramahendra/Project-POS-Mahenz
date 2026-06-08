@@ -1,8 +1,8 @@
 package handler
 
 import (
-	dto_purchase "pos_api/domain/purchase/dto"
-	service_purchase "pos_api/domain/purchase/service"
+	dto "pos_api/domain/purchase/dto"
+	service "pos_api/domain/purchase/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -14,10 +14,10 @@ import (
 )
 
 type PurchaseHandler struct {
-	service service_purchase.PurchaseService
+	service service.PurchaseService
 }
 
-func NewPurchaseHandler(service service_purchase.PurchaseService) *PurchaseHandler {
+func NewPurchaseHandler(service service.PurchaseService) *PurchaseHandler {
 	return &PurchaseHandler{service: service}
 }
 
@@ -37,7 +37,7 @@ func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto_purchase.PurchaseListRequest](c)
+	req, err := binder.BindJSON[dto.PurchaseListRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -59,7 +59,7 @@ func (h *PurchaseHandler) GetAll(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *PurchaseHandler) GetByID(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetItems(c *gin.Context) {
-	req, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -110,21 +110,19 @@ func (h *PurchaseHandler) GetItems(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto_purchase.PurchaseRequest](c)
+	req, err := binder.BindJSON[dto.PurchaseRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
 	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
+	req.UserID = helper.GetUserID(c)
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
-
-	data, err := h.service.Create(&req, uid)
+	data, err := h.service.Create(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -138,15 +136,14 @@ func (h *PurchaseHandler) Create(c *gin.Context) {
 	})
 }
 
-// POST /supplier-purchases/update/:id
 func (h *PurchaseHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	uriReq, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto_purchase.PurchaseRequest](c)
+	req, err := binder.BindJSON[dto.PurchaseRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -154,13 +151,13 @@ func (h *PurchaseHandler) Update(c *gin.Context) {
 	req.ID = uriReq.ID
 
 	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 
-	data, svcErr := h.service.Update(req.ID, &req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Update(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -172,9 +169,8 @@ func (h *PurchaseHandler) Update(c *gin.Context) {
 	})
 }
 
-// POST /supplier-purchases/delete/:id
 func (h *PurchaseHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -197,7 +193,7 @@ func (h *PurchaseHandler) Delete(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetPayments(c *gin.Context) {
-	req, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -221,31 +217,28 @@ func (h *PurchaseHandler) GetPayments(c *gin.Context) {
 	})
 }
 
-// POST /supplier-purchases/pay/:id
 func (h *PurchaseHandler) Pay(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto_purchase.GetPurchaseByIDRequest](c)
+	uriReq, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto_purchase.PayPurchaseRequest](c)
+	req, err := binder.BindJSON[dto.PayPurchaseRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
 
 	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
-
-	if svcErr := h.service.Pay(req.ID, &req, uid); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Pay(&req); err != nil {
+		c.Error(err)
 		return
 	}
 

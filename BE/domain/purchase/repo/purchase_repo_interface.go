@@ -11,10 +11,10 @@ type PurchaseRepo interface {
 	GetItems(purchaseID int) ([]model_purchase.PurchaseItem, error)
 	GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error)
 	GenerateCode() (string, error)
-	Create(req *dto_purchase.PurchaseRequest, userID int) (*dto_purchase.PurchaseResponse, error)
-	Update(id int, req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
+	Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
+	Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
 	Delete(id int) error
-	Pay(id int, req *dto_purchase.PayPurchaseRequest, userID int) error
+	Pay(req *dto_purchase.PayPurchaseRequest) error
 	GetRawByID(id int) (*model_purchase.Purchase, error)
 	IsValidPaymentMethod(code string) (bool, error)
 }

@@ -51,12 +51,8 @@ func (s *productService) GetOptions() (data []*dto.ProductOption, err error) {
 	return data, nil
 }
 
-func (s *productService) Search(keyword string, limit int) (data []*dto.ProductSearchResult, err error) {
-	if limit <= 0 || limit > 50 {
-		limit = 20
-	}
-
-	dataDB, err := s.repo.Search(keyword, limit)
+func (s *productService) Search(req *dto.SearchProductRequest) (data []*dto.ProductSearchResult, err error) {
+	dataDB, err := s.repo.Search(req)
 	if err != nil {
 		return data, err
 	}

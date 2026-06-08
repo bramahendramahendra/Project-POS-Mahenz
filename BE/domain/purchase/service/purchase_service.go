@@ -63,7 +63,7 @@ func (s *purchaseService) GenerateCode() (*dto_purchase.GeneratePurchaseCodeResp
 	return &dto_purchase.GeneratePurchaseCodeResponse{PurchaseCode: code}, nil
 }
 
-func (s *purchaseService) Create(req *dto_purchase.PurchaseRequest, userID int) (*dto_purchase.PurchaseResponse, error) {
+func (s *purchaseService) Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
 	if req.PaymentMethod != "" {
 		valid, err := s.repo.IsValidPaymentMethod(req.PaymentMethod)
 		if err != nil {
@@ -74,15 +74,15 @@ func (s *purchaseService) Create(req *dto_purchase.PurchaseRequest, userID int) 
 		}
 	}
 
-	item, err := s.repo.Create(req, userID)
+	item, err := s.repo.Create(req)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
 	return item, nil
 }
 
-func (s *purchaseService) Update(id int, req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
-	existing, err := s.repo.GetRawByID(id)
+func (s *purchaseService) Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -93,7 +93,7 @@ func (s *purchaseService) Update(id int, req *dto_purchase.PurchaseRequest) (*dt
 		return nil, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
 	}
 
-	item, err := s.repo.Update(id, req)
+	item, err := s.repo.Update(req)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -118,8 +118,8 @@ func (s *purchaseService) Delete(id int) error {
 	return nil
 }
 
-func (s *purchaseService) Pay(id int, req *dto_purchase.PayPurchaseRequest, userID int) error {
-	existing, err := s.repo.GetRawByID(id)
+func (s *purchaseService) Pay(req *dto_purchase.PayPurchaseRequest) error {
+	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -141,7 +141,7 @@ func (s *purchaseService) Pay(id int, req *dto_purchase.PayPurchaseRequest, user
 		return &errors.BadRequestError{Message: "Metode pembayaran tidak valid"}
 	}
 
-	if err := s.repo.Pay(id, req, userID); err != nil {
+	if err := s.repo.Pay(req); err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
 	return nil

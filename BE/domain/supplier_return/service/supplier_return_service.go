@@ -16,8 +16,8 @@ func NewSupplierReturnService(repo repo_supplier_return.SupplierReturnRepo) Supp
 	return &supplierReturnService{repo: repo}
 }
 
-func (s *supplierReturnService) GetAll(filter *dto_supplier_return.SupplierReturnFilter) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
-	items, total, err := s.repo.GetAll(filter)
+func (s *supplierReturnService) GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
+	items, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return nil, 0, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -35,7 +35,7 @@ func (s *supplierReturnService) GetByID(id int) (*dto_supplier_return.SupplierRe
 	return item, nil
 }
 
-func (s *supplierReturnService) Create(req *dto_supplier_return.CreateSupplierReturnRequest, userID int) (*dto_supplier_return.SupplierReturnResponse, error) {
+func (s *supplierReturnService) Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error) {
 	returnDate, err := time.Parse("2006-01-02", req.ReturnDate)
 	if err != nil {
 		return nil, &errors.BadRequestError{Message: "Format tanggal retur tidak valid"}
@@ -59,15 +59,15 @@ func (s *supplierReturnService) Create(req *dto_supplier_return.CreateSupplierRe
 		return nil, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih awal dari tanggal pembelian"}
 	}
 
-	item, repoErr := s.repo.Create(req, userID)
+	item, repoErr := s.repo.Create(req)
 	if repoErr != nil {
 		return nil, &errors.InternalServerError{Message: repoErr.Error()}
 	}
 	return item, nil
 }
 
-func (s *supplierReturnService) UpdateStatus(id int, req *dto_supplier_return.UpdateStatusRequest, userID int) error {
-	current, err := s.repo.GetStatus(id)
+func (s *supplierReturnService) UpdateStatus(req *dto_supplier_return.UpdateStatusRequest) error {
+	current, err := s.repo.GetStatus(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -79,7 +79,7 @@ func (s *supplierReturnService) UpdateStatus(id int, req *dto_supplier_return.Up
 	}
 
 	if req.Status == "approved" {
-		if err := s.repo.ApproveWithStockReduction(id, userID); err != nil {
+		if err := s.repo.ApproveWithStockReduction(req.ID, req.UserID); err != nil {
 			if badReq, ok := err.(*errors.BadRequestError); ok {
 				return badReq
 			}
@@ -92,7 +92,7 @@ func (s *supplierReturnService) UpdateStatus(id int, req *dto_supplier_return.Up
 		return &errors.BadRequestError{Message: "Catatan penolakan wajib diisi"}
 	}
 
-	if err := s.repo.UpdateStatus(id, req.Status, req.Notes); err != nil {
+	if err := s.repo.UpdateStatus(req.ID, req.Status, req.Notes); err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
 	return nil

@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"strconv"
-
-	dto_supplier_return "pos_api/domain/supplier_return/dto"
-	service_supplier_return "pos_api/domain/supplier_return/service"
+	dto "pos_api/domain/supplier_return/dto"
+	service "pos_api/domain/supplier_return/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -16,31 +14,21 @@ import (
 )
 
 type SupplierReturnHandler struct {
-	service service_supplier_return.SupplierReturnService
+	service service.SupplierReturnService
 }
 
-func NewSupplierReturnHandler(service service_supplier_return.SupplierReturnService) *SupplierReturnHandler {
+func NewSupplierReturnHandler(service service.SupplierReturnService) *SupplierReturnHandler {
 	return &SupplierReturnHandler{service: service}
 }
 
-// POST /supplier-returns/list
 func (h *SupplierReturnHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto_supplier_return.SupplierReturnListRequest](c)
+	req, err := binder.BindJSON[dto.SupplierReturnListRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	filter := &dto_supplier_return.SupplierReturnFilter{
-		StartDate:  req.StartDate,
-		EndDate:    req.EndDate,
-		SupplierID: req.SupplierID,
-		Status:     req.Status,
-		Page:       req.Page,
-		Limit:      req.Limit,
-	}
-
-	items, total, err := h.service.GetAll(filter)
+	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -50,19 +38,24 @@ func (h *SupplierReturnHandler) GetAll(c *gin.Context) {
 		Code:       helper.StatusOk,
 		Status:     true,
 		Message:    "Daftar retur supplier",
-		Data:       items,
+		Data:       data,
 		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, int64(total)),
 	})
 }
 
 func (h *SupplierReturnHandler) GetByID(c *gin.Context) {
-	id, err := parseReturnID(c)
+	req, err := binder.BindURI[dto.GetSupplierReturnByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validation.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	item, svcErr := h.service.GetByID(id)
+	data, svcErr := h.service.GetByID(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -72,28 +65,26 @@ func (h *SupplierReturnHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail retur supplier",
-		Data:    item,
+		Data:    data,
 	})
 }
 
-// POST /supplier-returns/create
 func (h *SupplierReturnHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto_supplier_return.CreateSupplierReturnRequest](c)
+	req, err := binder.BindJSON[dto.CreateSupplierReturnRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
+	req.UserID = helper.GetUserID(c)
 
-	item, svcErr := h.service.Create(&req, uid)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -101,33 +92,34 @@ func (h *SupplierReturnHandler) Create(c *gin.Context) {
 		Code:    helper.StatusCreated,
 		Status:  true,
 		Message: "Retur supplier berhasil dibuat",
-		Data:    item,
+		Data:    data,
 	})
 }
 
-// POST /supplier-returns/update-status/:id
 func (h *SupplierReturnHandler) UpdateStatus(c *gin.Context) {
-	id, err := parseReturnID(c)
+	uriReq, err := binder.BindURI[dto.GetSupplierReturnByIDRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto_supplier_return.UpdateStatusRequest](c)
+	req, bindErr := binder.BindJSON[dto.UpdateStatusRequest](c)
 	if bindErr != nil {
 		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
 		return
 	}
+
+	req.ID = uriReq.ID
+
 	if err := validation.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
+	req.UserID = helper.GetUserID(c)
 
-	if svcErr := h.service.UpdateStatus(id, &req, uid); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.UpdateStatus(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -138,15 +130,19 @@ func (h *SupplierReturnHandler) UpdateStatus(c *gin.Context) {
 	})
 }
 
-// POST /supplier-returns/delete/:id
 func (h *SupplierReturnHandler) Delete(c *gin.Context) {
-	id, err := parseReturnID(c)
+	req, err := binder.BindURI[dto.GetSupplierReturnByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validation.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Delete(id); svcErr != nil {
+	if svcErr := h.service.Delete(req.ID); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -156,12 +152,4 @@ func (h *SupplierReturnHandler) Delete(c *gin.Context) {
 		Status:  true,
 		Message: "Retur supplier berhasil dihapus",
 	})
-}
-
-func parseReturnID(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
 }

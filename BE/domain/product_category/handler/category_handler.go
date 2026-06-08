@@ -22,7 +22,7 @@ func NewCategoryHandler(service service.CategoryServiceInterface) *CategoryHandl
 }
 
 func (h *CategoryHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CategoryListRequest](c)
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -59,7 +59,7 @@ func (h *CategoryHandler) GetOptions(c *gin.Context) {
 }
 
 func (h *CategoryHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetCategoryByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *CategoryHandler) GetByID(c *gin.Context) {
 }
 
 func (h *CategoryHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateCategoryRequest](c)
+	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -111,13 +111,13 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 }
 
 func (h *CategoryHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateCategoryUriRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.UpdateCategoryRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -144,7 +144,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 }
 
 func (h *CategoryHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.DeleteCategoryRequest](c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -168,7 +168,7 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 }
 
 func (h *CategoryHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.ToggleStatusCategoryRequest](c)
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

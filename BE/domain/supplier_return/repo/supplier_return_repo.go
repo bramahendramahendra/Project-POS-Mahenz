@@ -42,29 +42,29 @@ func NewSupplierReturnRepo(db *gorm.DB) SupplierReturnRepo {
 	return &supplierReturnRepo{db: db}
 }
 
-func (r *supplierReturnRepo) GetAll(filter *dto_supplier_return.SupplierReturnFilter) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
+func (r *supplierReturnRepo) GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
-	if filter.StartDate != "" {
+	if req.StartDate != "" {
 		conditions += " AND DATE(sr.return_date) >= ?"
-		args = append(args, filter.StartDate)
-		countArgs = append(countArgs, filter.StartDate)
+		args = append(args, req.StartDate)
+		countArgs = append(countArgs, req.StartDate)
 	}
-	if filter.EndDate != "" {
+	if req.EndDate != "" {
 		conditions += " AND DATE(sr.return_date) <= ?"
-		args = append(args, filter.EndDate)
-		countArgs = append(countArgs, filter.EndDate)
+		args = append(args, req.EndDate)
+		countArgs = append(countArgs, req.EndDate)
 	}
-	if filter.SupplierID != nil {
+	if req.SupplierID != nil {
 		conditions += " AND sr.supplier_id = ?"
-		args = append(args, *filter.SupplierID)
-		countArgs = append(countArgs, *filter.SupplierID)
+		args = append(args, *req.SupplierID)
+		countArgs = append(countArgs, *req.SupplierID)
 	}
-	if filter.Status != "" {
+	if req.Status != "" {
 		conditions += " AND sr.status = ?"
-		args = append(args, filter.Status)
-		countArgs = append(countArgs, filter.Status)
+		args = append(args, req.Status)
+		countArgs = append(countArgs, req.Status)
 	}
 
 	var total int
@@ -72,8 +72,8 @@ func (r *supplierReturnRepo) GetAll(filter *dto_supplier_return.SupplierReturnFi
 		return nil, 0, err
 	}
 
-	page := filter.Page
-	limit := filter.Limit
+	page := req.Page
+	limit := req.Limit
 	if page <= 0 {
 		page = 1
 	}
@@ -184,7 +184,7 @@ func (r *supplierReturnRepo) GetPurchaseDate(purchaseID int) (string, error) {
 	return purchaseDate, nil
 }
 
-func (r *supplierReturnRepo) Create(req *dto_supplier_return.CreateSupplierReturnRequest, userID int) (*dto_supplier_return.SupplierReturnResponse, error) {
+func (r *supplierReturnRepo) Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error) {
 	var returnID int
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
@@ -202,7 +202,7 @@ func (r *supplierReturnRepo) Create(req *dto_supplier_return.CreateSupplierRetur
 
 		if err := tx.Exec(createReturnQuery,
 			code, req.PurchaseID, req.SupplierID, req.SupplierName,
-			req.ReturnDate, totalAmount, req.Reason, userID, req.Notes,
+			req.ReturnDate, totalAmount, req.Reason, req.UserID, req.Notes,
 		).Error; err != nil {
 			return err
 		}

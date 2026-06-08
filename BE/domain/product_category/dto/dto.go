@@ -3,21 +3,42 @@ package dto
 import "time"
 
 type (
-	GetCategoryByIDRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	CategoryListRequest struct {
+	// REQUEST
+	GetAllRequest struct {
 		Page   int    `json:"page"`
 		Limit  int    `json:"limit"`
 		Search string `json:"search" validate:"max=100"`
 	}
 
-	CategoryOptionResponse struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
+	GetByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	CreateRequest struct {
+		Name        string `json:"name" validate:"required,min=2,max=100"`
+		Description string `json:"description" validate:"max=500"`
+		Code        string `json:"code"`
+	}
+
+	UpdateUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	UpdateRequest struct {
+		ID          int    `json:"-"`
+		Name        string `json:"name" validate:"required,min=2,max=100"`
+		Description string `json:"description" validate:"max=500"`
+	}
+
+	DeleteRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	ToggleStatusRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	// RESPONSE
 	CategoryResponse struct {
 		ID                 int       `json:"id"`
 		Name               string    `json:"name"`
@@ -29,27 +50,8 @@ type (
 		CreatedAt          time.Time `json:"created_at"`
 	}
 
-	CreateCategoryRequest struct {
-		Name        string `json:"name" validate:"required,min=2,max=100"`
-		Description string `json:"description" validate:"max=500"`
-		Code        string `json:"code"`
-	}
-
-	UpdateCategoryUriRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	UpdateCategoryRequest struct {
-		ID          int    `json:"-"`
-		Name        string `json:"name" validate:"required,min=2,max=100"`
-		Description string `json:"description" validate:"max=500"`
-	}
-
-	DeleteCategoryRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	ToggleStatusCategoryRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
+	GetOptionResponse struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
 	}
 )

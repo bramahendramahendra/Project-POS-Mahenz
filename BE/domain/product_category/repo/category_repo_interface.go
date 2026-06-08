@@ -9,13 +9,13 @@ import (
 
 type (
 	CategoryRepoInterface interface {
-		GetAll(req *dto.CategoryListRequest) ([]*model.Category, int64, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.Category, int64, error)
 		GetOptions() ([]*model.CategoryOption, error)
 		GetByID(id int) (*model.Category, error)
-		Create(req *dto.CreateCategoryRequest) (int64, error)
-		Update(req *dto.UpdateCategoryRequest) error
-		Delete(req *dto.DeleteCategoryRequest) error
-		ToggleStatus(req *dto.ToggleStatusCategoryRequest) error
+		Create(req *dto.CreateRequest) (int64, error)
+		Update(req *dto.UpdateRequest) error
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
 
 		GetByName(name string) (*model.Category, error)
 		CheckCodeExists(code string) (bool, error)

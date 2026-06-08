@@ -9,13 +9,13 @@ import (
 
 type (
 	UnitRepoInterface interface {
-		GetAll(req *dto.UnitListRequest) ([]*model.Unit, int64, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error)
 		GetOptions() ([]*model.UnitOption, error)
 		GetByID(id int) (*model.Unit, error)
-		Create(req *dto.CreateUnitRequest) (int64, error)
-		Update(req *dto.UpdateUnitRequest) error
-		Delete(req *dto.DeleteUnitRequest) error
-		ToggleStatus(req *dto.ToggleStatusUnitRequest) error
+		Create(req *dto.CreateRequest) (int64, error)
+		Update(req *dto.UpdateRequest) error
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
 
 		CheckNameExists(name string, excludeID int) (bool, error)
 		CountProductUnitsByUnit(unitID int) (int, error)
