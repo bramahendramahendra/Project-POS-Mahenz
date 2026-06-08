@@ -7,6 +7,25 @@ import (
 	dto_category "pos_api/domain/product_category/dto"
 )
 
+func (s *productService) GetLowStock() (data []*dto.LowStockProduct, err error) {
+	dataDB, err := s.repo.GetLowStock()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.LowStockProduct{
+			ID:       v.ID,
+			Name:     v.Name,
+			Stock:    v.Stock,
+			MinStock: v.MinStock,
+			UnitName: v.UnitName,
+		})
+	}
+
+	return data, nil
+}
+
 func (s *productService) GetCategoryNames() (data []string, err error) {
 	cats, err := s.repoCategory.GetOptions()
 	if err != nil {
@@ -63,23 +82,4 @@ func (s *productService) createCategoryWithCode(name, description string) (int64
 		Code:        candidate,
 		Description: description,
 	})
-}
-
-func (s *productService) GetLowStock() (data []*dto.LowStockProduct, err error) {
-	dataDB, err := s.repo.GetLowStock()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.LowStockProduct{
-			ID:       v.ID,
-			Name:     v.Name,
-			Stock:    v.Stock,
-			MinStock: v.MinStock,
-			UnitName: v.UnitName,
-		})
-	}
-
-	return data, nil
 }

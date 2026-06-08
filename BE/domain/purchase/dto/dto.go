@@ -1,5 +1,9 @@
 package dto
 
+type GetPurchaseByIDRequest struct {
+	ID int `uri:"id" validate:"required,min=1"`
+}
+
 type PurchaseItemRequest struct {
 	ProductID     int     `json:"product_id" validate:"required,gt=0"`
 	Quantity      float64 `json:"quantity" validate:"required,gt=0"`
@@ -9,6 +13,7 @@ type PurchaseItemRequest struct {
 }
 
 type PurchaseRequest struct {
+	ID             int                   `json:"-"`
 	InvoiceNumber  string                `json:"invoice_number" validate:"required"`
 	SupplierID     *int                  `json:"supplier_id"`
 	PurchaseDate   string                `json:"purchase_date" validate:"required"`
@@ -21,6 +26,7 @@ type PurchaseRequest struct {
 }
 
 type PayPurchaseRequest struct {
+	ID            int     `json:"-"`
 	Amount        float64 `json:"amount" validate:"required,gt=0"`
 	PaymentDate   string  `json:"payment_date" validate:"required"`
 	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`

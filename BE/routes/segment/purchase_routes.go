@@ -17,14 +17,14 @@ func PurchaseRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/supplier-purchases")
 	{
-		g.GET("/generate-code", purchaseHand.GenerateCode)
-		g.GET("", purchaseHand.GetAll)
-		g.GET("/:id", purchaseHand.GetByID)
-		g.GET("/:id/items", purchaseHand.GetItems)
-		g.GET("/:id/payments", purchaseHand.GetPayments)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Delete)
-		g.POST("/:id/pay", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Pay)
+		g.POST("/generate-code", purchaseHand.GenerateCode)
+		g.POST("/list", purchaseHand.GetAll)
+		g.POST("/detail/:id", purchaseHand.GetByID)
+		g.POST("/detail/:id/items", purchaseHand.GetItems)
+		g.POST("/detail/:id/payments", purchaseHand.GetPayments)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Delete)
+		g.POST("/pay/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Pay)
 	}
 }

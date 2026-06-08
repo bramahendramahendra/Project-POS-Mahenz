@@ -54,8 +54,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
     Record<number, { checked: boolean; quantity: number }>
   >({})
 
-  const { data: purchasesData } = useSupplierPurchasesQuery({ page_size: 200 })
-  const purchases = purchasesData?.items ?? []
+  const { data: purchasesData } = useSupplierPurchasesQuery({ limit: 200 })
+  const purchases = purchasesData?.data ?? []
 
   const { mutate: create, isPending } = useCreateSupplierReturnMutation()
 

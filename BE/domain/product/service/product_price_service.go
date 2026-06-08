@@ -14,12 +14,12 @@ func (s *productService) GetPricesByProduct(productID int) (data []*dto.ProductP
 		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	prices, err := s.repo.GetPricesByProduct(productID)
+	dataDB, err := s.repo.GetPricesByProduct(productID)
 	if err != nil {
 		return data, err
 	}
 
-	for _, v := range prices {
+	for _, v := range dataDB {
 		data = append(data, &dto.ProductPriceResponse{
 			ID:        v.ID,
 			ProductID: v.ProductID,
@@ -41,5 +41,6 @@ func (s *productService) SavePrices(req *dto.SaveProductPricesRequest) (err erro
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	return s.repo.SavePrices(req.ProductID, req.Prices)
+	err = s.repo.SavePrices(req.ProductID, req.Prices)
+	return err
 }

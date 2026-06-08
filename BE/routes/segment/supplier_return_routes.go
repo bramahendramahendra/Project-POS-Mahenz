@@ -17,10 +17,10 @@ func SupplierReturnRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/supplier-returns")
 	{
-		g.GET("", supplierReturnHand.GetAll)
-		g.GET("/:id", supplierReturnHand.GetByID)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Create)
-		g.PATCH("/:id/status", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.UpdateStatus)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Delete)
+		g.POST("/list", supplierReturnHand.GetAll)
+		g.POST("/detail/:id", supplierReturnHand.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Create)
+		g.POST("/update-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.UpdateStatus)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Delete)
 	}
 }

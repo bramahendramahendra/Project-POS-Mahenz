@@ -49,6 +49,15 @@ type SupplierReturnResponse struct {
 	Items             []SupplierReturnItemResponse `json:"items,omitempty"`
 }
 
+type SupplierReturnListRequest struct {
+	Page       int    `json:"page"`
+	Limit      int    `json:"limit"`
+	StartDate  string `json:"start_date"`
+	EndDate    string `json:"end_date"`
+	SupplierID *int   `json:"supplier_id"`
+	Status     string `json:"status"`
+}
+
 type SupplierReturnFilter struct {
 	StartDate  string
 	EndDate    string

@@ -60,18 +60,18 @@ export function PurchasesPage() {
     const hasProducts = (productsData?.total ?? 0) > 0
 
   const filter: SupplierPurchaseFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
+    start_date: dateFrom || undefined,
+    end_date: dateTo || undefined,
     supplier_id: supplierId,
-    status: status === 'all' ? undefined : status,
+    payment_status: status === 'all' ? undefined : status,
     page,
-    page_size: pageSize,
+    limit: pageSize,
   }
 
   const { data, isLoading } = useSupplierPurchasesQuery(filter)
   const { mutate: deletePurchase, isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
 
-  const purchases = data?.items ?? []
+  const purchases = data?.data ?? []
   const total = data?.total ?? 0
 
   function handlePay(purchase: SupplierPurchase) {

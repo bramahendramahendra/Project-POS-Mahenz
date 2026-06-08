@@ -46,7 +46,8 @@ func (s *productService) SavePackages(req *dto.SaveProductPackagesRequest) (err 
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	return s.repo.SavePackages(req.ProductID, req.Packages)
+	err = s.repo.SavePackages(req.ProductID, req.Packages)
+	return err
 }
 
 func (s *productService) DeletePackage(req *dto.PackageIDUriRequest) (err error) {
@@ -58,5 +59,6 @@ func (s *productService) DeletePackage(req *dto.PackageIDUriRequest) (err error)
 		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	return s.repo.DeletePackage(req.PackageID, req.ID)
+	err = s.repo.DeletePackage(req.PackageID, req.ID)
+	return err
 }

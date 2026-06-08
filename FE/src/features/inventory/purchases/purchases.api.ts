@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { api } from '@/services/api.client'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreateSupplierPurchasePayload,
@@ -10,13 +11,6 @@ import type {
   SupplierPurchaseFilter,
   SupplierPurchasePayment,
 } from './purchases.types'
-
-interface SupplierPurchaseListData {
-  items: SupplierPurchase[]
-  total: number
-  page: number
-  limit: number
-}
 
 const QK = {
   all: () => ['supplierPurchases'] as const,
@@ -27,11 +21,7 @@ const QK = {
 export function useSupplierPurchasesQuery(filter?: SupplierPurchaseFilter) {
   return useQuery({
     queryKey: QK.list(filter),
-    queryFn: async () => {
-      const { page_size, ...rest } = filter ?? {}
-      const data = await api.get<SupplierPurchaseListData>('/supplier-purchases', { ...rest, limit: page_size })
-      return data
-    },
+    queryFn: () => api.post<PaginatedData<SupplierPurchase>>('/supplier-purchases/list', filter ?? {}),
   })
 }
 

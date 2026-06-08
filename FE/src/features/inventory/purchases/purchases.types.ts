@@ -45,12 +45,12 @@ export interface SupplierPurchase {
 }
 
 export interface SupplierPurchaseFilter {
-  date_from?: string
-  date_to?: string
+  start_date?: string
+  end_date?: string
   supplier_id?: number
-  status?: PaymentStatus
+  payment_status?: PaymentStatus
   page?: number
-  page_size?: number
+  limit?: number
 }
 
 export interface SupplierPurchasePayment {

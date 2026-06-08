@@ -158,143 +158,6 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.Im
 	return data, nil
 }
 
-func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.BulkImportResult, err error) {
-	data.Failed = []dto.BulkImportFailed{}
-
-	noToProductID := make(map[int]int)
-	defaultPackages := make(map[int]dto.ProductPackageRequest)
-
-	for i, row := range bulkReq.Rows {
-		rowNum := i + 2
-
-		addFailed := func(alasan string) {
-			data.Failed = append(data.Failed, dto.BulkImportFailed{
-				Baris:  rowNum,
-				Data:   row,
-				Alasan: alasan,
-			})
-		}
-
-		if strings.TrimSpace(row.Nama) == "" {
-			addFailed("Nama produk kosong")
-			continue
-		}
-
-		satuanKey := strings.ToLower(strings.TrimSpace(row.Satuan))
-		if satuanKey == "" {
-			addFailed("Satuan kosong")
-			continue
-		}
-		resolvedUnitID := row.SatuanID
-		if resolvedUnitID == 0 {
-			addFailed(fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", row.Satuan))
-			continue
-		}
-
-		req := &dto.ProductRequest{
-			Barcode:       strings.TrimSpace(row.Barcode),
-			Name:          strings.TrimSpace(row.Nama),
-			PurchasePrice: row.HargaBeli,
-			SellingPrice:  row.HargaJual,
-			Stock:         row.Stok,
-			MinStock:      row.StokMinimum,
-			UnitID:        resolvedUnitID,
-		}
-
-		kategori := strings.TrimSpace(row.Kategori)
-		if kategori != "" {
-			cat, catErr := s.repoCategory.GetByName(kategori)
-			if catErr != nil {
-				addFailed(fmt.Sprintf("Gagal mencari kategori: %s", kategori))
-				continue
-			}
-			if cat == nil {
-				newID, createErr := s.createCategoryWithCode(kategori, "")
-				if createErr != nil {
-					addFailed(fmt.Sprintf("Gagal membuat kategori: %s", kategori))
-					continue
-				}
-				id := int(newID)
-				req.CategoryID = &id
-			} else {
-				req.CategoryID = &cat.ID
-			}
-		}
-
-		if req.Barcode == "" {
-			gen, genErr := s.GenerateBarcode()
-			if genErr != nil {
-				addFailed("Gagal generate barcode")
-				continue
-			}
-			req.Barcode = gen.Barcode
-		} else {
-			exists, checkErr := s.repo.CheckBarcodeExists(req.Barcode, 0)
-			if checkErr != nil {
-				addFailed("Gagal memeriksa barcode")
-				continue
-			}
-			if exists {
-				addFailed(fmt.Sprintf("Barcode sudah digunakan: %s", req.Barcode))
-				continue
-			}
-		}
-
-		if req.CategoryID != nil {
-			skuResp, skuErr := s.GenerateSku(*req.CategoryID)
-			if skuErr == nil {
-				req.SKU = skuResp.SKU
-			}
-		}
-
-		productID, createErr := s.repo.Create(req)
-		if createErr != nil {
-			addFailed("Gagal menyimpan produk")
-			continue
-		}
-
-		if row.No > 0 {
-			noToProductID[row.No] = int(productID)
-		}
-
-		defaultPackages[int(productID)] = dto.ProductPackageRequest{
-			UnitID:        resolvedUnitID,
-			ConversionQty: 1,
-			PurchasePrice: row.HargaBeli,
-			SellingPrice:  row.HargaJual,
-			IsDefault:     true,
-		}
-
-		data.Success++
-	}
-
-	grosirByProduct := make(map[int][]dto.ProductPackageRequest)
-	for _, g := range bulkReq.Grosir {
-		productID, ok := noToProductID[g.NoProduk]
-		if !ok || g.SatuanID == 0 {
-			continue
-		}
-		grosirByProduct[productID] = append(grosirByProduct[productID], dto.ProductPackageRequest{
-			UnitID:        g.SatuanID,
-			PackageName:   strings.TrimSpace(g.NamaPaket),
-			ConversionQty: g.Konversi,
-			PurchasePrice: g.HargaBeli,
-			SellingPrice:  g.HargaJual,
-			IsDefault:     false,
-		})
-	}
-
-	for productID, defaultPkg := range defaultPackages {
-		allPkgs := []dto.ProductPackageRequest{defaultPkg}
-		if grosirPkgs, ok := grosirByProduct[productID]; ok {
-			allPkgs = append(allPkgs, grosirPkgs...)
-		}
-		_ = s.repo.SavePackages(productID, allPkgs)
-	}
-
-	return data, nil
-}
-
 func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error) {
 	src, openErr := file.Open()
 	if openErr != nil {
@@ -537,4 +400,141 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		Rows:   previewRows,
 		Grosir: previewGrosir,
 	}, nil
+}
+
+func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.BulkImportResult, err error) {
+	data.Failed = []dto.BulkImportFailed{}
+
+	noToProductID := make(map[int]int)
+	defaultPackages := make(map[int]dto.ProductPackageRequest)
+
+	for i, row := range bulkReq.Rows {
+		rowNum := i + 2
+
+		addFailed := func(alasan string) {
+			data.Failed = append(data.Failed, dto.BulkImportFailed{
+				Baris:  rowNum,
+				Data:   row,
+				Alasan: alasan,
+			})
+		}
+
+		if strings.TrimSpace(row.Nama) == "" {
+			addFailed("Nama produk kosong")
+			continue
+		}
+
+		satuanKey := strings.ToLower(strings.TrimSpace(row.Satuan))
+		if satuanKey == "" {
+			addFailed("Satuan kosong")
+			continue
+		}
+		resolvedUnitID := row.SatuanID
+		if resolvedUnitID == 0 {
+			addFailed(fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", row.Satuan))
+			continue
+		}
+
+		req := &dto.ProductRequest{
+			Barcode:       strings.TrimSpace(row.Barcode),
+			Name:          strings.TrimSpace(row.Nama),
+			PurchasePrice: row.HargaBeli,
+			SellingPrice:  row.HargaJual,
+			Stock:         row.Stok,
+			MinStock:      row.StokMinimum,
+			UnitID:        resolvedUnitID,
+		}
+
+		kategori := strings.TrimSpace(row.Kategori)
+		if kategori != "" {
+			cat, catErr := s.repoCategory.GetByName(kategori)
+			if catErr != nil {
+				addFailed(fmt.Sprintf("Gagal mencari kategori: %s", kategori))
+				continue
+			}
+			if cat == nil {
+				newID, createErr := s.createCategoryWithCode(kategori, "")
+				if createErr != nil {
+					addFailed(fmt.Sprintf("Gagal membuat kategori: %s", kategori))
+					continue
+				}
+				id := int(newID)
+				req.CategoryID = &id
+			} else {
+				req.CategoryID = &cat.ID
+			}
+		}
+
+		if req.Barcode == "" {
+			gen, genErr := s.GenerateBarcode()
+			if genErr != nil {
+				addFailed("Gagal generate barcode")
+				continue
+			}
+			req.Barcode = gen.Barcode
+		} else {
+			exists, checkErr := s.repo.CheckBarcodeExists(req.Barcode, 0)
+			if checkErr != nil {
+				addFailed("Gagal memeriksa barcode")
+				continue
+			}
+			if exists {
+				addFailed(fmt.Sprintf("Barcode sudah digunakan: %s", req.Barcode))
+				continue
+			}
+		}
+
+		if req.CategoryID != nil {
+			skuResp, skuErr := s.GenerateSku(*req.CategoryID)
+			if skuErr == nil {
+				req.SKU = skuResp.SKU
+			}
+		}
+
+		productID, createErr := s.repo.Create(req)
+		if createErr != nil {
+			addFailed("Gagal menyimpan produk")
+			continue
+		}
+
+		if row.No > 0 {
+			noToProductID[row.No] = int(productID)
+		}
+
+		defaultPackages[int(productID)] = dto.ProductPackageRequest{
+			UnitID:        resolvedUnitID,
+			ConversionQty: 1,
+			PurchasePrice: row.HargaBeli,
+			SellingPrice:  row.HargaJual,
+			IsDefault:     true,
+		}
+
+		data.Success++
+	}
+
+	grosirByProduct := make(map[int][]dto.ProductPackageRequest)
+	for _, g := range bulkReq.Grosir {
+		productID, ok := noToProductID[g.NoProduk]
+		if !ok || g.SatuanID == 0 {
+			continue
+		}
+		grosirByProduct[productID] = append(grosirByProduct[productID], dto.ProductPackageRequest{
+			UnitID:        g.SatuanID,
+			PackageName:   strings.TrimSpace(g.NamaPaket),
+			ConversionQty: g.Konversi,
+			PurchasePrice: g.HargaBeli,
+			SellingPrice:  g.HargaJual,
+			IsDefault:     false,
+		})
+	}
+
+	for productID, defaultPkg := range defaultPackages {
+		allPkgs := []dto.ProductPackageRequest{defaultPkg}
+		if grosirPkgs, ok := grosirByProduct[productID]; ok {
+			allPkgs = append(allPkgs, grosirPkgs...)
+		}
+		_ = s.repo.SavePackages(productID, allPkgs)
+	}
+
+	return data, nil
 }
