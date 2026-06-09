@@ -6,9 +6,8 @@ import (
 )
 
 const (
-	countSuppliersQuery            = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
-	countSuppliersSearchQuery      = `SELECT COUNT(*) FROM suppliers WHERE (name LIKE ? OR supplier_code LIKE ? OR phone LIKE ?)`
-	getAllSuppliersQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
+	countSuppliersQuery  = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
+	getAllSuppliersQuery = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
 	getAllSuppliersOrder           = ` ORDER BY name ASC`
 	getAllSupplierOptionsQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
 	getSupplierByIDQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
@@ -27,6 +26,24 @@ const (
 )
 
 func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error) {
+	var args []any
+	conditions := ""
+
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		conditions += ` AND (name LIKE ? OR supplier_code LIKE ? OR phone LIKE ?)`
+		args = append(args, search, search, search)
+	}
+	if req.IsActive != nil {
+		conditions += ` AND is_active = ?`
+		args = append(args, *req.IsActive)
+	}
+
+	var total int64
+	if err := r.db.Raw(countSuppliersQuery+conditions, args...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -37,48 +54,11 @@ func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64,
 	}
 	offset := (page - 1) * limit
 
-	var total int64
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		countQuery := countSuppliersSearchQuery
-		countArgs := []any{search, search, search}
-		if req.IsActive != nil {
-			countQuery += ` AND is_active = ?`
-			countArgs = append(countArgs, *req.IsActive)
-		}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	} else {
-		countQuery := countSuppliersQuery
-		var countArgs []any
-		if req.IsActive != nil {
-			countQuery += ` AND is_active = ?`
-			countArgs = append(countArgs, *req.IsActive)
-		}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	}
-
-	query := getAllSuppliersQuery
-	var args []any
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		query += ` AND (name LIKE ? OR supplier_code LIKE ? OR phone LIKE ?)`
-		args = append(args, search, search, search)
-	}
-	if req.IsActive != nil {
-		query += ` AND is_active = ?`
-		args = append(args, *req.IsActive)
-	}
-	query += getAllSuppliersOrder
-	query += " LIMIT ? OFFSET ?"
+	query := getAllSuppliersQuery + conditions + getAllSuppliersOrder + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Supplier
-	err := r.db.Raw(query, args...).Scan(&dataDB).Error
-	if err != nil {
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil

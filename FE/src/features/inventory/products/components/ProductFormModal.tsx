@@ -28,6 +28,7 @@ import {
 } from '../products.api'
 import { useUnitOptionsQuery } from '@/features/inventory/units'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
+import { calcMargin } from '../products.utils'
 import { productSchema, grosirSchema } from '../products.schema'
 import type { ProductFormValues, GrosirFormValues } from '../products.schema'
 import type { CreateProductPackagePayload, Product } from '../products.types'
@@ -36,11 +37,6 @@ interface ProductFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   product?: Product | null
-}
-
-function calcMargin(purchasePrice: number, sellingPrice: number): number {
-  if (purchasePrice <= 0 || sellingPrice <= 0) return 0
-  return Math.round(((sellingPrice - purchasePrice) / sellingPrice) * 100)
 }
 
 function mapProductToForm(product: Product): ProductFormValues {

@@ -304,7 +304,7 @@ export function useAddPriceTierMutation(productId: number) {
 export function useUpdatePriceTierMutation(productId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ priceId, ...payload }: UpdatePriceTierPayload) =>
+    mutationFn: ({ priceId, ...payload }: UpdatePriceTierPayload & { priceId: number }) =>
       api.post<void>(`/products/${productId}/prices/update/${priceId}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })

@@ -33,32 +33,28 @@ const (
 )
 
 func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error) {
-	var args, countArgs []interface{}
+	var args []interface{}
 	conditions := ""
 
 	if req.StartDate != "" {
 		conditions += " AND DATE(p.purchase_date) >= ?"
 		args = append(args, req.StartDate)
-		countArgs = append(countArgs, req.StartDate)
 	}
 	if req.EndDate != "" {
 		conditions += " AND DATE(p.purchase_date) <= ?"
 		args = append(args, req.EndDate)
-		countArgs = append(countArgs, req.EndDate)
 	}
 	if req.SupplierID != nil {
 		conditions += " AND p.supplier_id = ?"
 		args = append(args, *req.SupplierID)
-		countArgs = append(countArgs, *req.SupplierID)
 	}
 	if req.PaymentStatus != "" {
 		conditions += " AND p.payment_status = ?"
 		args = append(args, req.PaymentStatus)
-		countArgs = append(countArgs, req.PaymentStatus)
 	}
 
 	var total int64
-	if err := r.db.Raw(countPurchasesBase+conditions, countArgs...).Scan(&total).Error; err != nil {
+	if err := r.db.Raw(countPurchasesBase+conditions, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -72,7 +68,8 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 	}
 	offset := (page - 1) * limit
 
-	query := getAllPurchasesBase + conditions + fmt.Sprintf(" ORDER BY p.purchase_date DESC, p.id DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getAllPurchasesBase + conditions + " ORDER BY p.purchase_date DESC, p.id DESC LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {

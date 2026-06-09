@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	countUnitsQuery                = `SELECT COUNT(*) FROM units WHERE 1=1`
-	countUnitsSearchQuery          = `SELECT COUNT(*) FROM units WHERE name LIKE ?`
+	countUnitsQuery = `SELECT COUNT(*) FROM units WHERE 1=1`
 	getAllUnitsQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
 	getAllUnitsOrder               = ` ORDER BY name`
 	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
@@ -23,6 +22,20 @@ const (
 )
 
 func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) {
+	var args []any
+	conditions := ""
+
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		conditions += ` AND name LIKE ?`
+		args = append(args, search)
+	}
+
+	var total int64
+	if err := r.db.Raw(countUnitsQuery+conditions, args...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -33,35 +46,11 @@ func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) 
 	}
 	offset := (page - 1) * limit
 
-	var total int64
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		countQuery := countUnitsSearchQuery
-		countArgs := []any{search}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	} else {
-		countQuery := countUnitsQuery
-		if err := r.db.Raw(countQuery).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	}
-
-	query := getAllUnitsQuery
-	var args []any
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		query += ` AND name LIKE ?`
-		args = append(args, search)
-	}
-	query += getAllUnitsOrder
-	query += " LIMIT ? OFFSET ?"
+	query := getAllUnitsQuery + conditions + getAllUnitsOrder + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Unit
-	err := r.db.Raw(query, args...).Scan(&dataDB).Error
-	if err != nil {
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil

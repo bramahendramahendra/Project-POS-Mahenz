@@ -50,7 +50,7 @@ export function useCreateSupplierMutation() {
 export function useUpdateSupplierMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...payload }: UpdateSupplierPayload) =>
+    mutationFn: ({ id, ...payload }: UpdateSupplierPayload & { id: number }) =>
       api.post<Supplier>(`/suppliers/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })

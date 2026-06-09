@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	countCategoriesQuery             = `SELECT COUNT(*) FROM categories c WHERE 1=1`
-	countCategoriesSearchQuery       = `SELECT COUNT(*) FROM categories c WHERE c.name LIKE ?`
+	countCategoriesQuery = `SELECT COUNT(*) FROM categories c WHERE 1=1`
 	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, COUNT(p.id) AS product_count, COUNT(CASE WHEN p.is_active = 1 THEN 1 END) AS active_product_count, c.created_at FROM categories c LEFT JOIN products p ON p.category_id = c.id WHERE 1=1`
 	getAllCategoriesGroupOrder       = ` GROUP BY c.id, c.name, c.code, c.description, c.is_active, c.created_at ORDER BY c.name`
 	getAllCategoryOptionsQuery       = `SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name`
@@ -25,6 +24,20 @@ const (
 )
 
 func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64, error) {
+	var args []any
+	conditions := ""
+
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		conditions += ` AND c.name LIKE ?`
+		args = append(args, search)
+	}
+
+	var total int64
+	if err := r.db.Raw(countCategoriesQuery+conditions, args...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -35,35 +48,11 @@ func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64,
 	}
 	offset := (page - 1) * limit
 
-	var total int64
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		countQuery := countCategoriesSearchQuery
-		countArgs := []any{search}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	} else {
-		countQuery := countCategoriesQuery
-		if err := r.db.Raw(countQuery).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	}
-
-	query := getAllCategoriesQuery
-	var args []any
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		query += ` AND c.name LIKE ?`
-		args = append(args, search)
-	}
-	query += getAllCategoriesGroupOrder
-	query += " LIMIT ? OFFSET ?"
+	query := getAllCategoriesQuery + conditions + getAllCategoriesGroupOrder + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Category
-	err := r.db.Raw(query, args...).Scan(&dataDB).Error
-	if err != nil {
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil

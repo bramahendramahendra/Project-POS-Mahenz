@@ -63,6 +63,4 @@ export interface CreateSupplierPayload {
   notes?: string
 }
 
-export interface UpdateSupplierPayload extends CreateSupplierPayload {
-  id: number
-}
+export type UpdateSupplierPayload = Partial<CreateSupplierPayload>

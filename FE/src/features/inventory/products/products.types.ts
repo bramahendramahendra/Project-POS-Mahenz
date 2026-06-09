@@ -44,7 +44,6 @@ export interface Product {
   price_tiers_count: number
 }
 
-// Sesuai standar: page + limit (bukan page_size)
 export interface ProductListFilter {
   page: number
   limit: number
@@ -85,11 +84,8 @@ export interface CreatePriceTierPayload {
   price: number
 }
 
-export interface UpdatePriceTierPayload extends Partial<CreatePriceTierPayload> {
-  priceId: number
-}
+export type UpdatePriceTierPayload = Partial<CreatePriceTierPayload>
 
-// Alias untuk backward compat
 export type ProductFilter = ProductListFilter
 
 export interface ProductOption {

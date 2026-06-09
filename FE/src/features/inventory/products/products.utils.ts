@@ -1,5 +1,10 @@
 import type { PriceTier, ProductPackage } from './products.types'
 
+export function calcMargin(purchasePrice: number, sellingPrice: number): number {
+  if (purchasePrice <= 0 || sellingPrice <= 0) return 0
+  return Math.round(((sellingPrice - purchasePrice) / sellingPrice) * 100)
+}
+
 export function getApplicablePrice(
   prices: PriceTier[],
   unitId: number,
