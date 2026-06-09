@@ -22,7 +22,7 @@ func (r *productRepo) GetPricesByProduct(productID int) ([]*model.ProductPrice, 
 	return dataDB, nil
 }
 
-func (r *productRepo) SavePrices(productID int, prices []dto.ProductPriceRequest) error {
+func (r *productRepo) SavePrices(productID int, prices []dto.PriceRequest) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Exec(deleteProductPricesQuery, productID).Error
 		if err != nil {

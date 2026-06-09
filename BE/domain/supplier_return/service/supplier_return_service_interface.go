@@ -1,11 +1,24 @@
 package service
 
-import dto_supplier_return "pos_api/domain/supplier_return/dto"
+import (
+	dto "pos_api/domain/supplier_return/dto"
+	repo "pos_api/domain/supplier_return/repo"
+)
 
-type SupplierReturnService interface {
-	GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error)
-	GetByID(id int) (*dto_supplier_return.SupplierReturnResponse, error)
-	Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error)
-	UpdateStatus(req *dto_supplier_return.UpdateStatusRequest) error
-	Delete(id int) error
+type (
+	SupplierReturnService interface {
+		GetAll(req *dto.SupplierReturnListRequest) (data []dto.SupplierReturnResponse, total int64, err error)
+		GetByID(id int) (data dto.SupplierReturnResponse, err error)
+		Create(req *dto.CreateSupplierReturnRequest) (data dto.SupplierReturnResponse, err error)
+		UpdateStatus(req *dto.UpdateStatusRequest) error
+		Delete(id int) error
+	}
+
+	supplierReturnService struct {
+		repo repo.SupplierReturnRepo
+	}
+)
+
+func NewSupplierReturnService(repo repo.SupplierReturnRepo) *supplierReturnService {
+	return &supplierReturnService{repo: repo}
 }

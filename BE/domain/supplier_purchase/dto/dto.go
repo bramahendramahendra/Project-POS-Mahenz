@@ -1,87 +1,113 @@
 package dto
 
-type GetPurchaseByIDRequest struct {
-	ID int `uri:"id" validate:"required,min=1"`
-}
+type (
+	// REQUEST
+	GetAllRequest struct {
+		Page          int    `json:"page"`
+		Limit         int    `json:"limit"`
+		StartDate     string `json:"start_date"`
+		EndDate       string `json:"end_date"`
+		SupplierID    *int   `json:"supplier_id"`
+		PaymentStatus string `json:"payment_status"`
+	}
 
-type PurchaseItemRequest struct {
-	ProductID     int     `json:"product_id" validate:"required,gt=0"`
-	Quantity      float64 `json:"quantity" validate:"required,gt=0"`
-	Unit          string  `json:"unit" validate:"required"`
-	ConversionQty float64 `json:"conversion_qty"`
-	PurchasePrice float64 `json:"purchase_price" validate:"required,gt=0"`
-}
+	GetByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type PurchaseRequest struct {
-	ID             int                   `json:"-"`
-	UserID         int                   `json:"-"`
-	InvoiceNumber  string                `json:"invoice_number" validate:"required"`
-	SupplierID     *int                  `json:"supplier_id"`
-	PurchaseDate   string                `json:"purchase_date" validate:"required"`
-	DiscountAmount float64               `json:"discount_amount"`
-	PaymentStatus  string                `json:"payment_status"`
-	PaidAmount     float64               `json:"paid_amount"`
-	PaymentMethod  string                `json:"payment_method"`
-	Notes          string                `json:"notes"`
-	Items          []PurchaseItemRequest `json:"items" validate:"required,min=1,dive"`
-}
+	UpdateUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type PayPurchaseRequest struct {
-	ID            int     `json:"-"`
-	UserID        int     `json:"-"`
-	Amount        float64 `json:"amount" validate:"required,gt=0"`
-	PaymentDate   string  `json:"payment_date" validate:"required"`
-	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`
-	Notes         string  `json:"notes"`
-}
+	DeleteRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type PurchasePaymentResponse struct {
-	ID            int     `json:"id"`
-	PaymentDate   string  `json:"payment_date"`
-	Amount        float64 `json:"amount"`
-	PaymentMethod string  `json:"payment_method"`
-	Notes         string  `json:"notes"`
-	UserName      string  `json:"user_name"`
-	CreatedAt     string  `json:"created_at"`
-}
+	GenerateCodeResponse struct {
+		PurchaseCode string `json:"purchase_code"`
+	}
 
-type PurchaseItemResponse struct {
-	ID            int     `json:"id"`
-	ProductID     int     `json:"product_id"`
-	ProductName   string  `json:"product_name"`
-	Quantity      float64 `json:"quantity"`
-	Unit          string  `json:"unit"`
-	ConversionQty float64 `json:"conversion_qty"`
-	PurchasePrice float64 `json:"purchase_price"`
-	Subtotal      float64 `json:"subtotal"`
-}
+	PurchaseRequest struct {
+		ProductID     int     `json:"product_id" validate:"required,gt=0"`
+		Quantity      float64 `json:"quantity" validate:"required,gt=0"`
+		Unit          string  `json:"unit" validate:"required"`
+		ConversionQty float64 `json:"conversion_qty"`
+		PurchasePrice float64 `json:"purchase_price" validate:"required,gt=0"`
+	}
 
-type PurchaseResponse struct {
-	ID              int                    `json:"id"`
-	PurchaseCode    string                 `json:"purchase_code"`
-	InvoiceNumber   string                 `json:"invoice_number"`
-	SupplierID      *int                   `json:"supplier_id"`
-	SupplierName    string                 `json:"supplier_name"`
-	PurchaseDate    string                 `json:"purchase_date"`
-	DiscountAmount  float64                `json:"discount_amount"`
-	TotalAmount     float64                `json:"total_amount"`
-	PaymentStatus   string                 `json:"payment_status"`
-	PaidAmount      float64                `json:"paid_amount"`
-	RemainingAmount float64                `json:"remaining_amount"`
-	UserName        string                 `json:"user_name"`
-	Notes           string                 `json:"notes"`
-	Items           []PurchaseItemResponse `json:"items,omitempty"`
-}
+	CreateRequest struct {
+		ID             int               `json:"-"`
+		UserID         int               `json:"-"`
+		InvoiceNumber  string            `json:"invoice_number" validate:"required"`
+		SupplierID     *int              `json:"supplier_id"`
+		PurchaseDate   string            `json:"purchase_date" validate:"required"`
+		DiscountAmount float64           `json:"discount_amount"`
+		PaymentStatus  string            `json:"payment_status"`
+		PaidAmount     float64           `json:"paid_amount"`
+		PaymentMethod  string            `json:"payment_method"`
+		Notes          string            `json:"notes"`
+		Items          []PurchaseRequest `json:"items" validate:"required,min=1,dive"`
+	}
 
-type GeneratePurchaseCodeResponse struct {
-	PurchaseCode string `json:"purchase_code"`
-}
+	UpdateRequest struct {
+		ID             int               `json:"-"`
+		UserID         int               `json:"-"`
+		InvoiceNumber  string            `json:"invoice_number" validate:"required"`
+		SupplierID     *int              `json:"supplier_id"`
+		PurchaseDate   string            `json:"purchase_date" validate:"required"`
+		DiscountAmount float64           `json:"discount_amount"`
+		PaymentStatus  string            `json:"payment_status"`
+		PaidAmount     float64           `json:"paid_amount"`
+		PaymentMethod  string            `json:"payment_method"`
+		Notes          string            `json:"notes"`
+		Items          []PurchaseRequest `json:"items" validate:"required,min=1,dive"`
+	}
 
-type PurchaseListRequest struct {
-	Page          int    `json:"page"`
-	Limit         int    `json:"limit"`
-	StartDate     string `json:"start_date"`
-	EndDate       string `json:"end_date"`
-	SupplierID    *int   `json:"supplier_id"`
-	PaymentStatus string `json:"payment_status"`
-}
+	PayRequest struct {
+		ID            int     `json:"-"`
+		UserID        int     `json:"-"`
+		Amount        float64 `json:"amount" validate:"required,gt=0"`
+		PaymentDate   string  `json:"payment_date" validate:"required"`
+		PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`
+		Notes         string  `json:"notes"`
+	}
+
+	// RESPONSE
+	PaymentResponse struct {
+		ID            int     `json:"id"`
+		PaymentDate   string  `json:"payment_date"`
+		Amount        float64 `json:"amount"`
+		PaymentMethod string  `json:"payment_method"`
+		Notes         string  `json:"notes"`
+		UserName      string  `json:"user_name"`
+		CreatedAt     string  `json:"created_at"`
+	}
+
+	PurchaseItemResponse struct {
+		ID            int     `json:"id"`
+		ProductID     int     `json:"product_id"`
+		ProductName   string  `json:"product_name"`
+		Quantity      float64 `json:"quantity"`
+		Unit          string  `json:"unit"`
+		ConversionQty float64 `json:"conversion_qty"`
+		PurchasePrice float64 `json:"purchase_price"`
+		Subtotal      float64 `json:"subtotal"`
+	}
+
+	PurchaseResponse struct {
+		ID              int                    `json:"id"`
+		PurchaseCode    string                 `json:"purchase_code"`
+		InvoiceNumber   string                 `json:"invoice_number"`
+		SupplierID      *int                   `json:"supplier_id"`
+		SupplierName    string                 `json:"supplier_name"`
+		PurchaseDate    string                 `json:"purchase_date"`
+		DiscountAmount  float64                `json:"discount_amount"`
+		TotalAmount     float64                `json:"total_amount"`
+		PaymentStatus   string                 `json:"payment_status"`
+		PaidAmount      float64                `json:"paid_amount"`
+		RemainingAmount float64                `json:"remaining_amount"`
+		UserName        string                 `json:"user_name"`
+		Notes           string                 `json:"notes"`
+		Items           []PurchaseItemResponse `json:"items,omitempty"`
+	}
+)

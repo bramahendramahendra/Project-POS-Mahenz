@@ -5,7 +5,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productService) GetAll(req *dto.ProductListRequest) (data []dto.ProductResponse, total int64, err error) {
+func (s *productService) GetAll(req *dto.GetAllRequest) (data []dto.ProductResponse, total int64, err error) {
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
@@ -35,14 +35,14 @@ func (s *productService) GetAll(req *dto.ProductListRequest) (data []dto.Product
 	return data, total, nil
 }
 
-func (s *productService) GetOptions() (data []*dto.ProductOption, err error) {
+func (s *productService) GetOptions() (data []*dto.GetOptionResponse, err error) {
 	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.ProductOption{
+		data = append(data, &dto.GetOptionResponse{
 			ID:   v.ID,
 			Name: v.Name,
 		})
@@ -51,14 +51,14 @@ func (s *productService) GetOptions() (data []*dto.ProductOption, err error) {
 	return data, nil
 }
 
-func (s *productService) Search(req *dto.SearchProductRequest) (data []*dto.ProductSearchResult, err error) {
+func (s *productService) Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error) {
 	dataDB, err := s.repo.Search(req)
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.ProductSearchResult{
+		data = append(data, &dto.SearchResponse{
 			ID:           v.ID,
 			Barcode:      v.Barcode,
 			Name:         v.Name,
@@ -130,7 +130,7 @@ func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse,
 	return data, nil
 }
 
-func (s *productService) Create(req *dto.ProductRequest) (data dto.ProductResponse, err error) {
+func (s *productService) Create(req *dto.CreateRequest) (data dto.ProductResponse, err error) {
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
 	if err != nil {
 		return data, err
@@ -180,7 +180,7 @@ func (s *productService) Create(req *dto.ProductRequest) (data dto.ProductRespon
 	return data, nil
 }
 
-func (s *productService) Update(req *dto.UpdateProductRequest) (data dto.ProductResponse, err error) {
+func (s *productService) Update(req *dto.UpdateRequest) (data dto.ProductResponse, err error) {
 	existsUpdate, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return data, err
@@ -237,7 +237,7 @@ func (s *productService) Update(req *dto.UpdateProductRequest) (data dto.Product
 	return data, nil
 }
 
-func (s *productService) Delete(req *dto.DeleteProductRequest) (err error) {
+func (s *productService) Delete(req *dto.DeleteRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -257,7 +257,7 @@ func (s *productService) Delete(req *dto.DeleteProductRequest) (err error) {
 	return s.repo.Delete(req)
 }
 
-func (s *productService) ToggleStatus(req *dto.ToggleStatusProductRequest) (err error) {
+func (s *productService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err

@@ -5,7 +5,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productService) GetPackagesByProduct(productID int) (data []*dto.ProductPackageResponse, err error) {
+func (s *productService) GetPackagesByProduct(productID int) (data []*dto.PackageResponse, err error) {
 	exists, err := s.repo.GetByID(productID)
 	if err != nil {
 		return data, err
@@ -20,7 +20,7 @@ func (s *productService) GetPackagesByProduct(productID int) (data []*dto.Produc
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.ProductPackageResponse{
+		data = append(data, &dto.PackageResponse{
 			ID:            v.ID,
 			ProductID:     v.ProductID,
 			UnitID:        v.UnitID,
@@ -37,7 +37,7 @@ func (s *productService) GetPackagesByProduct(productID int) (data []*dto.Produc
 	return data, nil
 }
 
-func (s *productService) SavePackages(req *dto.SaveProductPackagesRequest) (err error) {
+func (s *productService) SavePackages(req *dto.SavePackageRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ProductID)
 	if err != nil {
 		return err
@@ -50,7 +50,7 @@ func (s *productService) SavePackages(req *dto.SaveProductPackagesRequest) (err 
 	return err
 }
 
-func (s *productService) DeletePackage(req *dto.PackageIDUriRequest) (err error) {
+func (s *productService) DeletePackage(req *dto.DeletePackageRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err

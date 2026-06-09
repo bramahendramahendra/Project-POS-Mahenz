@@ -37,7 +37,7 @@ func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.PurchaseListRequest](c)
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -54,12 +54,12 @@ func (h *PurchaseHandler) GetAll(c *gin.Context) {
 		Status:     true,
 		Message:    "Daftar purchase order",
 		Data:       data,
-		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, int64(total)),
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 
 func (h *PurchaseHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *PurchaseHandler) GetByID(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetItems(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -110,7 +110,7 @@ func (h *PurchaseHandler) GetItems(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.PurchaseRequest](c)
+	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -137,13 +137,13 @@ func (h *PurchaseHandler) Create(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.PurchaseRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -170,7 +170,7 @@ func (h *PurchaseHandler) Update(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -193,7 +193,7 @@ func (h *PurchaseHandler) Delete(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) GetPayments(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -218,13 +218,13 @@ func (h *PurchaseHandler) GetPayments(c *gin.Context) {
 }
 
 func (h *PurchaseHandler) Pay(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.GetPurchaseByIDRequest](c)
+	uriReq, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.PayPurchaseRequest](c)
+	req, err := binder.BindJSON[dto.PayRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

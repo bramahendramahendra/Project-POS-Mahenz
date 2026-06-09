@@ -22,7 +22,7 @@ func NewProductPriceHandler(service service.ProductServiceInterface) *ProductPri
 }
 
 func (h *ProductPriceHandler) GetPricesByProduct(c *gin.Context) {
-	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
+	req, err := binder.BindURI[dto.PriceByProductRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -48,13 +48,13 @@ func (h *ProductPriceHandler) GetPricesByProduct(c *gin.Context) {
 }
 
 func (h *ProductPriceHandler) SavePrices(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
+	uriReq, err := binder.BindURI[dto.PriceByProductRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.SaveProductPricesRequest](c)
+	req, err := binder.BindJSON[dto.SavePriceRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

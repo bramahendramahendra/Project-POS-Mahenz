@@ -19,6 +19,24 @@ type Purchase struct {
 	UpdatedAt       *time.Time `db:"updated_at"`
 }
 
+// PurchaseRow is the result of a join query (includes supplier_name, user_name).
+type PurchaseRow struct {
+	ID              int
+	PurchaseCode    string
+	InvoiceNumber   string
+	SupplierID      *int
+	SupplierName    string
+	PurchaseDate    string
+	DiscountAmount  float64
+	TotalAmount     float64
+	PaymentStatus   string
+	PaidAmount      float64
+	RemainingAmount float64
+	UserName        string
+	Notes           string
+	Items           []PurchaseItem
+}
+
 type PurchaseItem struct {
 	ID            int     `db:"id"`
 	PurchaseID    int     `db:"purchase_id"`
@@ -32,11 +50,12 @@ type PurchaseItem struct {
 }
 
 type PurchasePayment struct {
-	ID          int     `db:"id"`
-	PurchaseID  int     `db:"purchase_id"`
-	PaymentDate string  `db:"payment_date"`
-	Amount      float64 `db:"amount"`
-	Notes       string  `db:"notes"`
-	UserName    string  `db:"user_name"`
-	CreatedAt   string  `db:"created_at"`
+	ID            int     `db:"id"`
+	PurchaseID    int     `db:"purchase_id"`
+	PaymentDate   string  `db:"payment_date"`
+	Amount        float64 `db:"amount"`
+	PaymentMethod string  `db:"payment_method"`
+	Notes         string  `db:"notes"`
+	UserName      string  `db:"user_name"`
+	CreatedAt     string  `db:"created_at"`
 }

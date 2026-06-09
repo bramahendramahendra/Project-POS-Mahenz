@@ -23,7 +23,7 @@ func (r *productRepo) GetPackagesByProduct(productID int) ([]*model_product.Prod
 	return dataDB, nil
 }
 
-func (r *productRepo) SavePackages(productID int, packages []dto_product.ProductPackageRequest) error {
+func (r *productRepo) SavePackages(productID int, packages []dto_product.PackageRequest) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Exec(deleteProductPackagesQuery, productID).Error
 		if err != nil {

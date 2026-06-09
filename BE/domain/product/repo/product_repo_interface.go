@@ -8,17 +8,17 @@ import (
 )
 
 type ProductRepo interface {
-	GetAll(req *dto_product.ProductListRequest) ([]*model_product.Product, int64, error)
+	GetAll(req *dto_product.GetAllRequest) ([]*model_product.Product, int64, error)
 	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
-	Search(req *dto_product.SearchProductRequest) ([]*model_product.ProductSearchResult, error)
+	Search(req *dto_product.SearchRequest) ([]*model_product.ProductSearchResult, error)
 	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
-	Create(req *dto_product.ProductRequest) (int64, error)
-	Update(req *dto_product.UpdateProductRequest) error
-	Delete(req *dto_product.DeleteProductRequest) error
-	ToggleStatus(req *dto_product.ToggleStatusProductRequest) error
+	Create(req *dto_product.CreateRequest) (int64, error)
+	Update(req *dto_product.UpdateRequest) error
+	Delete(req *dto_product.DeleteRequest) error
+	ToggleStatus(req *dto_product.ToggleStatusRequest) error
 	UpdateStock(id int, delta float64) error
 
 	CheckBarcodeExists(barcode string, excludeID int) (bool, error)
@@ -26,11 +26,11 @@ type ProductRepo interface {
 	CountSkuByCategory(categoryID int) (int, error)
 
 	GetPackagesByProduct(productID int) ([]*model_product.ProductPackage, error)
-	SavePackages(productID int, packages []dto_product.ProductPackageRequest) error
+	SavePackages(productID int, packages []dto_product.PackageRequest) error
 	DeletePackage(id, productID int) error
 
 	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
-	SavePrices(productID int, prices []dto_product.ProductPriceRequest) error
+	SavePrices(productID int, prices []dto_product.PriceRequest) error
 }
 
 type productRepo struct {

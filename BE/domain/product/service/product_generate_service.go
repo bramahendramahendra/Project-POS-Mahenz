@@ -43,11 +43,11 @@ func (s *productService) GenerateBarcode() (data dto.GenerateBarcodeResponse, er
 }
 
 func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error) {
-	cat, err := s.repoCategory.GetByID(categoryID)
+	dataDB, err := s.repoCategory.GetByID(categoryID)
 	if err != nil {
 		return
 	}
-	if cat == nil {
+	if dataDB == nil {
 		return data, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
 	}
 
@@ -56,5 +56,5 @@ func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuRespon
 		return
 	}
 
-	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", cat.Code, count+1)}, nil
+	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", dataDB.Code, count+1)}, nil
 }

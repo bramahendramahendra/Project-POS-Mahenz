@@ -64,7 +64,7 @@ const (
 	countProductsSearchQuery    = `SELECT COUNT(*) FROM products p WHERE (p.name LIKE ? OR p.barcode LIKE ?)`
 )
 
-func (r *productRepo) GetAll(req *dto.ProductListRequest) ([]*model.Product, int64, error) {
+func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, error) {
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -188,7 +188,7 @@ func (r *productRepo) GetByBarcode(barcode string) (*model.Product, error) {
 	return &dataDB, nil
 }
 
-func (r *productRepo) Search(req *dto.SearchProductRequest) ([]*model.ProductSearchResult, error) {
+func (r *productRepo) Search(req *dto.SearchRequest) ([]*model.ProductSearchResult, error) {
 	limit := req.Limit
 	if limit <= 0 || limit > 50 {
 		limit = 20
@@ -225,7 +225,7 @@ func (r *productRepo) CountTransactionItems(productID int) (int, error) {
 	return count, nil
 }
 
-func (r *productRepo) Create(req *dto.ProductRequest) (int64, error) {
+func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
 	err := r.db.Exec(createProductQuery,
 		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
 		req.SellingPrice, req.Stock, req.MinStock, req.UnitID,
@@ -242,7 +242,7 @@ func (r *productRepo) Create(req *dto.ProductRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *productRepo) Update(req *dto.UpdateProductRequest) error {
+func (r *productRepo) Update(req *dto.UpdateRequest) error {
 	err := r.db.Exec(updateProductQuery,
 		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
 		req.SellingPrice, req.Stock, req.MinStock, req.UnitID, req.ID,
@@ -250,12 +250,12 @@ func (r *productRepo) Update(req *dto.UpdateProductRequest) error {
 	return err
 }
 
-func (r *productRepo) Delete(req *dto.DeleteProductRequest) error {
+func (r *productRepo) Delete(req *dto.DeleteRequest) error {
 	err := r.db.Exec(deleteProductQuery, req.ID).Error
 	return err
 }
 
-func (r *productRepo) ToggleStatus(req *dto.ToggleStatusProductRequest) error {
+func (r *productRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	err := r.db.Exec(toggleProductStatusQuery, req.ID).Error
 	return err
 }

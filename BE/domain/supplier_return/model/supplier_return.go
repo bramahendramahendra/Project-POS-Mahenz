@@ -18,6 +18,22 @@ type SupplierReturn struct {
 	UpdatedAt         *time.Time `db:"updated_at"`
 }
 
+// SupplierReturnRow is the result of a join query (includes user_name, items).
+type SupplierReturnRow struct {
+	ID                int
+	ReturnCode        string
+	PurchaseID        int
+	SupplierID        *int
+	SupplierName      string
+	ReturnDate        string
+	TotalReturnAmount float64
+	Reason            string
+	Status            string
+	UserName          string
+	Notes             string
+	Items             []SupplierReturnItem
+}
+
 type SupplierReturnItem struct {
 	ID             int     `db:"id"`
 	ReturnID       int     `db:"return_id"`

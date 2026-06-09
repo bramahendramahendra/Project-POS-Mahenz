@@ -22,7 +22,7 @@ func NewProductPackageHandler(service service.ProductServiceInterface) *ProductP
 }
 
 func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
-	req, err := binder.BindURI[dto.ProductIDUriRequest](c)
+	req, err := binder.BindURI[dto.PackageByProductRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -48,13 +48,13 @@ func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
 }
 
 func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.ProductIDUriRequest](c)
+	uriReq, err := binder.BindURI[dto.PackageByProductRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.SaveProductPackagesRequest](c)
+	req, err := binder.BindJSON[dto.SavePackageRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -79,7 +79,7 @@ func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
 }
 
 func (h *ProductPackageHandler) DeletePackage(c *gin.Context) {
-	req, err := binder.BindURI[dto.PackageIDUriRequest](c)
+	req, err := binder.BindURI[dto.DeletePackageRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

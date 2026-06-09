@@ -1,4 +1,4 @@
-package dto_product
+package dto
 
 type ImportResult struct {
 	Success int                 `json:"success"`
@@ -51,7 +51,7 @@ type ImportPreviewRow struct {
 	StokMinimum float64  `json:"stok_minimum"`
 	Satuan      string   `json:"satuan"`
 	SatuanID    int      `json:"satuan_id"`
-	Valid        bool     `json:"valid"`
+	Valid       bool     `json:"valid"`
 	Errors      []string `json:"errors"`
 	Warnings    []string `json:"warnings"`
 }
@@ -64,7 +64,7 @@ type ImportPreviewGrosirRow struct {
 	Konversi  float64  `json:"konversi"`
 	HargaBeli float64  `json:"harga_beli"`
 	HargaJual float64  `json:"harga_jual"`
-	Valid      bool     `json:"valid"`
+	Valid     bool     `json:"valid"`
 	Errors    []string `json:"errors"`
 }
 

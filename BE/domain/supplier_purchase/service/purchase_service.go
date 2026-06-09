@@ -1,156 +1,272 @@
 package service
 
 import (
-	dto_purchase "pos_api/domain/supplier_purchase/dto"
-	repo_purchase "pos_api/domain/supplier_purchase/repo"
+	dto "pos_api/domain/supplier_purchase/dto"
 	"pos_api/errors"
 )
 
-type purchaseService struct {
-	repo repo_purchase.PurchaseRepo
-}
-
-func NewPurchaseService(repo repo_purchase.PurchaseRepo) PurchaseService {
-	return &purchaseService{repo: repo}
-}
-
-func (s *purchaseService) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error) {
-	items, total, err := s.repo.GetAll(req)
+func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
+		return data, 0, err
 	}
-	return items, total, nil
-}
 
-func (s *purchaseService) GetByID(id int) (*dto_purchase.PurchaseResponse, error) {
-	item, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	if item == nil {
-		return nil, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
-	}
-	return item, nil
-}
-
-func (s *purchaseService) GetItems(purchaseID int) ([]dto_purchase.PurchaseItemResponse, error) {
-	modelItems, err := s.repo.GetItems(purchaseID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	var result []dto_purchase.PurchaseItemResponse
-	for _, mi := range modelItems {
-		result = append(result, dto_purchase.PurchaseItemResponse{
-			ID:            mi.ID,
-			ProductID:     mi.ProductID,
-			Quantity:      mi.Quantity,
-			Unit:          mi.Unit,
-			PurchasePrice: mi.PurchasePrice,
-			Subtotal:      mi.Subtotal,
+	for _, v := range dataDB {
+		data = append(data, dto.PurchaseResponse{
+			ID:              v.ID,
+			PurchaseCode:    v.PurchaseCode,
+			InvoiceNumber:   v.InvoiceNumber,
+			SupplierID:      v.SupplierID,
+			SupplierName:    v.SupplierName,
+			PurchaseDate:    v.PurchaseDate,
+			DiscountAmount:  v.DiscountAmount,
+			TotalAmount:     v.TotalAmount,
+			PaidAmount:      v.PaidAmount,
+			RemainingAmount: v.RemainingAmount,
+			PaymentStatus:   v.PaymentStatus,
+			UserName:        v.UserName,
+			Notes:           v.Notes,
 		})
 	}
-	if result == nil {
-		result = []dto_purchase.PurchaseItemResponse{}
-	}
-	return result, nil
+
+	return data, total, nil
 }
 
-func (s *purchaseService) GenerateCode() (*dto_purchase.GeneratePurchaseCodeResponse, error) {
-	code, err := s.repo.GenerateCode()
+func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	return &dto_purchase.GeneratePurchaseCodeResponse{PurchaseCode: code}, nil
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+	}
+
+	items := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		items = append(items, dto.PurchaseItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.PurchaseResponse{
+		ID:              dataDB.ID,
+		PurchaseCode:    dataDB.PurchaseCode,
+		InvoiceNumber:   dataDB.InvoiceNumber,
+		SupplierID:      dataDB.SupplierID,
+		SupplierName:    dataDB.SupplierName,
+		PurchaseDate:    dataDB.PurchaseDate,
+		DiscountAmount:  dataDB.DiscountAmount,
+		TotalAmount:     dataDB.TotalAmount,
+		PaidAmount:      dataDB.PaidAmount,
+		RemainingAmount: dataDB.RemainingAmount,
+		PaymentStatus:   dataDB.PaymentStatus,
+		UserName:        dataDB.UserName,
+		Notes:           dataDB.Notes,
+		Items:           items,
+	}
+
+	return data, nil
 }
 
-func (s *purchaseService) Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+func (s *purchaseService) GetItems(purchaseID int) (data []*dto.PurchaseItemResponse, err error) {
+	dataDB, err := s.repo.GetItems(purchaseID)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.PurchaseItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	return data, nil
+}
+
+func (s *purchaseService) GenerateCode() (data dto.GenerateCodeResponse, err error) {
+	dataDB, err := s.repo.GenerateCode()
+	if err != nil {
+		return data, err
+	}
+
+	data = dto.GenerateCodeResponse{PurchaseCode: dataDB}
+
+	return data, nil
+}
+
+func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error) {
 	if req.PaymentMethod != "" {
 		valid, err := s.repo.IsValidPaymentMethod(req.PaymentMethod)
 		if err != nil {
-			return nil, &errors.InternalServerError{Message: err.Error()}
+			return data, err
 		}
 		if !valid {
-			return nil, &errors.BadRequestError{Message: "Metode pembayaran tidak valid"}
+			return data, &errors.BadRequestError{Message: "Metode pembayaran tidak valid"}
 		}
 	}
 
-	item, err := s.repo.Create(req)
+	dataDB, err := s.repo.Create(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	return item, nil
+
+	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.PurchaseResponse{
+		ID:              dataDB.ID,
+		PurchaseCode:    dataDB.PurchaseCode,
+		InvoiceNumber:   dataDB.InvoiceNumber,
+		SupplierID:      dataDB.SupplierID,
+		SupplierName:    dataDB.SupplierName,
+		PurchaseDate:    dataDB.PurchaseDate,
+		DiscountAmount:  dataDB.DiscountAmount,
+		TotalAmount:     dataDB.TotalAmount,
+		PaidAmount:      dataDB.PaidAmount,
+		RemainingAmount: dataDB.RemainingAmount,
+		PaymentStatus:   dataDB.PaymentStatus,
+		UserName:        dataDB.UserName,
+		Notes:           dataDB.Notes,
+		Items:           itemsDB,
+	}
+
+	return data, nil
 }
 
-func (s *purchaseService) Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseResponse, err error) {
 	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if existing == nil {
-		return nil, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
 	if existing.PaidAmount > 0 {
-		return nil, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
+		return data, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
 	}
 
-	item, err := s.repo.Update(req)
+	dataDB, err := s.repo.Update(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	return item, nil
+
+	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.PurchaseResponse{
+		ID:              dataDB.ID,
+		PurchaseCode:    dataDB.PurchaseCode,
+		InvoiceNumber:   dataDB.InvoiceNumber,
+		SupplierID:      dataDB.SupplierID,
+		SupplierName:    dataDB.SupplierName,
+		PurchaseDate:    dataDB.PurchaseDate,
+		DiscountAmount:  dataDB.DiscountAmount,
+		TotalAmount:     dataDB.TotalAmount,
+		PaidAmount:      dataDB.PaidAmount,
+		RemainingAmount: dataDB.RemainingAmount,
+		PaymentStatus:   dataDB.PaymentStatus,
+		UserName:        dataDB.UserName,
+		Notes:           dataDB.Notes,
+		Items:           itemsDB,
+	}
+
+	return data, nil
 }
 
 func (s *purchaseService) Delete(id int) error {
-	existing, err := s.repo.GetRawByID(id)
+	exists, err := s.repo.GetRawByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if existing == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
-	if existing.PaidAmount > 0 {
+	if exists.PaidAmount > 0 {
 		return &errors.BadRequestError{Message: "PO tidak bisa dihapus karena sudah ada pembayaran"}
 	}
 
-	if err := s.repo.Delete(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Delete(id)
 }
 
-func (s *purchaseService) Pay(req *dto_purchase.PayPurchaseRequest) error {
-	existing, err := s.repo.GetRawByID(req.ID)
+func (s *purchaseService) Pay(req *dto.PayRequest) error {
+	exists, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if existing == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
-	if existing.PaymentStatus == "paid" {
+	if exists.PaymentStatus == "paid" {
 		return &errors.BadRequestError{Message: "PO sudah lunas"}
 	}
-	if req.Amount > existing.RemainingAmount {
+	if req.Amount > exists.RemainingAmount {
 		return &errors.BadRequestError{Message: "Jumlah pembayaran melebihi sisa tagihan"}
 	}
 
 	valid, err := s.repo.IsValidPaymentMethod(req.PaymentMethod)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if !valid {
 		return &errors.BadRequestError{Message: "Metode pembayaran tidak valid"}
 	}
 
-	if err := s.repo.Pay(req); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Pay(req)
 }
 
-func (s *purchaseService) GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error) {
-	items, err := s.repo.GetPayments(purchaseID)
+func (s *purchaseService) GetPayments(purchaseID int) (data []*dto.PaymentResponse, err error) {
+	dataDB, err := s.repo.GetPayments(purchaseID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	return items, nil
+
+	for _, v := range dataDB {
+		data = append(data, &dto.PaymentResponse{
+			ID:            v.ID,
+			PaymentDate:   v.PaymentDate,
+			Amount:        v.Amount,
+			PaymentMethod: v.PaymentMethod,
+			Notes:         v.Notes,
+			UserName:      v.UserName,
+			CreatedAt:     v.CreatedAt,
+		})
+	}
+
+	return data, nil
 }

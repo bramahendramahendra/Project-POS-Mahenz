@@ -74,7 +74,7 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.Im
 			continue
 		}
 
-		req := &dto.ProductRequest{
+		req := &dto.CreateRequest{
 			Barcode:      getCol(1),
 			Name:         name,
 			SellingPrice: sellingPrice,
@@ -406,7 +406,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 	data.Failed = []dto.BulkImportFailed{}
 
 	noToProductID := make(map[int]int)
-	defaultPackages := make(map[int]dto.ProductPackageRequest)
+	defaultPackages := make(map[int]dto.PackageRequest)
 
 	for i, row := range bulkReq.Rows {
 		rowNum := i + 2
@@ -435,7 +435,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 			continue
 		}
 
-		req := &dto.ProductRequest{
+		req := &dto.CreateRequest{
 			Barcode:       strings.TrimSpace(row.Barcode),
 			Name:          strings.TrimSpace(row.Nama),
 			PurchasePrice: row.HargaBeli,
@@ -501,7 +501,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 			noToProductID[row.No] = int(productID)
 		}
 
-		defaultPackages[int(productID)] = dto.ProductPackageRequest{
+		defaultPackages[int(productID)] = dto.PackageRequest{
 			UnitID:        resolvedUnitID,
 			ConversionQty: 1,
 			PurchasePrice: row.HargaBeli,
@@ -512,13 +512,13 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 		data.Success++
 	}
 
-	grosirByProduct := make(map[int][]dto.ProductPackageRequest)
+	grosirByProduct := make(map[int][]dto.PackageRequest)
 	for _, g := range bulkReq.Grosir {
 		productID, ok := noToProductID[g.NoProduk]
 		if !ok || g.SatuanID == 0 {
 			continue
 		}
-		grosirByProduct[productID] = append(grosirByProduct[productID], dto.ProductPackageRequest{
+		grosirByProduct[productID] = append(grosirByProduct[productID], dto.PackageRequest{
 			UnitID:        g.SatuanID,
 			PackageName:   strings.TrimSpace(g.NamaPaket),
 			ConversionQty: g.Konversi,
@@ -529,7 +529,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 	}
 
 	for productID, defaultPkg := range defaultPackages {
-		allPkgs := []dto.ProductPackageRequest{defaultPkg}
+		allPkgs := []dto.PackageRequest{defaultPkg}
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
 			allPkgs = append(allPkgs, grosirPkgs...)
 		}

@@ -39,7 +39,7 @@ func (h *SupplierReturnHandler) GetAll(c *gin.Context) {
 		Status:     true,
 		Message:    "Daftar retur supplier",
 		Data:       data,
-		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, int64(total)),
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 

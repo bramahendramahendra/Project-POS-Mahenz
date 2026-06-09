@@ -1,20 +1,38 @@
 package repo
 
 import (
-	dto_purchase "pos_api/domain/supplier_purchase/dto"
-	model_purchase "pos_api/domain/supplier_purchase/model"
+	dto "pos_api/domain/supplier_purchase/dto"
+	model "pos_api/domain/supplier_purchase/model"
+
+	"gorm.io/gorm"
 )
 
-type PurchaseRepo interface {
-	GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error)
-	GetByID(id int) (*dto_purchase.PurchaseResponse, error)
-	GetItems(purchaseID int) ([]model_purchase.PurchaseItem, error)
-	GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error)
-	GenerateCode() (string, error)
-	Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
-	Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
-	Delete(id int) error
-	Pay(req *dto_purchase.PayPurchaseRequest) error
-	GetRawByID(id int) (*model_purchase.Purchase, error)
-	IsValidPaymentMethod(code string) (bool, error)
+type (
+	PurchaseRepo interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error)
+		GetByID(id int) (*model.PurchaseRow, error)
+		GetItems(purchaseID int) ([]model.PurchaseItem, error)
+		GetPayments(purchaseID int) ([]model.PurchasePayment, error)
+		GenerateCode() (string, error)
+		Create(req *dto.CreateRequest) (*model.PurchaseRow, error)
+		Update(req *dto.UpdateRequest) (*model.PurchaseRow, error)
+		Delete(id int) error
+		Pay(req *dto.PayRequest) error
+		GetRawByID(id int) (*model.Purchase, error)
+		IsValidPaymentMethod(code string) (bool, error)
+
+		GetDB() *gorm.DB
+	}
+
+	purchaseRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewPurchaseRepo(db *gorm.DB) *purchaseRepo {
+	return &purchaseRepo{db: db}
+}
+
+func (r *purchaseRepo) GetDB() *gorm.DB {
+	return r.db
 }

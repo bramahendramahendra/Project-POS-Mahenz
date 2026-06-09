@@ -7,14 +7,14 @@ import (
 	dto_category "pos_api/domain/product_category/dto"
 )
 
-func (s *productService) GetLowStock() (data []*dto.LowStockProduct, err error) {
+func (s *productService) GetLowStock() (data []*dto.GetLowStockResponse, err error) {
 	dataDB, err := s.repo.GetLowStock()
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.LowStockProduct{
+		data = append(data, &dto.GetLowStockResponse{
 			ID:       v.ID,
 			Name:     v.Name,
 			Stock:    v.Stock,
@@ -37,13 +37,13 @@ func (s *productService) GetCategoryNames() (data []string, err error) {
 	return
 }
 
-func (s *productService) GetUnitInfos() (data []*dto.UnitInfo, err error) {
+func (s *productService) GetUnitInfos() (data []*dto.GetUnitInfoResponse, err error) {
 	units, err := s.repoUnit.GetOptions()
 	if err != nil {
 		return
 	}
 	for _, u := range units {
-		data = append(data, &dto.UnitInfo{Name: u.Name, Abbreviation: u.Abbreviation})
+		data = append(data, &dto.GetUnitInfoResponse{Name: u.Name, Abbreviation: u.Abbreviation})
 	}
 	return
 }

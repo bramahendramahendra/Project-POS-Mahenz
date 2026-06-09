@@ -3,73 +3,140 @@ package service
 import (
 	"time"
 
-	dto_supplier_return "pos_api/domain/supplier_return/dto"
-	repo_supplier_return "pos_api/domain/supplier_return/repo"
+	dto "pos_api/domain/supplier_return/dto"
 	"pos_api/errors"
 )
 
-type supplierReturnService struct {
-	repo repo_supplier_return.SupplierReturnRepo
-}
-
-func NewSupplierReturnService(repo repo_supplier_return.SupplierReturnRepo) SupplierReturnService {
-	return &supplierReturnService{repo: repo}
-}
-
-func (s *supplierReturnService) GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
-	items, total, err := s.repo.GetAll(req)
+func (s *supplierReturnService) GetAll(req *dto.SupplierReturnListRequest) (data []dto.SupplierReturnResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
+		return data, 0, err
 	}
-	return items, total, nil
+
+	for _, v := range dataDB {
+		data = append(data, dto.SupplierReturnResponse{
+			ID:                v.ID,
+			ReturnCode:        v.ReturnCode,
+			PurchaseID:        v.PurchaseID,
+			SupplierID:        v.SupplierID,
+			SupplierName:      v.SupplierName,
+			ReturnDate:        v.ReturnDate,
+			TotalReturnAmount: v.TotalReturnAmount,
+			Reason:            v.Reason,
+			Status:            v.Status,
+			UserName:          v.UserName,
+			Notes:             v.Notes,
+		})
+	}
+
+	return data, total, nil
 }
 
-func (s *supplierReturnService) GetByID(id int) (*dto_supplier_return.SupplierReturnResponse, error) {
-	item, err := s.repo.GetByID(id)
+func (s *supplierReturnService) GetByID(id int) (data dto.SupplierReturnResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	if item == nil {
-		return nil, &errors.NotFoundError{Message: "Retur supplier tidak ditemukan"}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Retur supplier tidak ditemukan"}
 	}
-	return item, nil
+
+	items := make([]dto.SupplierReturnItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		items = append(items, dto.SupplierReturnItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.SupplierReturnResponse{
+		ID:                dataDB.ID,
+		ReturnCode:        dataDB.ReturnCode,
+		PurchaseID:        dataDB.PurchaseID,
+		SupplierID:        dataDB.SupplierID,
+		SupplierName:      dataDB.SupplierName,
+		ReturnDate:        dataDB.ReturnDate,
+		TotalReturnAmount: dataDB.TotalReturnAmount,
+		Reason:            dataDB.Reason,
+		Status:            dataDB.Status,
+		UserName:          dataDB.UserName,
+		Notes:             dataDB.Notes,
+		Items:             items,
+	}
+
+	return data, nil
 }
 
-func (s *supplierReturnService) Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error) {
+func (s *supplierReturnService) Create(req *dto.CreateSupplierReturnRequest) (data dto.SupplierReturnResponse, err error) {
 	returnDate, err := time.Parse("2006-01-02", req.ReturnDate)
 	if err != nil {
-		return nil, &errors.BadRequestError{Message: "Format tanggal retur tidak valid"}
+		return data, &errors.BadRequestError{Message: "Format tanggal retur tidak valid"}
 	}
 	if returnDate.After(time.Now().Truncate(24 * time.Hour)) {
-		return nil, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih dari hari ini"}
+		return data, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih dari hari ini"}
 	}
 
 	purchaseDateStr, err := s.repo.GetPurchaseDate(req.PurchaseID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if purchaseDateStr == "" {
-		return nil, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
+
 	purchaseDate, err := time.Parse("2006-01-02", purchaseDateStr[:10])
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 	if returnDate.Before(purchaseDate) {
-		return nil, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih awal dari tanggal pembelian"}
+		return data, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih awal dari tanggal pembelian"}
 	}
 
-	item, repoErr := s.repo.Create(req)
-	if repoErr != nil {
-		return nil, &errors.InternalServerError{Message: repoErr.Error()}
+	dataDB, err := s.repo.Create(req)
+	if err != nil {
+		return data, err
 	}
-	return item, nil
+
+	itemsDB := make([]dto.SupplierReturnItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		itemsDB = append(itemsDB, dto.SupplierReturnItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.SupplierReturnResponse{
+		ID:                dataDB.ID,
+		ReturnCode:        dataDB.ReturnCode,
+		PurchaseID:        dataDB.PurchaseID,
+		SupplierID:        dataDB.SupplierID,
+		SupplierName:      dataDB.SupplierName,
+		ReturnDate:        dataDB.ReturnDate,
+		TotalReturnAmount: dataDB.TotalReturnAmount,
+		Reason:            dataDB.Reason,
+		Status:            dataDB.Status,
+		UserName:          dataDB.UserName,
+		Notes:             dataDB.Notes,
+		Items:             itemsDB,
+	}
+
+	return data, nil
 }
 
-func (s *supplierReturnService) UpdateStatus(req *dto_supplier_return.UpdateStatusRequest) error {
+func (s *supplierReturnService) UpdateStatus(req *dto.UpdateStatusRequest) error {
 	current, err := s.repo.GetStatus(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if current == "" {
 		return &errors.NotFoundError{Message: "Retur supplier tidak ditemukan"}
@@ -83,7 +150,7 @@ func (s *supplierReturnService) UpdateStatus(req *dto_supplier_return.UpdateStat
 			if badReq, ok := err.(*errors.BadRequestError); ok {
 				return badReq
 			}
-			return &errors.InternalServerError{Message: err.Error()}
+			return err
 		}
 		return nil
 	}
@@ -92,26 +159,20 @@ func (s *supplierReturnService) UpdateStatus(req *dto_supplier_return.UpdateStat
 		return &errors.BadRequestError{Message: "Catatan penolakan wajib diisi"}
 	}
 
-	if err := s.repo.UpdateStatus(req.ID, req.Status, req.Notes); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.UpdateStatus(req.ID, req.Status, req.Notes)
 }
 
 func (s *supplierReturnService) Delete(id int) error {
-	current, err := s.repo.GetStatus(id)
+	exists, err := s.repo.GetStatus(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-	if current == "" {
+	if exists == "" {
 		return &errors.NotFoundError{Message: "Retur supplier tidak ditemukan"}
 	}
-	if current == "approved" {
+	if exists == "approved" {
 		return &errors.BadRequestError{Message: "Retur yang sudah approved tidak bisa dihapus"}
 	}
 
-	if err := s.repo.Delete(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Delete(id)
 }

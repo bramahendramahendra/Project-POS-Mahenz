@@ -5,7 +5,7 @@ import (
 	"pos_api/errors"
 )
 
-func (s *productService) GetPricesByProduct(productID int) (data []*dto.ProductPriceResponse, err error) {
+func (s *productService) GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error) {
 	exists, err := s.repo.GetByID(productID)
 	if err != nil {
 		return data, err
@@ -20,7 +20,7 @@ func (s *productService) GetPricesByProduct(productID int) (data []*dto.ProductP
 	}
 
 	for _, v := range dataDB {
-		data = append(data, &dto.ProductPriceResponse{
+		data = append(data, &dto.PriceResponse{
 			ID:        v.ID,
 			ProductID: v.ProductID,
 			TierName:  v.TierName,
@@ -32,7 +32,7 @@ func (s *productService) GetPricesByProduct(productID int) (data []*dto.ProductP
 	return data, nil
 }
 
-func (s *productService) SavePrices(req *dto.SaveProductPricesRequest) (err error) {
+func (s *productService) SavePrices(req *dto.SavePriceRequest) (err error) {
 	exists, err := s.repo.GetByID(req.ProductID)
 	if err != nil {
 		return err

@@ -11,15 +11,15 @@ import (
 
 type (
 	ProductServiceInterface interface {
-		GetAll(req *dto.ProductListRequest) (data []dto.ProductResponse, total int64, err error)
-		GetOptions() (data []*dto.ProductOption, err error)
-		Search(req *dto.SearchProductRequest) (data []*dto.ProductSearchResult, err error)
+		GetAll(req *dto.GetAllRequest) (data []dto.ProductResponse, total int64, err error)
+		GetOptions() (data []*dto.GetOptionResponse, err error)
+		Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
 		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
-		Create(req *dto.ProductRequest) (data dto.ProductResponse, err error)
-		Update(req *dto.UpdateProductRequest) (data dto.ProductResponse, err error)
-		Delete(req *dto.DeleteProductRequest) error
-		ToggleStatus(req *dto.ToggleStatusProductRequest) error
+		Create(req *dto.CreateRequest) (data dto.ProductResponse, err error)
+		Update(req *dto.UpdateRequest) (data dto.ProductResponse, err error)
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
 
 		ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error)
 		ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error)
@@ -28,16 +28,16 @@ type (
 		GenerateBarcode() (data dto.GenerateBarcodeResponse, err error)
 		GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error)
 
-		GetPackagesByProduct(productID int) (data []*dto.ProductPackageResponse, err error)
-		SavePackages(req *dto.SaveProductPackagesRequest) error
-		DeletePackage(req *dto.PackageIDUriRequest) error
+		GetPackagesByProduct(productID int) (data []*dto.PackageResponse, err error)
+		SavePackages(req *dto.SavePackageRequest) error
+		DeletePackage(req *dto.DeletePackageRequest) error
 
-		GetPricesByProduct(productID int) (data []*dto.ProductPriceResponse, err error)
-		SavePrices(req *dto.SaveProductPricesRequest) error
+		GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error)
+		SavePrices(req *dto.SavePriceRequest) error
 
-		GetLowStock() (data []*dto.LowStockProduct, err error)
+		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)
-		GetUnitInfos() (data []*dto.UnitInfo, err error)
+		GetUnitInfos() (data []*dto.GetUnitInfoResponse, err error)
 	}
 
 	productService struct {

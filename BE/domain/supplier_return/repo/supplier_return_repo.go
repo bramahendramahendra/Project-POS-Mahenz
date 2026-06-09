@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	dto_supplier_return "pos_api/domain/supplier_return/dto"
-	model_supplier_return "pos_api/domain/supplier_return/model"
+	dto "pos_api/domain/supplier_return/dto"
+	model "pos_api/domain/supplier_return/model"
 	custom_errors "pos_api/errors"
 
 	"gorm.io/gorm"
@@ -23,7 +23,7 @@ const (
 	getPurchaseIDAndAmountQuery   = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
 	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= ? THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 	getReturnByIDQuery            = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
-	getAllReturnsBase              = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
+	getAllReturnsBase             = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
 	countReturnsBase              = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
 	getPurchaseDateQuery          = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
 	getPurchaseItemQtyQuery       = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
@@ -34,15 +34,7 @@ const (
 	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 )
 
-type supplierReturnRepo struct {
-	db *gorm.DB
-}
-
-func NewSupplierReturnRepo(db *gorm.DB) SupplierReturnRepo {
-	return &supplierReturnRepo{db: db}
-}
-
-func (r *supplierReturnRepo) GetAll(req *dto_supplier_return.SupplierReturnListRequest) ([]*dto_supplier_return.SupplierReturnResponse, int, error) {
+func (r *supplierReturnRepo) GetAll(req *dto.SupplierReturnListRequest) ([]*model.SupplierReturnRow, int64, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -67,7 +59,7 @@ func (r *supplierReturnRepo) GetAll(req *dto_supplier_return.SupplierReturnListR
 		countArgs = append(countArgs, req.Status)
 	}
 
-	var total int
+	var total int64
 	if err := r.db.Raw(countReturnsBase+conditions, countArgs...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -90,9 +82,9 @@ func (r *supplierReturnRepo) GetAll(req *dto_supplier_return.SupplierReturnListR
 	}
 	defer rows.Close()
 
-	var items []*dto_supplier_return.SupplierReturnResponse
+	var items []*model.SupplierReturnRow
 	for rows.Next() {
-		var item dto_supplier_return.SupplierReturnResponse
+		var item model.SupplierReturnRow
 		if err := rows.Scan(
 			&item.ID, &item.ReturnCode, &item.PurchaseID, &item.SupplierID, &item.SupplierName,
 			&item.ReturnDate, &item.TotalReturnAmount, &item.Reason, &item.Status, &item.UserName, &item.Notes,
@@ -102,12 +94,12 @@ func (r *supplierReturnRepo) GetAll(req *dto_supplier_return.SupplierReturnListR
 		items = append(items, &item)
 	}
 	if items == nil {
-		items = []*dto_supplier_return.SupplierReturnResponse{}
+		items = []*model.SupplierReturnRow{}
 	}
 	return items, total, nil
 }
 
-func (r *supplierReturnRepo) GetByID(id int) (*dto_supplier_return.SupplierReturnResponse, error) {
+func (r *supplierReturnRepo) GetByID(id int) (*model.SupplierReturnRow, error) {
 	rows, err := r.db.Raw(getReturnByIDQuery, id).Rows()
 	if err != nil {
 		return nil, err
@@ -118,7 +110,7 @@ func (r *supplierReturnRepo) GetByID(id int) (*dto_supplier_return.SupplierRetur
 		return nil, nil
 	}
 
-	var item dto_supplier_return.SupplierReturnResponse
+	var item model.SupplierReturnRow
 	if err := rows.Scan(
 		&item.ID, &item.ReturnCode, &item.PurchaseID, &item.SupplierID, &item.SupplierName,
 		&item.ReturnDate, &item.TotalReturnAmount, &item.Reason, &item.Status,
@@ -132,17 +124,8 @@ func (r *supplierReturnRepo) GetByID(id int) (*dto_supplier_return.SupplierRetur
 	if err != nil {
 		return nil, err
 	}
-	for _, mi := range modelItems {
-		item.Items = append(item.Items, dto_supplier_return.SupplierReturnItemResponse{
-			ID:            mi.ID,
-			ProductID:     mi.ProductID,
-			ProductName:   mi.ProductName,
-			Quantity:      mi.Quantity,
-			Unit:          mi.Unit,
-			PurchasePrice: mi.PurchasePrice,
-			Subtotal:      mi.Subtotal,
-		})
-	}
+	item.Items = modelItems
+
 	return &item, nil
 }
 
@@ -155,16 +138,16 @@ func (r *supplierReturnRepo) GetStatus(id int) (string, error) {
 	return status, nil
 }
 
-func (r *supplierReturnRepo) GetItems(returnID int) ([]model_supplier_return.SupplierReturnItem, error) {
+func (r *supplierReturnRepo) GetItems(returnID int) ([]model.SupplierReturnItem, error) {
 	rows, err := r.db.Raw(getReturnItemsQuery, returnID).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []model_supplier_return.SupplierReturnItem
+	var items []model.SupplierReturnItem
 	for rows.Next() {
-		var item model_supplier_return.SupplierReturnItem
+		var item model.SupplierReturnItem
 		if err := rows.Scan(
 			&item.ID, &item.ProductID, &item.ProductName,
 			&item.Quantity, &item.Unit, &item.PurchasePrice, &item.Subtotal,
@@ -184,7 +167,7 @@ func (r *supplierReturnRepo) GetPurchaseDate(purchaseID int) (string, error) {
 	return purchaseDate, nil
 }
 
-func (r *supplierReturnRepo) Create(req *dto_supplier_return.CreateSupplierReturnRequest) (*dto_supplier_return.SupplierReturnResponse, error) {
+func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
 	var returnID int
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {

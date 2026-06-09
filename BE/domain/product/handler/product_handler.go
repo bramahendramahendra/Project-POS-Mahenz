@@ -22,7 +22,7 @@ func NewProductHandler(service service.ProductServiceInterface) *ProductHandler 
 }
 
 func (h *ProductHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ProductListRequest](c)
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -59,7 +59,7 @@ func (h *ProductHandler) GetOptions(c *gin.Context) {
 }
 
 func (h *ProductHandler) Search(c *gin.Context) {
-	req, err := binder.BindJSON[dto.SearchProductRequest](c)
+	req, err := binder.BindJSON[dto.SearchRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -85,7 +85,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 }
 
 func (h *ProductHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetProductByIDRequest](c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -111,7 +111,7 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 }
 
 func (h *ProductHandler) GetByBarcode(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetProductByBarcodeRequest](c)
+	req, err := binder.BindURI[dto.GetByBarcodeRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -137,7 +137,7 @@ func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 }
 
 func (h *ProductHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ProductRequest](c)
+	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -163,13 +163,13 @@ func (h *ProductHandler) Create(c *gin.Context) {
 }
 
 func (h *ProductHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateProductUriRequest](c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.UpdateProductRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -196,7 +196,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 }
 
 func (h *ProductHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.DeleteProductRequest](c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -220,7 +220,7 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 }
 
 func (h *ProductHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.ToggleStatusProductRequest](c)
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return

@@ -1,15 +1,28 @@
 package service
 
-import dto_purchase "pos_api/domain/supplier_purchase/dto"
+import (
+	dto "pos_api/domain/supplier_purchase/dto"
+	repo "pos_api/domain/supplier_purchase/repo"
+)
 
-type PurchaseService interface {
-	GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error)
-	GetByID(id int) (*dto_purchase.PurchaseResponse, error)
-	GetItems(purchaseID int) ([]dto_purchase.PurchaseItemResponse, error)
-	GenerateCode() (*dto_purchase.GeneratePurchaseCodeResponse, error)
-	Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
-	Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error)
-	Delete(id int) error
-	Pay(req *dto_purchase.PayPurchaseRequest) error
-	GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error)
+type (
+	PurchaseService interface {
+		GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error)
+		GetByID(id int) (data dto.PurchaseResponse, err error)
+		GetItems(purchaseID int) (data []*dto.PurchaseItemResponse, err error)
+		GenerateCode() (data dto.GenerateCodeResponse, err error)
+		Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error)
+		Update(req *dto.UpdateRequest) (data dto.PurchaseResponse, err error)
+		Delete(id int) error
+		Pay(req *dto.PayRequest) error
+		GetPayments(purchaseID int) (data []*dto.PaymentResponse, err error)
+	}
+
+	purchaseService struct {
+		repo repo.PurchaseRepo
+	}
+)
+
+func NewPurchaseService(repo repo.PurchaseRepo) *purchaseService {
+	return &purchaseService{repo: repo}
 }

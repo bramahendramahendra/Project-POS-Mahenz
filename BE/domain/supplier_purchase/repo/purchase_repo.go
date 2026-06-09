@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	dto_purchase "pos_api/domain/supplier_purchase/dto"
-	model_purchase "pos_api/domain/supplier_purchase/model"
+	dto "pos_api/domain/supplier_purchase/dto"
+	model "pos_api/domain/supplier_purchase/model"
 
 	"gorm.io/gorm"
 )
@@ -32,15 +32,7 @@ const (
 	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
 )
 
-type purchaseRepo struct {
-	db *gorm.DB
-}
-
-func NewPurchaseRepo(db *gorm.DB) PurchaseRepo {
-	return &purchaseRepo{db: db}
-}
-
-func (r *purchaseRepo) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_purchase.PurchaseResponse, int, error) {
+func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -65,7 +57,7 @@ func (r *purchaseRepo) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_pur
 		countArgs = append(countArgs, req.PaymentStatus)
 	}
 
-	var total int
+	var total int64
 	if err := r.db.Raw(countPurchasesBase+conditions, countArgs...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -88,9 +80,9 @@ func (r *purchaseRepo) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_pur
 	}
 	defer rows.Close()
 
-	var items []*dto_purchase.PurchaseResponse
+	var items []*model.PurchaseRow
 	for rows.Next() {
-		var item dto_purchase.PurchaseResponse
+		var item model.PurchaseRow
 		if err := rows.Scan(
 			&item.ID, &item.PurchaseCode, &item.InvoiceNumber, &item.SupplierID, &item.SupplierName,
 			&item.PurchaseDate, &item.DiscountAmount, &item.TotalAmount, &item.PaymentStatus,
@@ -101,12 +93,12 @@ func (r *purchaseRepo) GetAll(req *dto_purchase.PurchaseListRequest) ([]*dto_pur
 		items = append(items, &item)
 	}
 	if items == nil {
-		items = []*dto_purchase.PurchaseResponse{}
+		items = []*model.PurchaseRow{}
 	}
 	return items, total, nil
 }
 
-func (r *purchaseRepo) GetByID(id int) (*dto_purchase.PurchaseResponse, error) {
+func (r *purchaseRepo) GetByID(id int) (*model.PurchaseRow, error) {
 	rows, err := r.db.Raw(getPurchaseByIDQuery, id).Rows()
 	if err != nil {
 		return nil, err
@@ -117,7 +109,7 @@ func (r *purchaseRepo) GetByID(id int) (*dto_purchase.PurchaseResponse, error) {
 		return nil, nil
 	}
 
-	var item dto_purchase.PurchaseResponse
+	var item model.PurchaseRow
 	if err := rows.Scan(
 		&item.ID, &item.PurchaseCode, &item.InvoiceNumber, &item.SupplierID, &item.SupplierName,
 		&item.PurchaseDate, &item.DiscountAmount, &item.TotalAmount, &item.PaymentStatus,
@@ -131,23 +123,13 @@ func (r *purchaseRepo) GetByID(id int) (*dto_purchase.PurchaseResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, mi := range modelItems {
-		item.Items = append(item.Items, dto_purchase.PurchaseItemResponse{
-			ID:            mi.ID,
-			ProductID:     mi.ProductID,
-			ProductName:   mi.ProductName,
-			Quantity:      mi.Quantity,
-			Unit:          mi.Unit,
-			ConversionQty: mi.ConversionQty,
-			PurchasePrice: mi.PurchasePrice,
-			Subtotal:      mi.Subtotal,
-		})
-	}
+	item.Items = modelItems
+
 	return &item, nil
 }
 
-func (r *purchaseRepo) GetRawByID(id int) (*model_purchase.Purchase, error) {
-	var p model_purchase.Purchase
+func (r *purchaseRepo) GetRawByID(id int) (*model.Purchase, error) {
+	var p model.Purchase
 	result := r.db.Raw(getRawPurchaseByIDQuery, id).Scan(&p)
 	if result.Error != nil {
 		return nil, result.Error
@@ -158,16 +140,16 @@ func (r *purchaseRepo) GetRawByID(id int) (*model_purchase.Purchase, error) {
 	return &p, nil
 }
 
-func (r *purchaseRepo) GetItems(purchaseID int) ([]model_purchase.PurchaseItem, error) {
+func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 	rows, err := r.db.Raw(getPurchaseItemsQuery, purchaseID).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []model_purchase.PurchaseItem
+	var items []model.PurchaseItem
 	for rows.Next() {
-		var item model_purchase.PurchaseItem
+		var item model.PurchaseItem
 		if err := rows.Scan(
 			&item.ID, &item.ProductID, &item.ProductName,
 			&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
@@ -179,23 +161,23 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model_purchase.PurchaseItem, 
 	return items, nil
 }
 
-func (r *purchaseRepo) GetPayments(purchaseID int) ([]dto_purchase.PurchasePaymentResponse, error) {
+func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, error) {
 	rows, err := r.db.Raw(getPaymentsQuery, purchaseID).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_purchase.PurchasePaymentResponse
+	var items []model.PurchasePayment
 	for rows.Next() {
-		var item dto_purchase.PurchasePaymentResponse
+		var item model.PurchasePayment
 		if err := rows.Scan(&item.ID, &item.PaymentDate, &item.Amount, &item.PaymentMethod, &item.Notes, &item.UserName, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_purchase.PurchasePaymentResponse{}
+		items = []model.PurchasePayment{}
 	}
 	return items, nil
 }
@@ -209,7 +191,7 @@ func (r *purchaseRepo) GenerateCode() (string, error) {
 	return fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1), nil
 }
 
-func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error) {
 	var purchaseID int
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
@@ -309,7 +291,7 @@ func (r *purchaseRepo) Create(req *dto_purchase.PurchaseRequest) (*dto_purchase.
 	return r.GetByID(purchaseID)
 }
 
-func (r *purchaseRepo) Update(req *dto_purchase.PurchaseRequest) (*dto_purchase.PurchaseResponse, error) {
+func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		oldItems, err := r.GetItems(req.ID)
 		if err != nil {
@@ -405,7 +387,7 @@ func (r *purchaseRepo) IsValidPaymentMethod(code string) (bool, error) {
 	return count > 0, nil
 }
 
-func (r *purchaseRepo) Pay(req *dto_purchase.PayPurchaseRequest) error {
+func (r *purchaseRepo) Pay(req *dto.PayRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(payPurchaseQuery, req.Amount, req.Amount, req.Amount, req.Amount, req.ID).Error; err != nil {
 			return err
