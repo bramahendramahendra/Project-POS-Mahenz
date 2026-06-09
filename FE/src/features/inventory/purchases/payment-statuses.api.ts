@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 
 import type { PaymentStatusOption } from './payment-statuses.types'
 

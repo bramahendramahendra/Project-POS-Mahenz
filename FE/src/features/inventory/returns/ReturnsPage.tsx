@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
-import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
-import { useProductListQuery } from '@/features/inventory/products/products.api'
+import { useSupplierListQuery } from '@/features/inventory/suppliers'
+import { useProductListQuery } from '@/features/inventory/products'
 
 import { useSupplierReturnsQuery, useDeleteSupplierReturnMutation } from './returns.api'
 import type { SupplierReturn, SupplierReturnFilter } from './returns.types'
@@ -51,7 +51,7 @@ export function ReturnsPage() {
   const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page: 1, limit: 1, search: '' })
   const suppliers = suppliersData?.data ?? []
   const hasSuppliers = suppliers.length > 0
-    const hasProducts = (productsData?.total ?? 0) > 0
+  const hasProducts = (productsData?.total ?? 0) > 0
 
   const filter: SupplierReturnFilter = {
     date_from: dateFrom || undefined,
@@ -59,13 +59,13 @@ export function ReturnsPage() {
     supplier_id: supplierId,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     page,
-    page_size: pageSize,
+    limit: pageSize,
   }
 
   const { data, isLoading } = useSupplierReturnsQuery(filter)
   const { mutate: deleteReturn, isPending: isDeleting } = useDeleteSupplierReturnMutation()
 
-  const returns = data?.items ?? []
+  const returns = data?.data ?? []
   const total = data?.total ?? 0
 
   function handleDetail(row: SupplierReturn) {
@@ -78,7 +78,7 @@ export function ReturnsPage() {
     openDelete()
   }
 
-  function confirmDelete() {
+  const handleConfirmDelete = () => {
     if (!deletingId) return
     deleteReturn(deletingId, {
       onSuccess: () => {
@@ -245,7 +245,7 @@ export function ReturnsPage() {
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={confirmDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )

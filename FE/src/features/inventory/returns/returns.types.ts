@@ -29,7 +29,12 @@ export interface SupplierReturnFilter {
   supplier_id?: number
   status?: string
   page?: number
-  page_size?: number
+  limit?: number
+}
+
+export interface UpdateReturnStatusPayload {
+  status: 'approved' | 'rejected'
+  notes?: string
 }
 
 export interface CreateSupplierReturnItemPayload {

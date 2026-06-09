@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
-import { useSupplierListQuery } from '@/features/inventory/suppliers/suppliers.api'
-import { useProductListQuery } from '@/features/inventory/products/products.api'
+import { useSupplierListQuery } from '@/features/inventory/suppliers'
+import { useProductListQuery } from '@/features/inventory/products'
 
 import {
   useSupplierPurchasesQuery,
@@ -57,7 +57,7 @@ export function PurchasesPage() {
   const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page: 1, limit: 1, search: '' })
   const suppliers = suppliersData?.data ?? []
   const hasSuppliers = suppliers.length > 0
-    const hasProducts = (productsData?.total ?? 0) > 0
+  const hasProducts = (productsData?.total ?? 0) > 0
 
   const filter: SupplierPurchaseFilter = {
     start_date: dateFrom || undefined,
@@ -89,7 +89,7 @@ export function PurchasesPage() {
     openDetail()
   }
 
-  function confirmDelete() {
+  const handleConfirmDelete = () => {
     if (!deletingId) return
     deletePurchase(deletingId, {
       onSuccess: () => {
@@ -272,7 +272,7 @@ export function PurchasesPage() {
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={confirmDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )

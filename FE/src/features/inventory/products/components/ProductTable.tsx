@@ -407,9 +407,16 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
         columns={columns}
         data={products as (Product & Record<string, unknown>)[]}
         isLoading={isLoading}
-        emptyMessage="Belum ada produk"
-        emptyDescription="Tambah produk pertama Anda untuk memulai."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        emptyMessage={filter.search || filter.category_id || filter.is_active !== undefined ? 'Produk tidak ditemukan' : 'Belum ada produk'}
+        emptyDescription={filter.search || filter.category_id || filter.is_active !== undefined ? 'Coba ubah filter atau kata kunci pencarian Anda.' : 'Tambah produk pertama Anda untuk memulai.'}
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange,
+          onPageSizeChange,
+          pageSizeOptions,
+        }}
         rowSelection={{
           enabled: true,
           rowKey: 'id',

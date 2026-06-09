@@ -108,4 +108,17 @@ export const queryKeys = {
     detail: (id: number) => ['cashDrawer', 'detail', id] as const,
     summary: (filter?: Filter) => ['cashDrawer', 'summary', filter] as const,
   },
+
+  supplierPurchases: {
+    all: () => ['supplierPurchases'] as const,
+    list: (filter?: Filter) => ['supplierPurchases', 'list', filter] as const,
+    detail: (id: number) => ['supplierPurchases', 'detail', id] as const,
+    payments: (id: number) => ['supplierPurchases', 'detail', id, 'payments'] as const,
+  },
+
+  supplierReturns: {
+    all: () => ['supplierReturns'] as const,
+    list: (filter?: Filter) => ['supplierReturns', 'list', filter] as const,
+    detail: (id: number) => ['supplierReturns', 'detail', id] as const,
+  },
 }
