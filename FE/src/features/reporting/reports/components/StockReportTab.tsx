@@ -35,9 +35,9 @@ export function StockReportTab() {
   }
 
   const { data, isLoading } = useStockReportQuery(filter)
-  const items: StockReport[] = data?.data?.items ?? []
-  const total = data?.data?.total ?? 0
-  const totalStockValue = data?.data?.total_stock_value ?? 0
+  const items: StockReport[] = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalStockValue = data?.total_stock_value ?? 0
 
   const columns: ColumnDef<StockReport>[] = [
     {

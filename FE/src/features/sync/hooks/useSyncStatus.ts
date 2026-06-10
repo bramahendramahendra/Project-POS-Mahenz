@@ -7,7 +7,7 @@ const CONFLICT_TOAST_KEY = 'sync_conflict_notified_count'
 
 export function useSyncStatus() {
   const { data } = useSyncStatusQuery()
-  const conflictCount = data?.data?.count ?? 0
+  const conflictCount = data?.count ?? 0
 
   useEffect(() => {
     if (conflictCount > 0) {

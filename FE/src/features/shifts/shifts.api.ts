@@ -1,30 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { PaginatedResponse } from '@/shared/types'
+import type { PaginatedData } from '@/shared/types'
 
-import type { CloseShiftPayload, OpenShiftPayload, Shift, ShiftFilter } from './shifts.types'
+import type { CloseShiftPayload, OpenShiftPayload, Shift, ShiftListFilter } from './shifts.types'
 
-export function useShiftListQuery(filter?: ShiftFilter) {
+export function useShiftListQuery(filter?: ShiftListFilter) {
   return useQuery({
     queryKey: queryKeys.shifts.list(filter as Record<string, unknown>),
-    queryFn: () => api.get<PaginatedResponse<Shift>>('/shifts', filter),
+    queryFn: () => api.post<PaginatedData<Shift>>('/shifts/list', filter ?? {}),
   })
 }
 
 export function useActiveShiftQuery() {
   return useQuery({
     queryKey: queryKeys.shifts.active(),
-    queryFn: () => api.get<Shift | null>('/shifts/active'),
+    queryFn: () => api.post<Shift | null>('/shifts/active', {}),
   })
 }
 
 export function useShiftDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.shifts.detail(id),
-    queryFn: () => api.get<Shift>(`/shifts/${id}`),
+    queryFn: () => api.post<Shift>(`/shifts/detail/${id}`, {}),
     enabled: id > 0,
   })
 }
@@ -32,7 +32,7 @@ export function useShiftDetailQuery(id: number) {
 export function useOpenShiftMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: OpenShiftPayload) => api.post<Shift>('/shifts/open', payload),
+    mutationFn: (payload: OpenShiftPayload) => api.post<Shift>('/shifts/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
       qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })
@@ -46,7 +46,7 @@ export function useCloseShiftMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: CloseShiftPayload }) =>
-      api.post<Shift>(`/shifts/${id}/close`, payload),
+      api.post<Shift>(`/shifts/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
       qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })

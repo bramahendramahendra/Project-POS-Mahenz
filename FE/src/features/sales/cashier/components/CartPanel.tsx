@@ -27,7 +27,7 @@ export function CartPanel() {
     useCashierStore()
 
   const { data: customerData } = useCustomerListQuery()
-  const customers = customerData?.data?.data ?? []
+  const customers = customerData?.data ?? []
   const summary = calcCartSummary(cart, discount, tax)
   const itemCount = cart.reduce((s, i) => s + i.qty, 0)
 

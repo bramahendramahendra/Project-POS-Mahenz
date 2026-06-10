@@ -74,7 +74,7 @@ export function ProfitLossTab() {
     date_to: dateTo || undefined,
   })
 
-  const report = data?.data
+  const report = data
 
   return (
     <div className="space-y-4">

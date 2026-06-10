@@ -1,14 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { ApiResponse } from '@/shared/types'
 import type { Product } from '@/features/inventory/products'
 
 import type { CheckoutResponse, PaymentPayload, ProductSearchResult } from './cashier.types'
-
-// ─── Queries ─────────────────────────────────────────────────────────────────
 
 export function useProductSearchQuery(keyword: string, enabled: boolean) {
   return useQuery({
@@ -21,7 +18,7 @@ export function useProductSearchQuery(keyword: string, enabled: boolean) {
 export function useProductBarcodeSearchQuery(code: string, enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.get<Product>(`/products/barcode/${code}`),
+    queryFn: () => api.post<Product>(`/products/by-barcode/${code}`, {}),
     enabled: enabled && code.length > 0,
   })
 }
@@ -33,14 +30,13 @@ export function useCustomerCreditQuery(customerId: number | null) {
   return useQuery({
     queryKey: ['customers', 'credit', customerId],
     queryFn: () =>
-      api.get<ApiResponse<{ id: number; name: string; credit_limit: number; outstanding_amount: number }>>(
-        `/customers/${customerId}`
+      api.post<{ id: number; name: string; credit_limit: number; outstanding_amount: number }>(
+        `/customers/detail/${customerId}`,
+        {}
       ),
     enabled: customerId !== null && customerId > 0,
   })
 }
-
-// ─── Mutations ────────────────────────────────────────────────────────────────
 
 export function useCheckoutMutation() {
   const qc = useQueryClient()

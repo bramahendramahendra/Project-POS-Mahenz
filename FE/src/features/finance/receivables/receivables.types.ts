@@ -22,11 +22,11 @@ export interface Receivable {
   created_at: string
 }
 
-export interface ReceivableFilter {
+export interface ReceivableListFilter {
+  page: number
+  limit: number
   search?: string
   status?: ReceivableStatus | ''
-  page?: number
-  page_size?: number
 }
 
 export interface CreatePaymentPayload {

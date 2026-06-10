@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react'
 
-import { DataTable } from '@/shared/components'
+import { ROLES } from '@/shared/constants'
+import { DataTable, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef, PaginationProps } from '@/shared/components/DataTable/DataTable.types'
@@ -20,6 +21,14 @@ const CATEGORY_LABEL: Record<string, string> = {
   pembelian: 'Pembelian',
   gaji: 'Gaji',
   lainnya: 'Lainnya',
+}
+
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  cash: 'Tunai',
+  transfer: 'Transfer',
+  card: 'Kartu',
+  qris: 'QRIS',
+  kredit: 'Kredit',
 }
 
 function formatDate(dateStr: string): string {
@@ -52,6 +61,15 @@ export function ExpenseTable({ data, isLoading, pagination, onEdit, onDelete }: 
       cell: (row) => <span className="text-sm text-gray-700">{row.description}</span>,
     },
     {
+      key: 'payment_method',
+      header: 'Metode',
+      cell: (row) => (
+        <span className="text-sm text-gray-600">
+          {PAYMENT_METHOD_LABEL[row.payment_method] ?? row.payment_method}
+        </span>
+      ),
+    },
+    {
       key: 'amount',
       header: 'Jumlah',
       align: 'right',
@@ -60,22 +78,37 @@ export function ExpenseTable({ data, isLoading, pagination, onEdit, onDelete }: 
       ),
     },
     {
-      key: 'created_by_name',
+      key: 'user_name',
       header: 'Kasir',
-      cell: (row) => <span className="text-sm text-gray-500">{row.created_by_name}</span>,
+      cell: (row) => <span className="text-sm text-gray-500">{row.user_name}</span>,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Aksi',
       align: 'center',
+      width: '100px',
       cell: (row) => (
-        <div className="flex gap-1 justify-center">
-          <Button variant="ghost" size="sm" onClick={() => onEdit(row)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
+        <div className="flex items-center justify-center gap-1">
+          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-500 hover:text-blue-600"
+              onClick={() => onEdit(row)}
+              title="Edit"
+            >
+              <Pencil size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-500 hover:text-red-600"
+              onClick={() => onDelete(row)}
+              title="Hapus"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </RoleGuard>
         </div>
       ),
     },

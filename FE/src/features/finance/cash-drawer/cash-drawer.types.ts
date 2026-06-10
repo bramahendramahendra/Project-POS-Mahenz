@@ -16,11 +16,12 @@ export interface CashDrawer {
   closed_by_name?: string
 }
 
-export interface CashDrawerFilter {
-  date_from?: string
-  date_to?: string
-  page?: number
-  page_size?: number
+export interface CashDrawerListFilter {
+  page: number
+  limit: number
+  start_date?: string
+  end_date?: string
+  status?: string
   [key: string]: unknown
 }
 

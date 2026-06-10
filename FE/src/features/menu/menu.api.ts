@@ -13,28 +13,25 @@ import type {
   UpdateMenuPayload,
 } from './menu.types'
 
-// GET /menus/my — menu tree untuk user yang sedang login
 export function useMyMenusQuery() {
   return useQuery({
     queryKey: queryKeys.menus.my(),
-    queryFn: () => api.get<MenuItem[]>('/menus/my'),
-    staleTime: 10 * 60 * 1000, // 10 menit — menu jarang berubah
+    queryFn: () => api.post<MenuItem[]>('/menus/my', {}),
+    staleTime: 10 * 60 * 1000,
   })
 }
 
-// GET /menus — daftar semua menu (admin)
 export function useMenuListQuery(filter?: MenuFilter) {
   return useQuery({
     queryKey: queryKeys.menus.list(filter),
-    queryFn: () => api.get<MenuResponse[]>('/menus', filter),
+    queryFn: () => api.post<MenuResponse[]>('/menus/list', filter ?? {}),
   })
 }
 
-// GET /menus/:id
 export function useMenuDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.menus.detail(id),
-    queryFn: () => api.get<MenuResponse>(`/menus/${id}`),
+    queryFn: () => api.post<MenuResponse>(`/menus/detail/${id}`, {}),
     enabled: id > 0,
   })
 }
@@ -42,7 +39,7 @@ export function useMenuDetailQuery(id: number) {
 export function useCreateMenuMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateMenuPayload) => api.post<MenuResponse>('/menus', payload),
+    mutationFn: (payload: CreateMenuPayload) => api.post<MenuResponse>('/menus/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
       toast.success('Menu berhasil ditambahkan')
@@ -55,7 +52,7 @@ export function useUpdateMenuMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateMenuPayload & { id: number }) =>
-      api.put<MenuResponse>(`/menus/${id}`, payload),
+      api.post<MenuResponse>(`/menus/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
       toast.success('Menu berhasil diperbarui')
@@ -67,7 +64,7 @@ export function useUpdateMenuMutation() {
 export function useDeleteMenuMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/menus/${id}`),
+    mutationFn: (id: number) => api.post(`/menus/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
       toast.success('Menu berhasil dihapus')
@@ -79,7 +76,7 @@ export function useDeleteMenuMutation() {
 export function useReorderMenuMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: ReorderMenuPayload) => api.patch('/menus/reorder', payload),
+    mutationFn: (payload: ReorderMenuPayload) => api.post('/menus/reorder', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
       toast.success('Urutan menu berhasil diperbarui')

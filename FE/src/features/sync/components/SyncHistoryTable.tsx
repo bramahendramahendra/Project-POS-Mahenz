@@ -35,8 +35,8 @@ export function SyncHistoryTable() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
   const { data, isLoading } = useSyncHistoryQuery({ page, page_size: PAGE_SIZE })
-  const rows = data?.data?.data ?? []
-  const total = data?.data?.total ?? 0
+  const rows = data?.data ?? []
+  const total = data?.total ?? 0
 
   const pagination: PaginationProps = { page, pageSize: PAGE_SIZE, total, onPageChange: setPage }
 

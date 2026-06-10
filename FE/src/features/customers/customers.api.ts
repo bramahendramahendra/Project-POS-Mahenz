@@ -1,38 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { PaginatedResponse } from '@/shared/types'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreateCustomerPayload,
   Customer,
-  CustomerFilter,
+  CustomerListFilter,
   UpdateCustomerPayload,
 } from './customers.types'
 
-export function useCustomerListQuery(filter?: CustomerFilter) {
+export function useCustomerListQuery(filter: CustomerListFilter) {
   return useQuery({
     queryKey: queryKeys.customers.list(filter as Record<string, unknown>),
-    queryFn: () => api.get<PaginatedResponse<Customer>>('/customers', filter),
-  })
-}
-
-export function useCustomerDetailQuery(id: number) {
-  return useQuery({
-    queryKey: queryKeys.customers.detail(id),
-    queryFn: () => api.get<Customer>(`/customers/${id}`),
-    enabled: id > 0,
+    queryFn: () => api.post<PaginatedData<Customer>>('/customers/list', filter),
   })
 }
 
 export function useCreateCustomerMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateCustomerPayload) => api.post<Customer>('/customers', payload),
+    mutationFn: (payload: CreateCustomerPayload) =>
+      api.post<Customer>('/customers/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
+      toast.success('Pelanggan berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -42,10 +36,10 @@ export function useUpdateCustomerMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateCustomerPayload & { id: number }) =>
-      api.put<Customer>(`/customers/${id}`, payload),
-    onSuccess: (_, { id }) => {
+      api.post<Customer>(`/customers/update/${id}`, payload),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
-      qc.invalidateQueries({ queryKey: queryKeys.customers.detail(id) })
+      toast.success('Pelanggan berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -54,9 +48,10 @@ export function useUpdateCustomerMutation() {
 export function useDeleteCustomerMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete<void>(`/customers/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/customers/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
+      toast.success('Pelanggan berhasil dihapus')
     },
     onError: (e: Error) => toast.error(e.message),
   })

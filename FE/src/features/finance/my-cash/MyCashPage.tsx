@@ -59,7 +59,7 @@ const columns: ColumnDef<MyCashTransaction>[] = [
 
 export function MyCashPage() {
   const { data, isLoading } = useMyCashQuery()
-  const myCash = data?.data
+  const myCash = data
   const transactions: MyCashTransaction[] = myCash?.transactions ?? []
 
   return (

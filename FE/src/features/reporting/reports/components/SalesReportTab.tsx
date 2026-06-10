@@ -95,9 +95,9 @@ export function SalesReportTab() {
   }
 
   const { data, isLoading } = useSalesReportQuery(filter)
-  const items: SalesReport[] = data?.data?.items ?? []
-  const total = data?.data?.total ?? 0
-  const summary = data?.data?.summary
+  const items: SalesReport[] = data?.items ?? []
+  const total = data?.total ?? 0
+  const summary = data?.summary
 
   const columns: ColumnDef<SalesReport>[] = [
     {

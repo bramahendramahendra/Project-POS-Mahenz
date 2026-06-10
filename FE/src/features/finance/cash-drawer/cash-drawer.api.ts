@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { ApiResponse, PaginatedResponse } from '@/shared/types'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CashDrawer,
-  CashDrawerFilter,
+  CashDrawerListFilter,
   CashDrawerSummary,
   CloseCashDrawerBody,
   CurrentCashDrawer,
@@ -17,21 +17,21 @@ import type {
 export function useCashDrawerCurrentQuery() {
   return useQuery({
     queryKey: queryKeys.cashDrawer.current(),
-    queryFn: () => api.get<ApiResponse<CurrentCashDrawer | null>>('/cash-drawer/current'),
+    queryFn: () => api.post<CurrentCashDrawer | null>('/cash-drawer/current', {}),
   })
 }
 
-export function useCashDrawerListQuery(filter?: CashDrawerFilter) {
+export function useCashDrawerListQuery(filter?: CashDrawerListFilter) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.list(filter),
-    queryFn: () => api.get<PaginatedResponse<CashDrawer>>('/cash-drawer', filter),
+    queryFn: () => api.post<PaginatedData<CashDrawer>>('/cash-drawer/list', filter ?? {}),
   })
 }
 
 export function useCashDrawerDetailQuery(id: number | null) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.detail(id ?? 0),
-    queryFn: () => api.get<ApiResponse<CashDrawer>>(`/cash-drawer/${id}`),
+    queryFn: () => api.post<CashDrawer>(`/cash-drawer/detail/${id}`, {}),
     enabled: id !== null,
   })
 }
@@ -52,7 +52,7 @@ export function useCloseCashDrawerMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, closing_balance, notes }: CloseCashDrawerBody & { id: number }) =>
-      api.post<void>(`/cash-drawer/${id}/close`, { closing_balance, notes }),
+      api.post<void>(`/cash-drawer/close/${id}`, { closing_balance, notes }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       toast.success('Kas berhasil ditutup')
@@ -61,9 +61,9 @@ export function useCloseCashDrawerMutation() {
   })
 }
 
-export function useCashDrawerSummaryQuery(filter?: { date_from?: string; date_to?: string }) {
+export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.summary(filter),
-    queryFn: () => api.get<ApiResponse<CashDrawerSummary>>('/cash-drawer/summary', filter),
+    queryFn: () => api.post<CashDrawerSummary>('/cash-drawer/summary', filter ?? {}),
   })
 }

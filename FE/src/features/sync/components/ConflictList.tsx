@@ -4,8 +4,7 @@ import { ConfirmDialog } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
 import {
-  useApproveConflictMutation,
-  useRejectConflictMutation,
+  useResolveConflictMutation,
   useSyncConflictsQuery,
 } from '../sync.api'
 import type { SyncConflict } from '../sync.types'
@@ -76,8 +75,9 @@ function ConflictCard({ conflict }: { conflict: SyncConflict }) {
   const [approveOpen, setApproveOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
 
-  const { mutate: approve, isPending: isApproving } = useApproveConflictMutation()
-  const { mutate: reject, isPending: isRejecting } = useRejectConflictMutation()
+  const { mutate: resolve, isPending: isResolving } = useResolveConflictMutation()
+  const isApproving = isResolving
+  const isRejecting = isResolving
 
   return (
     <div className="rounded-xl border border-orange-200 bg-white p-4 space-y-2">
@@ -124,7 +124,7 @@ function ConflictCard({ conflict }: { conflict: SyncConflict }) {
         description={`Data server akan digunakan untuk "${conflict.entity_name}". Data lokal akan dibuang. Lanjutkan?`}
         confirmLabel="Terima Server"
         isLoading={isApproving}
-        onConfirm={() => approve(conflict.id, { onSuccess: () => setApproveOpen(false) })}
+        onConfirm={() => resolve({ id: conflict.id, action: 'approve' }, { onSuccess: () => setApproveOpen(false) })}
       />
       <ConfirmDialog
         open={rejectOpen}
@@ -134,7 +134,7 @@ function ConflictCard({ conflict }: { conflict: SyncConflict }) {
         confirmLabel="Pakai Data Lokal"
         variant="destructive"
         isLoading={isRejecting}
-        onConfirm={() => reject(conflict.id, { onSuccess: () => setRejectOpen(false) })}
+        onConfirm={() => resolve({ id: conflict.id, action: 'reject' }, { onSuccess: () => setRejectOpen(false) })}
       />
     </div>
   )

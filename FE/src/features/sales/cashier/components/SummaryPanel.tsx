@@ -24,7 +24,7 @@ export function SummaryPanel() {
     useCashierStore()
 
   const { data: customerData } = useCustomerListQuery()
-  const customers = customerData?.data?.data ?? []
+  const customers = customerData?.data ?? []
   const summary = calcCartSummary(cart, discount, tax)
 
   return (

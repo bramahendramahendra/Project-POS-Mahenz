@@ -54,7 +54,7 @@ export function CashDrawerSummaryTab() {
   }
 
   const { data, isLoading } = useCashDrawerSummaryQuery(filter)
-  const summary = data?.data
+  const summary = data
 
   return (
     <div className="space-y-6">

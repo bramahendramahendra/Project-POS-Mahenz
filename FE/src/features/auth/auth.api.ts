@@ -37,7 +37,7 @@ export function useLoginMutation() {
 
       // Fetch menu akses langsung setelah login
       try {
-        const menus = await api.get<MenuItem[]>('/menus/my')
+        const menus = await api.post<MenuItem[]>('/menus/my', {})
         setMenus(menus)
       } catch {
         // Menu gagal diambil tidak menghentikan login
@@ -80,7 +80,7 @@ export function useGetMeQuery() {
 
   return useQuery({
     queryKey: queryKeys.auth.profile(),
-    queryFn: () => api.get<AuthUser>('/auth/me'),
+    queryFn: () => api.post<AuthUser>('/auth/me', {}),
     enabled: isAuthenticated,
   })
 }

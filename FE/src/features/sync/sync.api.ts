@@ -1,17 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { PaginatedResponse } from '@/shared/types'
+import type { PaginatedData } from '@/shared/types'
 
-import type { ApiResponse } from '@/shared/types'
 import type { SyncConflict, SyncFilter, SyncHistoryItem } from './sync.types'
 
 export function useSyncStatusQuery() {
   return useQuery({
     queryKey: queryKeys.sync.status(),
-    queryFn: () => api.get<ApiResponse<{ count: number }>>('/sync/conflicts/count'),
+    queryFn: () => api.get<{ count: number }>('/sync/conflicts/count'),
     refetchInterval: 30_000,
   })
 }
@@ -19,7 +18,7 @@ export function useSyncStatusQuery() {
 export function useSyncHistoryQuery(filter?: SyncFilter) {
   return useQuery({
     queryKey: queryKeys.sync.history(),
-    queryFn: () => api.get<PaginatedResponse<SyncHistoryItem>>('/sync/history', filter),
+    queryFn: () => api.get<PaginatedData<SyncHistoryItem>>('/sync/history', filter),
   })
 }
 
@@ -30,27 +29,15 @@ export function useSyncConflictsQuery() {
   })
 }
 
-export function useApproveConflictMutation() {
+export function useResolveConflictMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/sync/conflicts/${id}/approve`),
+    mutationFn: ({ id, action }: { id: number; action: 'approve' | 'reject' }) =>
+      api.post<void>(`/sync/conflicts/${id}/resolve`, { action }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sync.conflicts() })
       qc.invalidateQueries({ queryKey: queryKeys.sync.status() })
-      toast.success('Konflik diselesaikan — data server dipakai')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useRejectConflictMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/sync/conflicts/${id}/reject`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.sync.conflicts() })
-      qc.invalidateQueries({ queryKey: queryKeys.sync.status() })
-      toast.success('Konflik diselesaikan — data lokal dipakai')
+      toast.success('Konflik berhasil diselesaikan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -59,7 +46,7 @@ export function useRejectConflictMutation() {
 export function useTriggerSyncMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post<void>('/sync/trigger'),
+    mutationFn: () => api.post<void>('/sync/push', {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sync.status() })
       qc.invalidateQueries({ queryKey: queryKeys.sync.history() })

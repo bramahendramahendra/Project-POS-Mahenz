@@ -17,7 +17,7 @@ import { ROLES } from '@/shared/constants/roles'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useCashDrawerCurrentQuery, useCashDrawerListQuery, useCloseCashDrawerMutation } from './cash-drawer.api'
-import type { CashDrawerFilter, CashDrawer } from './cash-drawer.types'
+import type { CashDrawerListFilter, CashDrawer } from './cash-drawer.types'
 import { CashDrawerTable } from './components/CashDrawerTable'
 import { CashDrawerDetailModal } from './components/CashDrawerDetailModal'
 import { OpenCashDrawerModal } from './components/OpenCashDrawerModal'
@@ -53,21 +53,21 @@ export function CashDrawerPage() {
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
   const pageSizeOptions = usePageSizeOptions()
-  const filter: CashDrawerFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
+  const filter: CashDrawerListFilter = {
     page,
-    page_size: pageSize,
+    limit: pageSize,
+    start_date: dateFrom || undefined,
+    end_date: dateTo || undefined,
   }
 
   const { data, isLoading } = useCashDrawerListQuery(filter)
   const { data: currentData } = useCashDrawerCurrentQuery()
   const closeMutation = useCloseCashDrawerMutation()
 
-  const items: CashDrawer[] = data?.data?.data ?? []
-  const total = data?.data?.total ?? 0
+  const items: CashDrawer[] = data?.data ?? []
+  const total = data?.total ?? 0
 
-  const currentDrawer = currentData?.data ?? null
+  const currentDrawer = currentData ?? null
   const isOpen = currentDrawer?.status === 'open'
 
   function handleClose() {

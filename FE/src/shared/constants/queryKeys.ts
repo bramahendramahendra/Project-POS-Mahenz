@@ -52,19 +52,35 @@ export const queryKeys = {
     detail: (id: number) => ['receivables', 'detail', id] as const,
   },
 
+  expenses: {
+    all: () => ['expenses'] as const,
+    list: (filter?: Filter) => ['expenses', 'list', filter] as const,
+  },
+
   finance: {
+    all: () => ['finance'] as const,
     summary: (filter?: Filter) => ['finance', 'summary', filter] as const,
     cashflow: (filter?: Filter) => ['finance', 'cashflow', filter] as const,
   },
 
+  myCash: {
+    data: () => ['myCash', 'data'] as const,
+  },
+
   dashboard: {
-    summary: (period: string) => ['dashboard', 'summary', period] as const,
-    salesChart: (period: string) => ['dashboard', 'salesChart', period] as const,
+    all: () => ['dashboard'] as const,
+    stats: (period: string) => ['dashboard', 'stats', period] as const,
+    salesTrend: (period: string) => ['dashboard', 'salesTrend', period] as const,
     topProducts: (period: string) => ['dashboard', 'topProducts', period] as const,
+    summaryExtra: (period: string) => ['dashboard', 'summaryExtra', period] as const,
   },
 
   reports: {
-    data: (filter?: Filter) => ['reports', 'data', filter] as const,
+    all: () => ['reports'] as const,
+    sales: (filter?: Filter) => ['reports', 'sales', filter] as const,
+    profitLoss: (filter?: Filter) => ['reports', 'profitLoss', filter] as const,
+    stock: (filter?: Filter) => ['reports', 'stock', filter] as const,
+    cashierPerformance: (filter?: Filter) => ['reports', 'cashierPerformance', filter] as const,
   },
 
   shifts: {

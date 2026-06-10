@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { api } from '@/services/api.client'
-import type { ApiResponse } from '@/shared/types'
+import { api } from '@/services'
+import { queryKeys } from '@/shared/constants'
 
 import type {
   CashierPerformance,
@@ -27,28 +27,28 @@ interface StockReportResponse {
 
 export function useSalesReportQuery(filter?: SalesReportFilter) {
   return useQuery({
-    queryKey: ['reports', 'sales', filter],
-    queryFn: () => api.get<ApiResponse<SalesReportResponse>>('/reports/sales', filter),
+    queryKey: queryKeys.reports.sales(filter as Record<string, unknown>),
+    queryFn: () => api.get<SalesReportResponse>('/reports/sales', filter),
   })
 }
 
 export function useProfitLossReportQuery(filter: { date_from?: string; date_to?: string }) {
   return useQuery({
-    queryKey: ['reports', 'profitLoss', filter],
-    queryFn: () => api.get<ApiResponse<ProfitLossReport>>('/reports/profit-loss', filter),
+    queryKey: queryKeys.reports.profitLoss(filter as Record<string, unknown>),
+    queryFn: () => api.get<ProfitLossReport>('/reports/profit-loss', filter),
   })
 }
 
 export function useStockReportQuery(filter?: StockReportFilter) {
   return useQuery({
-    queryKey: ['reports', 'stock', filter],
-    queryFn: () => api.get<ApiResponse<StockReportResponse>>('/reports/stock', filter),
+    queryKey: queryKeys.reports.stock(filter as Record<string, unknown>),
+    queryFn: () => api.get<StockReportResponse>('/reports/stock', filter),
   })
 }
 
 export function useCashierPerformanceQuery(filter: { date_from?: string; date_to?: string }) {
   return useQuery({
-    queryKey: ['reports', 'cashierPerformance', filter],
-    queryFn: () => api.get<ApiResponse<CashierPerformance[]>>('/reports/cashier-performance', filter),
+    queryKey: queryKeys.reports.cashierPerformance(filter as Record<string, unknown>),
+    queryFn: () => api.get<CashierPerformance[]>('/reports/cashier-performance', filter),
   })
 }

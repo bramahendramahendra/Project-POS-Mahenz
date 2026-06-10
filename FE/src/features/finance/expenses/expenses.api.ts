@@ -1,24 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
-import type { PaginatedResponse } from '@/shared/types'
+import { api } from '@/services'
+import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
-import type { Expense, ExpenseFilter, ExpenseFormData } from './expenses.types'
+import type { CreateExpensePayload, Expense, ExpenseListFilter, UpdateExpensePayload } from './expenses.types'
 
-export function useExpensesQuery(filter?: ExpenseFilter) {
+export function useExpensesQuery(filter?: ExpenseListFilter) {
   return useQuery({
-    queryKey: ['expenses', 'list', filter],
-    queryFn: () => api.get<PaginatedResponse<Expense>>('/expenses', filter),
+    queryKey: queryKeys.expenses.list(filter as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<Expense>>('/expenses/list', filter ?? {}),
   })
 }
 
 export function useCreateExpenseMutation() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: ExpenseFormData) => api.post<Expense>('/expenses', body),
+    mutationFn: (payload: CreateExpensePayload) => api.post<Expense>('/expenses/create', payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      qc.invalidateQueries({ queryKey: queryKeys.expenses.all() })
       toast.success('Pengeluaran berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
@@ -26,12 +27,12 @@ export function useCreateExpenseMutation() {
 }
 
 export function useUpdateExpenseMutation() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...body }: ExpenseFormData & { id: number }) =>
-      api.put<Expense>(`/expenses/${id}`, body),
+    mutationFn: ({ id, ...payload }: UpdateExpensePayload & { id: number }) =>
+      api.post<Expense>(`/expenses/update/${id}`, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      qc.invalidateQueries({ queryKey: queryKeys.expenses.all() })
       toast.success('Pengeluaran berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
@@ -39,11 +40,11 @@ export function useUpdateExpenseMutation() {
 }
 
 export function useDeleteExpenseMutation() {
-  const queryClient = useQueryClient()
+  const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.delete(`/expenses/${id}`),
+    mutationFn: (id: number) => api.post<void>(`/expenses/delete/${id}`, {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      qc.invalidateQueries({ queryKey: queryKeys.expenses.all() })
       toast.success('Pengeluaran berhasil dihapus')
     },
     onError: (e: Error) => toast.error(e.message),

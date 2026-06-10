@@ -14,12 +14,11 @@ export interface Shift {
   closed_at?: string
 }
 
-export interface ShiftFilter {
-  date_from?: string
-  date_to?: string
+export interface ShiftListFilter {
+  page: number
+  limit: number
+  search?: string
   status?: ShiftStatus | ''
-  page?: number
-  page_size?: number
 }
 
 export interface OpenShiftPayload {

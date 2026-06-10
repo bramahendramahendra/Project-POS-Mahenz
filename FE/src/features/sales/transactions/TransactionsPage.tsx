@@ -23,8 +23,8 @@ export function TransactionsPage() {
     limit: pageSize,
   })
 
-  const transactions = txData?.data?.data ?? []
-  const total = txData?.data?.total ?? 0
+  const transactions = txData?.data ?? []
+  const total = txData?.total ?? 0
 
   const handleFilterChange = (newFilter: TransactionFilter) => {
     setFilter(newFilter)

@@ -3,7 +3,6 @@ import { Clock, Plus } from 'lucide-react'
 
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -14,7 +13,7 @@ import {
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useActiveShiftQuery, useShiftListQuery } from './shifts.api'
-import type { Shift, ShiftFilter, ShiftStatus } from './shifts.types'
+import type { Shift, ShiftListFilter, ShiftStatus } from './shifts.types'
 import { CloseShiftModal } from './components/CloseShiftModal'
 import { OpenShiftModal } from './components/OpenShiftModal'
 import { ShiftTable } from './components/ShiftTable'
@@ -30,8 +29,6 @@ function formatDateTime(str: string): string {
 }
 
 export function ShiftsPage() {
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
   const [status, setStatus] = useState<ShiftStatus | 'all'>('all')
   const [openShiftOpen, setOpenShiftOpen] = useState(false)
   const [closeTarget, setCloseTarget] = useState<Shift | null>(null)
@@ -40,17 +37,15 @@ export function ShiftsPage() {
   const pageSizeOptions = usePageSizeOptions()
   const { data: activeShift } = useActiveShiftQuery()
 
-  const filter: ShiftFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-    status: status === 'all' ? undefined : status,
+  const filter: ShiftListFilter = {
     page,
-    page_size: pageSize,
+    limit: pageSize,
+    status: status === 'all' ? undefined : status,
   }
 
   const { data, isLoading } = useShiftListQuery(filter)
-  const shifts = data?.data?.data ?? []
-  const total = data?.data?.total ?? 0
+  const shifts = data?.data ?? []
+  const total = data?.total ?? 0
 
   return (
     <div className="space-y-4">
@@ -89,24 +84,6 @@ export function ShiftsPage() {
       )}
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <div className="space-y-1">
-          <span className="text-xs text-gray-500">Dari</span>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); reset() }}
-            className="w-40 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <span className="text-xs text-gray-500">Sampai</span>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); reset() }}
-            className="w-40 h-9"
-          />
-        </div>
         <Select
           value={status}
           onValueChange={(v) => { setStatus(v as ShiftStatus | 'all'); reset() }}

@@ -47,8 +47,8 @@ export function FinancePage() {
   })
   const { data: cashflowData, isLoading: cashflowLoading } = useCashflowQuery(filter)
 
-  const cashflows = cashflowData?.data?.data ?? []
-  const total = cashflowData?.data?.total ?? 0
+  const cashflows = cashflowData?.data ?? []
+  const total = cashflowData?.total ?? 0
 
   const applyPreset = (from: string, to: string) => {
     setDateFrom(from)

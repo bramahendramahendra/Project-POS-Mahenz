@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { PaginatedResponse } from '@/shared/types'
+import type { PaginatedData } from '@/shared/types'
 
 import type { Transaction, TransactionFilter } from './transactions.types'
 
 export function useTransactionListQuery(filter?: TransactionFilter) {
   return useQuery({
     queryKey: queryKeys.transactions.list(filter as Record<string, unknown>),
-    queryFn: () => api.get<PaginatedResponse<Transaction>>('/transactions', filter),
+    queryFn: () => api.get<PaginatedData<Transaction>>('/transactions', filter),
   })
 }
 

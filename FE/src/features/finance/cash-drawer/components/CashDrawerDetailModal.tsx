@@ -45,7 +45,7 @@ function SummaryRow({ label, value, valueClass = '' }: SummaryRowProps) {
 
 export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetailModalProps) {
   const { data, isLoading } = useCashDrawerDetailQuery(cashDrawerId)
-  const detail: CashDrawer | undefined = data?.data
+  const detail: CashDrawer | undefined = data ?? undefined
 
   return (
     <Dialog open={cashDrawerId !== null} onOpenChange={(open) => !open && onClose()}>

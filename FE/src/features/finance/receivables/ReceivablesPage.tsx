@@ -13,7 +13,7 @@ import {
 import { useDebounce, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useReceivableListQuery } from './receivables.api'
-import type { Receivable, ReceivableFilter, ReceivableStatus } from './receivables.types'
+import type { Receivable, ReceivableListFilter, ReceivableStatus } from './receivables.types'
 import { PaymentRecordModal } from './components/PaymentRecordModal'
 import { ReceivableTable } from './components/ReceivableTable'
 
@@ -26,16 +26,16 @@ export function ReceivablesPage() {
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
   const pageSizeOptions = usePageSizeOptions()
-  const filter: ReceivableFilter = {
+  const filter: ReceivableListFilter = {
+    page,
+    limit: pageSize,
     search: debouncedSearch || undefined,
     status: status === 'all' ? undefined : status,
-    page,
-    page_size: pageSize,
   }
 
   const { data, isLoading } = useReceivableListQuery(filter)
-  const receivables = data?.data?.data ?? []
-  const total = data?.data?.total ?? 0
+  const receivables = data?.data ?? []
+  const total = data?.total ?? 0
 
   return (
     <div className="space-y-4">

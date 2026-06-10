@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
@@ -15,7 +15,8 @@ import {
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useExpensesQuery, useDeleteExpenseMutation } from './expenses.api'
-import type { Expense, ExpenseCategory, ExpenseFilter } from './expenses.types'
+import type { Expense, ExpenseCategory } from './expenses.types'
+import { EXPENSE_CATEGORIES } from './expenses.schema'
 import { ExpenseTable } from './components/ExpenseTable'
 import { ExpenseFormModal } from './components/ExpenseFormModal'
 
@@ -28,19 +29,11 @@ function monthStartString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
-const CATEGORIES: { value: ExpenseCategory | 'all'; label: string }[] = [
-  { value: 'all', label: 'Semua Kategori' },
-  { value: 'operasional', label: 'Operasional' },
-  { value: 'pembelian', label: 'Pembelian' },
-  { value: 'gaji', label: 'Gaji' },
-  { value: 'lainnya', label: 'Lainnya' },
-]
-
 export function ExpensesPage() {
   const today = todayString()
 
-  const [dateFrom, setDateFrom] = useState(monthStartString())
-  const [dateTo, setDateTo] = useState(today)
+  const [startDate, setStartDate] = useState(monthStartString())
+  const [endDate, setEndDate] = useState(today)
   const [category, setCategory] = useState<ExpenseCategory | 'all'>('all')
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
@@ -51,19 +44,17 @@ export function ExpensesPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
 
-  const filter: ExpenseFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-    category: category === 'all' ? undefined : category,
+  const { data, isLoading } = useExpensesQuery({
     page,
-    page_size: pageSize,
-  }
-
-  const { data, isLoading } = useExpensesQuery(filter)
+    limit: pageSize,
+    start_date: startDate || undefined,
+    end_date: endDate || undefined,
+    category: category === 'all' ? undefined : category,
+  })
   const { mutate: deleteExpense, isPending: isDeleting } = useDeleteExpenseMutation()
 
-  const items: Expense[] = data?.data?.data ?? []
-  const total = data?.data?.total ?? 0
+  const items: Expense[] = data?.data ?? []
+  const total = data?.total ?? 0
 
   function handleEdit(expense: Expense) {
     setEditingExpense(expense)
@@ -107,25 +98,25 @@ export function ExpensesPage() {
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
         <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
+          <span className="text-xs text-gray-500">Dari</span>
           <Input
             type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); reset() }}
+            value={startDate}
+            onChange={(e) => { setStartDate(e.target.value); reset() }}
             className="w-40 h-9"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
+          <span className="text-xs text-gray-500">Sampai</span>
           <Input
             type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); reset() }}
+            value={endDate}
+            onChange={(e) => { setEndDate(e.target.value); reset() }}
             className="w-40 h-9"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs text-gray-500">Kategori</label>
+          <span className="text-xs text-gray-500">Kategori</span>
           <Select
             value={category}
             onValueChange={(v) => { setCategory(v as ExpenseCategory | 'all'); reset() }}
@@ -134,7 +125,8 @@ export function ExpensesPage() {
               <SelectValue placeholder="Semua Kategori" />
             </SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map((cat) => (
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {EXPENSE_CATEGORIES.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
                 </SelectItem>
@@ -152,7 +144,11 @@ export function ExpensesPage() {
         onDelete={handleDelete}
       />
 
-      <ExpenseFormModal open={formOpen} expense={editingExpense} onClose={handleFormClose} />
+      <ExpenseFormModal
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) handleFormClose() }}
+        expense={editingExpense}
+      />
 
       <ConfirmDialog
         open={deleteOpen}

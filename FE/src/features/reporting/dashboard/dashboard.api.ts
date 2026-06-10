@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
+import { queryKeys } from '@/shared/constants'
 
 import type {
   DashboardPeriod,
@@ -37,14 +38,14 @@ function periodToDateRange(period: DashboardPeriod): { start_date: string; end_d
 export function useDashboardStatsQuery(period: DashboardPeriod) {
   const today = new Date().toISOString().split('T')[0]
   return useQuery({
-    queryKey: ['dashboard', 'stats', period],
+    queryKey: queryKeys.dashboard.stats(period),
     queryFn: () => api.get<DashboardStats>('/dashboard/stats', { date: today }),
   })
 }
 
 export function useSalesTrendQuery(period: DashboardPeriod) {
   return useQuery({
-    queryKey: ['dashboard', 'salesTrend', period],
+    queryKey: queryKeys.dashboard.salesTrend(period),
     queryFn: () =>
       api.get<SalesTrendItem[]>('/dashboard/sales-trend', { period: periodToTrendParam(period) }),
   })
@@ -53,7 +54,7 @@ export function useSalesTrendQuery(period: DashboardPeriod) {
 export function useTopProductsQuery(period: DashboardPeriod) {
   const range = periodToDateRange(period)
   return useQuery({
-    queryKey: ['dashboard', 'topProducts', period],
+    queryKey: queryKeys.dashboard.topProducts(period),
     queryFn: () => api.get<TopProductItem[]>('/dashboard/top-products', { ...range, limit: 10 }),
   })
 }
@@ -61,7 +62,7 @@ export function useTopProductsQuery(period: DashboardPeriod) {
 export function useSummaryExtraQuery(period: DashboardPeriod) {
   const paramMap: Record<DashboardPeriod, string> = { today: 'today', week: '7days', month: 'month' }
   return useQuery({
-    queryKey: ['dashboard', 'summaryExtra', period],
+    queryKey: queryKeys.dashboard.summaryExtra(period),
     queryFn: () =>
       api.get<SummaryExtraResponse>('/dashboard/summary-extra', { period: paramMap[period] }),
   })

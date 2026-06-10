@@ -1,4 +1,5 @@
 export type ExpenseCategory = 'operasional' | 'pembelian' | 'gaji' | 'lainnya'
+export type ExpensePaymentMethod = 'cash' | 'transfer' | 'card' | 'qris' | 'kredit'
 
 export interface Expense {
   id: number
@@ -6,23 +7,27 @@ export interface Expense {
   category: ExpenseCategory
   description: string
   amount: number
+  payment_method: ExpensePaymentMethod
   notes?: string
-  created_by_name: string
+  user_name: string
   created_at: string
 }
 
-export interface ExpenseFilter {
-  date_from?: string
-  date_to?: string
+export interface ExpenseListFilter {
+  page: number
+  limit: number
+  start_date?: string
+  end_date?: string
   category?: ExpenseCategory
-  page?: number
-  page_size?: number
 }
 
-export interface ExpenseFormData {
+export interface CreateExpensePayload {
   expense_date: string
   category: ExpenseCategory
   description: string
   amount: number
+  payment_method: ExpensePaymentMethod
   notes?: string
 }
+
+export type UpdateExpensePayload = Partial<CreateExpensePayload>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import { api } from '@/services/api.client'
+import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
 import type { Product, ProductPackage } from '@/features/inventory/products'
 
@@ -16,7 +16,7 @@ export const useBarcodeScan = () => {
     try {
       const product = await qc.fetchQuery({
         queryKey: queryKeys.products.barcode(code),
-        queryFn: () => api.get<Product>(`/products/barcode/${code}`),
+        queryFn: () => api.post<Product>(`/products/by-barcode/${code}`, {}),
         staleTime: 30_000,
       })
       // Backend mengembalikan Product langsung (sudah termasuk units di dalamnya)

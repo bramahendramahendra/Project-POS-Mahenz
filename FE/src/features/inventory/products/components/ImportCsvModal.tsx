@@ -21,7 +21,7 @@ type FilterView = 'all' | 'valid' | 'error'
 type ActiveTab = 'produk' | 'grosir'
 
 async function downloadTemplate() {
-  const response = await apiClient.get('/products/import-template', { responseType: 'blob' })
+  const response = await apiClient.post('/products/import-template', {}, { responseType: 'blob' })
   const url = URL.createObjectURL(response.data as Blob)
   const a = document.createElement('a')
   a.href = url
