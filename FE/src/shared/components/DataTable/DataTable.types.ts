@@ -38,6 +38,7 @@ export interface DataTableProps<TData> {
   emptyDescription?: string
   pagination?: PaginationProps
   rowSelection?: RowSelectionProps<TData>
+  currentSort?: SortState
   onSort?: (sort: SortState) => void
   className?: string
 }

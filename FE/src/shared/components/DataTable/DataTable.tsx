@@ -1,4 +1,4 @@
-import { ArrowUpDown } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import {
@@ -24,6 +24,7 @@ export function DataTable<TData extends Record<string, unknown>>({
   emptyDescription,
   pagination,
   rowSelection,
+  currentSort,
   onSort,
   className,
 }: DataTableProps<TData>) {
@@ -55,11 +56,18 @@ export function DataTable<TData extends Record<string, unknown>>({
   }
 
   // ─── Sort handler ───────────────────────────────────────────────────────
-  const handleSort = (key: string, currentSort?: SortState) => {
+  const handleSort = (key: string) => {
     if (!onSort) return
     const order: SortState['order'] =
       currentSort?.key === key && currentSort.order === 'asc' ? 'desc' : 'asc'
     onSort({ key, order })
+  }
+
+  const getSortIcon = (key: string) => {
+    if (!currentSort || currentSort.key !== key) return <ArrowUpDown size={12} className="text-gray-400" />
+    return currentSort.order === 'asc'
+      ? <ArrowUp size={12} className="text-blue-500" />
+      : <ArrowDown size={12} className="text-blue-500" />
   }
 
   // ─── Loading ────────────────────────────────────────────────────────────
@@ -99,7 +107,7 @@ export function DataTable<TData extends Record<string, unknown>>({
               >
                 <span className="inline-flex items-center gap-1">
                   {col.header}
-                  {col.sortable && <ArrowUpDown size={12} className="text-gray-400" />}
+                  {col.sortable && getSortIcon(col.key)}
                 </span>
               </TableHead>
             ))}

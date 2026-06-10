@@ -51,6 +51,8 @@ export interface ProductListFilter {
   category_id?: number
   is_active?: boolean
   low_stock?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateProductPayload {

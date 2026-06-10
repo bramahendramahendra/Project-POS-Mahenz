@@ -7,6 +7,7 @@ import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, DataTable, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { useDisclosure, usePagination, usePageSizeOptions, useTableSelection } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -33,6 +34,7 @@ export interface ProductTableHandle {
 
 export const ProductTable = forwardRef<ProductTableHandle, object>(function ProductTable(_, ref) {
   const [filter, setFilter] = useState<ProductListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
   
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -119,6 +121,13 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
 
   const handleReset = () => {
     setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    reset()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     reset()
   }
 
@@ -235,12 +244,14 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
       key: 'purchase_price',
       header: 'Harga Beli',
       align: 'right',
+      sortable: true,
       cell: (row) => <span className="text-sm">{formatRupiah(row.purchase_price)}</span>,
     },
     {
       key: 'selling_price',
       header: 'Harga Jual',
       align: 'right',
+      sortable: true,
       cell: (row) => <span className="font-medium">{formatRupiah(row.selling_price)}</span>,
     },
     {
@@ -270,6 +281,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
       header: 'Stok',
       align: 'right',
       width: '80px',
+      sortable: true,
       cell: (row) => (
         <span
           className={`font-medium ${
@@ -413,6 +425,8 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
         columns={columns}
         data={products as (Product & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage={filter.search || filter.category_id || filter.is_active !== undefined ? 'Produk tidak ditemukan' : 'Belum ada produk'}
         emptyDescription={filter.search || filter.category_id || filter.is_active !== undefined ? 'Coba ubah filter atau kata kunci pencarian Anda.' : 'Tambah produk pertama Anda untuk memulai.'}
         pagination={{

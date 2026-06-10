@@ -3,6 +3,7 @@ package repo_product
 import (
 	dto "pos_api/domain/product/dto"
 	model "pos_api/domain/product/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
@@ -59,12 +60,37 @@ const (
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
 	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	getAllProductsOrder         = ` ORDER BY p.name`
-	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
-	countProductsSearchQuery    = `SELECT COUNT(*) FROM products p WHERE (p.name LIKE ? OR p.barcode LIKE ?)`
+	getAllProductsDefaultOrder = ` ORDER BY p.name ASC`
+	countProductsBase         = `SELECT COUNT(*) FROM products p WHERE 1=1`
 )
 
+
 func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, error) {
+	var args []any
+	conditions := ""
+
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		conditions += ` AND (p.name LIKE ? OR p.barcode LIKE ?)`
+		args = append(args, search, search)
+	}
+	if req.CategoryID != nil {
+		conditions += ` AND p.category_id = ?`
+		args = append(args, *req.CategoryID)
+	}
+	if req.IsActive != nil {
+		conditions += ` AND p.is_active = ?`
+		args = append(args, *req.IsActive)
+	}
+	if req.LowStock {
+		conditions += ` AND p.stock <= p.min_stock`
+	}
+
+	var total int64
+	if err := r.db.Raw(countProductsBase+conditions, args...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
 	page := req.Page
 	limit := req.Limit
 	if page <= 0 {
@@ -75,81 +101,19 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 	}
 	offset := (page - 1) * limit
 
-	var total int64
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		countQuery := countProductsSearchQuery
-		countArgs := []any{search, search}
-		if req.CategoryID != nil {
-			countQuery += ` AND p.category_id = ?`
-			countArgs = append(countArgs, *req.CategoryID)
-		}
-		if req.IsActive != nil {
-			val := 0
-			if *req.IsActive {
-				val = 1
-			}
-			countQuery += ` AND p.is_active = ?`
-			countArgs = append(countArgs, val)
-		}
-		if req.LowStock {
-			countQuery += ` AND p.stock <= p.min_stock`
-		}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
-	} else {
-		countQuery := countProductsBase
-		var countArgs []any
-		if req.CategoryID != nil {
-			countQuery += ` AND p.category_id = ?`
-			countArgs = append(countArgs, *req.CategoryID)
-		}
-		if req.IsActive != nil {
-			val := 0
-			if *req.IsActive {
-				val = 1
-			}
-			countQuery += ` AND p.is_active = ?`
-			countArgs = append(countArgs, val)
-		}
-		if req.LowStock {
-			countQuery += ` AND p.stock <= p.min_stock`
-		}
-		if err := r.db.Raw(countQuery, countArgs...).Scan(&total).Error; err != nil {
-			return nil, 0, err
-		}
+	allowedSortFields := map[string]string{
+		"name":           "p.name",
+		"selling_price":  "p.selling_price",
+		"purchase_price": "p.purchase_price",
+		"stock":          "p.stock",
 	}
-
-	query := getAllProductsBase
-	var args []any
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		query += ` AND (p.name LIKE ? OR p.barcode LIKE ?)`
-		args = append(args, search, search)
-	}
-	if req.CategoryID != nil {
-		query += ` AND p.category_id = ?`
-		args = append(args, *req.CategoryID)
-	}
-	if req.IsActive != nil {
-		val := 0
-		if *req.IsActive {
-			val = 1
-		}
-		query += ` AND p.is_active = ?`
-		args = append(args, val)
-	}
-	if req.LowStock {
-		query += ` AND p.stock <= p.min_stock`
-	}
-	query += getAllProductsOrder
+	query := getAllProductsBase + conditions
+	query += request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllProductsDefaultOrder)
 	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Product
-	err := r.db.Raw(query, args...).Scan(&dataDB).Error
-	if err != nil {
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil

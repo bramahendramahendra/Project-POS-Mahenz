@@ -9,6 +9,8 @@ type (
 		CategoryID *int   `json:"category_id"`
 		IsActive   *bool  `json:"is_active"`
 		LowStock   bool   `json:"low_stock"`
+		SortBy     string `json:"sort_by"`
+		SortOrder  string `json:"sort_order"`
 	}
 
 	SearchRequest struct {
