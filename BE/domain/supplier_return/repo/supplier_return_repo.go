@@ -24,6 +24,7 @@ const (
 	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= ? THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 	getReturnByIDQuery            = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
 	getAllReturnsBase             = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
+	getAllReturnsOrder            = ` ORDER BY sr.return_date DESC, sr.id DESC`
 	countReturnsBase              = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
 	getPurchaseDateQuery          = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
 	getPurchaseItemQtyQuery       = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
@@ -35,7 +36,7 @@ const (
 )
 
 func (r *supplierReturnRepo) GetAll(req *dto.SupplierReturnListRequest) ([]*model.SupplierReturnRow, int64, error) {
-	var args []interface{}
+	var args []any
 	conditions := ""
 
 	if req.StartDate != "" {
@@ -65,100 +66,60 @@ func (r *supplierReturnRepo) GetAll(req *dto.SupplierReturnListRequest) ([]*mode
 	if page <= 0 {
 		page = 1
 	}
-	if limit <= 0 {
-		limit = 20
+	if limit <= 0 || limit > 100 {
+		limit = 10
 	}
 	offset := (page - 1) * limit
 
-	query := getAllReturnsBase + conditions + " ORDER BY sr.return_date DESC, sr.id DESC LIMIT ? OFFSET ?"
+	query := getAllReturnsBase + conditions + getAllReturnsOrder + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
-	rows, err := r.db.Raw(query, args...).Rows()
-	if err != nil {
+	var dataDB []*model.SupplierReturnRow
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
-
-	var items []*model.SupplierReturnRow
-	for rows.Next() {
-		var item model.SupplierReturnRow
-		if err := rows.Scan(
-			&item.ID, &item.ReturnCode, &item.PurchaseID, &item.SupplierID, &item.SupplierName,
-			&item.ReturnDate, &item.TotalReturnAmount, &item.Reason, &item.Status, &item.UserName, &item.Notes,
-		); err != nil {
-			return nil, 0, err
-		}
-		items = append(items, &item)
-	}
-	if items == nil {
-		items = []*model.SupplierReturnRow{}
-	}
-	return items, total, nil
+	return dataDB, total, nil
 }
 
 func (r *supplierReturnRepo) GetByID(id int) (*model.SupplierReturnRow, error) {
-	rows, err := r.db.Raw(getReturnByIDQuery, id).Rows()
-	if err != nil {
+	var dataDB model.SupplierReturnRow
+	if err := r.db.Raw(getReturnByIDQuery, id).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	if !rows.Next() {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
 
-	var item model.SupplierReturnRow
-	if err := rows.Scan(
-		&item.ID, &item.ReturnCode, &item.PurchaseID, &item.SupplierID, &item.SupplierName,
-		&item.ReturnDate, &item.TotalReturnAmount, &item.Reason, &item.Status,
-		&item.UserName, &item.Notes,
-	); err != nil {
-		return nil, err
-	}
-	rows.Close()
-
-	modelItems, err := r.GetItems(id)
+	items, err := r.GetItems(id)
 	if err != nil {
 		return nil, err
 	}
-	item.Items = modelItems
+	dataDB.Items = items
 
-	return &item, nil
+	return &dataDB, nil
 }
 
 func (r *supplierReturnRepo) GetStatus(id int) (string, error) {
 	var status string
-	result := r.db.Raw(checkReturnApprovedQuery, id).Scan(&status)
-	if result.Error != nil {
-		return "", result.Error
+	err := r.db.Raw(checkReturnApprovedQuery, id).Scan(&status).Error
+	if err != nil {
+		return "", err
 	}
 	return status, nil
 }
 
 func (r *supplierReturnRepo) GetItems(returnID int) ([]model.SupplierReturnItem, error) {
-	rows, err := r.db.Raw(getReturnItemsQuery, returnID).Rows()
-	if err != nil {
+	var dataDB []model.SupplierReturnItem
+	if err := r.db.Raw(getReturnItemsQuery, returnID).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var items []model.SupplierReturnItem
-	for rows.Next() {
-		var item model.SupplierReturnItem
-		if err := rows.Scan(
-			&item.ID, &item.ProductID, &item.ProductName,
-			&item.Quantity, &item.Unit, &item.PurchasePrice, &item.Subtotal,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, nil
+	return dataDB, nil
 }
 
 func (r *supplierReturnRepo) GetPurchaseDate(purchaseID int) (string, error) {
 	var purchaseDate string
-	if err := r.db.Raw(getPurchaseDateQuery, purchaseID).Scan(&purchaseDate).Error; err != nil {
+	err := r.db.Raw(getPurchaseDateQuery, purchaseID).Scan(&purchaseDate).Error
+	if err != nil {
 		return "", err
 	}
 	return purchaseDate, nil
@@ -167,7 +128,7 @@ func (r *supplierReturnRepo) GetPurchaseDate(purchaseID int) (string, error) {
 func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
 	var returnID int
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		today := time.Now().Format("2006-01-02")
 		var count int
 		if err := tx.Raw(generateReturnCodeQuery, today).Scan(&count).Error; err != nil {
@@ -180,10 +141,11 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 			totalAmount += item.PurchasePrice * item.Quantity
 		}
 
-		if err := tx.Exec(createReturnQuery,
+		err := tx.Exec(createReturnQuery,
 			code, req.PurchaseID, req.SupplierID, req.SupplierName,
 			req.ReturnDate, totalAmount, req.Reason, req.UserID, req.Notes,
-		).Error; err != nil {
+		).Error
+		if err != nil {
 			return err
 		}
 
@@ -193,8 +155,7 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 
 		for _, item := range req.Items {
 			var purchaseQty float64
-			row := tx.Raw(getPurchaseItemQtyQuery, item.PurchaseItemID, req.PurchaseID).Row()
-			if err := row.Scan(&purchaseQty); err != nil {
+			if err := tx.Raw(getPurchaseItemQtyQuery, item.PurchaseItemID, req.PurchaseID).Scan(&purchaseQty).Error; err != nil {
 				return errors.New("item pembelian tidak ditemukan")
 			}
 
@@ -209,21 +170,21 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 			}
 
 			subtotal := item.PurchasePrice * item.Quantity
-			if err := tx.Exec(createReturnItemQuery,
+			err := tx.Exec(createReturnItemQuery,
 				returnID, item.PurchaseItemID, item.ProductID, item.ProductName,
 				item.Quantity, item.Unit, item.PurchasePrice, subtotal,
-			).Error; err != nil {
+			).Error
+			if err != nil {
 				return err
 			}
 		}
 
 		return nil
-	})
-
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
-	return r.GetByID(returnID)
+	data, err := r.GetByID(returnID)
+	return data, err
 }
 
 func (r *supplierReturnRepo) UpdateStatus(id int, status, notes string) error {
@@ -232,14 +193,15 @@ func (r *supplierReturnRepo) UpdateStatus(id int, status, notes string) error {
 }
 
 func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(updateReturnStatusQuery, "approved", "", id).Error; err != nil {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Exec(updateReturnStatusQuery, "approved", "", id).Error
+		if err != nil {
 			return err
 		}
 
-		var purchaseID int
-		var totalReturnAmount float64
-		if err := tx.Raw(getPurchaseIDAndAmountQuery, id).Row().Scan(&purchaseID, &totalReturnAmount); err != nil {
+		var dataReturn model.SupplierReturnPurchaseRef
+		err = tx.Raw(getPurchaseIDAndAmountQuery, id).Scan(&dataReturn).Error
+		if err != nil {
 			return err
 		}
 
@@ -250,7 +212,8 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 
 		for _, item := range items {
 			var stockBefore float64
-			if err := tx.Raw(getProductStockForUpdateQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
+			err := tx.Raw(getProductStockForUpdateQuery, item.ProductID).Scan(&stockBefore).Error
+			if err != nil {
 				return err
 			}
 
@@ -260,33 +223,43 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 				}
 			}
 
-			if err := tx.Exec(reduceStockQuery, item.Quantity, item.ProductID).Error; err != nil {
+			err = tx.Exec(reduceStockQuery, item.Quantity, item.ProductID).Error
+			if err != nil {
 				return err
 			}
 
 			stockAfter := stockBefore - item.Quantity
 			notes := fmt.Sprintf("Supplier Return #%d", id)
-			if err := tx.Exec(createStockMutationQuery,
+			err = tx.Exec(createStockMutationQuery,
 				item.ProductID, "return", item.Quantity, stockBefore, stockAfter,
 				"supplier_return", id, notes, userID,
-			).Error; err != nil {
+			).Error
+			if err != nil {
 				return err
 			}
 		}
 
-		if err := tx.Exec(reducePurchaseDebtQuery, totalReturnAmount, totalReturnAmount, purchaseID).Error; err != nil {
+		err = tx.Exec(reducePurchaseDebtQuery, dataReturn.TotalReturnAmount, dataReturn.TotalReturnAmount, dataReturn.PurchaseID).Error
+		if err != nil {
 			return err
 		}
 
 		return nil
 	})
+	return err
 }
 
 func (r *supplierReturnRepo) Delete(req *dto.GetSupplierReturnByIDRequest) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(deleteReturnItemsQuery, req.ID).Error; err != nil {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Exec(deleteReturnItemsQuery, req.ID).Error
+		if err != nil {
 			return err
 		}
-		return tx.Exec(deleteReturnQuery, req.ID).Error
+		err = tx.Exec(deleteReturnQuery, req.ID).Error
+		if err != nil {
+			return err
+		}
+		return nil
 	})
+	return err
 }
