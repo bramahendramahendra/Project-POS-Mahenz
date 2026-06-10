@@ -55,9 +55,9 @@ func (h *SupplierReturnHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -103,16 +103,16 @@ func (h *SupplierReturnHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	req, bindErr := binder.BindJSON[dto.UpdateStatusRequest](c)
-	if bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
+	req, err := binder.BindJSON[dto.UpdateStatusRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
 	req.ID = uriReq.ID
 
 	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 
@@ -142,8 +142,8 @@ func (h *SupplierReturnHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if svcErr := h.service.Delete(req.ID); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Delete(&req); err != nil {
+		c.Error(err)
 		return
 	}
 

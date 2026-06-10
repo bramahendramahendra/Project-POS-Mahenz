@@ -17,15 +17,12 @@ func MenuRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/menus")
 	{
-		// Endpoint untuk user yang sedang login — semua role boleh akses
-		g.GET("/my", menuHand.GetMyMenus)
-
-		// Endpoint manajemen menu — owner & admin bisa lihat, owner bisa ubah
-		g.GET("",              middleware.RoleMiddleware("owner", "admin"), menuHand.GetAll)
-		g.GET("/:id",         middleware.RoleMiddleware("owner", "admin"), menuHand.GetByID)
-		g.POST("",            middleware.RoleMiddleware("owner"),          menuHand.Create)
-		g.PUT("/:id",         middleware.RoleMiddleware("owner"),          menuHand.Update)
-		g.DELETE("/:id",      middleware.RoleMiddleware("owner"),          menuHand.Delete)
-		g.PATCH("/reorder",   middleware.RoleMiddleware("owner"),          menuHand.Reorder)
+		g.POST("/my",            menuHand.GetMyMenus)
+		g.POST("/list",          middleware.RoleMiddleware("owner", "admin"), menuHand.GetAll)
+		g.POST("/detail/:id",    middleware.RoleMiddleware("owner", "admin"), menuHand.GetByID)
+		g.POST("/create",        middleware.RoleMiddleware("owner"),          menuHand.Create)
+		g.POST("/update/:id",    middleware.RoleMiddleware("owner"),          menuHand.Update)
+		g.POST("/delete/:id",    middleware.RoleMiddleware("owner"),          menuHand.Delete)
+		g.POST("/reorder",       middleware.RoleMiddleware("owner"),          menuHand.Reorder)
 	}
 }

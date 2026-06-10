@@ -1,37 +1,28 @@
-package service_user
+package service
 
 import (
-	dto_user "pos_api/domain/user/dto"
-	model_user "pos_api/domain/user/model"
-	repo_user "pos_api/domain/user/repo"
+	dto "pos_api/domain/user/dto"
+	model "pos_api/domain/user/model"
 	"pos_api/errors"
 	"pos_api/pkg/bcrypt"
 )
 
-type userService struct {
-	repo repo_user.UserRepo
-}
-
-func NewUserService(repo repo_user.UserRepo) UserService {
-	return &userService{repo: repo}
-}
-
-func (s *userService) GetAll(filter *dto_user.UserListFilter) ([]*dto_user.UserResponse, error) {
-	users, err := s.repo.GetAll(filter)
+func (s *userService) GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, error) {
+	users, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
-	result := make([]*dto_user.UserResponse, 0, len(users))
+	result := make([]*dto.UserResponse, 0, len(users))
 	for _, u := range users {
 		result = append(result, toUserResponse(u))
 	}
 	return result, nil
 }
 
-func (s *userService) GetByID(id int) (*dto_user.UserResponse, error) {
+func (s *userService) GetByID(id int) (*dto.UserResponse, error) {
 	u, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if u == nil {
 		return nil, &errors.NotFoundError{Message: "User tidak ditemukan"}
@@ -39,10 +30,10 @@ func (s *userService) GetByID(id int) (*dto_user.UserResponse, error) {
 	return toUserResponse(u), nil
 }
 
-func (s *userService) Create(req *dto_user.CreateUserRequest) (*dto_user.UserResponse, error) {
+func (s *userService) Create(req *dto.CreateRequest) (*dto.UserResponse, error) {
 	existing, err := s.repo.GetByUsername(req.Username, 0)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if existing != nil {
 		return nil, &errors.BadRequestError{Message: "Username sudah digunakan"}
@@ -50,10 +41,10 @@ func (s *userService) Create(req *dto_user.CreateUserRequest) (*dto_user.UserRes
 
 	hashed, err := bcrypt.HashPassword(req.Password)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	user := &model_user.User{
+	user := &model.User{
 		Username: req.Username,
 		Password: hashed,
 		FullName: req.FullName,
@@ -62,7 +53,7 @@ func (s *userService) Create(req *dto_user.CreateUserRequest) (*dto_user.UserRes
 
 	newID, err := s.repo.Create(user)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
 	created, err := s.repo.GetByID(int(newID))
@@ -72,27 +63,25 @@ func (s *userService) Create(req *dto_user.CreateUserRequest) (*dto_user.UserRes
 	return toUserResponse(created), nil
 }
 
-func (s *userService) Update(id int, req *dto_user.UpdateUserRequest) error {
+func (s *userService) Update(id int, req *dto.UpdateRequest) error {
 	u, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if u == nil {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
 
 	if err := s.repo.Update(id, req); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 
 	if req.Password != "" {
 		hashed, err := bcrypt.HashPassword(req.Password)
 		if err != nil {
-			return &errors.InternalServerError{Message: err.Error()}
+			return err
 		}
-		if err := s.repo.UpdatePassword(id, hashed); err != nil {
-			return &errors.InternalServerError{Message: err.Error()}
-		}
+		return s.repo.UpdatePassword(id, hashed)
 	}
 	return nil
 }
@@ -104,39 +93,31 @@ func (s *userService) Delete(id, currentUserID int) error {
 
 	u, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if u == nil {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
 
-	// force logout user yang dihapus
 	if err := s.repo.DeleteSessionByUserID(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
-
-	if err := s.repo.Delete(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.Delete(id)
 }
 
 func (s *userService) ToggleStatus(id int) error {
 	u, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if u == nil {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
-	if err := s.repo.ToggleStatus(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.ToggleStatus(id)
 }
 
-func toUserResponse(u *model_user.User) *dto_user.UserResponse {
-	return &dto_user.UserResponse{
+func toUserResponse(u *model.User) *dto.UserResponse {
+	return &dto.UserResponse{
 		ID:        u.ID,
 		Username:  u.Username,
 		FullName:  u.FullName,

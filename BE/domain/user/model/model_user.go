@@ -1,15 +1,15 @@
-package model_user
+package model
 
 import "time"
 
 type User struct {
-	ID        int       `db:"id"`
-	Username  string    `db:"username"`
-	Password  string    `db:"password"`
-	FullName  string    `db:"full_name"`
-	RoleID    int       `db:"role_id"`
-	RoleName  string    `db:"role_name"` // dari JOIN roles.name
-	IsActive  bool      `db:"is_active"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID        int       `gorm:"column:id"`
+	Username  string    `gorm:"column:username"`
+	Password  string    `gorm:"column:password"`
+	FullName  string    `gorm:"column:full_name"`
+	RoleID    int       `gorm:"column:role_id"`
+	RoleName  string    `gorm:"column:role_name"`
+	IsActive  bool      `gorm:"column:is_active"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at"`
 }

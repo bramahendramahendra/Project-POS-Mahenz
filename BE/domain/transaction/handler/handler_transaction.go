@@ -1,10 +1,10 @@
-package handler_transaction
+﻿package handler
 
 import (
 	"strconv"
 
-	dto_transaction "pos_api/domain/transaction/dto"
-	service_transaction "pos_api/domain/transaction/service"
+	"pos_api/domain/transaction/dto"
+	"pos_api/domain/transaction/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -15,16 +15,16 @@ import (
 )
 
 type TransactionHandler struct {
-	service service_transaction.TransactionService
+	service service.TransactionServiceInterface
 }
 
-func NewTransactionHandler(service service_transaction.TransactionService) *TransactionHandler {
+func NewTransactionHandler(service service.TransactionServiceInterface) *TransactionHandler {
 	return &TransactionHandler{service: service}
 }
 
 // GET /api/transactions
 func (h *TransactionHandler) GetAll(c *gin.Context) {
-	filter := &dto_transaction.TransactionFilter{
+	filter := &dto.TransactionFilter{
 		Status:        c.Query("status"),
 		PaymentMethod: c.Query("payment_method"),
 		DateFrom:      c.Query("start_date"),
@@ -87,7 +87,7 @@ func (h *TransactionHandler) GetByID(c *gin.Context) {
 
 // POST /api/transactions
 func (h *TransactionHandler) Create(c *gin.Context) {
-	var req dto_transaction.CreateTransactionRequest
+	var req dto.CreateTransactionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -144,3 +144,4 @@ func parseTransactionID(c *gin.Context) (int, error) {
 	}
 	return id, nil
 }
+

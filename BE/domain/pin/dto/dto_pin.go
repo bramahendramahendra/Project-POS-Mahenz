@@ -1,4 +1,4 @@
-package dto_pin
+package dto
 
 type SetPinRequest struct {
 	Pin string `json:"pin" validate:"required,numeric,min=4,max=6"`

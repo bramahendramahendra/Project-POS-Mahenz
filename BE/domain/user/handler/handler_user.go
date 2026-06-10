@@ -1,47 +1,36 @@
-package handler_user
+package handler
 
 import (
-	"fmt"
-	"strconv"
-
-	dto_user "pos_api/domain/user/dto"
-	service_user "pos_api/domain/user/service"
+	dto "pos_api/domain/user/dto"
+	service "pos_api/domain/user/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	service service_user.UserService
+	service service.UserServiceInterface
 }
 
-func NewUserHandler(service service_user.UserService) *UserHandler {
+func NewUserHandler(service service.UserServiceInterface) *UserHandler {
 	return &UserHandler{service: service}
 }
 
-// GET /api/users
 func (h *UserHandler) GetAll(c *gin.Context) {
-	filter := &dto_user.UserListFilter{
-		Search: c.Query("search"),
-	}
-	if raw := c.Query("role_id"); raw != "" {
-		var rid int
-		if _, err := fmt.Sscan(raw, &rid); err == nil && rid > 0 {
-			filter.RoleID = &rid
-		}
-	}
-	if raw := c.Query("is_active"); raw != "" {
-		v := raw == "true" || raw == "1"
-		filter.IsActive = &v
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	users, err := h.service.GetAll(filter)
-	if err != nil {
-		c.Error(err)
+	data, svcErr := h.service.GetAll(&req)
+	if svcErr != nil {
+		c.Error(svcErr)
 		return
 	}
 
@@ -49,19 +38,23 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar user",
-		Data:    users,
+		Data:    data,
 	})
 }
 
-// GET /api/users/:id
 func (h *UserHandler) GetByID(c *gin.Context) {
-	id, err := parseIDParam(c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	user, svcErr := h.service.GetByID(id)
+	data, svcErr := h.service.GetByID(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -71,25 +64,25 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail user",
-		Data:    user,
+		Data:    data,
 	})
 }
 
-// POST /api/users
 func (h *UserHandler) Create(c *gin.Context) {
-	var req dto_user.CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	user, err := h.service.Create(&req)
-	if err != nil {
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
+		return
+	}
+
+	data, svcErr := h.service.Create(&req)
+	if svcErr != nil {
+		c.Error(svcErr)
 		return
 	}
 
@@ -97,29 +90,34 @@ func (h *UserHandler) Create(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "User berhasil dibuat",
-		Data:    user,
+		Data:    data,
 	})
 }
 
-// PUT /api/users/:id
 func (h *UserHandler) Update(c *gin.Context) {
-	id, err := parseIDParam(c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(uriReq); err != nil {
 		c.Error(err)
 		return
 	}
 
-	var req dto_user.UpdateUserRequest
-	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
-		return
-	}
-	if valErr := validation.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	bodyReq, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if svcErr := h.service.Update(id, &req); svcErr != nil {
+	if err := validator.Validate.Struct(bodyReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if svcErr := h.service.Update(uriReq.ID, &bodyReq); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -131,17 +129,19 @@ func (h *UserHandler) Update(c *gin.Context) {
 	})
 }
 
-// DELETE /api/users/:id
 func (h *UserHandler) Delete(c *gin.Context) {
-	id, err := parseIDParam(c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	currentUserID := helper.GetUserID(c)
-
-	if svcErr := h.service.Delete(id, currentUserID); svcErr != nil {
+	if svcErr := h.service.Delete(req.ID, helper.GetUserID(c)); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -153,15 +153,19 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	})
 }
 
-// PATCH /api/users/:id/toggle-status
 func (h *UserHandler) ToggleStatus(c *gin.Context) {
-	id, err := parseIDParam(c)
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.ToggleStatus(id); svcErr != nil {
+	if svcErr := h.service.ToggleStatus(req.ID); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -171,12 +175,4 @@ func (h *UserHandler) ToggleStatus(c *gin.Context) {
 		Status:  true,
 		Message: "Status user berhasil diubah",
 	})
-}
-
-func parseIDParam(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
 }

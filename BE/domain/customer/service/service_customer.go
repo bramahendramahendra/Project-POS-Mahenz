@@ -1,96 +1,178 @@
-package service_customer
+package service
 
 import (
 	"fmt"
+	"strings"
 
-	dto_customer "pos_api/domain/customer/dto"
-	repo_customer "pos_api/domain/customer/repo"
+	dto "pos_api/domain/customer/dto"
 	"pos_api/errors"
 )
 
-type customerService struct {
-	repo repo_customer.CustomerRepo
-}
-
-func NewCustomerService(repo repo_customer.CustomerRepo) CustomerService {
-	return &customerService{repo: repo}
-}
-
-func (s *customerService) GetAll(filter *dto_customer.CustomerFilter) ([]*dto_customer.CustomerResponse, int, error) {
-	return s.repo.GetAll(filter)
-}
-
-func (s *customerService) GetActiveList() ([]*dto_customer.CustomerActiveItem, error) {
-	return s.repo.GetActiveList()
-}
-
-func (s *customerService) GetByID(id int) (*dto_customer.CustomerDetailResponse, error) {
-	c, err := s.repo.GetByID(id)
+func (s *customerService) GetAll(req *dto.GetAllRequest) (data []dto.CustomerResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, err
-	}
-	if c == nil {
-		return nil, &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+		return data, 0, err
 	}
 
-	return &dto_customer.CustomerDetailResponse{
-		ID:           c.ID,
-		CustomerCode: c.CustomerCode,
-		Name:         c.Name,
-		Phone:        c.Phone,
-		Address:      c.Address,
-		CreditLimit:  c.CreditLimit,
-		Notes:        c.Notes,
-		IsActive:     c.IsActive,
-	}, nil
+	for _, v := range dataDB {
+		data = append(data, dto.CustomerResponse{
+			ID:           v.ID,
+			CustomerCode: v.CustomerCode,
+			Name:         v.Name,
+			Phone:        v.Phone,
+			Address:      v.Address,
+			CreditLimit:  v.CreditLimit,
+			IsActive:     v.IsActive,
+			CreatedAt:    v.CreatedAt,
+		})
+	}
+
+	return data, total, nil
 }
 
-func (s *customerService) Create(req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error) {
+func (s *customerService) GetOptions() (data []dto.CustomerActiveItem, err error) {
+	dataDB, err := s.repo.GetOptions()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, dto.CustomerActiveItem{
+			ID:           v.ID,
+			Name:         v.Name,
+			CustomerCode: v.CustomerCode,
+			CreditLimit:  v.CreditLimit,
+		})
+	}
+
+	return data, nil
+}
+
+func (s *customerService) GetByID(id int) (data dto.CustomerDetailResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+	}
+
+	data = dto.CustomerDetailResponse{
+		ID:           dataDB.ID,
+		CustomerCode: dataDB.CustomerCode,
+		Name:         dataDB.Name,
+		Phone:        dataDB.Phone,
+		Address:      dataDB.Address,
+		CreditLimit:  dataDB.CreditLimit,
+		Notes:        dataDB.Notes,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
+	}
+
+	return data, nil
+}
+
+func (s *customerService) Create(req *dto.CreateRequest) (data dto.CustomerResponse, err error) {
+	req.Name = strings.TrimSpace(req.Name)
+
 	count, err := s.repo.GetCount()
 	if err != nil {
-		return nil, err
+		return data, err
 	}
 	code := fmt.Sprintf("CUS-%03d", count+1)
-	return s.repo.Create(code, req)
-}
 
-func (s *customerService) Update(id int, req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error) {
-	c, err := s.repo.GetByID(id)
+	newID, err := s.repo.Create(req, code)
 	if err != nil {
-		return nil, err
+		return data, err
 	}
-	if c == nil {
-		return nil, &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+
+	dataDB, err := s.repo.GetByID(int(newID))
+	if err != nil {
+		return data, err
 	}
-	return s.repo.Update(id, req)
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data pelanggan"}
+	}
+
+	data = dto.CustomerResponse{
+		ID:           dataDB.ID,
+		CustomerCode: dataDB.CustomerCode,
+		Name:         dataDB.Name,
+		Phone:        dataDB.Phone,
+		Address:      dataDB.Address,
+		CreditLimit:  dataDB.CreditLimit,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
+	}
+
+	return data, nil
 }
 
-func (s *customerService) Delete(id int) error {
-	c, err := s.repo.GetByID(id)
+func (s *customerService) Update(req *dto.UpdateRequest) (data dto.CustomerResponse, err error) {
+	req.Name = strings.TrimSpace(req.Name)
+
+	exists, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if exists == nil {
+		return data, &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+	}
+
+	if err = s.repo.Update(req); err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data pelanggan"}
+	}
+
+	data = dto.CustomerResponse{
+		ID:           dataDB.ID,
+		CustomerCode: dataDB.CustomerCode,
+		Name:         dataDB.Name,
+		Phone:        dataDB.Phone,
+		Address:      dataDB.Address,
+		CreditLimit:  dataDB.CreditLimit,
+		IsActive:     dataDB.IsActive,
+		CreatedAt:    dataDB.CreatedAt,
+	}
+
+	return data, nil
+}
+
+func (s *customerService) Delete(req *dto.DeleteRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}
-	if c == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
 	}
 
-	count, err := s.repo.CountActiveReceivables(id)
+	count, err := s.repo.CountActiveReceivables(req.ID)
 	if err != nil {
-		return err
+		return &errors.InternalServerError{Message: "Gagal memeriksa piutang pelanggan"}
 	}
 	if count > 0 {
 		return &errors.BadRequestError{Message: "Pelanggan masih memiliki piutang aktif"}
 	}
-	return s.repo.Delete(id)
+
+	return s.repo.Delete(req)
 }
 
-func (s *customerService) ToggleStatus(id int) error {
-	c, err := s.repo.GetByID(id)
+func (s *customerService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}
-	if c == nil {
+	if exists == nil {
 		return &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
 	}
-	return s.repo.ToggleStatus(id)
+
+	return s.repo.ToggleStatus(req)
 }

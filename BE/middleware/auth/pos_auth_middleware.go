@@ -10,7 +10,7 @@ import (
 )
 
 // POSBearerAuthMiddleware validates JWT + single active session via sessions table.
-func POSBearerAuthMiddleware(authService service_auth.AuthService) gin.HandlerFunc {
+func POSBearerAuthMiddleware(authService service_auth.AuthServiceInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {

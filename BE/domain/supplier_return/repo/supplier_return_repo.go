@@ -227,7 +227,8 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 }
 
 func (r *supplierReturnRepo) UpdateStatus(id int, status, notes string) error {
-	return r.db.Exec(updateReturnStatusQuery, status, notes, id).Error
+	err := r.db.Exec(updateReturnStatusQuery, status, notes, id).Error
+	return err
 }
 
 func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error {
@@ -281,11 +282,11 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 	})
 }
 
-func (r *supplierReturnRepo) Delete(id int) error {
+func (r *supplierReturnRepo) Delete(req *dto.GetSupplierReturnByIDRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(deleteReturnItemsQuery, id).Error; err != nil {
+		if err := tx.Exec(deleteReturnItemsQuery, req.ID).Error; err != nil {
 			return err
 		}
-		return tx.Exec(deleteReturnQuery, id).Error
+		return tx.Exec(deleteReturnQuery, req.ID).Error
 	})
 }

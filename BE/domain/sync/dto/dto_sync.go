@@ -1,18 +1,16 @@
-package dto_sync
+package dto
 
 import "time"
-
-// --- Push Sync ---
 
 type SyncItem struct {
 	LocalID     string `json:"local_id"`
 	ServerID    int    `json:"server_id"`
 	EntityType  string `json:"entity_type"`
 	EntityID    int    `json:"entity_id"`
-	Action      string `json:"action"` // create, update, delete
+	Action      string `json:"action"`
 	Payload     string `json:"payload"`
 	DesktopTime string `json:"desktop_time"`
-	UpdatedAt   string `json:"updated_at"` // updated_at terakhir dari desktop
+	UpdatedAt   string `json:"updated_at"`
 }
 
 type PushSyncRequest struct {
@@ -21,10 +19,9 @@ type PushSyncRequest struct {
 	Items      []SyncItem `json:"items" binding:"required"`
 }
 
-// SyncItemResult adalah hasil per-item saat push sync
 type SyncItemResult struct {
 	LocalID    string `json:"local_id"`
-	Status     string `json:"status"`               // "synced" | "conflict" | "failed"
+	Status     string `json:"status"`
 	ServerID   int    `json:"server_id,omitempty"`
 	ConflictID int    `json:"conflict_id,omitempty"`
 	Message    string `json:"message,omitempty"`
@@ -37,8 +34,6 @@ type PushSyncResponse struct {
 	Results   []SyncItemResult `json:"results"`
 }
 
-// --- Conflicts ---
-
 type ConflictFilter struct {
 	Status string
 	Page   int
@@ -46,17 +41,17 @@ type ConflictFilter struct {
 }
 
 type ConflictResponse struct {
-	ID          int        `json:"id"`
-	EntityType  string     `json:"entity_type"`
-	EntityID    int        `json:"entity_id"`
-	LocalID     string     `json:"local_id"`
-	DeviceID    string     `json:"device_id"`
-	DesktopData string     `json:"desktop_data"`
-	OnlineData  string     `json:"online_data"`
-	DesktopTime time.Time  `json:"desktop_time"`
-	OnlineTime  time.Time  `json:"online_time"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
+	ID          int       `json:"id"`
+	EntityType  string    `json:"entity_type"`
+	EntityID    int       `json:"entity_id"`
+	LocalID     string    `json:"local_id"`
+	DeviceID    string    `json:"device_id"`
+	DesktopData string    `json:"desktop_data"`
+	OnlineData  string    `json:"online_data"`
+	DesktopTime time.Time `json:"desktop_time"`
+	OnlineTime  time.Time `json:"online_time"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type ConflictListResponse struct {
@@ -67,11 +62,8 @@ type ConflictListResponse struct {
 }
 
 type ResolveConflictRequest struct {
-	// approve = terapkan versi desktop ke MySQL; reject = pertahankan versi online
 	Action string `json:"action" binding:"required,oneof=approve reject"`
 }
-
-// --- Queue ---
 
 type QueueFilter struct {
 	DeviceID   string
@@ -97,7 +89,6 @@ type QueueListResponse struct {
 	Total int             `json:"total"`
 }
 
-// SyncTransactionItemPayload adalah satu item dalam payload transaksi offline dari desktop.
 type SyncTransactionItemPayload struct {
 	ProductID     int     `json:"product_id"`
 	ProductName   string  `json:"product_name"`
@@ -110,7 +101,6 @@ type SyncTransactionItemPayload struct {
 	UnitID        *int    `json:"unit_id"`
 }
 
-// SyncTransactionPayload adalah struktur payload transaksi offline yang dikirim desktop.
 type SyncTransactionPayload struct {
 	UserID        int                          `json:"user_id"`
 	ShiftID       *int                         `json:"shift_id"`
@@ -127,15 +117,12 @@ type SyncTransactionPayload struct {
 	Items         []SyncTransactionItemPayload `json:"items"`
 }
 
-// --- History ---
-
-// HistoryFilter digunakan oleh endpoint GET /sync/history (sync_history table)
 type HistoryFilter struct {
-	DeviceID   string
-	StartDate  string
-	EndDate    string
-	Page       int
-	Limit      int
+	DeviceID  string
+	StartDate string
+	EndDate   string
+	Page      int
+	Limit     int
 }
 
 type SyncHistoryResponse struct {

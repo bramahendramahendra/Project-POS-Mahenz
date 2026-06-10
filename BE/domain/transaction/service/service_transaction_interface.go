@@ -1,10 +1,23 @@
-package service_transaction
+package service
 
-import dto_transaction "pos_api/domain/transaction/dto"
+import (
+	"pos_api/domain/transaction/dto"
+	repo "pos_api/domain/transaction/repo"
+)
 
-type TransactionService interface {
-	GetAll(filter *dto_transaction.TransactionFilter) ([]*dto_transaction.TransactionResponse, int, error)
-	GetByID(id int) (*dto_transaction.TransactionResponse, error)
-	Create(req *dto_transaction.CreateTransactionRequest, userID int) (*dto_transaction.CreateTransactionResponse, error)
-	Void(id, userID int) error
+type (
+	TransactionServiceInterface interface {
+		GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error)
+		GetByID(id int) (*dto.TransactionResponse, error)
+		Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
+		Void(id, userID int) error
+	}
+
+	transactionService struct {
+		repo repo.TransactionRepoInterface
+	}
+)
+
+func NewTransactionService(r repo.TransactionRepoInterface) *transactionService {
+	return &transactionService{repo: r}
 }

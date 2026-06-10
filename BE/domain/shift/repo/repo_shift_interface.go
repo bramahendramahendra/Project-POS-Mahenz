@@ -1,15 +1,36 @@
-package repo_shift
+package repo
 
-import dto_shift "pos_api/domain/shift/dto"
+import (
+	dto "pos_api/domain/shift/dto"
+	model "pos_api/domain/shift/model"
 
-type ShiftRepo interface {
-	GetAll() ([]*dto_shift.ShiftResponse, error)
-	GetActive() ([]*dto_shift.ShiftActiveResponse, error)
-	GetByID(id int) (*dto_shift.ShiftResponse, error)
-	CountOpenCashDrawer(shiftID int) (int, error)
-	Create(req *dto_shift.ShiftRequest) (int, error)
-	Update(id int, req *dto_shift.ShiftRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
-	GetSummary() ([]*dto_shift.ShiftSummaryResponse, error)
+	"gorm.io/gorm"
+)
+
+type (
+	ShiftRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.Shift, int64, error)
+		GetActive() ([]*model.Shift, error)
+		GetByID(id int) (*model.Shift, error)
+		CountOpenCashDrawer(shiftID int) (int, error)
+		Create(req *dto.CreateRequest) (int64, error)
+		Update(req *dto.UpdateRequest) error
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
+		GetSummary() ([]*dto.ShiftSummaryResponse, error)
+
+		GetDB() *gorm.DB
+	}
+
+	shiftRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewShiftRepo(db *gorm.DB) *shiftRepo {
+	return &shiftRepo{db: db}
+}
+
+func (r *shiftRepo) GetDB() *gorm.DB {
+	return r.db
 }

@@ -1,13 +1,27 @@
-package repo_report
+package repo
 
-import dto_report "pos_api/domain/report/dto"
+import (
+	"pos_api/domain/report/dto"
 
-type ReportRepo interface {
-	GetSalesItems(params dto_report.FilterParams) ([]dto_report.SalesItem, error)
-	GetSalesSummary(params dto_report.FilterParams) (*dto_report.SalesSummary, error)
-	GetSalesChart(params dto_report.FilterParams) ([]dto_report.SalesChartItem, error)
-	GetProfitLossItems(params dto_report.FilterParams) ([]dto_report.ProfitLossItem, error)
-	GetExpenseSummary(params dto_report.FilterParams) ([]dto_report.ExpenseSummaryItem, error)
-	GetStockItems() ([]dto_report.StockItem, error)
-	GetCashierItems(params dto_report.FilterParams) ([]dto_report.CashierItem, error)
+	"gorm.io/gorm"
+)
+
+type (
+	ReportRepoInterface interface {
+		GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error)
+		GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error)
+		GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error)
+		GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error)
+		GetExpenseSummary(params dto.FilterParams) ([]dto.ExpenseSummaryItem, error)
+		GetStockItems() ([]dto.StockItem, error)
+		GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error)
+	}
+
+	reportRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewReportRepo(db *gorm.DB) *reportRepo {
+	return &reportRepo{db: db}
 }

@@ -1,13 +1,21 @@
-package service_backup
+package service
 
 import (
-	dto_backup "pos_api/domain/backup/dto"
-
 	"mime/multipart"
+
+	"pos_api/domain/backup/dto"
 )
 
-type BackupService interface {
-	CreateBackup() (*dto_backup.BackupInfo, error)
-	GetList() (*dto_backup.BackupListResponse, error)
-	RestoreBackup(file *multipart.FileHeader) error
+type (
+	BackupServiceInterface interface {
+		CreateBackup() (*dto.BackupInfo, error)
+		GetList() (*dto.BackupListResponse, error)
+		RestoreBackup(file *multipart.FileHeader) error
+	}
+
+	backupService struct{}
+)
+
+func NewBackupService() *backupService {
+	return &backupService{}
 }

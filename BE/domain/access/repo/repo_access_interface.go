@@ -1,8 +1,23 @@
-package repo_access
+package repo
 
-import dto_access "pos_api/domain/access/dto"
+import (
+	"pos_api/domain/access/dto"
+	"pos_api/domain/access/model"
 
-type AccessRepo interface {
-	GetByRoleID(roleID int) ([]*dto_access.RoleMenuAccessItem, error)
-	SetRoleAccess(roleID int, accesses []dto_access.SetAccessItem) error
+	"gorm.io/gorm"
+)
+
+type (
+	AccessRepoInterface interface {
+		GetByRoleID(roleID int) ([]*model.RoleMenuAccessItem, error)
+		SetRoleAccess(roleID int, accesses []dto.SetAccessItem) error
+	}
+
+	accessRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewAccessRepo(db *gorm.DB) *accessRepo {
+	return &accessRepo{db: db}
 }

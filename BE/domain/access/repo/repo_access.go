@@ -1,13 +1,12 @@
-package repo_access
+package repo
 
 import (
-	dto_access "pos_api/domain/access/dto"
+	"pos_api/domain/access/dto"
+	"pos_api/domain/access/model"
 
 	"gorm.io/gorm"
 )
 
-// getByRoleIDQuery mengambil semua menu beserta status akses role.
-// LEFT JOIN agar menu yang belum punya access row tetap muncul dengan default false.
 const getByRoleIDQuery = `
 SELECT
     m.id         AS menu_id,
@@ -24,7 +23,6 @@ WHERE m.is_active = 1
 ORDER BY m.order_index ASC, m.id ASC
 `
 
-// upsertAccessQuery menyimpan atau update satu baris akses menggunakan ON DUPLICATE KEY.
 const upsertAccessQuery = `
 INSERT INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 VALUES (?, ?, ?, ?, ?, ?)
@@ -38,47 +36,30 @@ ON DUPLICATE KEY UPDATE
 
 const deleteRoleAccessQuery = `DELETE FROM role_menu_access WHERE role_id = ?`
 
-type accessRepo struct {
-	db *gorm.DB
-}
-
-func NewAccessRepo(db *gorm.DB) AccessRepo {
-	return &accessRepo{db: db}
-}
-
-func (r *accessRepo) GetByRoleID(roleID int) ([]*dto_access.RoleMenuAccessItem, error) {
-	rows, err := r.db.Raw(getByRoleIDQuery, roleID).Rows()
+func (r *accessRepo) GetByRoleID(roleID int) ([]*model.RoleMenuAccessItem, error) {
+	var dataDB []*model.RoleMenuAccessItem
+	err := r.db.Raw(getByRoleIDQuery, roleID).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var items []*dto_access.RoleMenuAccessItem
-	for rows.Next() {
-		var item dto_access.RoleMenuAccessItem
-		if err := rows.Scan(&item.MenuID, &item.KeyName, &item.Label, &item.ParentID,
-			&item.CanView, &item.CanCreate, &item.CanEdit, &item.CanDelete); err != nil {
-			return nil, err
-		}
-		items = append(items, &item)
-	}
-	return items, nil
+	return dataDB, nil
 }
 
-// SetRoleAccess mengganti seluruh akses role: hapus lama, upsert baru.
-// Menggunakan transaksi agar atomik.
-func (r *accessRepo) SetRoleAccess(roleID int, accesses []dto_access.SetAccessItem) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(deleteRoleAccessQuery, roleID).Error; err != nil {
+func (r *accessRepo) SetRoleAccess(roleID int, accesses []dto.SetAccessItem) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Exec(deleteRoleAccessQuery, roleID).Error
+		if err != nil {
 			return err
 		}
 		for _, a := range accesses {
-			if err := tx.Exec(upsertAccessQuery,
+			err := tx.Exec(upsertAccessQuery,
 				roleID, a.MenuID, a.CanView, a.CanCreate, a.CanEdit, a.CanDelete,
-			).Error; err != nil {
+			).Error
+			if err != nil {
 				return err
 			}
 		}
 		return nil
 	})
+	return err
 }

@@ -1,11 +1,11 @@
-package handler_dashboard
+package handler
 
 import (
 	"strconv"
 	"time"
 
-	dto_dashboard "pos_api/domain/dashboard/dto"
-	service_dashboard "pos_api/domain/dashboard/service"
+	dto "pos_api/domain/dashboard/dto"
+	"pos_api/domain/dashboard/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
@@ -14,11 +14,11 @@ import (
 )
 
 type DashboardHandler struct {
-	service service_dashboard.DashboardService
+	service service.DashboardServiceInterface
 }
 
-func NewDashboardHandler(service service_dashboard.DashboardService) *DashboardHandler {
-	return &DashboardHandler{service: service}
+func NewDashboardHandler(svc service.DashboardServiceInterface) *DashboardHandler {
+	return &DashboardHandler{service: svc}
 }
 
 // GET /api/dashboard/stats
@@ -64,7 +64,7 @@ func (h *DashboardHandler) GetTopProducts(c *gin.Context) {
 		limit = 10
 	}
 
-	filter := dto_dashboard.DateRangeFilter{
+	filter := dto.DateRangeFilter{
 		StartDate: startDate,
 		EndDate:   endDate,
 		SortBy:    sortBy,
@@ -94,7 +94,7 @@ func (h *DashboardHandler) GetTopCategories(c *gin.Context) {
 		limit = 5
 	}
 
-	filter := dto_dashboard.DateRangeFilter{
+	filter := dto.DateRangeFilter{
 		StartDate: startDate,
 		EndDate:   endDate,
 		Limit:     limit,
@@ -135,7 +135,7 @@ func (h *DashboardHandler) GetPaymentMethods(c *gin.Context) {
 	startDate := c.DefaultQuery("start_date", now.AddDate(0, -1, 0).Format("2006-01-02"))
 	endDate := c.DefaultQuery("end_date", now.Format("2006-01-02"))
 
-	filter := dto_dashboard.DateRangeFilter{
+	filter := dto.DateRangeFilter{
 		StartDate: startDate,
 		EndDate:   endDate,
 	}

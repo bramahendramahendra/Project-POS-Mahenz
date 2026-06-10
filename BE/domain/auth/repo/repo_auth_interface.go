@@ -1,13 +1,27 @@
-package repo_auth
+package repo
 
-import model_auth "pos_api/domain/auth/model"
+import (
+	model "pos_api/domain/auth/model"
 
-type AuthRepo interface {
-	GetUserByUsername(username string) (*model_auth.User, error)
-	GetUserByID(id int) (*model_auth.User, error)
-	CreateSession(session *model_auth.Session) error
-	GetSessionByToken(token string) (*model_auth.Session, error)
-	GetSessionByRefreshToken(token string) (*model_auth.Session, error)
-	DeleteSessionByUserID(userID int) error
-	DeleteSessionByToken(token string) error
+	"gorm.io/gorm"
+)
+
+type (
+	AuthRepoInterface interface {
+		GetUserByUsername(username string) (*model.User, error)
+		GetUserByID(id int) (*model.User, error)
+		CreateSession(session *model.Session) error
+		GetSessionByToken(token string) (*model.Session, error)
+		GetSessionByRefreshToken(token string) (*model.Session, error)
+		DeleteSessionByUserID(userID int) error
+		DeleteSessionByToken(token string) error
+	}
+
+	authRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewAuthRepo(db *gorm.DB) *authRepo {
+	return &authRepo{db: db}
 }

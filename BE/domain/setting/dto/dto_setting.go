@@ -1,4 +1,4 @@
-package dto_setting
+package dto
 
 type SettingKeyValueResponse struct {
 	Key   string `json:"key"`

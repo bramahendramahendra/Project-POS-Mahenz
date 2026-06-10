@@ -1,7 +1,7 @@
-package handler_payment_method
+package handler
 
 import (
-	service_payment_method "pos_api/domain/payment_method/service"
+	service "pos_api/domain/payment_method/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
@@ -10,15 +10,15 @@ import (
 )
 
 type PaymentMethodHandler struct {
-	service service_payment_method.PaymentMethodService
+	service service.PaymentMethodServiceInterface
 }
 
-func NewPaymentMethodHandler(service service_payment_method.PaymentMethodService) *PaymentMethodHandler {
+func NewPaymentMethodHandler(service service.PaymentMethodServiceInterface) *PaymentMethodHandler {
 	return &PaymentMethodHandler{service: service}
 }
 
 func (h *PaymentMethodHandler) GetAll(c *gin.Context) {
-	items, err := h.service.GetAll()
+	data, err := h.service.GetAll()
 	if err != nil {
 		c.Error(err)
 		return
@@ -27,6 +27,6 @@ func (h *PaymentMethodHandler) GetAll(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar metode pembayaran",
-		Data:    items,
+		Data:    data,
 	})
 }

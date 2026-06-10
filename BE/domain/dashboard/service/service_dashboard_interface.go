@@ -1,12 +1,25 @@
-package service_dashboard
+package service
 
-import dto_dashboard "pos_api/domain/dashboard/dto"
+import (
+	"pos_api/domain/dashboard/dto"
+	repo "pos_api/domain/dashboard/repo"
+)
 
-type DashboardService interface {
-	GetStats(date string) (*dto_dashboard.StatsResponse, error)
-	GetSalesTrend(period string) ([]dto_dashboard.SalesTrendItem, error)
-	GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopProductItem, error)
-	GetTopCategories(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopCategoryItem, error)
-	GetPaymentMethods(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.PaymentMethodItem, error)
-	GetSummaryExtra(period string) (*dto_dashboard.SummaryExtraResponse, error)
+type (
+	DashboardServiceInterface interface {
+		GetStats(date string) (*dto.StatsResponse, error)
+		GetSalesTrend(period string) ([]dto.SalesTrendItem, error)
+		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
+		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
+		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)
+		GetSummaryExtra(period string) (*dto.SummaryExtraResponse, error)
+	}
+
+	dashboardService struct {
+		repo repo.DashboardRepoInterface
+	}
+)
+
+func NewDashboardService(r repo.DashboardRepoInterface) *dashboardService {
+	return &dashboardService{repo: r}
 }

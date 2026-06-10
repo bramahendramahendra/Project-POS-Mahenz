@@ -17,11 +17,11 @@ func RoleRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/roles")
 	{
-		g.GET("",                 middleware.RoleMiddleware("owner", "admin"), roleHand.GetAll)
-		g.GET("/:id",             middleware.RoleMiddleware("owner", "admin"), roleHand.GetByID)
-		g.POST("",                middleware.RoleMiddleware("owner"),          roleHand.Create)
-		g.PUT("/:id",             middleware.RoleMiddleware("owner"),          roleHand.Update)
-		g.DELETE("/:id",          middleware.RoleMiddleware("owner"),          roleHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner"),     roleHand.ToggleStatus)
+		g.POST("/list",              middleware.RoleMiddleware("owner", "admin"), roleHand.GetAll)
+		g.POST("/detail/:id",        middleware.RoleMiddleware("owner", "admin"), roleHand.GetByID)
+		g.POST("/create",            middleware.RoleMiddleware("owner"),          roleHand.Create)
+		g.POST("/update/:id",        middleware.RoleMiddleware("owner"),          roleHand.Update)
+		g.POST("/delete/:id",        middleware.RoleMiddleware("owner"),          roleHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner"),          roleHand.ToggleStatus)
 	}
 }

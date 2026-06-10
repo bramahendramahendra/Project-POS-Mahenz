@@ -1,7 +1,7 @@
-package handler_payment_status
+package handler
 
 import (
-	service_payment_status "pos_api/domain/payment_status/service"
+	service "pos_api/domain/payment_status/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
@@ -10,15 +10,15 @@ import (
 )
 
 type PaymentStatusHandler struct {
-	service service_payment_status.PaymentStatusService
+	service service.PaymentStatusServiceInterface
 }
 
-func NewPaymentStatusHandler(service service_payment_status.PaymentStatusService) *PaymentStatusHandler {
+func NewPaymentStatusHandler(service service.PaymentStatusServiceInterface) *PaymentStatusHandler {
 	return &PaymentStatusHandler{service: service}
 }
 
 func (h *PaymentStatusHandler) GetAll(c *gin.Context) {
-	items, err := h.service.GetAll()
+	data, err := h.service.GetAll()
 	if err != nil {
 		c.Error(err)
 		return
@@ -27,6 +27,6 @@ func (h *PaymentStatusHandler) GetAll(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar status pembayaran",
-		Data:    items,
+		Data:    data,
 	})
 }

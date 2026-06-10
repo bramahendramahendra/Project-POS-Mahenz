@@ -1,30 +1,30 @@
-package handler_sync
+package handler
 
 import (
 	"strconv"
 
-	dto_sync "pos_api/domain/sync/dto"
-	service_sync "pos_api/domain/sync/service"
+	"pos_api/domain/sync/dto"
+	"pos_api/domain/sync/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	"pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
 
 type SyncHandler struct {
-	service service_sync.SyncService
+	service service.SyncServiceInterface
 }
 
-func NewSyncHandler(service service_sync.SyncService) *SyncHandler {
-	return &SyncHandler{service: service}
+func NewSyncHandler(svc service.SyncServiceInterface) *SyncHandler {
+	return &SyncHandler{service: svc}
 }
 
-// POST /api/sync/push
 func (h *SyncHandler) PushSync(c *gin.Context) {
-	var req dto_sync.PushSyncRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := binder.BindJSON[dto.PushSyncRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -43,7 +43,6 @@ func (h *SyncHandler) PushSync(c *gin.Context) {
 	})
 }
 
-// GET /api/sync/conflicts/count — jumlah konflik pending untuk polling notifikasi
 func (h *SyncHandler) GetConflictCount(c *gin.Context) {
 	count, err := h.service.CountPendingConflicts()
 	if err != nil {
@@ -59,9 +58,8 @@ func (h *SyncHandler) GetConflictCount(c *gin.Context) {
 	})
 }
 
-// GET /api/sync/conflicts?status=pending&page=1&limit=20
 func (h *SyncHandler) GetConflicts(c *gin.Context) {
-	filter := &dto_sync.ConflictFilter{
+	filter := &dto.ConflictFilter{
 		Status: c.DefaultQuery("status", "pending"),
 		Page:   parseIntQuery(c.DefaultQuery("page", "1"), 1),
 		Limit:  parseIntQuery(c.DefaultQuery("limit", "20"), 20),
@@ -81,7 +79,6 @@ func (h *SyncHandler) GetConflicts(c *gin.Context) {
 	})
 }
 
-// POST /api/sync/conflicts/:id/resolve
 func (h *SyncHandler) ResolveConflict(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -89,8 +86,8 @@ func (h *SyncHandler) ResolveConflict(c *gin.Context) {
 		return
 	}
 
-	var req dto_sync.ResolveConflictRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := binder.BindJSON[dto.ResolveConflictRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -109,9 +106,8 @@ func (h *SyncHandler) ResolveConflict(c *gin.Context) {
 	})
 }
 
-// GET /api/sync/queue
 func (h *SyncHandler) GetQueue(c *gin.Context) {
-	filter := &dto_sync.QueueFilter{
+	filter := &dto.QueueFilter{
 		DeviceID:   c.Query("device_id"),
 		Status:     c.Query("status"),
 		EntityType: c.Query("entity_type"),
@@ -133,9 +129,8 @@ func (h *SyncHandler) GetQueue(c *gin.Context) {
 	})
 }
 
-// GET /api/sync/history?device_id=&start_date=&end_date=&page=1&limit=20
 func (h *SyncHandler) GetHistory(c *gin.Context) {
-	filter := &dto_sync.HistoryFilter{
+	filter := &dto.HistoryFilter{
 		DeviceID:  c.Query("device_id"),
 		StartDate: c.Query("start_date"),
 		EndDate:   c.Query("end_date"),

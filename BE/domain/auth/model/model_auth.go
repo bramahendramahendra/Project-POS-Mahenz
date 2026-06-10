@@ -1,26 +1,26 @@
-package model_auth
+package model
 
 import "time"
 
 type User struct {
-	ID        int       `db:"id"`
-	Username  string    `db:"username"`
-	Password  string    `db:"password"`
-	FullName  string    `db:"full_name"`
-	RoleID    int       `db:"role_id"`
-	RoleName  string    `db:"role_name"`  // dari JOIN roles.name
-	IsActive  bool      `db:"is_active"`
-	CreatedAt time.Time `db:"created_at"`
+	ID        int       `gorm:"column:id"`
+	Username  string    `gorm:"column:username"`
+	Password  string    `gorm:"column:password"`
+	FullName  string    `gorm:"column:full_name"`
+	RoleID    int       `gorm:"column:role_id"`
+	RoleName  string    `gorm:"column:role_name"`
+	IsActive  bool      `gorm:"column:is_active"`
+	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
 type Session struct {
-	ID           int       `db:"id"`
-	UserID       int       `db:"user_id"`
-	UserRole     string    `db:"user_role"`
-	Token        string    `db:"token"`
-	RefreshToken string    `db:"refresh_token"`
-	DeviceInfo   string    `db:"device_info"`
-	IPAddress    string    `db:"ip_address"`
-	CreatedAt    time.Time `db:"created_at"`
-	ExpiresAt    time.Time `db:"expires_at"`
+	ID           int       `gorm:"column:id"`
+	UserID       int       `gorm:"column:user_id"`
+	UserRole     string    `gorm:"column:user_role"`
+	Token        string    `gorm:"column:token"`
+	RefreshToken string    `gorm:"column:refresh_token"`
+	DeviceInfo   string    `gorm:"column:device_info"`
+	IPAddress    string    `gorm:"column:ip_address"`
+	CreatedAt    time.Time `gorm:"column:created_at"`
+	ExpiresAt    time.Time `gorm:"column:expires_at"`
 }

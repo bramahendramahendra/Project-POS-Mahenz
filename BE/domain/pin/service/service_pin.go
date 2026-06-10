@@ -1,18 +1,9 @@
-package service_pin
+package service
 
 import (
-	repo_pin "pos_api/domain/pin/repo"
 	"pos_api/errors"
 	"pos_api/pkg/bcrypt"
 )
-
-type pinService struct {
-	repo repo_pin.PinRepo
-}
-
-func NewPinService(repo repo_pin.PinRepo) PinService {
-	return &pinService{repo: repo}
-}
 
 func (s *pinService) HasPin(userID int) (bool, error) {
 	pinHash, err := s.repo.GetPinHash(userID)

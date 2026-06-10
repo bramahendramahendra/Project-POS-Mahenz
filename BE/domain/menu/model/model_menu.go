@@ -1,16 +1,16 @@
-package model_menu
+package model
 
 import "time"
 
 type Menu struct {
-	ID         int        `db:"id"`
-	ParentID   *int       `db:"parent_id"`
-	KeyName    string     `db:"key_name"`
-	Label      string     `db:"label"`
-	Icon       *string    `db:"icon"`
-	Path       *string    `db:"path"`
-	OrderIndex int        `db:"order_index"`
-	IsActive   bool       `db:"is_active"`
-	CreatedAt  time.Time  `db:"created_at"`
-	UpdatedAt  *time.Time `db:"updated_at"`
+	ID         int        `gorm:"column:id"`
+	ParentID   *int       `gorm:"column:parent_id"`
+	KeyName    string     `gorm:"column:key_name"`
+	Label      string     `gorm:"column:label"`
+	Icon       *string    `gorm:"column:icon"`
+	Path       *string    `gorm:"column:path"`
+	OrderIndex int        `gorm:"column:order_index"`
+	IsActive   bool       `gorm:"column:is_active"`
+	CreatedAt  time.Time  `gorm:"column:created_at"`
+	UpdatedAt  *time.Time `gorm:"column:updated_at"`
 }

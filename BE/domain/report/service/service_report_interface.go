@@ -1,22 +1,33 @@
-package service_report
+package service
 
 import (
 	"bytes"
 
-	dto_report "pos_api/domain/report/dto"
+	"pos_api/domain/report/dto"
+	repo "pos_api/domain/report/repo"
 )
 
-type ReportService interface {
-	GetSalesReport(params dto_report.FilterParams) (*dto_report.SalesReportResponse, error)
-	GetSalesChart(params dto_report.FilterParams) ([]dto_report.SalesChartItem, error)
-	ExportSalesReport(params dto_report.FilterParams) (*bytes.Buffer, error)
+type (
+	ReportServiceInterface interface {
+		GetSalesReport(params dto.FilterParams) (*dto.SalesReportResponse, error)
+		GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error)
+		ExportSalesReport(params dto.FilterParams) (*bytes.Buffer, error)
 
-	GetProfitLoss(params dto_report.FilterParams) (*dto_report.ProfitLossResponse, error)
-	ExportProfitLoss(params dto_report.FilterParams) (*bytes.Buffer, error)
+		GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossResponse, error)
+		ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error)
 
-	GetStockReport() (*dto_report.StockReportResponse, error)
-	ExportStockReport() (*bytes.Buffer, error)
+		GetStockReport() (*dto.StockReportResponse, error)
+		ExportStockReport() (*bytes.Buffer, error)
 
-	GetCashierReport(params dto_report.FilterParams) ([]dto_report.CashierItem, error)
-	ExportCashierReport(params dto_report.FilterParams) (*bytes.Buffer, error)
+		GetCashierReport(params dto.FilterParams) ([]dto.CashierItem, error)
+		ExportCashierReport(params dto.FilterParams) (*bytes.Buffer, error)
+	}
+
+	reportService struct {
+		repo repo.ReportRepoInterface
+	}
+)
+
+func NewReportService(r repo.ReportRepoInterface) *reportService {
+	return &reportService{repo: r}
 }

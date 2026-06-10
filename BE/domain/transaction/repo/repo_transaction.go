@@ -1,4 +1,4 @@
-package repo_transaction
+﻿package repo
 
 import (
 	"encoding/json"
@@ -6,8 +6,8 @@ import (
 	"time"
 
 	dto_sync "pos_api/domain/sync/dto"
-	dto_transaction "pos_api/domain/transaction/dto"
-	model_transaction "pos_api/domain/transaction/model"
+	"pos_api/domain/transaction/dto"
+	"pos_api/domain/transaction/model"
 
 	"gorm.io/gorm"
 )
@@ -48,15 +48,8 @@ const (
 	countTransactionsBase = `SELECT COUNT(*) FROM transactions t WHERE 1=1`
 )
 
-type transactionRepo struct {
-	db *gorm.DB
-}
 
-func NewTransactionRepo(db *gorm.DB) TransactionRepo {
-	return &transactionRepo{db: db}
-}
-
-func (r *transactionRepo) GetAll(filter *dto_transaction.TransactionFilter) ([]*dto_transaction.TransactionResponse, int, error) {
+func (r *transactionRepo) GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -115,9 +108,9 @@ func (r *transactionRepo) GetAll(filter *dto_transaction.TransactionFilter) ([]*
 	}
 	defer rows.Close()
 
-	var transactions []*dto_transaction.TransactionResponse
+	var transactions []*dto.TransactionResponse
 	for rows.Next() {
-		var t dto_transaction.TransactionResponse
+		var t dto.TransactionResponse
 		if err := rows.Scan(
 			&t.ID, &t.TransactionCode, &t.UserID, &t.KasirName, &t.ShiftID, &t.TransactionDate,
 			&t.Subtotal, &t.Discount, &t.Tax, &t.TotalAmount, &t.PaymentMethod,
@@ -129,12 +122,12 @@ func (r *transactionRepo) GetAll(filter *dto_transaction.TransactionFilter) ([]*
 		transactions = append(transactions, &t)
 	}
 	if transactions == nil {
-		transactions = []*dto_transaction.TransactionResponse{}
+		transactions = []*dto.TransactionResponse{}
 	}
 	return transactions, total, nil
 }
 
-func (r *transactionRepo) GetByID(id int) (*dto_transaction.TransactionResponse, error) {
+func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 	rows, err := r.db.Raw(getTransactionByIDQuery, id).Rows()
 	if err != nil {
 		return nil, err
@@ -144,7 +137,7 @@ func (r *transactionRepo) GetByID(id int) (*dto_transaction.TransactionResponse,
 	if !rows.Next() {
 		return nil, nil
 	}
-	var t dto_transaction.TransactionResponse
+	var t dto.TransactionResponse
 	if err := rows.Scan(
 		&t.ID, &t.TransactionCode, &t.UserID, &t.KasirName, &t.ShiftID, &t.TransactionDate,
 		&t.Subtotal, &t.Discount, &t.Tax, &t.TotalAmount, &t.PaymentMethod,
@@ -160,7 +153,7 @@ func (r *transactionRepo) GetByID(id int) (*dto_transaction.TransactionResponse,
 		return nil, err
 	}
 	for _, item := range items {
-		t.Items = append(t.Items, dto_transaction.TransactionItemResponse{
+		t.Items = append(t.Items, dto.TransactionItemResponse{
 			ID:            item.ID,
 			ProductID:     item.ProductID,
 			ProductName:   item.ProductName,
@@ -176,8 +169,8 @@ func (r *transactionRepo) GetByID(id int) (*dto_transaction.TransactionResponse,
 	return &t, nil
 }
 
-func (r *transactionRepo) Create(req *dto_transaction.CreateTransactionRequest, userID int) (*dto_transaction.CreateTransactionResponse, error) {
-	var resp dto_transaction.CreateTransactionResponse
+func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
+	var resp dto.CreateTransactionResponse
 
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Generate transaction_code
@@ -226,7 +219,7 @@ func (r *transactionRepo) Create(req *dto_transaction.CreateTransactionRequest, 
 				conversionQty = 1
 			}
 
-			// Stok yang dikurangi = qty × conversion_qty (konversi ke satuan dasar)
+			// Stok yang dikurangi = qty Ã— conversion_qty (konversi ke satuan dasar)
 			stockDeduct := item.Quantity * conversionQty
 
 			// Ambil stok sebelumnya
@@ -264,7 +257,7 @@ func (r *transactionRepo) Create(req *dto_transaction.CreateTransactionRequest, 
 			}
 		}
 
-		// 4. Jika kredit → buat piutang
+		// 4. Jika kredit â†’ buat piutang
 		if req.IsCredit && req.CustomerID != nil {
 			if err := tx.Exec(createReceivableQuery,
 				transactionID, *req.CustomerID, req.TotalAmount,
@@ -291,7 +284,7 @@ func (r *transactionRepo) Create(req *dto_transaction.CreateTransactionRequest, 
 		resp.DeviceSource = req.DeviceSource
 
 		for _, item := range req.Items {
-			resp.Items = append(resp.Items, dto_transaction.TransactionItemResponse{
+			resp.Items = append(resp.Items, dto.TransactionItemResponse{
 				ProductID:     item.ProductID,
 				ProductName:   item.ProductName,
 				Quantity:      item.Quantity,
@@ -353,7 +346,7 @@ func (r *transactionRepo) Void(id, userID int) error {
 			}
 		}
 
-		// 4. Jika ada piutang → update status void
+		// 4. Jika ada piutang â†’ update status void
 		if err := tx.Exec(updateReceivableVoidQuery, id).Error; err != nil {
 			return err
 		}
@@ -362,16 +355,16 @@ func (r *transactionRepo) Void(id, userID int) error {
 	})
 }
 
-func (r *transactionRepo) GetItems(transactionID int) ([]model_transaction.TransactionItem, error) {
+func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, error) {
 	rows, err := r.db.Raw(getTransactionItemsQuery, transactionID).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []model_transaction.TransactionItem
+	var items []model.TransactionItem
 	for rows.Next() {
-		var item model_transaction.TransactionItem
+		var item model.TransactionItem
 		if err := rows.Scan(
 			&item.ID, &item.TransactionID, &item.ProductID, &item.ProductName,
 			&item.Quantity, &item.Unit, &item.Price, &item.Subtotal,
@@ -463,7 +456,7 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 			}
 		}
 
-		// 5. Jika kredit → buat piutang
+		// 5. Jika kredit â†’ buat piutang
 		if tx.IsCredit && tx.CustomerID != nil {
 			if err := db.Exec(createReceivableQuery, transactionID, *tx.CustomerID, tx.TotalAmount).Error; err != nil {
 				return err
@@ -530,3 +523,4 @@ func (r *transactionRepo) UpdateFromSync(id int, data map[string]interface{}) er
 	updates["updated_at"] = "NOW()"
 	return r.db.Table("transactions").Where("id = ?", id).Updates(updates).Error
 }
+

@@ -1,4 +1,4 @@
-package dto_backup
+package dto
 
 import "time"
 

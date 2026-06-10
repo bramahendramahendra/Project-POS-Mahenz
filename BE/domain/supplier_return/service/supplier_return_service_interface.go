@@ -11,7 +11,7 @@ type (
 		GetByID(id int) (data dto.SupplierReturnResponse, err error)
 		Create(req *dto.CreateSupplierReturnRequest) (data dto.SupplierReturnResponse, err error)
 		UpdateStatus(req *dto.UpdateStatusRequest) error
-		Delete(id int) error
+		Delete(req *dto.GetSupplierReturnByIDRequest) error
 	}
 
 	supplierReturnService struct {

@@ -17,10 +17,10 @@ func ReceivableRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/receivables")
 	{
-		g.GET("", receivableHand.GetAll)
-		g.GET("/summary", middleware.RoleMiddleware("owner", "admin"), receivableHand.GetSummary)
-		g.GET("/:id", receivableHand.GetByID)
-		g.GET("/:id/payments", receivableHand.GetPayments)
-		g.POST("/:id/pay", receivableHand.Pay)
+		g.POST("/list", receivableHand.GetAll)
+		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), receivableHand.GetSummary)
+		g.POST("/detail/:id", receivableHand.GetByID)
+		g.POST("/payments/:id", receivableHand.GetPayments)
+		g.POST("/pay/:id", receivableHand.Pay)
 	}
 }

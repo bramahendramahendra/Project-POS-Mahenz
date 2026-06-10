@@ -17,10 +17,9 @@ func AccessRoutes(r *gin.RouterGroup) {
 	accessSvc := access_service.NewAccessService(accessRepo, roleRepo)
 	accessHand := access_handler.NewAccessHandler(accessSvc)
 
-	// Nested di bawah /roles/:id/menus
 	g := r.Group("/roles/:id/menus")
 	{
-		g.GET("",  middleware.RoleMiddleware("owner", "admin"), accessHand.GetByRoleID)
-		g.PUT("",  middleware.RoleMiddleware("owner"),          accessHand.SetRoleAccess)
+		g.POST("/list",  middleware.RoleMiddleware("owner", "admin"), accessHand.GetByRoleID)
+		g.POST("/set",   middleware.RoleMiddleware("owner"),          accessHand.SetRoleAccess)
 	}
 }

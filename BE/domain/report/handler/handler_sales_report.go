@@ -1,11 +1,11 @@
-package handler_report
+package handler
 
 import (
 	"net/http"
 	"time"
 
-	dto_report "pos_api/domain/report/dto"
-	service_report "pos_api/domain/report/service"
+	"pos_api/domain/report/dto"
+	"pos_api/domain/report/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
@@ -14,17 +14,17 @@ import (
 )
 
 type ReportHandler struct {
-	service service_report.ReportService
+	service service.ReportServiceInterface
 }
 
-func NewReportHandler(service service_report.ReportService) *ReportHandler {
-	return &ReportHandler{service: service}
+func NewReportHandler(svc service.ReportServiceInterface) *ReportHandler {
+	return &ReportHandler{service: svc}
 }
 
-func parseFilterParams(c *gin.Context) dto_report.FilterParams {
+func parseFilterParams(c *gin.Context) dto.FilterParams {
 	dateFrom := c.DefaultQuery("date_from", time.Now().Format("2006-01-02")+" 00:00:00")
 	dateTo := c.DefaultQuery("date_to", time.Now().Format("2006-01-02")+" 23:59:59")
-	return dto_report.FilterParams{DateFrom: dateFrom, DateTo: dateTo}
+	return dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo}
 }
 
 func (h *ReportHandler) GetSalesReport(c *gin.Context) {

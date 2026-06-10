@@ -1,7 +1,21 @@
-package repo_payment_method
+package repo
 
-import dto_payment_method "pos_api/domain/payment_method/dto"
+import (
+	dto "pos_api/domain/payment_method/dto"
 
-type PaymentMethodRepo interface {
-	GetAll() ([]*dto_payment_method.PaymentMethodResponse, error)
+	"gorm.io/gorm"
+)
+
+type (
+	PaymentMethodRepoInterface interface {
+		GetAll() ([]*dto.PaymentMethodResponse, error)
+	}
+
+	paymentMethodRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewPaymentMethodRepo(db *gorm.DB) *paymentMethodRepo {
+	return &paymentMethodRepo{db: db}
 }

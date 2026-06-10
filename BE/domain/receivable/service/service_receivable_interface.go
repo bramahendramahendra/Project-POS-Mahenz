@@ -1,11 +1,24 @@
-package service_receivable
+package service
 
-import dto_receivable "pos_api/domain/receivable/dto"
+import (
+	dto "pos_api/domain/receivable/dto"
+	repo "pos_api/domain/receivable/repo"
+)
 
-type ReceivableService interface {
-	GetAll(filter *dto_receivable.ReceivableFilter) ([]*dto_receivable.ReceivableResponse, int, error)
-	GetByID(id int) (*dto_receivable.ReceivableDetailResponse, error)
-	GetSummary() ([]*dto_receivable.ReceivableSummaryItem, error)
-	GetPayments(id int) ([]*dto_receivable.PaymentResponse, error)
-	Pay(id int, req *dto_receivable.PayRequest, userID int) (*dto_receivable.PayResponse, error)
+type (
+	ReceivableServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableResponse, int64, error)
+		GetByID(id int) (*dto.ReceivableDetailResponse, error)
+		GetSummary() ([]*dto.ReceivableSummaryItem, error)
+		GetPayments(id int) ([]*dto.PaymentResponse, error)
+		Pay(id int, req *dto.PayRequest, userID int) (*dto.PayResponse, error)
+	}
+
+	receivableService struct {
+		repo repo.ReceivableRepoInterface
+	}
+)
+
+func NewReceivableService(repo repo.ReceivableRepoInterface) *receivableService {
+	return &receivableService{repo: repo}
 }

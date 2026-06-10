@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	countCategoriesQuery = `SELECT COUNT(*) FROM categories c WHERE 1=1`
+	countCategoriesQuery             = `SELECT COUNT(*) FROM categories c WHERE 1=1`
 	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, COUNT(p.id) AS product_count, COUNT(CASE WHEN p.is_active = 1 THEN 1 END) AS active_product_count, c.created_at FROM categories c LEFT JOIN products p ON p.category_id = c.id WHERE 1=1`
 	getAllCategoriesGroupOrder       = ` GROUP BY c.id, c.name, c.code, c.description, c.is_active, c.created_at ORDER BY c.name`
 	getAllCategoryOptionsQuery       = `SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name`

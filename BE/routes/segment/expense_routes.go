@@ -19,10 +19,10 @@ func ExpenseRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/expenses")
 	{
-		g.GET("", expenseHand.GetAll)
-		g.GET("/:id", expenseHand.GetByID)
-		g.POST("", expenseHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Delete)
+		g.POST("/list", expenseHand.GetAll)
+		g.POST("/detail/:id", expenseHand.GetByID)
+		g.POST("/create", expenseHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Delete)
 	}
 }

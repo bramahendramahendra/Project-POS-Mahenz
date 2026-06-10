@@ -1,16 +1,16 @@
-package model_customer
+package model
 
 import "time"
 
 type Customer struct {
-	ID          int        `db:"id"`
-	CustomerCode string    `db:"customer_code"`
-	Name        string     `db:"name"`
-	Phone       string     `db:"phone"`
-	Address     string     `db:"address"`
-	CreditLimit float64    `db:"credit_limit"`
-	Notes       string     `db:"notes"`
-	IsActive    bool       `db:"is_active"`
-	CreatedAt   time.Time  `db:"created_at"`
-	UpdatedAt   *time.Time `db:"updated_at"`
+	ID           int       `gorm:"column:id"`
+	CustomerCode string    `gorm:"column:customer_code"`
+	Name         string    `gorm:"column:name"`
+	Phone        string    `gorm:"column:phone"`
+	Address      string    `gorm:"column:address"`
+	CreditLimit  float64   `gorm:"column:credit_limit"`
+	Notes        string    `gorm:"column:notes"`
+	IsActive     bool      `gorm:"column:is_active"`
+	CreatedAt    time.Time `gorm:"column:created_at"`
+	UpdatedAt    time.Time `gorm:"column:updated_at"`
 }

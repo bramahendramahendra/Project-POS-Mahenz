@@ -1,13 +1,26 @@
-package service_cash_drawer
+package service
 
-import dto_cash_drawer "pos_api/domain/cash_drawer/dto"
+import (
+	dto "pos_api/domain/cash_drawer/dto"
+	repo "pos_api/domain/cash_drawer/repo"
+)
 
-type CashDrawerService interface {
-	GetCurrent(userID int) (*dto_cash_drawer.CurrentCashDrawerResponse, error)
-	GetByID(id int, requestingUserID int, role string) (*dto_cash_drawer.CashDrawerDetailResponse, error)
-	GetHistory(filter *dto_cash_drawer.CashDrawerFilter) ([]*dto_cash_drawer.CashDrawerHistoryResponse, int, error)
-	Open(userID int, req *dto_cash_drawer.OpenRequest) (*dto_cash_drawer.OpenResponse, error)
-	Close(id int, req *dto_cash_drawer.CloseRequest, requestingUserID int, role string) (*dto_cash_drawer.CloseResponse, error)
-	UpdateSales(id int, req *dto_cash_drawer.UpdateSalesRequest, requestingUserID int, role string) error
-	UpdateExpenses(id int, req *dto_cash_drawer.UpdateExpensesRequest, requestingUserID int, role string) error
+type (
+	CashDrawerServiceInterface interface {
+		GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error)
+		GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error)
+		GetHistory(req *dto.GetHistoryRequest) (data []*dto.CashDrawerHistoryResponse, total int64, err error)
+		Open(userID int, req *dto.OpenRequest) (*dto.OpenResponse, error)
+		Close(id int, req *dto.CloseRequest, requestingUserID int, role string) (*dto.CloseResponse, error)
+		UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error
+		UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error
+	}
+
+	cashDrawerService struct {
+		repo repo.CashDrawerRepoInterface
+	}
+)
+
+func NewCashDrawerService(repo repo.CashDrawerRepoInterface) *cashDrawerService {
+	return &cashDrawerService{repo: repo}
 }

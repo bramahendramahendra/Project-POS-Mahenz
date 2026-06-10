@@ -1,48 +1,63 @@
-package service_expense
+package service
 
 import (
-	repo_cash_drawer "pos_api/domain/cash_drawer/repo"
-	dto_expense "pos_api/domain/expense/dto"
-	repo_expense "pos_api/domain/expense/repo"
+	dto "pos_api/domain/expense/dto"
 	"pos_api/errors"
 )
 
-type expenseService struct {
-	repo           repo_expense.ExpenseRepo
-	cashDrawerRepo repo_cash_drawer.CashDrawerRepo
-}
-
-func NewExpenseService(repo repo_expense.ExpenseRepo, cashDrawerRepo repo_cash_drawer.CashDrawerRepo) ExpenseService {
-	return &expenseService{repo: repo, cashDrawerRepo: cashDrawerRepo}
-}
-
-func (s *expenseService) GetAll(filter *dto_expense.ExpenseFilter) ([]*dto_expense.ExpenseResponse, int, error) {
-	items, total, err := s.repo.GetAll(filter)
+func (s *expenseService) GetAll(req *dto.GetAllRequest) (data []dto.ExpenseResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
+		return data, 0, err
 	}
-	return items, total, nil
+
+	for _, v := range dataDB {
+		data = append(data, dto.ExpenseResponse{
+			ID:            v.ID,
+			ExpenseDate:   v.ExpenseDate,
+			Category:      v.Category,
+			Description:   v.Description,
+			Amount:        v.Amount,
+			PaymentMethod: v.PaymentMethod,
+			UserID:        v.UserID,
+			UserName:      v.UserName,
+			Notes:         v.Notes,
+		})
+	}
+
+	return data, total, nil
 }
 
-func (s *expenseService) GetByID(id int) (*dto_expense.ExpenseResponse, error) {
-	item, err := s.repo.GetByID(id)
+func (s *expenseService) GetByID(id int) (data dto.ExpenseResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	if item == nil {
-		return nil, &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
 	}
-	return item, nil
+
+	data = dto.ExpenseResponse{
+		ID:            dataDB.ID,
+		ExpenseDate:   dataDB.ExpenseDate,
+		Category:      dataDB.Category,
+		Description:   dataDB.Description,
+		Amount:        dataDB.Amount,
+		PaymentMethod: dataDB.PaymentMethod,
+		UserID:        dataDB.UserID,
+		UserName:      dataDB.UserName,
+		Notes:         dataDB.Notes,
+	}
+
+	return data, nil
 }
 
-func (s *expenseService) Create(req *dto_expense.ExpenseRequest, userID int) (*dto_expense.ExpenseResponse, error) {
-	id, err := s.repo.Create(req, userID)
+func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.ExpenseResponse, err error) {
+	newID, err := s.repo.Create(req, userID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
 
-	// Jika client mengirimkan cash_drawer_id (kasus offline sync), gunakan kas tersebut.
-	// Jika tidak, fallback ke kas yang sedang terbuka milik user saat ini.
 	if req.CashDrawerID != nil {
 		cd, _ := s.cashDrawerRepo.GetByID(*req.CashDrawerID)
 		if cd != nil && cd.Status == "open" {
@@ -55,29 +70,42 @@ func (s *expenseService) Create(req *dto_expense.ExpenseRequest, userID int) (*d
 		}
 	}
 
-	item, err := s.repo.GetByID(id)
+	dataDB, err := s.repo.GetByID(int(newID))
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return data, err
 	}
-	return item, nil
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data pengeluaran"}
+	}
+
+	data = dto.ExpenseResponse{
+		ID:            dataDB.ID,
+		ExpenseDate:   dataDB.ExpenseDate,
+		Category:      dataDB.Category,
+		Description:   dataDB.Description,
+		Amount:        dataDB.Amount,
+		PaymentMethod: dataDB.PaymentMethod,
+		UserID:        dataDB.UserID,
+		UserName:      dataDB.UserName,
+		Notes:         dataDB.Notes,
+	}
+
+	return data, nil
 }
 
-func (s *expenseService) Update(id int, req *dto_expense.ExpenseRequest) error {
-	existing, err := s.repo.GetByID(id)
+func (s *expenseService) Update(req *dto.UpdateRequest) (err error) {
+	existing, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if existing == nil {
 		return &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
 	}
-	if err := s.repo.Update(id, req); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+
+	if err = s.repo.Update(req); err != nil {
+		return err
 	}
-	// Perbarui total_expenses di kas dengan selisih nominal — hanya jika pengeluaran
-	// berasal dari sesi kas yang sedang terbuka.
-	// Kondisi: tanggal buka kas (local) <= expense_date, artinya sesi ini dibuka sebelum
-	// atau pada hari yang sama dengan pengeluaran — menangani sesi overnight dengan benar.
-	// Jika sesi yang lebih baru sudah dibuka (open_time > expense_date), tidak disentuh.
+
 	delta := req.Amount - existing.Amount
 	if delta != 0 {
 		openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
@@ -85,26 +113,27 @@ func (s *expenseService) Update(id int, req *dto_expense.ExpenseRequest) error {
 			_ = s.cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, delta)
 		}
 	}
+
 	return nil
 }
 
-func (s *expenseService) Delete(id int) error {
-	existing, err := s.repo.GetByID(id)
+func (s *expenseService) Delete(req *dto.DeleteRequest) (err error) {
+	existing, err := s.repo.GetByID(req.ID)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if existing == nil {
 		return &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
 	}
-	if err := s.repo.Delete(id); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+
+	if err = s.repo.Delete(req); err != nil {
+		return err
 	}
-	// Kembalikan nominal ke total_expenses (kurangi) hanya jika pengeluaran berasal dari
-	// sesi kas yang sedang terbuka. Gunakan <= agar sesi overnight (open_time hari N,
-	// expense_date hari N+1) tetap terdeteksi sebagai satu sesi yang sama.
+
 	openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
 	if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
 		_ = s.cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, -existing.Amount)
 	}
+
 	return nil
 }

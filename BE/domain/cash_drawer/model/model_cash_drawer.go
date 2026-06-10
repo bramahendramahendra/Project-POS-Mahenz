@@ -1,22 +1,22 @@
-package model_cash_drawer
+package model
 
 import "time"
 
 type CashDrawer struct {
-	ID              int        `json:"id"`
-	UserID          int        `json:"user_id"`
-	ShiftID         *int       `json:"shift_id"`
-	OpenTime        time.Time  `json:"open_time"`
-	CloseTime       *time.Time `json:"close_time"`
-	OpeningBalance  float64    `json:"opening_balance"`
-	ClosingBalance  *float64   `json:"closing_balance"`
-	TotalSales      float64    `json:"total_sales"`
-	TotalCashSales  float64    `json:"total_cash_sales"`
-	TotalExpenses   float64    `json:"total_expenses"`
-	ExpectedBalance float64    `json:"expected_balance"`
-	Difference      *float64   `json:"difference"`
-	Status          string     `json:"status"`
-	Notes           *string    `json:"notes"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              int        `gorm:"column:id"`
+	UserID          int        `gorm:"column:user_id"`
+	ShiftID         *int       `gorm:"column:shift_id"`
+	OpenTime        time.Time  `gorm:"column:open_time"`
+	CloseTime       *time.Time `gorm:"column:close_time"`
+	OpeningBalance  float64    `gorm:"column:opening_balance"`
+	ClosingBalance  *float64   `gorm:"column:closing_balance"`
+	TotalSales      float64    `gorm:"column:total_sales"`
+	TotalCashSales  float64    `gorm:"column:total_cash_sales"`
+	TotalExpenses   float64    `gorm:"column:total_expenses"`
+	ExpectedBalance float64    `gorm:"column:expected_balance"`
+	Difference      *float64   `gorm:"column:difference"`
+	Status          string     `gorm:"column:status"`
+	Notes           *string    `gorm:"column:notes"`
+	CreatedAt       time.Time  `gorm:"column:created_at"`
+	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }

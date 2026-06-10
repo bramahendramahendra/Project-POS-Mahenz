@@ -1,4 +1,4 @@
-package dto_version
+package dto
 
 type VersionCheckResponse struct {
 	LatestVersion  string `json:"latest_version"`

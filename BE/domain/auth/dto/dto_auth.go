@@ -1,4 +1,4 @@
-package dto_auth
+package dto
 
 import "time"
 

@@ -1,20 +1,10 @@
-package repo_pin
-
-import "gorm.io/gorm"
+package repo
 
 const (
 	getPinHashQuery   = `SELECT pin_hash FROM users WHERE id = ? LIMIT 1`
 	setPinHashQuery   = `UPDATE users SET pin_hash = ? WHERE id = ?`
 	clearPinHashQuery = `UPDATE users SET pin_hash = NULL WHERE id = ?`
 )
-
-type pinRepo struct {
-	db *gorm.DB
-}
-
-func NewPinRepo(db *gorm.DB) PinRepo {
-	return &pinRepo{db: db}
-}
 
 func (r *pinRepo) GetPinHash(userID int) (string, error) {
 	var result struct {

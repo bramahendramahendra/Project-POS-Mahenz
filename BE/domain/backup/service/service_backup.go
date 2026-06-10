@@ -1,4 +1,4 @@
-package service_backup
+package service
 
 import (
 	"fmt"
@@ -11,19 +11,13 @@ import (
 	"time"
 
 	"pos_api/config"
-	dto_backup "pos_api/domain/backup/dto"
+	"pos_api/domain/backup/dto"
 	"pos_api/errors"
 )
 
 const backupDir = "backups"
 
-type backupService struct{}
-
-func NewBackupService() BackupService {
-	return &backupService{}
-}
-
-func (s *backupService) CreateBackup() (*dto_backup.BackupInfo, error) {
+func (s *backupService) CreateBackup() (*dto.BackupInfo, error) {
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal membuat folder backup"}
 	}
@@ -57,14 +51,14 @@ func (s *backupService) CreateBackup() (*dto_backup.BackupInfo, error) {
 		return nil, &errors.InternalServerError{Message: "Gagal membaca info file backup"}
 	}
 
-	return &dto_backup.BackupInfo{
+	return &dto.BackupInfo{
 		Filename:  filename,
 		Size:      formatFileSize(info.Size()),
 		CreatedAt: info.ModTime(),
 	}, nil
 }
 
-func (s *backupService) GetList() (*dto_backup.BackupListResponse, error) {
+func (s *backupService) GetList() (*dto.BackupListResponse, error) {
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal membaca folder backup"}
 	}
@@ -74,7 +68,7 @@ func (s *backupService) GetList() (*dto_backup.BackupListResponse, error) {
 		return nil, &errors.InternalServerError{Message: "Gagal membaca daftar backup"}
 	}
 
-	var files []dto_backup.BackupInfo
+	var files []dto.BackupInfo
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
 			continue
@@ -83,7 +77,7 @@ func (s *backupService) GetList() (*dto_backup.BackupListResponse, error) {
 		if err != nil {
 			continue
 		}
-		files = append(files, dto_backup.BackupInfo{
+		files = append(files, dto.BackupInfo{
 			Filename:  entry.Name(),
 			Size:      formatFileSize(info.Size()),
 			CreatedAt: info.ModTime(),
@@ -94,7 +88,7 @@ func (s *backupService) GetList() (*dto_backup.BackupListResponse, error) {
 		return files[i].CreatedAt.After(files[j].CreatedAt)
 	})
 
-	return &dto_backup.BackupListResponse{Files: files}, nil
+	return &dto.BackupListResponse{Files: files}, nil
 }
 
 func (s *backupService) RestoreBackup(file *multipart.FileHeader) error {

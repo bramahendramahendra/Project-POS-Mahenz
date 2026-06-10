@@ -1,120 +1,135 @@
-package dto_cash_drawer
+package dto
 
 import "time"
 
-// Request DTOs
+type (
+	// REQUEST
+	GetHistoryRequest struct {
+		Page      int    `json:"page"`
+		Limit     int    `json:"limit"`
+		StartDate string `json:"start_date"`
+		EndDate   string `json:"end_date"`
+		UserID    *int   `json:"user_id"`
+		ShiftID   *int   `json:"shift_id"`
+		Status    string `json:"status" validate:"max=20"`
+	}
 
-type OpenRequest struct {
-	ShiftID        *int    `json:"shift_id"`
-	OpeningBalance float64 `json:"opening_balance" binding:"min=0"`
-	Notes          string  `json:"notes"`
-}
+	GetByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type CloseRequest struct {
-	ClosingBalance float64 `json:"closing_balance" binding:"min=0"`
-	Notes          string  `json:"notes"`
-}
+	OpenRequest struct {
+		ShiftID        *int    `json:"shift_id"`
+		OpeningBalance float64 `json:"opening_balance" validate:"min=0"`
+		Notes          string  `json:"notes" validate:"max=500"`
+	}
 
-type UpdateSalesRequest struct {
-	TotalSales     float64 `json:"total_sales" binding:"min=0"`
-	TotalCashSales float64 `json:"total_cash_sales" binding:"min=0"`
-}
+	CloseUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type UpdateExpensesRequest struct {
-	TotalExpenses float64 `json:"total_expenses" binding:"min=0"`
-}
+	CloseRequest struct {
+		ID             int     `json:"-"`
+		ClosingBalance float64 `json:"closing_balance" validate:"min=0"`
+		Notes          string  `json:"notes" validate:"max=500"`
+	}
 
-// Filter
+	UpdateSalesUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type CashDrawerFilter struct {
-	StartDate string
-	EndDate   string
-	UserID    *int
-	ShiftID   *int
-	Status    string
-	Page      int
-	Limit     int
-}
+	UpdateSalesRequest struct {
+		ID             int     `json:"-"`
+		TotalSales     float64 `json:"total_sales" validate:"min=0"`
+		TotalCashSales float64 `json:"total_cash_sales" validate:"min=0"`
+	}
 
-// Response DTOs
+	UpdateExpensesUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type CurrentCashDrawerResponse struct {
-	ID              int       `json:"id"`
-	UserID          int       `json:"user_id"`
-	UserName        string    `json:"user_name"`
-	ShiftID         *int      `json:"shift_id"`
-	ShiftName       *string   `json:"shift_name"`
-	ShiftStart      *string   `json:"shift_start"`
-	ShiftEnd        *string   `json:"shift_end"`
-	OpenTime        time.Time `json:"open_time"`
-	OpeningBalance  float64   `json:"opening_balance"`
-	TotalSales      float64   `json:"total_sales"`
-	TotalCashSales  float64   `json:"total_cash_sales"`
-	TotalExpenses   float64   `json:"total_expenses"`
-	ExpectedBalance float64   `json:"expected_balance"`
-	Status          string    `json:"status"`
-	OpenNotes       *string   `json:"open_notes"`
-}
+	UpdateExpensesRequest struct {
+		ID            int     `json:"-"`
+		TotalExpenses float64 `json:"total_expenses" validate:"min=0"`
+	}
 
-type CashDrawerHistoryResponse struct {
-	ID              int        `json:"id"`
-	UserName        string     `json:"user_name"`
-	ShiftName       *string    `json:"shift_name"`
-	OpenTime        time.Time  `json:"open_time"`
-	CloseTime       *time.Time `json:"close_time"`
-	OpeningBalance  float64    `json:"opening_balance"`
-	ClosingBalance  *float64   `json:"closing_balance"`
-	ExpectedBalance float64    `json:"expected_balance"`
-	Difference      *float64   `json:"difference"`
-	TotalSales      float64    `json:"total_sales"`
-	TotalCashSales  float64    `json:"total_cash_sales"`
-	TotalExpenses   float64    `json:"total_expenses"`
-	Status          string     `json:"status"`
-}
+	// RESPONSE
+	CurrentCashDrawerResponse struct {
+		ID              int       `json:"id"`
+		UserID          int       `json:"user_id"`
+		UserName        string    `json:"user_name"`
+		ShiftID         *int      `json:"shift_id"`
+		ShiftName       *string   `json:"shift_name"`
+		ShiftStart      *string   `json:"shift_start"`
+		ShiftEnd        *string   `json:"shift_end"`
+		OpenTime        time.Time `json:"open_time"`
+		OpeningBalance  float64   `json:"opening_balance"`
+		TotalSales      float64   `json:"total_sales"`
+		TotalCashSales  float64   `json:"total_cash_sales"`
+		TotalExpenses   float64   `json:"total_expenses"`
+		ExpectedBalance float64   `json:"expected_balance"`
+		Status          string    `json:"status"`
+		OpenNotes       *string   `json:"open_notes"`
+	}
 
-// Detail items
+	CashDrawerHistoryResponse struct {
+		ID              int        `json:"id"`
+		UserName        string     `json:"user_name"`
+		ShiftName       *string    `json:"shift_name"`
+		OpenTime        time.Time  `json:"open_time"`
+		CloseTime       *time.Time `json:"close_time"`
+		OpeningBalance  float64    `json:"opening_balance"`
+		ClosingBalance  *float64   `json:"closing_balance"`
+		ExpectedBalance float64    `json:"expected_balance"`
+		Difference      *float64   `json:"difference"`
+		TotalSales      float64    `json:"total_sales"`
+		TotalCashSales  float64    `json:"total_cash_sales"`
+		TotalExpenses   float64    `json:"total_expenses"`
+		Status          string     `json:"status"`
+	}
 
-type CashDrawerTransaction struct {
-	TransactionDate time.Time `json:"transaction_date"`
-	TransactionCode string    `json:"transaction_code"`
-	CustomerName    string    `json:"customer_name"`
-	TotalAmount     float64   `json:"total_amount"`
-}
+	CashDrawerTransaction struct {
+		TransactionDate time.Time `json:"transaction_date"`
+		TransactionCode string    `json:"transaction_code"`
+		CustomerName    string    `json:"customer_name"`
+		TotalAmount     float64   `json:"total_amount"`
+	}
 
-type CashDrawerExpenseItem struct {
-	Category    string  `json:"category"`
-	Description string  `json:"description"`
-	Amount      float64 `json:"amount"`
-}
+	CashDrawerExpenseItem struct {
+		Category    string  `json:"category"`
+		Description string  `json:"description"`
+		Amount      float64 `json:"amount"`
+	}
 
-type CashDrawerDetailResponse struct {
-	ID              int                     `json:"id"`
-	UserID          int                     `json:"-"`
-	CashierName     string                  `json:"cashier_name"`
-	ShiftName       *string                 `json:"shift_name"`
-	ShiftStart      *string                 `json:"shift_start"`
-	ShiftEnd        *string                 `json:"shift_end"`
-	OpenTime        time.Time               `json:"open_time"`
-	CloseTime       *time.Time              `json:"close_time"`
-	OpeningBalance  float64                 `json:"opening_balance"`
-	ClosingBalance  *float64                `json:"closing_balance"`
-	ExpectedBalance float64                 `json:"expected_balance"`
-	TotalCashSales  float64                 `json:"total_cash_sales"`
-	TotalExpenses   float64                 `json:"total_expenses"`
-	Difference      *float64                `json:"difference"`
-	Status          string                  `json:"status"`
-	Notes           *string                 `json:"notes"`
-	OpenNotes       *string                 `json:"open_notes"`
-	Transactions    []CashDrawerTransaction `json:"transactions"`
-	Expenses        []CashDrawerExpenseItem `json:"expenses"`
-}
+	CashDrawerDetailResponse struct {
+		ID              int                     `json:"id"`
+		UserID          int                     `json:"-"`
+		CashierName     string                  `json:"cashier_name"`
+		ShiftName       *string                 `json:"shift_name"`
+		ShiftStart      *string                 `json:"shift_start"`
+		ShiftEnd        *string                 `json:"shift_end"`
+		OpenTime        time.Time               `json:"open_time"`
+		CloseTime       *time.Time              `json:"close_time"`
+		OpeningBalance  float64                 `json:"opening_balance"`
+		ClosingBalance  *float64                `json:"closing_balance"`
+		ExpectedBalance float64                 `json:"expected_balance"`
+		TotalCashSales  float64                 `json:"total_cash_sales"`
+		TotalExpenses   float64                 `json:"total_expenses"`
+		Difference      *float64                `json:"difference"`
+		Status          string                  `json:"status"`
+		Notes           *string                 `json:"notes"`
+		OpenNotes       *string                 `json:"open_notes"`
+		Transactions    []CashDrawerTransaction `json:"transactions"`
+		Expenses        []CashDrawerExpenseItem `json:"expenses"`
+	}
 
-type OpenResponse struct {
-	ID int `json:"id"`
-}
+	OpenResponse struct {
+		ID int `json:"id"`
+	}
 
-type CloseResponse struct {
-	ExpectedBalance float64 `json:"expected_balance"`
-	ClosingBalance  float64 `json:"closing_balance"`
-	Difference      float64 `json:"difference"`
-}
+	CloseResponse struct {
+		ExpectedBalance float64 `json:"expected_balance"`
+		ClosingBalance  float64 `json:"closing_balance"`
+		Difference      float64 `json:"difference"`
+	}
+)

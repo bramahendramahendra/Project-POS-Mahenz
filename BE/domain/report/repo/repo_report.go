@@ -1,10 +1,9 @@
-package repo_report
+﻿package repo
 
 import (
-	dto_report "pos_api/domain/report/dto"
+	dto "pos_api/domain/report/dto"
 
-	"gorm.io/gorm"
-)
+	)
 
 const (
 	salesReportQuery = `
@@ -66,24 +65,18 @@ const (
 		ORDER BY total_sales DESC`
 )
 
-type reportRepo struct {
-	db *gorm.DB
-}
 
-func NewReportRepo(db *gorm.DB) ReportRepo {
-	return &reportRepo{db: db}
-}
 
-func (r *reportRepo) GetSalesItems(params dto_report.FilterParams) ([]dto_report.SalesItem, error) {
+func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error) {
 	rows, err := r.db.Raw(salesReportQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.SalesItem
+	var items []dto.SalesItem
 	for rows.Next() {
-		var item dto_report.SalesItem
+		var item dto.SalesItem
 		if err := rows.Scan(&item.ID, &item.TransactionCode, &item.TransactionDate,
 			&item.UserName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
 			return nil, err
@@ -91,50 +84,50 @@ func (r *reportRepo) GetSalesItems(params dto_report.FilterParams) ([]dto_report
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.SalesItem{}
+		items = []dto.SalesItem{}
 	}
 	return items, nil
 }
 
-func (r *reportRepo) GetSalesSummary(params dto_report.FilterParams) (*dto_report.SalesSummary, error) {
-	var summary dto_report.SalesSummary
+func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error) {
+	var summary dto.SalesSummary
 	if err := r.db.Raw(salesSummaryQuery, params.DateFrom, params.DateTo).Scan(&summary).Error; err != nil {
 		return nil, err
 	}
 	return &summary, nil
 }
 
-func (r *reportRepo) GetSalesChart(params dto_report.FilterParams) ([]dto_report.SalesChartItem, error) {
+func (r *reportRepo) GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error) {
 	rows, err := r.db.Raw(salesChartQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.SalesChartItem
+	var items []dto.SalesChartItem
 	for rows.Next() {
-		var item dto_report.SalesChartItem
+		var item dto.SalesChartItem
 		if err := rows.Scan(&item.Label, &item.TotalSales, &item.TotalTransactions); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.SalesChartItem{}
+		items = []dto.SalesChartItem{}
 	}
 	return items, nil
 }
 
-func (r *reportRepo) GetProfitLossItems(params dto_report.FilterParams) ([]dto_report.ProfitLossItem, error) {
+func (r *reportRepo) GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error) {
 	rows, err := r.db.Raw(profitLossQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.ProfitLossItem
+	var items []dto.ProfitLossItem
 	for rows.Next() {
-		var item dto_report.ProfitLossItem
+		var item dto.ProfitLossItem
 		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.QtySold,
 			&item.PurchasePrice, &item.TotalCOGS, &item.TotalRevenue); err != nil {
 			return nil, err
@@ -143,42 +136,42 @@ func (r *reportRepo) GetProfitLossItems(params dto_report.FilterParams) ([]dto_r
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.ProfitLossItem{}
+		items = []dto.ProfitLossItem{}
 	}
 	return items, nil
 }
 
-func (r *reportRepo) GetExpenseSummary(params dto_report.FilterParams) ([]dto_report.ExpenseSummaryItem, error) {
+func (r *reportRepo) GetExpenseSummary(params dto.FilterParams) ([]dto.ExpenseSummaryItem, error) {
 	rows, err := r.db.Raw(expenseSummaryQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.ExpenseSummaryItem
+	var items []dto.ExpenseSummaryItem
 	for rows.Next() {
-		var item dto_report.ExpenseSummaryItem
+		var item dto.ExpenseSummaryItem
 		if err := rows.Scan(&item.Category, &item.Total); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.ExpenseSummaryItem{}
+		items = []dto.ExpenseSummaryItem{}
 	}
 	return items, nil
 }
 
-func (r *reportRepo) GetStockItems() ([]dto_report.StockItem, error) {
+func (r *reportRepo) GetStockItems() ([]dto.StockItem, error) {
 	rows, err := r.db.Raw(stockReportQuery).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.StockItem
+	var items []dto.StockItem
 	for rows.Next() {
-		var item dto_report.StockItem
+		var item dto.StockItem
 		var isLowInt int
 		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryName, &item.Stock, &item.MinStock,
 			&item.UnitName, &item.PurchasePrice, &item.StockValue, &isLowInt); err != nil {
@@ -188,21 +181,21 @@ func (r *reportRepo) GetStockItems() ([]dto_report.StockItem, error) {
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.StockItem{}
+		items = []dto.StockItem{}
 	}
 	return items, nil
 }
 
-func (r *reportRepo) GetCashierItems(params dto_report.FilterParams) ([]dto_report.CashierItem, error) {
+func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error) {
 	rows, err := r.db.Raw(cashierReportQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var items []dto_report.CashierItem
+	var items []dto.CashierItem
 	for rows.Next() {
-		var item dto_report.CashierItem
+		var item dto.CashierItem
 		if err := rows.Scan(&item.UserID, &item.UserName, &item.TotalTransactions,
 			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgTransaction); err != nil {
 			return nil, err
@@ -210,7 +203,8 @@ func (r *reportRepo) GetCashierItems(params dto_report.FilterParams) ([]dto_repo
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_report.CashierItem{}
+		items = []dto.CashierItem{}
 	}
 	return items, nil
 }
+

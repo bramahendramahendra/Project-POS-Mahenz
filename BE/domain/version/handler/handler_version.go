@@ -1,22 +1,23 @@
-package handler_version
+package handler
 
 import (
-	dto_version "pos_api/domain/version/dto"
-	service_version "pos_api/domain/version/service"
+	"pos_api/domain/version/dto"
+	"pos_api/domain/version/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	"pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
 
 type VersionHandler struct {
-	service service_version.VersionService
+	service service.VersionServiceInterface
 }
 
-func NewVersionHandler(service service_version.VersionService) *VersionHandler {
-	return &VersionHandler{service: service}
+func NewVersionHandler(svc service.VersionServiceInterface) *VersionHandler {
+	return &VersionHandler{service: svc}
 }
 
 // GET /api/version/android
@@ -48,8 +49,8 @@ func (h *VersionHandler) CheckAndroid(c *gin.Context) {
 
 // POST /api/version/android
 func (h *VersionHandler) UpdateAndroidVersion(c *gin.Context) {
-	var req dto_version.UpdateVersionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := binder.BindJSON[dto.UpdateVersionRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

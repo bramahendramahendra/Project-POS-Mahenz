@@ -1,22 +1,42 @@
-package dto_menu
+package dto
 
 import "time"
 
-type CreateMenuRequest struct {
-	ParentID   *int    `json:"parent_id"`
-	KeyName    string  `json:"key_name"    validate:"required,min=2"`
-	Label      string  `json:"label"       validate:"required"`
-	Icon       string  `json:"icon"`
-	Path       string  `json:"path"`
-	OrderIndex int     `json:"order_index"`
+type GetAllRequest struct {
+	Page     int    `json:"page"`
+	Limit    int    `json:"limit"`
+	Search   string `json:"search"`
+	IsActive *bool  `json:"is_active"`
 }
 
-type UpdateMenuRequest struct {
-	ParentID   *int    `json:"parent_id"`
-	Label      string  `json:"label"       validate:"required"`
-	Icon       string  `json:"icon"`
-	Path       string  `json:"path"`
-	OrderIndex int     `json:"order_index"`
+type GetByIDRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
+}
+
+type CreateRequest struct {
+	ParentID   *int   `json:"parent_id"`
+	KeyName    string `json:"key_name"    validate:"required,min=2"`
+	Label      string `json:"label"       validate:"required"`
+	Icon       string `json:"icon"`
+	Path       string `json:"path"`
+	OrderIndex int    `json:"order_index"`
+}
+
+type UpdateUriRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
+}
+
+type UpdateRequest struct {
+	ID         int    `json:"-"`
+	ParentID   *int   `json:"parent_id"`
+	Label      string `json:"label" validate:"required"`
+	Icon       string `json:"icon"`
+	Path       string `json:"path"`
+	OrderIndex int    `json:"order_index"`
+}
+
+type DeleteRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
 }
 
 type ReorderItem struct {
@@ -28,20 +48,18 @@ type ReorderRequest struct {
 	Items []ReorderItem `json:"items" validate:"required,min=1,dive"`
 }
 
-// MenuResponse digunakan untuk list admin (flat, tanpa children)
 type MenuResponse struct {
-	ID         int        `json:"id"`
-	ParentID   *int       `json:"parent_id"`
-	KeyName    string     `json:"key_name"`
-	Label      string     `json:"label"`
-	Icon       *string    `json:"icon"`
-	Path       *string    `json:"path"`
-	OrderIndex int        `json:"order_index"`
-	IsActive   bool       `json:"is_active"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID         int       `json:"id"`
+	ParentID   *int      `json:"parent_id"`
+	KeyName    string    `json:"key_name"`
+	Label      string    `json:"label"`
+	Icon       *string   `json:"icon"`
+	Path       *string   `json:"path"`
+	OrderIndex int       `json:"order_index"`
+	IsActive   bool      `json:"is_active"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
-// MenuPermission adalah permission user untuk satu menu
 type MenuPermission struct {
 	CanView   bool `json:"can_view"`
 	CanCreate bool `json:"can_create"`
@@ -49,7 +67,6 @@ type MenuPermission struct {
 	CanDelete bool `json:"can_delete"`
 }
 
-// MyMenuItem adalah item menu yang dikembalikan ke user yang sedang login (tree)
 type MyMenuItem struct {
 	KeyName    string         `json:"key_name"`
 	Label      string         `json:"label"`
@@ -58,9 +75,4 @@ type MyMenuItem struct {
 	OrderIndex int            `json:"order_index"`
 	Permission MenuPermission `json:"permission"`
 	Children   []MyMenuItem   `json:"children"`
-}
-
-type MenuListFilter struct {
-	Search   string
-	IsActive *bool
 }

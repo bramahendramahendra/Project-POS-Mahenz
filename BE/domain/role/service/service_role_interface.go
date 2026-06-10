@@ -1,12 +1,25 @@
-package service_role
+package service
 
-import dto_role "pos_api/domain/role/dto"
+import (
+	dto "pos_api/domain/role/dto"
+	repo "pos_api/domain/role/repo"
+)
 
-type RoleService interface {
-	GetAll(filter *dto_role.RoleListFilter) ([]*dto_role.RoleResponse, error)
-	GetByID(id int) (*dto_role.RoleResponse, error)
-	Create(req *dto_role.CreateRoleRequest) (*dto_role.RoleResponse, error)
-	Update(id int, req *dto_role.UpdateRoleRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	RoleServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, error)
+		GetByID(id int) (*dto.RoleResponse, error)
+		Create(req *dto.CreateRequest) (*dto.RoleResponse, error)
+		Update(id int, req *dto.UpdateRequest) error
+		Delete(id int) error
+		ToggleStatus(id int) error
+	}
+
+	roleService struct {
+		repo repo.RoleRepoInterface
+	}
+)
+
+func NewRoleService(repo repo.RoleRepoInterface) *roleService {
+	return &roleService{repo: repo}
 }

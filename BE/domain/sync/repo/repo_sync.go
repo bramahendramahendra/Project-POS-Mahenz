@@ -1,45 +1,29 @@
-package repo_sync
+package repo
 
 import (
 	"encoding/json"
 	"fmt"
 
-	dto_sync "pos_api/domain/sync/dto"
-	model_sync "pos_api/domain/sync/model"
-
-	"gorm.io/gorm"
+	"pos_api/domain/sync/dto"
+	"pos_api/domain/sync/model"
 )
 
 const (
-	GetConflictsQuery    = `SELECT id, entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time, status, created_at FROM sync_conflicts WHERE 1=1`
-	countConflictsBase   = `SELECT COUNT(*) FROM sync_conflicts WHERE 1=1`
-	getConflictByIDQuery = `SELECT id, entity_type, entity_id, desktop_data, online_data, desktop_time, online_time, status, resolved_by, resolution, resolved_at FROM sync_conflicts WHERE id = ?`
-	ResolveConflictQuery = `UPDATE sync_conflicts SET status='resolved', resolved_by=?, resolved_action=?, resolved_at=NOW() WHERE id=?`
-	CreateConflictQuery  = `INSERT INTO sync_conflicts (entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`
-
-	GetQueueQuery          = `SELECT id, device_id, entity_type, entity_id, action, status, retry_count, created_at FROM sync_queue WHERE 1=1`
+	getConflictsQuery      = `SELECT id, entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time, status, created_at FROM sync_conflicts WHERE 1=1`
+	countConflictsBase     = `SELECT COUNT(*) FROM sync_conflicts WHERE 1=1`
+	getConflictByIDQuery   = `SELECT id, entity_type, entity_id, desktop_data, online_data, desktop_time, online_time, status, resolved_by, resolution, resolved_at FROM sync_conflicts WHERE id = ?`
+	resolveConflictQuery   = `UPDATE sync_conflicts SET status='resolved', resolved_by=?, resolved_action=?, resolved_at=NOW() WHERE id=?`
+	createConflictQuery    = `INSERT INTO sync_conflicts (entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`
+	getQueueQuery          = `SELECT id, device_id, entity_type, entity_id, action, status, retry_count, created_at FROM sync_queue WHERE 1=1`
 	countQueueBase         = `SELECT COUNT(*) FROM sync_queue WHERE 1=1`
-	CreateQueueItemQuery   = `INSERT INTO sync_queue (device_id, entity_type, entity_id, action, payload, status) VALUES (?, ?, ?, ?, ?, 'pending')`
-	UpdateQueueStatusQuery = `UPDATE sync_queue SET status=?, synced_at=CASE WHEN ? = 'synced' THEN NOW() ELSE NULL END, error_message=? WHERE id=?`
-
-	insertHistoryQuery = `INSERT INTO sync_history (device_id, device_type, total_items, synced_items, conflict_items, failed_items, duration_ms, status, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	getHistoryQuery    = `SELECT id, device_id, device_type, total_items, synced_items, conflict_items, failed_items, duration_ms, status, DATE_FORMAT(started_at,'%Y-%m-%dT%H:%i:%sZ'), DATE_FORMAT(finished_at,'%Y-%m-%dT%H:%i:%sZ') FROM sync_history WHERE 1=1`
-	countHistoryBase   = `SELECT COUNT(*) FROM sync_history WHERE 1=1`
-
-	// entityTableMap menentukan tabel dan kolom JSON per entity type
-	// Format query: SELECT updated_at, JSON_OBJECT(...) AS data FROM <table> WHERE id=?
-	// Tabel yang didukung: products, transactions, expenses
+	createQueueItemQuery   = `INSERT INTO sync_queue (device_id, entity_type, entity_id, action, payload, status) VALUES (?, ?, ?, ?, ?, 'pending')`
+	updateQueueStatusQuery = `UPDATE sync_queue SET status=?, synced_at=CASE WHEN ? = 'synced' THEN NOW() ELSE NULL END, error_message=? WHERE id=?`
+	insertHistoryQuery     = `INSERT INTO sync_history (device_id, device_type, total_items, synced_items, conflict_items, failed_items, duration_ms, status, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getHistoryQuery        = `SELECT id, device_id, device_type, total_items, synced_items, conflict_items, failed_items, duration_ms, status, DATE_FORMAT(started_at,'%Y-%m-%dT%H:%i:%sZ'), DATE_FORMAT(finished_at,'%Y-%m-%dT%H:%i:%sZ') FROM sync_history WHERE 1=1`
+	countHistoryBase       = `SELECT COUNT(*) FROM sync_history WHERE 1=1`
 )
 
-type syncRepo struct {
-	db *gorm.DB
-}
-
-func NewSyncRepo(db *gorm.DB) SyncRepo {
-	return &syncRepo{db: db}
-}
-
-func (r *syncRepo) GetConflicts(filter *dto_sync.ConflictFilter) ([]dto_sync.ConflictResponse, int, error) {
+func (r *syncRepo) GetConflicts(filter *dto.ConflictFilter) ([]dto.ConflictResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -63,7 +47,7 @@ func (r *syncRepo) GetConflicts(filter *dto_sync.ConflictFilter) ([]dto_sync.Con
 	}
 	offset := (page - 1) * limit
 
-	query := GetConflictsQuery + conditions + fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getConflictsQuery + conditions + fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
@@ -71,9 +55,9 @@ func (r *syncRepo) GetConflicts(filter *dto_sync.ConflictFilter) ([]dto_sync.Con
 	}
 	defer rows.Close()
 
-	var items []dto_sync.ConflictResponse
+	var items []dto.ConflictResponse
 	for rows.Next() {
-		var item dto_sync.ConflictResponse
+		var item dto.ConflictResponse
 		if err := rows.Scan(
 			&item.ID, &item.EntityType, &item.EntityID,
 			&item.LocalID, &item.DeviceID,
@@ -86,14 +70,14 @@ func (r *syncRepo) GetConflicts(filter *dto_sync.ConflictFilter) ([]dto_sync.Con
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_sync.ConflictResponse{}
+		items = []dto.ConflictResponse{}
 	}
 	return items, total, nil
 }
 
-func (r *syncRepo) GetConflictByID(id int) (*model_sync.SyncConflict, error) {
+func (r *syncRepo) GetConflictByID(id int) (*model.SyncConflict, error) {
 	row := r.db.Raw(getConflictByIDQuery, id).Row()
-	var c model_sync.SyncConflict
+	var c model.SyncConflict
 	if err := row.Scan(&c.ID, &c.EntityType, &c.EntityID, &c.DesktopData, &c.OnlineData, &c.DesktopTime, &c.OnlineTime, &c.Status, &c.ResolvedBy, &c.Resolution, &c.ResolvedAt); err != nil {
 		return nil, err
 	}
@@ -107,17 +91,15 @@ func (r *syncRepo) CountPendingConflicts() (int, error) {
 }
 
 func (r *syncRepo) ResolveConflict(id, userID int, action string) error {
-	return r.db.Exec(ResolveConflictQuery, userID, action, id).Error
+	return r.db.Exec(resolveConflictQuery, userID, action, id).Error
 }
 
-// MarkResolved menandai konflik resolved dengan audit trail; dipakai setelah entity berhasil diupdate.
 func (r *syncRepo) MarkResolved(id, resolvedBy int, action string) error {
-	return r.db.Exec(ResolveConflictQuery, resolvedBy, action, id).Error
+	return r.db.Exec(resolveConflictQuery, resolvedBy, action, id).Error
 }
 
-// CreateConflict menyimpan konflik ke sync_conflicts dan mengembalikan ID konflik yang baru
-func (r *syncRepo) CreateConflict(deviceID string, item *dto_sync.SyncItem, onlineData string) (int, error) {
-	result := r.db.Exec(CreateConflictQuery,
+func (r *syncRepo) CreateConflict(deviceID string, item *dto.SyncItem, onlineData string) (int, error) {
+	result := r.db.Exec(createConflictQuery,
 		item.EntityType, item.ServerID, item.LocalID, deviceID,
 		item.Payload, onlineData,
 	)
@@ -129,7 +111,6 @@ func (r *syncRepo) CreateConflict(deviceID string, item *dto_sync.SyncItem, onli
 	return id, nil
 }
 
-// entityTable memetakan entity type ke nama tabel MySQL.
 func entityTable(entityType string) string {
 	switch entityType {
 	case "product":
@@ -142,8 +123,6 @@ func entityTable(entityType string) string {
 	return ""
 }
 
-// GetRawByEntityAndID mengambil seluruh kolom entity sebagai JSON string.
-// Menggunakan map scan agar tidak perlu tahu kolom setiap tabel.
 func (r *syncRepo) GetRawByEntityAndID(entityType string, serverID int) (string, error) {
 	table := entityTable(entityType)
 	if table == "" {
@@ -178,7 +157,6 @@ func (r *syncRepo) GetRawByEntityAndID(entityType string, serverID int) (string,
 	rowMap := make(map[string]interface{}, len(cols))
 	for i, col := range cols {
 		val := values[i]
-		// []byte dari MySQL (mis. JSON/TEXT) dikonversi ke string
 		if b, ok := val.([]byte); ok {
 			rowMap[col] = string(b)
 		} else {
@@ -193,9 +171,7 @@ func (r *syncRepo) GetRawByEntityAndID(entityType string, serverID int) (string,
 	return string(b), nil
 }
 
-// GetEntitySnapshot mengambil updated_at dan full JSON snapshot entity dari tabel aslinya.
-// updated_at dipakai DetectConflict; Data dipakai sebagai online_data di sync_conflicts.
-func (r *syncRepo) GetEntitySnapshot(entityType string, serverID int) (*model_sync.EntitySnapshot, error) {
+func (r *syncRepo) GetEntitySnapshot(entityType string, serverID int) (*model.EntitySnapshot, error) {
 	table := entityTable(entityType)
 	if table == "" {
 		return nil, nil
@@ -209,18 +185,17 @@ func (r *syncRepo) GetEntitySnapshot(entityType string, serverID int) (*model_sy
 	var updatedAt string
 	row := r.db.Raw(query, serverID).Row()
 	if err := row.Scan(&updatedAt); err != nil {
-		// Row tidak ditemukan → entity belum ada di server, tidak ada konflik
 		return nil, nil
 	}
 
 	rawJSON, _ := r.GetRawByEntityAndID(entityType, serverID)
-	return &model_sync.EntitySnapshot{
+	return &model.EntitySnapshot{
 		UpdatedAt: updatedAt,
 		Data:      rawJSON,
 	}, nil
 }
 
-func (r *syncRepo) GetQueue(filter *dto_sync.QueueFilter) ([]dto_sync.QueueResponse, int, error) {
+func (r *syncRepo) GetQueue(filter *dto.QueueFilter) ([]dto.QueueResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -254,7 +229,7 @@ func (r *syncRepo) GetQueue(filter *dto_sync.QueueFilter) ([]dto_sync.QueueRespo
 	}
 	offset := (page - 1) * limit
 
-	query := GetQueueQuery + conditions + fmt.Sprintf(" ORDER BY created_at DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getQueueQuery + conditions + fmt.Sprintf(" ORDER BY created_at DESC LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
@@ -262,22 +237,22 @@ func (r *syncRepo) GetQueue(filter *dto_sync.QueueFilter) ([]dto_sync.QueueRespo
 	}
 	defer rows.Close()
 
-	var items []dto_sync.QueueResponse
+	var items []dto.QueueResponse
 	for rows.Next() {
-		var item dto_sync.QueueResponse
+		var item dto.QueueResponse
 		if err := rows.Scan(&item.ID, &item.DeviceID, &item.EntityType, &item.EntityID, &item.Action, &item.Status, &item.RetryCount, &item.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_sync.QueueResponse{}
+		items = []dto.QueueResponse{}
 	}
 	return items, total, nil
 }
 
-func (r *syncRepo) CreateQueueItem(deviceID string, item *dto_sync.SyncItem) (int, error) {
-	result := r.db.Exec(CreateQueueItemQuery, deviceID, item.EntityType, item.EntityID, item.Action, item.Payload)
+func (r *syncRepo) CreateQueueItem(deviceID string, item *dto.SyncItem) (int, error) {
+	result := r.db.Exec(createQueueItemQuery, deviceID, item.EntityType, item.EntityID, item.Action, item.Payload)
 	if result.Error != nil {
 		return 0, result.Error
 	}
@@ -287,10 +262,10 @@ func (r *syncRepo) CreateQueueItem(deviceID string, item *dto_sync.SyncItem) (in
 }
 
 func (r *syncRepo) UpdateQueueStatus(id int, status, errMsg string) error {
-	return r.db.Exec(UpdateQueueStatusQuery, status, status, errMsg, id).Error
+	return r.db.Exec(updateQueueStatusQuery, status, status, errMsg, id).Error
 }
 
-func (r *syncRepo) InsertHistory(h model_sync.SyncHistory) error {
+func (r *syncRepo) InsertHistory(h model.SyncHistory) error {
 	return r.db.Exec(insertHistoryQuery,
 		h.DeviceID, h.DeviceType, h.TotalItems, h.SyncedItems,
 		h.ConflictItems, h.FailedItems, h.DurationMs, h.Status,
@@ -298,7 +273,7 @@ func (r *syncRepo) InsertHistory(h model_sync.SyncHistory) error {
 	).Error
 }
 
-func (r *syncRepo) GetHistory(filter *dto_sync.HistoryFilter) ([]dto_sync.SyncHistoryResponse, int, error) {
+func (r *syncRepo) GetHistory(filter *dto.HistoryFilter) ([]dto.SyncHistoryResponse, int, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
@@ -340,9 +315,9 @@ func (r *syncRepo) GetHistory(filter *dto_sync.HistoryFilter) ([]dto_sync.SyncHi
 	}
 	defer rows.Close()
 
-	var items []dto_sync.SyncHistoryResponse
+	var items []dto.SyncHistoryResponse
 	for rows.Next() {
-		var item dto_sync.SyncHistoryResponse
+		var item dto.SyncHistoryResponse
 		if err := rows.Scan(
 			&item.ID, &item.DeviceID, &item.DeviceType,
 			&item.TotalItems, &item.SyncedItems, &item.ConflictItems,
@@ -354,7 +329,7 @@ func (r *syncRepo) GetHistory(filter *dto_sync.HistoryFilter) ([]dto_sync.SyncHi
 		items = append(items, item)
 	}
 	if items == nil {
-		items = []dto_sync.SyncHistoryResponse{}
+		items = []dto.SyncHistoryResponse{}
 	}
 	return items, total, nil
 }

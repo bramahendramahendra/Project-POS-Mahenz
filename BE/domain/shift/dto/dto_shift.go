@@ -1,31 +1,64 @@
-package dto_shift
+package dto
 
-type ShiftRequest struct {
-	Name      string `json:"name" validate:"required"`
-	StartTime string `json:"start_time" validate:"required"`
-	EndTime   string `json:"end_time" validate:"required"`
-}
+type (
+	// REQUEST
+	GetAllRequest struct {
+		Page   int    `json:"page"`
+		Limit  int    `json:"limit"`
+		Search string `json:"search" validate:"max=100"`
+	}
 
-type ShiftResponse struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-	IsActive  bool   `json:"is_active"`
-}
+	GetByIDRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
 
-type ShiftActiveResponse struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-}
+	CreateRequest struct {
+		Name      string `json:"name" validate:"required,min=2,max=100"`
+		StartTime string `json:"start_time" validate:"required"`
+		EndTime   string `json:"end_time" validate:"required"`
+	}
 
-type ShiftSummaryResponse struct {
-	ShiftID           int     `json:"shift_id"`
-	ShiftName         string  `json:"shift_name"`
-	TotalTransactions int     `json:"total_transactions"`
-	TotalSales        float64 `json:"total_sales"`
-	TotalCash         float64 `json:"total_cash"`
-	TotalNonCash      float64 `json:"total_non_cash"`
-}
+	UpdateUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	UpdateRequest struct {
+		ID        int    `json:"-"`
+		Name      string `json:"name" validate:"required,min=2,max=100"`
+		StartTime string `json:"start_time" validate:"required"`
+		EndTime   string `json:"end_time" validate:"required"`
+	}
+
+	DeleteRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	ToggleStatusRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	// RESPONSE
+	ShiftResponse struct {
+		ID        int    `json:"id"`
+		Name      string `json:"name"`
+		StartTime string `json:"start_time"`
+		EndTime   string `json:"end_time"`
+		IsActive  bool   `json:"is_active"`
+	}
+
+	ShiftActiveResponse struct {
+		ID        int    `json:"id"`
+		Name      string `json:"name"`
+		StartTime string `json:"start_time"`
+		EndTime   string `json:"end_time"`
+	}
+
+	ShiftSummaryResponse struct {
+		ShiftID           int     `json:"shift_id"`
+		ShiftName         string  `json:"shift_name"`
+		TotalTransactions int     `json:"total_transactions"`
+		TotalSales        float64 `json:"total_sales"`
+		TotalCash         float64 `json:"total_cash"`
+		TotalNonCash      float64 `json:"total_non_cash"`
+	}
+)

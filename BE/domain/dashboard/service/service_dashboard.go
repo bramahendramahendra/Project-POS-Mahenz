@@ -1,20 +1,11 @@
-package service_dashboard
+package service
 
 import (
-	dto_dashboard "pos_api/domain/dashboard/dto"
-	repo_dashboard "pos_api/domain/dashboard/repo"
+	dto "pos_api/domain/dashboard/dto"
 	"time"
 )
 
-type dashboardService struct {
-	repo repo_dashboard.DashboardRepo
-}
-
-func NewDashboardService(repo repo_dashboard.DashboardRepo) DashboardService {
-	return &dashboardService{repo: repo}
-}
-
-func (s *dashboardService) GetStats(date string) (*dto_dashboard.StatsResponse, error) {
+func (s *dashboardService) GetStats(date string) (*dto.StatsResponse, error) {
 	if date == "" {
 		date = time.Now().Format("2006-01-02")
 	}
@@ -50,7 +41,7 @@ func (s *dashboardService) GetStats(date string) (*dto_dashboard.StatsResponse, 
 		return nil, err
 	}
 
-	return &dto_dashboard.StatsResponse{
+	return &dto.StatsResponse{
 		Today:           *todayStats,
 		ThisMonth:       *monthStats,
 		LowStockCount:   lowStock,
@@ -58,7 +49,7 @@ func (s *dashboardService) GetStats(date string) (*dto_dashboard.StatsResponse, 
 	}, nil
 }
 
-func (s *dashboardService) GetSalesTrend(period string) ([]dto_dashboard.SalesTrendItem, error) {
+func (s *dashboardService) GetSalesTrend(period string) ([]dto.SalesTrendItem, error) {
 	days := 7
 	switch period {
 	case "30days":
@@ -71,29 +62,29 @@ func (s *dashboardService) GetSalesTrend(period string) ([]dto_dashboard.SalesTr
 		return nil, err
 	}
 	if items == nil {
-		items = []dto_dashboard.SalesTrendItem{}
+		items = []dto.SalesTrendItem{}
 	}
 	return items, nil
 }
 
-func (s *dashboardService) GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopProductItem, error) {
+func (s *dashboardService) GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error) {
 	items, err := s.repo.GetTopProducts(filter)
 	if err != nil {
 		return nil, err
 	}
 	if items == nil {
-		items = []dto_dashboard.TopProductItem{}
+		items = []dto.TopProductItem{}
 	}
 	return items, nil
 }
 
-func (s *dashboardService) GetTopCategories(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopCategoryItem, error) {
+func (s *dashboardService) GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error) {
 	items, err := s.repo.GetTopCategories(filter)
 	if err != nil {
 		return nil, err
 	}
 	if items == nil {
-		items = []dto_dashboard.TopCategoryItem{}
+		items = []dto.TopCategoryItem{}
 	}
 
 	// hitung percentage
@@ -109,7 +100,7 @@ func (s *dashboardService) GetTopCategories(filter dto_dashboard.DateRangeFilter
 	return items, nil
 }
 
-func (s *dashboardService) GetSummaryExtra(period string) (*dto_dashboard.SummaryExtraResponse, error) {
+func (s *dashboardService) GetSummaryExtra(period string) (*dto.SummaryExtraResponse, error) {
 	now := time.Now()
 	var startDate, endDate string
 
@@ -133,7 +124,7 @@ func (s *dashboardService) GetSummaryExtra(period string) (*dto_dashboard.Summar
 		endDate = today + " 23:59:59"
 	}
 
-	filter := dto_dashboard.DateRangeFilter{
+	filter := dto.DateRangeFilter{
 		StartDate: startDate,
 		EndDate:   endDate,
 	}
@@ -153,20 +144,20 @@ func (s *dashboardService) GetSummaryExtra(period string) (*dto_dashboard.Summar
 		return nil, err
 	}
 
-	return &dto_dashboard.SummaryExtraResponse{
+	return &dto.SummaryExtraResponse{
 		Highest:  highest,
 		PeakHour: peakHour,
 		Avg:      avg,
 	}, nil
 }
 
-func (s *dashboardService) GetPaymentMethods(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.PaymentMethodItem, error) {
+func (s *dashboardService) GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error) {
 	items, err := s.repo.GetPaymentMethods(filter)
 	if err != nil {
 		return nil, err
 	}
 	if items == nil {
-		items = []dto_dashboard.PaymentMethodItem{}
+		items = []dto.PaymentMethodItem{}
 	}
 
 	var grandTotal float64

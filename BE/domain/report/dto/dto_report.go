@@ -1,4 +1,4 @@
-package dto_report
+package dto
 
 // FilterParams adalah parameter filter tanggal untuk semua laporan
 type FilterParams struct {

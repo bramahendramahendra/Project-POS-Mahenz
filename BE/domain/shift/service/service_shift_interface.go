@@ -1,14 +1,27 @@
-package service_shift
+package service
 
-import dto_shift "pos_api/domain/shift/dto"
+import (
+	dto "pos_api/domain/shift/dto"
+	repo "pos_api/domain/shift/repo"
+)
 
-type ShiftService interface {
-	GetAll() ([]*dto_shift.ShiftResponse, error)
-	GetActive() ([]*dto_shift.ShiftActiveResponse, error)
-	GetByID(id int) (*dto_shift.ShiftResponse, error)
-	Create(req *dto_shift.ShiftRequest) (*dto_shift.ShiftResponse, error)
-	Update(id int, req *dto_shift.ShiftRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
-	GetSummary() ([]*dto_shift.ShiftSummaryResponse, error)
+type (
+	ShiftServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) (data []dto.ShiftResponse, total int64, err error)
+		GetActive() (data []dto.ShiftActiveResponse, err error)
+		GetByID(id int) (data dto.ShiftResponse, err error)
+		Create(req *dto.CreateRequest) (data dto.ShiftResponse, err error)
+		Update(req *dto.UpdateRequest) (err error)
+		Delete(req *dto.DeleteRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusRequest) (err error)
+		GetSummary() (data []dto.ShiftSummaryResponse, err error)
+	}
+
+	shiftService struct {
+		repo repo.ShiftRepoInterface
+	}
+)
+
+func NewShiftService(repo repo.ShiftRepoInterface) *shiftService {
+	return &shiftService{repo: repo}
 }

@@ -1,16 +1,28 @@
-package repo_receivable
+package repo
 
 import (
-	dto_receivable "pos_api/domain/receivable/dto"
-	model_receivable "pos_api/domain/receivable/model"
+	dto "pos_api/domain/receivable/dto"
+	model "pos_api/domain/receivable/model"
+
+	"gorm.io/gorm"
 )
 
-type ReceivableRepo interface {
-	GetAll(filter *dto_receivable.ReceivableFilter) ([]*dto_receivable.ReceivableResponse, int, error)
-	GetByID(id int) (*model_receivable.Receivable, error)
-	GetDetailByID(id int) (*dto_receivable.ReceivableDetailResponse, error)
-	GetSummary() ([]*dto_receivable.ReceivableSummaryItem, error)
-	GetPayments(receivableID int) ([]*dto_receivable.PaymentResponse, error)
-	CreatePayment(receivableID int, req *dto_receivable.PayRequest, userID int) error
-	UpdateAfterPayment(receivableID int, amount float64) error
+type (
+	ReceivableRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableResponse, int64, error)
+		GetByID(id int) (*model.Receivable, error)
+		GetDetailByID(id int) (*dto.ReceivableDetailResponse, error)
+		GetSummary() ([]*dto.ReceivableSummaryItem, error)
+		GetPayments(receivableID int) ([]*dto.PaymentResponse, error)
+		CreatePayment(receivableID int, req *dto.PayRequest, userID int) error
+		UpdateAfterPayment(receivableID int, amount float64) error
+	}
+
+	receivableRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewReceivableRepo(db *gorm.DB) *receivableRepo {
+	return &receivableRepo{db: db}
 }

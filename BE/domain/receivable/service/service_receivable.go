@@ -1,26 +1,17 @@
-package service_receivable
+package service
 
 import (
 	"fmt"
 
-	dto_receivable "pos_api/domain/receivable/dto"
-	repo_receivable "pos_api/domain/receivable/repo"
+	dto "pos_api/domain/receivable/dto"
 	"pos_api/errors"
 )
 
-type receivableService struct {
-	repo repo_receivable.ReceivableRepo
+func (s *receivableService) GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableResponse, int64, error) {
+	return s.repo.GetAll(req)
 }
 
-func NewReceivableService(repo repo_receivable.ReceivableRepo) ReceivableService {
-	return &receivableService{repo: repo}
-}
-
-func (s *receivableService) GetAll(filter *dto_receivable.ReceivableFilter) ([]*dto_receivable.ReceivableResponse, int, error) {
-	return s.repo.GetAll(filter)
-}
-
-func (s *receivableService) GetByID(id int) (*dto_receivable.ReceivableDetailResponse, error) {
+func (s *receivableService) GetByID(id int) (*dto.ReceivableDetailResponse, error) {
 	detail, err := s.repo.GetDetailByID(id)
 	if err != nil {
 		return nil, err
@@ -31,11 +22,11 @@ func (s *receivableService) GetByID(id int) (*dto_receivable.ReceivableDetailRes
 	return detail, nil
 }
 
-func (s *receivableService) GetSummary() ([]*dto_receivable.ReceivableSummaryItem, error) {
+func (s *receivableService) GetSummary() ([]*dto.ReceivableSummaryItem, error) {
 	return s.repo.GetSummary()
 }
 
-func (s *receivableService) GetPayments(id int) ([]*dto_receivable.PaymentResponse, error) {
+func (s *receivableService) GetPayments(id int) ([]*dto.PaymentResponse, error) {
 	rec, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -46,7 +37,7 @@ func (s *receivableService) GetPayments(id int) ([]*dto_receivable.PaymentRespon
 	return s.repo.GetPayments(id)
 }
 
-func (s *receivableService) Pay(id int, req *dto_receivable.PayRequest, userID int) (*dto_receivable.PayResponse, error) {
+func (s *receivableService) Pay(id int, req *dto.PayRequest, userID int) (*dto.PayResponse, error) {
 	rec, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -77,7 +68,7 @@ func (s *receivableService) Pay(id int, req *dto_receivable.PayRequest, userID i
 		status = "paid"
 	}
 
-	return &dto_receivable.PayResponse{
+	return &dto.PayResponse{
 		ReceivableID:    id,
 		PaidAmount:      newPaid,
 		RemainingAmount: newRemaining,

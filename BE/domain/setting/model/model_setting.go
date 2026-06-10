@@ -1,6 +1,6 @@
-package model_setting
+package model
 
 type Setting struct {
-	Key   string `db:"setting_key"`
-	Value string `db:"setting_value"`
+	Key   string `gorm:"column:setting_key"`
+	Value string `gorm:"column:setting_value"`
 }

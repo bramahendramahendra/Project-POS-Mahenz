@@ -1,11 +1,9 @@
-package repo_dashboard
+package repo
 
 import (
 	"fmt"
 
-	dto_dashboard "pos_api/domain/dashboard/dto"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/dashboard/dto"
 )
 
 const (
@@ -95,16 +93,9 @@ const (
 		WHERE transaction_date BETWEEN ? AND ? AND status = 'completed'`
 )
 
-type dashboardRepo struct {
-	db *gorm.DB
-}
 
-func NewDashboardRepo(db *gorm.DB) DashboardRepo {
-	return &dashboardRepo{db: db}
-}
-
-func (r *dashboardRepo) GetTodayStats(date string) (*dto_dashboard.TodayStats, error) {
-	var result dto_dashboard.TodayStats
+func (r *dashboardRepo) GetTodayStats(date string) (*dto.TodayStats, error) {
+	var result dto.TodayStats
 	row := r.db.Raw(todayStatsQuery, date).Row()
 	if err := row.Scan(&result.TotalTransactions, &result.TotalSales, &result.TotalDiscount); err != nil {
 		return nil, fmt.Errorf("GetTodayStats: %w", err)
@@ -121,8 +112,8 @@ func (r *dashboardRepo) GetTodayExpenses(date string) (float64, error) {
 	return total, nil
 }
 
-func (r *dashboardRepo) GetMonthStats() (*dto_dashboard.MonthStats, error) {
-	var result dto_dashboard.MonthStats
+func (r *dashboardRepo) GetMonthStats() (*dto.MonthStats, error) {
+	var result dto.MonthStats
 	row := r.db.Raw(monthStatsQuery).Row()
 	if err := row.Scan(&result.TotalTransactions, &result.TotalSales); err != nil {
 		return nil, fmt.Errorf("GetMonthStats: %w", err)
@@ -157,16 +148,16 @@ func (r *dashboardRepo) GetOpenReceivablesCount() (int64, error) {
 	return count, nil
 }
 
-func (r *dashboardRepo) GetSalesTrend(days int) ([]dto_dashboard.SalesTrendItem, error) {
+func (r *dashboardRepo) GetSalesTrend(days int) ([]dto.SalesTrendItem, error) {
 	rows, err := r.db.Raw(salesTrendQuery, days).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("GetSalesTrend: %w", err)
 	}
 	defer rows.Close()
 
-	var items []dto_dashboard.SalesTrendItem
+	var items []dto.SalesTrendItem
 	for rows.Next() {
-		var item dto_dashboard.SalesTrendItem
+		var item dto.SalesTrendItem
 		if err := rows.Scan(&item.Label, &item.TotalSales, &item.TotalTransactions); err != nil {
 			return nil, fmt.Errorf("GetSalesTrend scan: %w", err)
 		}
@@ -175,7 +166,7 @@ func (r *dashboardRepo) GetSalesTrend(days int) ([]dto_dashboard.SalesTrendItem,
 	return items, nil
 }
 
-func (r *dashboardRepo) GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopProductItem, error) {
+func (r *dashboardRepo) GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error) {
 	q := topProductsQuery
 	if filter.SortBy == "value" {
 		q = topProductsByValueQuery
@@ -186,9 +177,9 @@ func (r *dashboardRepo) GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]
 	}
 	defer rows.Close()
 
-	var items []dto_dashboard.TopProductItem
+	var items []dto.TopProductItem
 	for rows.Next() {
-		var item dto_dashboard.TopProductItem
+		var item dto.TopProductItem
 		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.TotalQty, &item.TotalValue); err != nil {
 			return nil, fmt.Errorf("GetTopProducts scan: %w", err)
 		}
@@ -197,16 +188,16 @@ func (r *dashboardRepo) GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]
 	return items, nil
 }
 
-func (r *dashboardRepo) GetTopCategories(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopCategoryItem, error) {
+func (r *dashboardRepo) GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error) {
 	rows, err := r.db.Raw(topCategoriesQuery, filter.StartDate, filter.EndDate, filter.Limit).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("GetTopCategories: %w", err)
 	}
 	defer rows.Close()
 
-	var items []dto_dashboard.TopCategoryItem
+	var items []dto.TopCategoryItem
 	for rows.Next() {
-		var item dto_dashboard.TopCategoryItem
+		var item dto.TopCategoryItem
 		if err := rows.Scan(&item.CategoryID, &item.CategoryName, &item.TotalSales); err != nil {
 			return nil, fmt.Errorf("GetTopCategories scan: %w", err)
 		}
@@ -215,16 +206,16 @@ func (r *dashboardRepo) GetTopCategories(filter dto_dashboard.DateRangeFilter) (
 	return items, nil
 }
 
-func (r *dashboardRepo) GetPaymentMethods(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.PaymentMethodItem, error) {
+func (r *dashboardRepo) GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error) {
 	rows, err := r.db.Raw(paymentMethodsQuery, filter.StartDate, filter.EndDate).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("GetPaymentMethods: %w", err)
 	}
 	defer rows.Close()
 
-	var items []dto_dashboard.PaymentMethodItem
+	var items []dto.PaymentMethodItem
 	for rows.Next() {
-		var item dto_dashboard.PaymentMethodItem
+		var item dto.PaymentMethodItem
 		if err := rows.Scan(&item.PaymentMethod, &item.Count, &item.Total); err != nil {
 			return nil, fmt.Errorf("GetPaymentMethods scan: %w", err)
 		}
@@ -233,8 +224,8 @@ func (r *dashboardRepo) GetPaymentMethods(filter dto_dashboard.DateRangeFilter) 
 	return items, nil
 }
 
-func (r *dashboardRepo) GetHighestTransaction(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.HighestTransactionItem, error) {
-	var result dto_dashboard.HighestTransactionItem
+func (r *dashboardRepo) GetHighestTransaction(filter dto.DateRangeFilter) (*dto.HighestTransactionItem, error) {
+	var result dto.HighestTransactionItem
 	row := r.db.Raw(highestTransactionQuery, filter.StartDate, filter.EndDate).Row()
 	if err := row.Scan(&result.TotalAmount, &result.TransactionCode); err != nil {
 		return nil, fmt.Errorf("GetHighestTransaction: %w", err)
@@ -245,8 +236,8 @@ func (r *dashboardRepo) GetHighestTransaction(filter dto_dashboard.DateRangeFilt
 	return &result, nil
 }
 
-func (r *dashboardRepo) GetPeakHour(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.PeakHourItem, error) {
-	var result dto_dashboard.PeakHourItem
+func (r *dashboardRepo) GetPeakHour(filter dto.DateRangeFilter) (*dto.PeakHourItem, error) {
+	var result dto.PeakHourItem
 	row := r.db.Raw(peakHourQuery, filter.StartDate, filter.EndDate).Row()
 	if err := row.Scan(&result.Hour, &result.Count); err != nil {
 		return nil, fmt.Errorf("GetPeakHour: %w", err)
@@ -257,8 +248,8 @@ func (r *dashboardRepo) GetPeakHour(filter dto_dashboard.DateRangeFilter) (*dto_
 	return &result, nil
 }
 
-func (r *dashboardRepo) GetAvgTransaction(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.AvgTransactionItem, error) {
-	var result dto_dashboard.AvgTransactionItem
+func (r *dashboardRepo) GetAvgTransaction(filter dto.DateRangeFilter) (*dto.AvgTransactionItem, error) {
+	var result dto.AvgTransactionItem
 	row := r.db.Raw(avgTransactionQuery, filter.StartDate, filter.EndDate).Row()
 	if err := row.Scan(&result.AvgAmount, &result.TotalCount); err != nil {
 		return nil, fmt.Errorf("GetAvgTransaction: %w", err)

@@ -1,12 +1,8 @@
-package repo_role
+package repo
 
 import (
-	"strings"
-
-	dto_role "pos_api/domain/role/dto"
-	model_role "pos_api/domain/role/model"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/role/dto"
+	model "pos_api/domain/role/model"
 )
 
 const (
@@ -18,83 +14,59 @@ const (
 	toggleRoleQuery    = `UPDATE roles SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 )
 
-type roleRepo struct {
-	db *gorm.DB
-}
-
-func NewRoleRepo(db *gorm.DB) RoleRepo {
-	return &roleRepo{db: db}
-}
-
-func (r *roleRepo) GetAll(filter *dto_role.RoleListFilter) ([]*model_role.Role, error) {
+func (r *roleRepo) GetAll(req *dto.GetAllRequest) ([]*model.Role, error) {
 	query := `SELECT id, name, display_name, description, is_system, is_active, created_at, updated_at FROM roles WHERE 1=1`
-	args := []any{}
+	var args []any
 
-	if filter.Search != "" {
-		safe := "%" + strings.ReplaceAll(filter.Search, "%", `\%`) + "%"
+	if req.Search != "" {
+		like := "%" + req.Search + "%"
 		query += ` AND (name LIKE ? OR display_name LIKE ?)`
-		args = append(args, safe, safe)
+		args = append(args, like, like)
 	}
-	if filter.IsActive != nil {
+	if req.IsActive != nil {
 		query += ` AND is_active = ?`
-		args = append(args, *filter.IsActive)
+		args = append(args, *req.IsActive)
 	}
 
 	query += ` ORDER BY is_system DESC, id ASC`
 
-	rows, err := r.db.Raw(query, args...).Rows()
-	if err != nil {
+	var dataDB []*model.Role
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var roles []*model_role.Role
-	for rows.Next() {
-		var role model_role.Role
-		if err := rows.Scan(&role.ID, &role.Name, &role.DisplayName, &role.Description,
-			&role.IsSystem, &role.IsActive, &role.CreatedAt, &role.UpdatedAt); err != nil {
-			return nil, err
-		}
-		roles = append(roles, &role)
-	}
-	return roles, nil
+	return dataDB, nil
 }
 
-func (r *roleRepo) GetByID(id int) (*model_role.Role, error) {
-	var role model_role.Role
-	result := r.db.Raw(getRoleByIDQuery, id).Scan(&role)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *roleRepo) GetByID(id int) (*model.Role, error) {
+	var role model.Role
+	if err := r.db.Raw(getRoleByIDQuery, id).Scan(&role).Error; err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if role.ID == 0 {
 		return nil, nil
 	}
 	return &role, nil
 }
 
-func (r *roleRepo) GetByName(name string) (*model_role.Role, error) {
-	var role model_role.Role
-	result := r.db.Raw(getRoleByNameQuery, name).Scan(&role)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *roleRepo) GetByName(name string) (*model.Role, error) {
+	var role model.Role
+	if err := r.db.Raw(getRoleByNameQuery, name).Scan(&role).Error; err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if role.ID == 0 {
 		return nil, nil
 	}
 	return &role, nil
 }
 
-func (r *roleRepo) Create(req *dto_role.CreateRoleRequest) (int64, error) {
+func (r *roleRepo) Create(req *dto.CreateRequest) (int64, error) {
 	var desc *string
 	if req.Description != "" {
 		desc = &req.Description
 	}
-
-	res := r.db.Exec(createRoleQuery, req.Name, req.DisplayName, desc)
-	if res.Error != nil {
-		return 0, res.Error
+	if err := r.db.Exec(createRoleQuery, req.Name, req.DisplayName, desc).Error; err != nil {
+		return 0, err
 	}
-
 	var id int64
 	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error; err != nil {
 		return 0, err
@@ -102,7 +74,7 @@ func (r *roleRepo) Create(req *dto_role.CreateRoleRequest) (int64, error) {
 	return id, nil
 }
 
-func (r *roleRepo) Update(id int, req *dto_role.UpdateRoleRequest) error {
+func (r *roleRepo) Update(id int, req *dto.UpdateRequest) error {
 	var desc *string
 	if req.Description != "" {
 		desc = &req.Description

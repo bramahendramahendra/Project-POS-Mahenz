@@ -1,40 +1,36 @@
-package handler_menu
+package handler
 
 import (
-	"strconv"
-
-	dto_menu "pos_api/domain/menu/dto"
-	service_menu "pos_api/domain/menu/service"
+	dto "pos_api/domain/menu/dto"
+	service "pos_api/domain/menu/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type MenuHandler struct {
-	service service_menu.MenuService
+	service service.MenuServiceInterface
 }
 
-func NewMenuHandler(service service_menu.MenuService) *MenuHandler {
+func NewMenuHandler(service service.MenuServiceInterface) *MenuHandler {
 	return &MenuHandler{service: service}
 }
 
-// GET /api/menus
 func (h *MenuHandler) GetAll(c *gin.Context) {
-	filter := &dto_menu.MenuListFilter{
-		Search: c.Query("search"),
-	}
-	if raw := c.Query("is_active"); raw != "" {
-		v := raw == "true" || raw == "1"
-		filter.IsActive = &v
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	menus, err := h.service.GetAll(filter)
-	if err != nil {
-		c.Error(err)
+	data, svcErr := h.service.GetAll(&req)
+	if svcErr != nil {
+		c.Error(svcErr)
 		return
 	}
 
@@ -42,15 +38,12 @@ func (h *MenuHandler) GetAll(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Daftar menu",
-		Data:    menus,
+		Data:    data,
 	})
 }
 
-// GET /api/menus/my — menu tree untuk user yang sedang login
 func (h *MenuHandler) GetMyMenus(c *gin.Context) {
-	roleName := helper.GetUserRole(c)
-
-	menus, err := h.service.GetMyMenus(roleName)
+	data, err := h.service.GetMyMenus(helper.GetUserRole(c))
 	if err != nil {
 		c.Error(err)
 		return
@@ -60,19 +53,23 @@ func (h *MenuHandler) GetMyMenus(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Menu akses",
-		Data:    menus,
+		Data:    data,
 	})
 }
 
-// GET /api/menus/:id
 func (h *MenuHandler) GetByID(c *gin.Context) {
-	id, err := parseIDParam(c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	menu, svcErr := h.service.GetByID(id)
+	data, svcErr := h.service.GetByID(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -82,23 +79,23 @@ func (h *MenuHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail menu",
-		Data:    menu,
+		Data:    data,
 	})
 }
 
-// POST /api/menus
 func (h *MenuHandler) Create(c *gin.Context) {
-	var req dto_menu.CreateMenuRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	menu, svcErr := h.service.Create(&req)
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, svcErr := h.service.Create(&req)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -108,29 +105,34 @@ func (h *MenuHandler) Create(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Menu berhasil ditambahkan",
-		Data:    menu,
+		Data:    data,
 	})
 }
 
-// PUT /api/menus/:id
 func (h *MenuHandler) Update(c *gin.Context) {
-	id, err := parseIDParam(c)
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(uriReq); err != nil {
 		c.Error(err)
 		return
 	}
 
-	var req dto_menu.UpdateMenuRequest
-	if bindErr := c.ShouldBindJSON(&req); bindErr != nil {
-		c.Error(&errors.BadRequestError{Message: bindErr.Error()})
-		return
-	}
-	if valErr := validation.Validate.Struct(req); valErr != nil {
-		c.Error(&errors.BadRequestError{Message: valErr.Error()})
+	bodyReq, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if svcErr := h.service.Update(id, &req); svcErr != nil {
+	if err := validator.Validate.Struct(bodyReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if svcErr := h.service.Update(uriReq.ID, &bodyReq); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -142,15 +144,19 @@ func (h *MenuHandler) Update(c *gin.Context) {
 	})
 }
 
-// DELETE /api/menus/:id
 func (h *MenuHandler) Delete(c *gin.Context) {
-	id, err := parseIDParam(c)
+	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Delete(id); svcErr != nil {
+	if svcErr := h.service.Delete(req.ID); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -162,15 +168,15 @@ func (h *MenuHandler) Delete(c *gin.Context) {
 	})
 }
 
-// PATCH /api/menus/reorder
 func (h *MenuHandler) Reorder(c *gin.Context) {
-	var req dto_menu.ReorderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := binder.BindJSON[dto.ReorderRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
-	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -184,12 +190,4 @@ func (h *MenuHandler) Reorder(c *gin.Context) {
 		Status:  true,
 		Message: "Urutan menu berhasil diperbarui",
 	})
-}
-
-func parseIDParam(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
 }

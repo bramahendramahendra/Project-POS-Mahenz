@@ -1,7 +1,21 @@
-package repo_payment_status
+package repo
 
-import dto_payment_status "pos_api/domain/payment_status/dto"
+import (
+	dto "pos_api/domain/payment_status/dto"
 
-type PaymentStatusRepo interface {
-	GetAll() ([]*dto_payment_status.PaymentStatusResponse, error)
+	"gorm.io/gorm"
+)
+
+type (
+	PaymentStatusRepoInterface interface {
+		GetAll() ([]*dto.PaymentStatusResponse, error)
+	}
+
+	paymentStatusRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewPaymentStatusRepo(db *gorm.DB) *paymentStatusRepo {
+	return &paymentStatusRepo{db: db}
 }

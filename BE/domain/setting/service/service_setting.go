@@ -1,17 +1,6 @@
-package service_setting
+package service
 
-import (
-	"errors"
-	repo_setting "pos_api/domain/setting/repo"
-)
-
-type settingService struct {
-	repo repo_setting.SettingRepo
-}
-
-func NewSettingService(repo repo_setting.SettingRepo) SettingService {
-	return &settingService{repo: repo}
-}
+import "errors"
 
 func (s *settingService) GetAll() (map[string]string, error) {
 	settings, err := s.repo.GetAll()

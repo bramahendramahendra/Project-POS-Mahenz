@@ -1,10 +1,6 @@
-package repo_auth
+package repo
 
-import (
-	model_auth "pos_api/domain/auth/model"
-
-	"gorm.io/gorm"
-)
+import model "pos_api/domain/auth/model"
 
 const (
 	getUserByUsernameQuery        = `SELECT u.id, u.username, u.password, u.full_name, u.role_id, r.name AS role_name, u.is_active FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.username = ? LIMIT 1`
@@ -16,79 +12,52 @@ const (
 	deleteSessionByTokenQuery     = `DELETE FROM sessions WHERE token = ?`
 )
 
-type authRepo struct {
-	db *gorm.DB
-}
-
-func NewAuthRepo(db *gorm.DB) AuthRepo {
-	return &authRepo{db: db}
-}
-
-func (r *authRepo) GetUserByUsername(username string) (*model_auth.User, error) {
-	rows, err := r.db.Raw(getUserByUsernameQuery, username).Rows()
-	if err != nil {
+func (r *authRepo) GetUserByUsername(username string) (*model.User, error) {
+	var user model.User
+	if err := r.db.Raw(getUserByUsernameQuery, username).Scan(&user).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
+	if user.ID == 0 {
 		return nil, nil
-	}
-	var user model_auth.User
-	if err := rows.Scan(&user.ID, &user.Username, &user.Password, &user.FullName,
-		&user.RoleID, &user.RoleName, &user.IsActive); err != nil {
-		return nil, err
 	}
 	return &user, nil
 }
 
-func (r *authRepo) GetUserByID(id int) (*model_auth.User, error) {
-	rows, err := r.db.Raw(getUserByIDQuery, id).Rows()
-	if err != nil {
+func (r *authRepo) GetUserByID(id int) (*model.User, error) {
+	var user model.User
+	if err := r.db.Raw(getUserByIDQuery, id).Scan(&user).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
+	if user.ID == 0 {
 		return nil, nil
-	}
-	var user model_auth.User
-	if err := rows.Scan(&user.ID, &user.Username, &user.FullName,
-		&user.RoleID, &user.RoleName, &user.IsActive); err != nil {
-		return nil, err
 	}
 	return &user, nil
 }
 
-func (r *authRepo) CreateSession(session *model_auth.Session) error {
+func (r *authRepo) CreateSession(session *model.Session) error {
 	return r.db.Exec(createSessionQuery,
-		session.UserID,
-		session.UserRole,
-		session.Token,
-		session.RefreshToken,
-		session.DeviceInfo,
-		session.IPAddress,
-		session.ExpiresAt,
+		session.UserID, session.UserRole, session.Token, session.RefreshToken,
+		session.DeviceInfo, session.IPAddress, session.ExpiresAt,
 	).Error
 }
 
-func (r *authRepo) GetSessionByToken(token string) (*model_auth.Session, error) {
-	var session model_auth.Session
-	result := r.db.Raw(getSessionByTokenQuery, token).Scan(&session)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *authRepo) GetSessionByToken(token string) (*model.Session, error) {
+	var session model.Session
+	if err := r.db.Raw(getSessionByTokenQuery, token).Scan(&session).Error; err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if session.ID == 0 {
 		return nil, nil
 	}
 	return &session, nil
 }
 
-func (r *authRepo) GetSessionByRefreshToken(token string) (*model_auth.Session, error) {
-	var session model_auth.Session
-	result := r.db.Raw(getSessionByRefreshTokenQuery, token).Scan(&session)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *authRepo) GetSessionByRefreshToken(token string) (*model.Session, error) {
+	var session model.Session
+	if err := r.db.Raw(getSessionByRefreshTokenQuery, token).Scan(&session).Error; err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if session.ID == 0 {
 		return nil, nil
 	}
 	return &session, nil

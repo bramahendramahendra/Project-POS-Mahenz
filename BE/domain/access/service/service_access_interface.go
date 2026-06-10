@@ -1,8 +1,23 @@
-package service_access
+package service
 
-import dto_access "pos_api/domain/access/dto"
+import (
+	dto "pos_api/domain/access/dto"
+	repo "pos_api/domain/access/repo"
+	role_repo "pos_api/domain/role/repo"
+)
 
-type AccessService interface {
-	GetByRoleID(roleID int) ([]*dto_access.RoleMenuAccessItem, error)
-	SetRoleAccess(roleID int, req *dto_access.SetRoleAccessRequest) error
+type (
+	AccessServiceInterface interface {
+		GetByRoleID(roleID int) (data []*dto.RoleMenuAccessItem, err error)
+		SetRoleAccess(req *dto.SetRoleAccessRequest) (err error)
+	}
+
+	accessService struct {
+		repo     repo.AccessRepoInterface
+		roleRepo role_repo.RoleRepoInterface
+	}
+)
+
+func NewAccessService(repo repo.AccessRepoInterface, roleRepo role_repo.RoleRepoInterface) *accessService {
+	return &accessService{repo: repo, roleRepo: roleRepo}
 }

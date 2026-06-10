@@ -1,13 +1,26 @@
-package service_customer
+package service
 
-import dto_customer "pos_api/domain/customer/dto"
+import (
+	dto "pos_api/domain/customer/dto"
+	repo "pos_api/domain/customer/repo"
+)
 
-type CustomerService interface {
-	GetAll(filter *dto_customer.CustomerFilter) ([]*dto_customer.CustomerResponse, int, error)
-	GetActiveList() ([]*dto_customer.CustomerActiveItem, error)
-	GetByID(id int) (*dto_customer.CustomerDetailResponse, error)
-	Create(req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error)
-	Update(id int, req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error)
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	CustomerServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) (data []dto.CustomerResponse, total int64, err error)
+		GetOptions() (data []dto.CustomerActiveItem, err error)
+		GetByID(id int) (data dto.CustomerDetailResponse, err error)
+		Create(req *dto.CreateRequest) (data dto.CustomerResponse, err error)
+		Update(req *dto.UpdateRequest) (data dto.CustomerResponse, err error)
+		Delete(req *dto.DeleteRequest) (err error)
+		ToggleStatus(req *dto.ToggleStatusRequest) (err error)
+	}
+
+	customerService struct {
+		repo repo.CustomerRepoInterface
+	}
+)
+
+func NewCustomerService(repo repo.CustomerRepoInterface) *customerService {
+	return &customerService{repo: repo}
 }

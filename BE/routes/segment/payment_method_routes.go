@@ -16,6 +16,6 @@ func PaymentMethodRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/payment-methods")
 	{
-		g.GET("", hand.GetAll)
+		g.POST("/list", hand.GetAll)
 	}
 }

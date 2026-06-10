@@ -1,18 +1,36 @@
-package repo_customer
+package repo
 
 import (
-	dto_customer "pos_api/domain/customer/dto"
-	model_customer "pos_api/domain/customer/model"
+	dto "pos_api/domain/customer/dto"
+	model "pos_api/domain/customer/model"
+
+	"gorm.io/gorm"
 )
 
-type CustomerRepo interface {
-	GetAll(filter *dto_customer.CustomerFilter) ([]*dto_customer.CustomerResponse, int, error)
-	GetActiveList() ([]*dto_customer.CustomerActiveItem, error)
-	GetByID(id int) (*model_customer.Customer, error)
-	GetCount() (int, error)
-	CountActiveReceivables(customerID int) (int, error)
-	Create(code string, req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error)
-	Update(id int, req *dto_customer.CustomerRequest) (*dto_customer.CustomerResponse, error)
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	CustomerRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.Customer, int64, error)
+		GetOptions() ([]*model.Customer, error)
+		GetByID(id int) (*model.Customer, error)
+		GetCount() (int, error)
+		CountActiveReceivables(customerID int) (int, error)
+		Create(req *dto.CreateRequest, code string) (int64, error)
+		Update(req *dto.UpdateRequest) error
+		Delete(req *dto.DeleteRequest) error
+		ToggleStatus(req *dto.ToggleStatusRequest) error
+
+		GetDB() *gorm.DB
+	}
+
+	customerRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewCustomerRepo(db *gorm.DB) *customerRepo {
+	return &customerRepo{db: db}
+}
+
+func (r *customerRepo) GetDB() *gorm.DB {
+	return r.db
 }

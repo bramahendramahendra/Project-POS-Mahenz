@@ -1,15 +1,26 @@
-package service_auth
+package service
 
 import (
-	dto_auth "pos_api/domain/auth/dto"
-	model_auth "pos_api/domain/auth/model"
+	dto "pos_api/domain/auth/dto"
+	model "pos_api/domain/auth/model"
+	repo "pos_api/domain/auth/repo"
 )
 
-type AuthService interface {
-	Login(req *dto_auth.LoginRequest, ip string) (*dto_auth.LoginResponse, error)
-	Logout(token string) error
-	RefreshToken(refreshToken string) (*dto_auth.RefreshResponse, error)
-	GetMe(userID int) (*dto_auth.UserData, error)
-	ValidateToken(token string) (*model_auth.Session, error)
-	VerifyToken(token string) (*dto_auth.VerifyTokenResponse, error)
+type (
+	AuthServiceInterface interface {
+		Login(req *dto.LoginRequest, ip string) (*dto.LoginResponse, error)
+		Logout(token string) error
+		RefreshToken(refreshToken string) (*dto.RefreshResponse, error)
+		GetMe(userID int) (*dto.UserData, error)
+		ValidateToken(token string) (*model.Session, error)
+		VerifyToken(token string) (*dto.VerifyTokenResponse, error)
+	}
+
+	authService struct {
+		repo repo.AuthRepoInterface
+	}
+)
+
+func NewAuthService(repo repo.AuthRepoInterface) *authService {
+	return &authService{repo: repo}
 }

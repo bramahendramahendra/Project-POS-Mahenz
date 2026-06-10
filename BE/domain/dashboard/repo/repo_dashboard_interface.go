@@ -1,19 +1,33 @@
-package repo_dashboard
+package repo
 
-import dto_dashboard "pos_api/domain/dashboard/dto"
+import (
+	"pos_api/domain/dashboard/dto"
 
-type DashboardRepo interface {
-	GetTodayStats(date string) (*dto_dashboard.TodayStats, error)
-	GetTodayExpenses(date string) (float64, error)
-	GetMonthStats() (*dto_dashboard.MonthStats, error)
-	GetMonthExpenses() (float64, error)
-	GetLowStockCount() (int64, error)
-	GetOpenReceivablesCount() (int64, error)
-	GetSalesTrend(days int) ([]dto_dashboard.SalesTrendItem, error)
-	GetTopProducts(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopProductItem, error)
-	GetTopCategories(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.TopCategoryItem, error)
-	GetPaymentMethods(filter dto_dashboard.DateRangeFilter) ([]dto_dashboard.PaymentMethodItem, error)
-	GetHighestTransaction(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.HighestTransactionItem, error)
-	GetPeakHour(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.PeakHourItem, error)
-	GetAvgTransaction(filter dto_dashboard.DateRangeFilter) (*dto_dashboard.AvgTransactionItem, error)
+	"gorm.io/gorm"
+)
+
+type (
+	DashboardRepoInterface interface {
+		GetTodayStats(date string) (*dto.TodayStats, error)
+		GetTodayExpenses(date string) (float64, error)
+		GetMonthStats() (*dto.MonthStats, error)
+		GetMonthExpenses() (float64, error)
+		GetLowStockCount() (int64, error)
+		GetOpenReceivablesCount() (int64, error)
+		GetSalesTrend(days int) ([]dto.SalesTrendItem, error)
+		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
+		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
+		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)
+		GetHighestTransaction(filter dto.DateRangeFilter) (*dto.HighestTransactionItem, error)
+		GetPeakHour(filter dto.DateRangeFilter) (*dto.PeakHourItem, error)
+		GetAvgTransaction(filter dto.DateRangeFilter) (*dto.AvgTransactionItem, error)
+	}
+
+	dashboardRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewDashboardRepo(db *gorm.DB) *dashboardRepo {
+	return &dashboardRepo{db: db}
 }

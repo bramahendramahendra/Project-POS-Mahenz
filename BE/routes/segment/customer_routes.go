@@ -17,12 +17,12 @@ func CustomerRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/customers")
 	{
-		g.GET("", customerHand.GetAll)
-		g.GET("/active", customerHand.GetActiveList)
-		g.GET("/:id", customerHand.GetByID)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), customerHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner", "admin"), customerHand.ToggleStatus)
+		g.POST("/list", customerHand.GetAll)
+		g.POST("/active", customerHand.GetOptions)
+		g.POST("/detail/:id", customerHand.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), customerHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.ToggleStatus)
 	}
 }

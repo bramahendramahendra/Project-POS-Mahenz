@@ -1,4 +1,4 @@
-package service_auth
+package service
 
 import (
 	"crypto/rand"
@@ -6,27 +6,18 @@ import (
 	"time"
 
 	"pos_api/config"
-	dto_auth "pos_api/domain/auth/dto"
-	model_auth "pos_api/domain/auth/model"
-	repo_auth "pos_api/domain/auth/repo"
+	dto "pos_api/domain/auth/dto"
+	model "pos_api/domain/auth/model"
 	"pos_api/errors"
 	time_helper "pos_api/helper/time"
 	"pos_api/pkg/bcrypt"
 	"pos_api/pkg/jwt"
 )
 
-type authService struct {
-	repo repo_auth.AuthRepo
-}
-
-func NewAuthService(repo repo_auth.AuthRepo) AuthService {
-	return &authService{repo: repo}
-}
-
-func (s *authService) Login(req *dto_auth.LoginRequest, ip string) (*dto_auth.LoginResponse, error) {
+func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginResponse, error) {
 	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if user == nil {
 		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
@@ -50,20 +41,19 @@ func (s *authService) Login(req *dto_auth.LoginRequest, ip string) (*dto_auth.Lo
 	jwt.CreateClaims(claims)
 	token, err := jwt.GenerateToken()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
 	refreshToken, err := generateRefreshToken()
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	// single active session: hapus session lama
 	if err := s.repo.DeleteSessionByUserID(user.ID); err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	session := &model_auth.Session{
+	session := &model.Session{
 		UserID:       user.ID,
 		UserRole:     user.RoleName,
 		Token:        token,
@@ -73,14 +63,14 @@ func (s *authService) Login(req *dto_auth.LoginRequest, ip string) (*dto_auth.Lo
 		ExpiresAt:    expiresAt,
 	}
 	if err := s.repo.CreateSession(session); err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	return &dto_auth.LoginResponse{
+	return &dto.LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
 		ExpiresAt:    expiresAt,
-		User: dto_auth.UserData{
+		User: dto.UserData{
 			ID:       user.ID,
 			Username: user.Username,
 			FullName: user.FullName,
@@ -91,16 +81,13 @@ func (s *authService) Login(req *dto_auth.LoginRequest, ip string) (*dto_auth.Lo
 }
 
 func (s *authService) Logout(token string) error {
-	if err := s.repo.DeleteSessionByToken(token); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.DeleteSessionByToken(token)
 }
 
-func (s *authService) RefreshToken(refreshToken string) (*dto_auth.RefreshResponse, error) {
+func (s *authService) RefreshToken(refreshToken string) (*dto.RefreshResponse, error) {
 	session, err := s.repo.GetSessionByRefreshToken(refreshToken)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if session == nil {
 		return nil, &errors.UnauthenticatedError{Message: "Refresh token tidak valid"}
@@ -111,7 +98,7 @@ func (s *authService) RefreshToken(refreshToken string) (*dto_auth.RefreshRespon
 
 	user, err := s.repo.GetUserByID(session.UserID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if user == nil || !user.IsActive {
 		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
@@ -127,50 +114,48 @@ func (s *authService) RefreshToken(refreshToken string) (*dto_auth.RefreshRespon
 		"apps":      session.DeviceInfo,
 	}
 	jwt.CreateClaims(claims)
-	newToken, newTokenErr := jwt.GenerateToken()
-	if newTokenErr != nil {
-		return nil, &errors.InternalServerError{Message: newTokenErr.Error()}
+	newToken, err := jwt.GenerateToken()
+	if err != nil {
+		return nil, err
 	}
 
-	newRefreshToken, newRefErr := generateRefreshToken()
-	if newRefErr != nil {
-		return nil, &errors.InternalServerError{Message: newRefErr.Error()}
+	newRefreshToken, err := generateRefreshToken()
+	if err != nil {
+		return nil, err
 	}
 
 	if err := s.repo.DeleteSessionByUserID(user.ID); err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	newSession := &model_auth.Session{
+	newSession := &model.Session{
 		UserID:       user.ID,
 		UserRole:     user.RoleName,
 		Token:        newToken,
 		RefreshToken: newRefreshToken,
 		DeviceInfo:   session.DeviceInfo,
-		IPAddress:    "",
 		ExpiresAt:    expiresAt,
 	}
 	if err := s.repo.CreateSession(newSession); err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
-	return &dto_auth.RefreshResponse{
+	return &dto.RefreshResponse{
 		Token:        newToken,
 		RefreshToken: newRefreshToken,
 		ExpiresAt:    expiresAt,
 	}, nil
 }
 
-
-func (s *authService) GetMe(userID int) (*dto_auth.UserData, error) {
+func (s *authService) GetMe(userID int) (*dto.UserData, error) {
 	user, err := s.repo.GetUserByID(userID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if user == nil {
 		return nil, &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
-	return &dto_auth.UserData{
+	return &dto.UserData{
 		ID:       user.ID,
 		Username: user.Username,
 		FullName: user.FullName,
@@ -179,13 +164,10 @@ func (s *authService) GetMe(userID int) (*dto_auth.UserData, error) {
 	}, nil
 }
 
-func (s *authService) VerifyToken(token string) (*dto_auth.VerifyTokenResponse, error) {
+func (s *authService) VerifyToken(token string) (*dto.VerifyTokenResponse, error) {
 	claims, err := jwt.VerifyToken(token)
 	if err != nil {
-		return &dto_auth.VerifyTokenResponse{
-			Valid:  false,
-			Error:  err.Error(),
-		}, nil
+		return &dto.VerifyTokenResponse{Valid: false, Error: err.Error()}, nil
 	}
 
 	claimsMap := make(map[string]any)
@@ -198,21 +180,21 @@ func (s *authService) VerifyToken(token string) (*dto_auth.VerifyTokenResponse, 
 		expReadable = time.Unix(int64(exp), 0).Format(time.RFC3339)
 	}
 
-	return &dto_auth.VerifyTokenResponse{
+	return &dto.VerifyTokenResponse{
 		Valid:       true,
 		Claims:      claimsMap,
 		ExpReadable: expReadable,
 	}, nil
 }
 
-func (s *authService) ValidateToken(token string) (*model_auth.Session, error) {
+func (s *authService) ValidateToken(token string) (*model.Session, error) {
 	if _, err := jwt.VerifyToken(token); err != nil {
 		return nil, err
 	}
 
 	session, err := s.repo.GetSessionByToken(token)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if session == nil {
 		return nil, &errors.UnauthenticatedError{Message: "Token tidak valid atau sudah logout"}

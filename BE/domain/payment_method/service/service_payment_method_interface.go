@@ -1,7 +1,20 @@
-package service_payment_method
+package service
 
-import dto_payment_method "pos_api/domain/payment_method/dto"
+import (
+	dto "pos_api/domain/payment_method/dto"
+	repo "pos_api/domain/payment_method/repo"
+)
 
-type PaymentMethodService interface {
-	GetAll() ([]*dto_payment_method.PaymentMethodResponse, error)
+type (
+	PaymentMethodServiceInterface interface {
+		GetAll() ([]*dto.PaymentMethodResponse, error)
+	}
+
+	paymentMethodService struct {
+		repo repo.PaymentMethodRepoInterface
+	}
+)
+
+func NewPaymentMethodService(repo repo.PaymentMethodRepoInterface) *paymentMethodService {
+	return &paymentMethodService{repo: repo}
 }

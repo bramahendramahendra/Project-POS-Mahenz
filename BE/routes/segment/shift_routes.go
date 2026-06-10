@@ -17,13 +17,13 @@ func ShiftRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/shifts")
 	{
-		g.GET("", shiftHand.GetAll)
-		g.GET("/active", shiftHand.GetActive)
-		g.GET("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHand.GetSummary)
-		g.GET("/:id", shiftHand.GetByID)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), shiftHand.Create)
-		g.PUT("/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Update)
-		g.DELETE("/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Delete)
-		g.PATCH("/:id/toggle-status", middleware.RoleMiddleware("owner", "admin"), shiftHand.ToggleStatus)
+		g.POST("/list", shiftHand.GetAll)
+		g.POST("/active", shiftHand.GetActive)
+		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHand.GetSummary)
+		g.POST("/detail/:id", shiftHand.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), shiftHand.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.ToggleStatus)
 	}
 }

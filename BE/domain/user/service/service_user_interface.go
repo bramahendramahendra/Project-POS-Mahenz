@@ -1,12 +1,25 @@
-package service_user
+package service
 
-import dto_user "pos_api/domain/user/dto"
+import (
+	dto "pos_api/domain/user/dto"
+	repo "pos_api/domain/user/repo"
+)
 
-type UserService interface {
-	GetAll(filter *dto_user.UserListFilter) ([]*dto_user.UserResponse, error)
-	GetByID(id int) (*dto_user.UserResponse, error)
-	Create(req *dto_user.CreateUserRequest) (*dto_user.UserResponse, error)
-	Update(id int, req *dto_user.UpdateUserRequest) error
-	Delete(id, currentUserID int) error
-	ToggleStatus(id int) error
+type (
+	UserServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, error)
+		GetByID(id int) (*dto.UserResponse, error)
+		Create(req *dto.CreateRequest) (*dto.UserResponse, error)
+		Update(id int, req *dto.UpdateRequest) error
+		Delete(id, currentUserID int) error
+		ToggleStatus(id int) error
+	}
+
+	userService struct {
+		repo repo.UserRepoInterface
+	}
+)
+
+func NewUserService(repo repo.UserRepoInterface) *userService {
+	return &userService{repo: repo}
 }

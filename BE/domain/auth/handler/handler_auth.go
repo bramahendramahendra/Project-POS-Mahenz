@@ -1,41 +1,35 @@
-package handler_auth
+package handler
 
 import (
 	"strings"
 
-	dto_auth "pos_api/domain/auth/dto"
-	service_auth "pos_api/domain/auth/service"
+	"pos_api/domain/auth/dto"
+	"pos_api/domain/auth/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	"pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	service service_auth.AuthService
+	service service.AuthServiceInterface
 }
 
-func NewAuthHandler(service service_auth.AuthService) *AuthHandler {
-	return &AuthHandler{service: service}
+func NewAuthHandler(svc service.AuthServiceInterface) *AuthHandler {
+	return &AuthHandler{service: svc}
 }
 
-// POST /api/auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req dto_auth.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.LoginRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	ip := c.ClientIP()
-	resp, err := h.service.Login(&req, ip)
+	resp, err := h.service.Login(&req, c.ClientIP())
 	if err != nil {
 		c.Error(err)
 		return
@@ -49,7 +43,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-// POST /api/auth/logout
 func (h *AuthHandler) Logout(c *gin.Context) {
 	token := extractBearerToken(c)
 	if token == "" {
@@ -69,14 +62,9 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	})
 }
 
-// POST /api/auth/refresh
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	var req dto_auth.RefreshRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.RefreshRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -95,21 +83,10 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
-// GET /api/auth/me
 func (h *AuthHandler) GetMe(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.Error(&errors.UnauthenticatedError{Message: "User tidak terautentikasi"})
-		return
-	}
+	userID := helper.GetUserID(c)
 
-	id, ok := userID.(int)
-	if !ok {
-		c.Error(&errors.UnauthenticatedError{Message: "User ID tidak valid"})
-		return
-	}
-
-	userData, err := h.service.GetMe(id)
+	userData, err := h.service.GetMe(userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -123,14 +100,9 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	})
 }
 
-// POST /api/auth/verify-token
 func (h *AuthHandler) VerifyToken(c *gin.Context) {
-	var req dto_auth.VerifyTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.VerifyTokenRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

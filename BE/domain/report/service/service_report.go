@@ -1,26 +1,15 @@
-package service_report
+package service
 
 import (
 	"bytes"
 	"fmt"
 
-	dto_report "pos_api/domain/report/dto"
-	repo_report "pos_api/domain/report/repo"
+	"pos_api/domain/report/dto"
 
 	"github.com/xuri/excelize/v2"
 )
 
-type reportService struct {
-	repo repo_report.ReportRepo
-}
-
-func NewReportService(repo repo_report.ReportRepo) ReportService {
-	return &reportService{repo: repo}
-}
-
-// ─── Sales ─────────────────────────────────────────────────────
-
-func (s *reportService) GetSalesReport(params dto_report.FilterParams) (*dto_report.SalesReportResponse, error) {
+func (s *reportService) GetSalesReport(params dto.FilterParams) (*dto.SalesReportResponse, error) {
 	items, err := s.repo.GetSalesItems(params)
 	if err != nil {
 		return nil, err
@@ -29,14 +18,14 @@ func (s *reportService) GetSalesReport(params dto_report.FilterParams) (*dto_rep
 	if err != nil {
 		return nil, err
 	}
-	return &dto_report.SalesReportResponse{Summary: *summary, Items: items}, nil
+	return &dto.SalesReportResponse{Summary: *summary, Items: items}, nil
 }
 
-func (s *reportService) GetSalesChart(params dto_report.FilterParams) ([]dto_report.SalesChartItem, error) {
+func (s *reportService) GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error) {
 	return s.repo.GetSalesChart(params)
 }
 
-func (s *reportService) ExportSalesReport(params dto_report.FilterParams) (*bytes.Buffer, error) {
+func (s *reportService) ExportSalesReport(params dto.FilterParams) (*bytes.Buffer, error) {
 	data, err := s.GetSalesReport(params)
 	if err != nil {
 		return nil, err
@@ -70,9 +59,7 @@ func (s *reportService) ExportSalesReport(params dto_report.FilterParams) (*byte
 	return buf, nil
 }
 
-// ─── Profit/Loss ────────────────────────────────────────────────
-
-func (s *reportService) GetProfitLoss(params dto_report.FilterParams) (*dto_report.ProfitLossResponse, error) {
+func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossResponse, error) {
 	items, err := s.repo.GetProfitLossItems(params)
 	if err != nil {
 		return nil, err
@@ -93,7 +80,7 @@ func (s *reportService) GetProfitLoss(params dto_report.FilterParams) (*dto_repo
 	grossProfit := totalRevenue - totalCOGS
 	netProfit := grossProfit - totalExpenses
 
-	return &dto_report.ProfitLossResponse{
+	return &dto.ProfitLossResponse{
 		TotalRevenue:  totalRevenue,
 		TotalCOGS:     totalCOGS,
 		GrossProfit:   grossProfit,
@@ -104,7 +91,7 @@ func (s *reportService) GetProfitLoss(params dto_report.FilterParams) (*dto_repo
 	}, nil
 }
 
-func (s *reportService) ExportProfitLoss(params dto_report.FilterParams) (*bytes.Buffer, error) {
+func (s *reportService) ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error) {
 	data, err := s.GetProfitLoss(params)
 	if err != nil {
 		return nil, err
@@ -150,9 +137,7 @@ func (s *reportService) ExportProfitLoss(params dto_report.FilterParams) (*bytes
 	return buf, nil
 }
 
-// ─── Stock ──────────────────────────────────────────────────────
-
-func (s *reportService) GetStockReport() (*dto_report.StockReportResponse, error) {
+func (s *reportService) GetStockReport() (*dto.StockReportResponse, error) {
 	items, err := s.repo.GetStockItems()
 	if err != nil {
 		return nil, err
@@ -167,7 +152,7 @@ func (s *reportService) GetStockReport() (*dto_report.StockReportResponse, error
 		}
 	}
 
-	return &dto_report.StockReportResponse{
+	return &dto.StockReportResponse{
 		TotalProducts:   len(items),
 		LowStockCount:   lowCount,
 		TotalStockValue: totalValue,
@@ -213,13 +198,11 @@ func (s *reportService) ExportStockReport() (*bytes.Buffer, error) {
 	return buf, nil
 }
 
-// ─── Cashier ────────────────────────────────────────────────────
-
-func (s *reportService) GetCashierReport(params dto_report.FilterParams) ([]dto_report.CashierItem, error) {
+func (s *reportService) GetCashierReport(params dto.FilterParams) ([]dto.CashierItem, error) {
 	return s.repo.GetCashierItems(params)
 }
 
-func (s *reportService) ExportCashierReport(params dto_report.FilterParams) (*bytes.Buffer, error) {
+func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buffer, error) {
 	items, err := s.GetCashierReport(params)
 	if err != nil {
 		return nil, err
@@ -252,8 +235,6 @@ func (s *reportService) ExportCashierReport(params dto_report.FilterParams) (*by
 	}
 	return buf, nil
 }
-
-// ─── Helper ─────────────────────────────────────────────────────
 
 func applyHeaderStyle(f *excelize.File, sheet string, colCount int) {
 	style, _ := f.NewStyle(&excelize.Style{

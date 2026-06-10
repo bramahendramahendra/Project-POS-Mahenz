@@ -1,19 +1,19 @@
-package model_sync
+package model
 
 import "time"
 
 type SyncHistory struct {
-	ID            int64      `db:"id"`
-	DeviceID      string     `db:"device_id"`
-	DeviceType    string     `db:"device_type"`
-	TotalItems    int        `db:"total_items"`
-	SyncedItems   int        `db:"synced_items"`
-	ConflictItems int        `db:"conflict_items"`
-	FailedItems   int        `db:"failed_items"`
-	DurationMs    int        `db:"duration_ms"`
-	Status        string     `db:"status"`
-	StartedAt     time.Time  `db:"started_at"`
-	FinishedAt    *time.Time `db:"finished_at"`
+	ID            int64      `gorm:"column:id"`
+	DeviceID      string     `gorm:"column:device_id"`
+	DeviceType    string     `gorm:"column:device_type"`
+	TotalItems    int        `gorm:"column:total_items"`
+	SyncedItems   int        `gorm:"column:synced_items"`
+	ConflictItems int        `gorm:"column:conflict_items"`
+	FailedItems   int        `gorm:"column:failed_items"`
+	DurationMs    int        `gorm:"column:duration_ms"`
+	Status        string     `gorm:"column:status"`
+	StartedAt     time.Time  `gorm:"column:started_at"`
+	FinishedAt    *time.Time `gorm:"column:finished_at"`
 }
 
 type SyncConflict struct {
@@ -33,10 +33,9 @@ type SyncConflict struct {
 	ResolvedAt     *time.Time `json:"resolved_at"`
 }
 
-// EntitySnapshot digunakan oleh DetectConflict untuk membandingkan timestamp
 type EntitySnapshot struct {
 	UpdatedAt string `json:"updated_at"`
-	Data      string `json:"data"` // JSON snapshot dari entity
+	Data      string `json:"data"`
 }
 
 type SyncQueue struct {

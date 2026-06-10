@@ -1,10 +1,10 @@
-package handler_backup
+package handler
 
 import (
 	"path/filepath"
 	"strings"
 
-	service_backup "pos_api/domain/backup/service"
+	"pos_api/domain/backup/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
@@ -14,11 +14,11 @@ import (
 )
 
 type BackupHandler struct {
-	service service_backup.BackupService
+	service service.BackupServiceInterface
 }
 
-func NewBackupHandler(service service_backup.BackupService) *BackupHandler {
-	return &BackupHandler{service: service}
+func NewBackupHandler(svc service.BackupServiceInterface) *BackupHandler {
+	return &BackupHandler{service: svc}
 }
 
 // POST /api/backup

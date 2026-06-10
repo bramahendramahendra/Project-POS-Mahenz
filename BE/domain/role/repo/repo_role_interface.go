@@ -1,16 +1,28 @@
-package repo_role
+package repo
 
 import (
-	dto_role "pos_api/domain/role/dto"
-	model_role "pos_api/domain/role/model"
+	dto "pos_api/domain/role/dto"
+	model "pos_api/domain/role/model"
+
+	"gorm.io/gorm"
 )
 
-type RoleRepo interface {
-	GetAll(filter *dto_role.RoleListFilter) ([]*model_role.Role, error)
-	GetByID(id int) (*model_role.Role, error)
-	GetByName(name string) (*model_role.Role, error)
-	Create(req *dto_role.CreateRoleRequest) (int64, error)
-	Update(id int, req *dto_role.UpdateRoleRequest) error
-	Delete(id int) error
-	ToggleStatus(id int) error
+type (
+	RoleRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.Role, error)
+		GetByID(id int) (*model.Role, error)
+		GetByName(name string) (*model.Role, error)
+		Create(req *dto.CreateRequest) (int64, error)
+		Update(id int, req *dto.UpdateRequest) error
+		Delete(id int) error
+		ToggleStatus(id int) error
+	}
+
+	roleRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewRoleRepo(db *gorm.DB) *roleRepo {
+	return &roleRepo{db: db}
 }

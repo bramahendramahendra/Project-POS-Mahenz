@@ -1,20 +1,11 @@
-package service_cash_drawer
+package service
 
 import (
-	dto_cash_drawer "pos_api/domain/cash_drawer/dto"
-	repo_cash_drawer "pos_api/domain/cash_drawer/repo"
+	dto "pos_api/domain/cash_drawer/dto"
 	"pos_api/errors"
 )
 
-type cashDrawerService struct {
-	repo repo_cash_drawer.CashDrawerRepo
-}
-
-func NewCashDrawerService(repo repo_cash_drawer.CashDrawerRepo) CashDrawerService {
-	return &cashDrawerService{repo: repo}
-}
-
-func (s *cashDrawerService) GetCurrent(userID int) (*dto_cash_drawer.CurrentCashDrawerResponse, error) {
+func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
 	res, err := s.repo.GetCurrent(userID)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
@@ -22,7 +13,7 @@ func (s *cashDrawerService) GetCurrent(userID int) (*dto_cash_drawer.CurrentCash
 	return res, nil
 }
 
-func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto_cash_drawer.CashDrawerDetailResponse, error) {
+func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error) {
 	res, err := s.repo.GetDetailByID(id)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
@@ -36,15 +27,15 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 	return res, nil
 }
 
-func (s *cashDrawerService) GetHistory(filter *dto_cash_drawer.CashDrawerFilter) ([]*dto_cash_drawer.CashDrawerHistoryResponse, int, error) {
-	items, total, err := s.repo.GetHistory(filter)
+func (s *cashDrawerService) GetHistory(req *dto.GetHistoryRequest) (data []*dto.CashDrawerHistoryResponse, total int64, err error) {
+	data, total, err = s.repo.GetHistory(req)
 	if err != nil {
 		return nil, 0, &errors.InternalServerError{Message: err.Error()}
 	}
-	return items, total, nil
+	return data, total, nil
 }
 
-func (s *cashDrawerService) Open(userID int, req *dto_cash_drawer.OpenRequest) (*dto_cash_drawer.OpenResponse, error) {
+func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenResponse, error) {
 	if req.OpeningBalance < 0 {
 		return nil, &errors.BadRequestError{Message: "Saldo awal tidak boleh negatif"}
 	}
@@ -61,10 +52,10 @@ func (s *cashDrawerService) Open(userID int, req *dto_cash_drawer.OpenRequest) (
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
-	return &dto_cash_drawer.OpenResponse{ID: id}, nil
+	return &dto.OpenResponse{ID: int(id)}, nil
 }
 
-func (s *cashDrawerService) Close(id int, req *dto_cash_drawer.CloseRequest, requestingUserID int, role string) (*dto_cash_drawer.CloseResponse, error) {
+func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserID int, role string) (*dto.CloseResponse, error) {
 	if req.ClosingBalance < 0 {
 		return nil, &errors.BadRequestError{Message: "Saldo akhir tidak boleh negatif"}
 	}
@@ -90,14 +81,14 @@ func (s *cashDrawerService) Close(id int, req *dto_cash_drawer.CloseRequest, req
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
 
-	return &dto_cash_drawer.CloseResponse{
+	return &dto.CloseResponse{
 		ExpectedBalance: expected,
 		ClosingBalance:  req.ClosingBalance,
 		Difference:      difference,
 	}, nil
 }
 
-func (s *cashDrawerService) UpdateSales(id int, req *dto_cash_drawer.UpdateSalesRequest, requestingUserID int, role string) error {
+func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
@@ -112,13 +103,10 @@ func (s *cashDrawerService) UpdateSales(id int, req *dto_cash_drawer.UpdateSales
 		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
 	}
 
-	if err := s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales)
 }
 
-func (s *cashDrawerService) UpdateExpenses(id int, req *dto_cash_drawer.UpdateExpensesRequest, requestingUserID int, role string) error {
+func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
@@ -133,8 +121,5 @@ func (s *cashDrawerService) UpdateExpenses(id int, req *dto_cash_drawer.UpdateEx
 		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
 	}
 
-	if err := s.repo.UpdateExpenses(id, req.TotalExpenses); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
-	}
-	return nil
+	return s.repo.UpdateExpenses(id, req.TotalExpenses)
 }

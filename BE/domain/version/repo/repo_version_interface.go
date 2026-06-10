@@ -1,11 +1,23 @@
-package repo_version
+package repo
 
 import (
-	model_version "pos_api/domain/version/model"
+	"pos_api/domain/version/model"
+
+	"gorm.io/gorm"
 )
 
-type VersionRepo interface {
-	GetLatestAndroid() (*model_version.AppVersion, error)
-	SetAllNotLatest() error
-	CreateVersion(version, downloadURL, releaseNotes string, isMandatory bool) error
+type (
+	VersionRepoInterface interface {
+		GetLatestAndroid() (*model.AppVersion, error)
+		SetAllNotLatest() error
+		CreateVersion(version, downloadURL, releaseNotes string, isMandatory bool) error
+	}
+
+	versionRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewVersionRepo(db *gorm.DB) *versionRepo {
+	return &versionRepo{db: db}
 }

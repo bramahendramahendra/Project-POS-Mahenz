@@ -1,58 +1,48 @@
-package handler_receivable
+package handler
 
 import (
-	"strconv"
-
-	dto_receivable "pos_api/domain/receivable/dto"
-	service_receivable "pos_api/domain/receivable/service"
+	dto "pos_api/domain/receivable/dto"
+	service "pos_api/domain/receivable/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ReceivableHandler struct {
-	service service_receivable.ReceivableService
+	service service.ReceivableServiceInterface
 }
 
-func NewReceivableHandler(service service_receivable.ReceivableService) *ReceivableHandler {
+func NewReceivableHandler(service service.ReceivableServiceInterface) *ReceivableHandler {
 	return &ReceivableHandler{service: service}
 }
 
-// GET /api/receivables
 func (h *ReceivableHandler) GetAll(c *gin.Context) {
-	filter := &dto_receivable.ReceivableFilter{
-		Search: c.Query("search"),
-		Status: c.Query("status"),
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	filter.Page = page
-	filter.Limit = limit
 
-	items, total, err := h.service.GetAll(filter)
+	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar piutang",
-		Data: gin.H{
-			"items": items,
-			"total": total,
-			"page":  filter.Page,
-			"limit": filter.Limit,
-		},
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar piutang",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 
-// GET /api/receivables/summary
 func (h *ReceivableHandler) GetSummary(c *gin.Context) {
 	items, err := h.service.GetSummary()
 	if err != nil {
@@ -68,15 +58,19 @@ func (h *ReceivableHandler) GetSummary(c *gin.Context) {
 	})
 }
 
-// GET /api/receivables/:id
 func (h *ReceivableHandler) GetByID(c *gin.Context) {
-	id, err := parseReceivableID(c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	item, svcErr := h.service.GetByID(id)
+	item, svcErr := h.service.GetByID(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -90,15 +84,19 @@ func (h *ReceivableHandler) GetByID(c *gin.Context) {
 	})
 }
 
-// GET /api/receivables/:id/payments
 func (h *ReceivableHandler) GetPayments(c *gin.Context) {
-	id, err := parseReceivableID(c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	items, svcErr := h.service.GetPayments(id)
+	items, svcErr := h.service.GetPayments(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -112,28 +110,30 @@ func (h *ReceivableHandler) GetPayments(c *gin.Context) {
 	})
 }
 
-// POST /api/receivables/:id/pay
 func (h *ReceivableHandler) Pay(c *gin.Context) {
-	id, err := parseReceivableID(c)
+	uriReq, err := binder.BindURI[dto.PayUriRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(uriReq); err != nil {
 		c.Error(err)
 		return
 	}
 
-	var req dto_receivable.PayRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	bodyReq, err := binder.BindJSON[dto.PayRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
+	if err := validator.Validate.Struct(bodyReq); err != nil {
+		c.Error(err)
+		return
+	}
 
-	result, svcErr := h.service.Pay(id, &req, uid)
+	result, svcErr := h.service.Pay(uriReq.ID, &bodyReq, helper.GetUserID(c))
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -145,12 +145,4 @@ func (h *ReceivableHandler) Pay(c *gin.Context) {
 		Message: "Pembayaran piutang berhasil",
 		Data:    result,
 	})
-}
-
-func parseReceivableID(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
 }

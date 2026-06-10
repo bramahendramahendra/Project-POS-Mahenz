@@ -1,8 +1,8 @@
-package handler_setting
+package handler
 
 import (
-	dto_setting "pos_api/domain/setting/dto"
-	service_setting "pos_api/domain/setting/service"
+	"pos_api/domain/setting/dto"
+	"pos_api/domain/setting/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
@@ -11,11 +11,11 @@ import (
 )
 
 type SettingHandler struct {
-	service service_setting.SettingService
+	service service.SettingServiceInterface
 }
 
-func NewSettingHandler(service service_setting.SettingService) *SettingHandler {
-	return &SettingHandler{service: service}
+func NewSettingHandler(svc service.SettingServiceInterface) *SettingHandler {
+	return &SettingHandler{service: svc}
 }
 
 // GET /api/settings
@@ -45,7 +45,7 @@ func (h *SettingHandler) GetByKey(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Success",
-		Data:    dto_setting.SettingKeyValueResponse{Key: key, Value: value},
+		Data:    dto.SettingKeyValueResponse{Key: key, Value: value},
 	})
 }
 

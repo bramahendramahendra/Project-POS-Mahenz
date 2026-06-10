@@ -1,12 +1,20 @@
-package dto_receivable
+package dto
 
 import "time"
 
-type ReceivableFilter struct {
-	Search   string
-	Status   string
-	Page     int
-	Limit    int
+type GetAllRequest struct {
+	Page   int    `json:"page"`
+	Limit  int    `json:"limit"`
+	Search string `json:"search"`
+	Status string `json:"status"`
+}
+
+type GetByIDRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
+}
+
+type PayUriRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
 }
 
 type ReceivableResponse struct {

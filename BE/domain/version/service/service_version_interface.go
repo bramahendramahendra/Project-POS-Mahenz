@@ -1,8 +1,21 @@
-package service_version
+package service
 
-import dto_version "pos_api/domain/version/dto"
+import (
+	"pos_api/domain/version/dto"
+	repo "pos_api/domain/version/repo"
+)
 
-type VersionService interface {
-	CheckAndroid(currentVersion string) (*dto_version.VersionCheckResponse, error)
-	UpdateAndroidVersion(req *dto_version.UpdateVersionRequest) error
+type (
+	VersionServiceInterface interface {
+		CheckAndroid(currentVersion string) (*dto.VersionCheckResponse, error)
+		UpdateAndroidVersion(req *dto.UpdateVersionRequest) error
+	}
+
+	versionService struct {
+		repo repo.VersionRepoInterface
+	}
+)
+
+func NewVersionService(r repo.VersionRepoInterface) *versionService {
+	return &versionService{repo: r}
 }

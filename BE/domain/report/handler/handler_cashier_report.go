@@ -1,4 +1,4 @@
-package handler_report
+package handler
 
 import (
 	"net/http"

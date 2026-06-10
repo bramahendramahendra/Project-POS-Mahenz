@@ -1,4 +1,4 @@
-package dto_dashboard
+package dto
 
 type TodayStats struct {
 	TotalTransactions int64   `json:"total_transactions"`

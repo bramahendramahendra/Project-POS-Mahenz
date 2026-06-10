@@ -22,7 +22,6 @@ func publicRoutes(r *gin.RouterGroup) {
 	authGroup.POST("/refresh", authHand.RefreshToken)
 	authGroup.POST("/verify-token", authHand.VerifyToken)
 
-	// Version Check (public — dipanggil sebelum login)
 	versionRepoInst := version_repo.NewVersionRepo(pkgdatabase.DB)
 	versionSvc := version_service.NewVersionService(versionRepoInst)
 	versionHand := version_handler.NewVersionHandler(versionSvc)

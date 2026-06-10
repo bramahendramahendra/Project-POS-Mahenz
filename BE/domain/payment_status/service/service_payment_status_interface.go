@@ -1,7 +1,20 @@
-package service_payment_status
+package service
 
-import dto_payment_status "pos_api/domain/payment_status/dto"
+import (
+	dto "pos_api/domain/payment_status/dto"
+	repo "pos_api/domain/payment_status/repo"
+)
 
-type PaymentStatusService interface {
-	GetAll() ([]*dto_payment_status.PaymentStatusResponse, error)
+type (
+	PaymentStatusServiceInterface interface {
+		GetAll() ([]*dto.PaymentStatusResponse, error)
+	}
+
+	paymentStatusService struct {
+		repo repo.PaymentStatusRepoInterface
+	}
+)
+
+func NewPaymentStatusService(repo repo.PaymentStatusRepoInterface) *paymentStatusService {
+	return &paymentStatusService{repo: repo}
 }

@@ -17,7 +17,7 @@ func StockMutationRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/stock-mutations", middleware.RoleMiddleware("owner", "admin"))
 	{
-		g.GET("", stockMutationHand.GetAll)
-		g.GET("/product/:product_id", stockMutationHand.GetByProduct)
+		g.POST("/list", stockMutationHand.GetAll)
+		g.POST("/product/:product_id", stockMutationHand.GetByProduct)
 	}
 }

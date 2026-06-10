@@ -1,12 +1,24 @@
-package repo_setting
+package repo
 
 import (
-	model_setting "pos_api/domain/setting/model"
+	"pos_api/domain/setting/model"
+
+	"gorm.io/gorm"
 )
 
-type SettingRepo interface {
-	GetAll() ([]model_setting.Setting, error)
-	GetByKey(key string) (*model_setting.Setting, error)
-	Upsert(key, value string) error
-	ResetAll() error
+type (
+	SettingRepoInterface interface {
+		GetAll() ([]model.Setting, error)
+		GetByKey(key string) (*model.Setting, error)
+		Upsert(key, value string) error
+		ResetAll() error
+	}
+
+	settingRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewSettingRepo(db *gorm.DB) *settingRepo {
+	return &settingRepo{db: db}
 }

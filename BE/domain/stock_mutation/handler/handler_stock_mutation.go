@@ -1,47 +1,61 @@
-package handler_stock_mutation
+package handler
 
 import (
-	"strconv"
-
-	dto_stock_mutation "pos_api/domain/stock_mutation/dto"
-	service_stock_mutation "pos_api/domain/stock_mutation/service"
+	dto "pos_api/domain/stock_mutation/dto"
+	service "pos_api/domain/stock_mutation/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 type StockMutationHandler struct {
-	service service_stock_mutation.StockMutationService
+	service service.StockMutationServiceInterface
 }
 
-func NewStockMutationHandler(service service_stock_mutation.StockMutationService) *StockMutationHandler {
+func NewStockMutationHandler(service service.StockMutationServiceInterface) *StockMutationHandler {
 	return &StockMutationHandler{service: service}
 }
 
-// GET /api/stock-mutations
 func (h *StockMutationHandler) GetAll(c *gin.Context) {
-	filter := &dto_stock_mutation.StockMutationFilter{
-		MutationType:  c.Query("mutation_type"),
-		ReferenceType: c.Query("reference_type"),
-		DateFrom:      c.Query("date_from"),
-		DateTo:        c.Query("date_to"),
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	if pidStr := c.Query("product_id"); pidStr != "" {
-		if pid, err := strconv.Atoi(pidStr); err == nil {
-			filter.ProductID = &pid
-		}
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	filter.Page = page
-	filter.Limit = limit
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar mutasi stok",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
 
-	items, total, err := h.service.GetAll(filter)
+func (h *StockMutationHandler) GetByProduct(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByProductRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByProduct(req.ProductID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -50,34 +64,7 @@ func (h *StockMutationHandler) GetAll(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar mutasi stok",
-		Data: gin.H{
-			"items": items,
-			"total": total,
-			"page":  filter.Page,
-			"limit": filter.Limit,
-		},
-	})
-}
-
-// GET /api/stock-mutations/product/:product_id
-func (h *StockMutationHandler) GetByProduct(c *gin.Context) {
-	productID, err := strconv.Atoi(c.Param("product_id"))
-	if err != nil || productID <= 0 {
-		c.Error(&errors.BadRequestError{Message: "product_id tidak valid"})
-		return
-	}
-
-	items, svcErr := h.service.GetByProduct(productID)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
 		Message: "Riwayat mutasi stok produk",
-		Data:    items,
+		Data:    data,
 	})
 }

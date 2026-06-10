@@ -1,18 +1,14 @@
-package repo_stock_mutation
+package repo
 
 import (
-	"fmt"
-
-	dto_stock_mutation "pos_api/domain/stock_mutation/dto"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/stock_mutation/dto"
 )
 
 const (
 	getAllMutationsQuery = `
 		SELECT sm.id, sm.product_id, p.name as product_name, sm.mutation_type,
 		       sm.quantity, sm.stock_before, sm.stock_after, sm.reference_type,
-		       sm.reference_id, sm.notes, u.full_name as user_name, sm.created_at
+		       sm.reference_id, sm.notes, COALESCE(u.full_name, '') as user_name, sm.created_at
 		FROM stock_mutations sm
 		LEFT JOIN products p ON sm.product_id = p.id
 		LEFT JOIN users u ON sm.user_id = u.id
@@ -22,112 +18,67 @@ const (
 
 	getMutationsByProductQuery = `
 		SELECT sm.id, sm.mutation_type, sm.quantity, sm.stock_before, sm.stock_after,
-		       sm.reference_type, sm.reference_id, sm.notes, u.full_name as user_name, sm.created_at
+		       sm.reference_type, sm.reference_id, sm.notes, COALESCE(u.full_name, '') as user_name, sm.created_at
 		FROM stock_mutations sm
 		LEFT JOIN users u ON sm.user_id = u.id
 		WHERE sm.product_id = ?
 		ORDER BY sm.created_at DESC`
 )
 
-type stockMutationRepo struct {
-	db *gorm.DB
-}
-
-func NewStockMutationRepo(db *gorm.DB) StockMutationRepo {
-	return &stockMutationRepo{db: db}
-}
-
-func (r *stockMutationRepo) GetAll(filter *dto_stock_mutation.StockMutationFilter) ([]*dto_stock_mutation.StockMutationResponse, int, error) {
-	var args, countArgs []interface{}
+func (r *stockMutationRepo) GetAll(req *dto.GetAllRequest) ([]*dto.StockMutationResponse, int64, error) {
+	var args []any
 	conditions := ""
 
-	if filter.ProductID != nil {
+	if req.ProductID != nil {
 		conditions += " AND sm.product_id = ?"
-		args = append(args, *filter.ProductID)
-		countArgs = append(countArgs, *filter.ProductID)
+		args = append(args, *req.ProductID)
 	}
-	if filter.MutationType != "" {
+	if req.MutationType != "" {
 		conditions += " AND sm.mutation_type = ?"
-		args = append(args, filter.MutationType)
-		countArgs = append(countArgs, filter.MutationType)
+		args = append(args, req.MutationType)
 	}
-	if filter.ReferenceType != "" {
+	if req.ReferenceType != "" {
 		conditions += " AND sm.reference_type = ?"
-		args = append(args, filter.ReferenceType)
-		countArgs = append(countArgs, filter.ReferenceType)
+		args = append(args, req.ReferenceType)
 	}
-	if filter.DateFrom != "" {
+	if req.DateFrom != "" {
 		conditions += " AND DATE(sm.created_at) >= ?"
-		args = append(args, filter.DateFrom)
-		countArgs = append(countArgs, filter.DateFrom)
+		args = append(args, req.DateFrom)
 	}
-	if filter.DateTo != "" {
+	if req.DateTo != "" {
 		conditions += " AND DATE(sm.created_at) <= ?"
-		args = append(args, filter.DateTo)
-		countArgs = append(countArgs, filter.DateTo)
+		args = append(args, req.DateTo)
 	}
 
-	var total int
-	if err := r.db.Raw(countMutationsBase+conditions, countArgs...).Scan(&total).Error; err != nil {
+	var total int64
+	if err := r.db.Raw(countMutationsBase+conditions, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	page := filter.Page
-	limit := filter.Limit
+	page := req.Page
+	limit := req.Limit
 	if page <= 0 {
 		page = 1
 	}
-	if limit <= 0 {
-		limit = 20
+	if limit <= 0 || limit > 100 {
+		limit = 10
 	}
 	offset := (page - 1) * limit
 
-	query := getAllMutationsQuery + conditions + fmt.Sprintf(" ORDER BY sm.created_at DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getAllMutationsQuery + conditions + " ORDER BY sm.created_at DESC LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
-	rows, err := r.db.Raw(query, args...).Rows()
-	if err != nil {
+	var dataDB []*dto.StockMutationResponse
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
-
-	var items []*dto_stock_mutation.StockMutationResponse
-	for rows.Next() {
-		var item dto_stock_mutation.StockMutationResponse
-		if err := rows.Scan(
-			&item.ID, &item.ProductID, &item.ProductName, &item.MutationType,
-			&item.Quantity, &item.StockBefore, &item.StockAfter, &item.ReferenceType,
-			&item.ReferenceID, &item.Notes, &item.UserName, &item.CreatedAt,
-		); err != nil {
-			return nil, 0, err
-		}
-		items = append(items, &item)
-	}
-	if items == nil {
-		items = []*dto_stock_mutation.StockMutationResponse{}
-	}
-	return items, total, nil
+	return dataDB, total, nil
 }
 
-func (r *stockMutationRepo) GetByProduct(productID int) ([]*dto_stock_mutation.StockMutationByProductResponse, error) {
-	rows, err := r.db.Raw(getMutationsByProductQuery, productID).Rows()
-	if err != nil {
+func (r *stockMutationRepo) GetByProduct(productID int) ([]*dto.StockMutationByProductResponse, error) {
+	var dataDB []*dto.StockMutationByProductResponse
+	if err := r.db.Raw(getMutationsByProductQuery, productID).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var items []*dto_stock_mutation.StockMutationByProductResponse
-	for rows.Next() {
-		var item dto_stock_mutation.StockMutationByProductResponse
-		if err := rows.Scan(
-			&item.ID, &item.MutationType, &item.Quantity, &item.StockBefore, &item.StockAfter,
-			&item.ReferenceType, &item.ReferenceID, &item.Notes, &item.UserName, &item.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, &item)
-	}
-	if items == nil {
-		items = []*dto_stock_mutation.StockMutationByProductResponse{}
-	}
-	return items, nil
+	return dataDB, nil
 }

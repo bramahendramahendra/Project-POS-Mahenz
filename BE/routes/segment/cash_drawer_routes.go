@@ -16,12 +16,12 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/cash-drawer")
 	{
-		g.GET("/current", cashDrawerHand.GetCurrent)
-		g.GET("", cashDrawerHand.GetHistory)
-		g.GET("/:id", cashDrawerHand.GetByID)
+		g.POST("/current", cashDrawerHand.GetCurrent)
+		g.POST("/list", cashDrawerHand.GetHistory)
+		g.POST("/detail/:id", cashDrawerHand.GetByID)
 		g.POST("/open", cashDrawerHand.Open)
-		g.POST("/:id/close", cashDrawerHand.Close)
-		g.PATCH("/:id/update-sales", cashDrawerHand.UpdateSales)
-		g.PATCH("/:id/update-expenses", cashDrawerHand.UpdateExpenses)
+		g.POST("/close/:id", cashDrawerHand.Close)
+		g.POST("/update-sales/:id", cashDrawerHand.UpdateSales)
+		g.POST("/update-expenses/:id", cashDrawerHand.UpdateExpenses)
 	}
 }

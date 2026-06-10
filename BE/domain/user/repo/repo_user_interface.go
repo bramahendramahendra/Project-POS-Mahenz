@@ -1,18 +1,30 @@
-package repo_user
+package repo
 
 import (
-	dto_user "pos_api/domain/user/dto"
-	model_user "pos_api/domain/user/model"
+	dto "pos_api/domain/user/dto"
+	model "pos_api/domain/user/model"
+
+	"gorm.io/gorm"
 )
 
-type UserRepo interface {
-	GetAll(filter *dto_user.UserListFilter) ([]*model_user.User, error)
-	GetByID(id int) (*model_user.User, error)
-	GetByUsername(username string, excludeID int) (*model_user.User, error)
-	Create(user *model_user.User) (int64, error)
-	Update(id int, req *dto_user.UpdateUserRequest) error
-	UpdatePassword(id int, hashedPassword string) error
-	Delete(id int) error
-	ToggleStatus(id int) error
-	DeleteSessionByUserID(userID int) error
+type (
+	UserRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.User, error)
+		GetByID(id int) (*model.User, error)
+		GetByUsername(username string, excludeID int) (*model.User, error)
+		Create(user *model.User) (int64, error)
+		Update(id int, req *dto.UpdateRequest) error
+		UpdatePassword(id int, hashedPassword string) error
+		Delete(id int) error
+		ToggleStatus(id int) error
+		DeleteSessionByUserID(userID int) error
+	}
+
+	userRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewUserRepo(db *gorm.DB) *userRepo {
+	return &userRepo{db: db}
 }

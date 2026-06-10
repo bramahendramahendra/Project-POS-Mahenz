@@ -1,16 +1,17 @@
-package model_expense
+package model
 
 import "time"
 
 type Expense struct {
-	ID            int        `db:"id"`
-	ExpenseDate   string     `db:"expense_date"`
-	Category      string     `db:"category"`
-	Description   string     `db:"description"`
-	Amount        float64    `db:"amount"`
-	PaymentMethod string     `db:"payment_method"`
-	UserID        int        `db:"user_id"`
-	Notes         string     `db:"notes"`
-	CreatedAt     time.Time  `db:"created_at"`
-	UpdatedAt     *time.Time `db:"updated_at"`
+	ID            int       `gorm:"column:id"`
+	ExpenseDate   string    `gorm:"column:expense_date"`
+	Category      string    `gorm:"column:category"`
+	Description   string    `gorm:"column:description"`
+	Amount        float64   `gorm:"column:amount"`
+	PaymentMethod string    `gorm:"column:payment_method"`
+	UserID        int       `gorm:"column:user_id"`
+	UserName      string    `gorm:"column:user_name"`
+	Notes         string    `gorm:"column:notes"`
+	CreatedAt     time.Time `gorm:"column:created_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at"`
 }

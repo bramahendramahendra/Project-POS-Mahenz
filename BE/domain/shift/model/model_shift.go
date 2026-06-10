@@ -1,13 +1,13 @@
-package model_shift
+package model
 
 import "time"
 
 type Shift struct {
-	ID        int        `db:"id"`
-	Name      string     `db:"name"`
-	StartTime string     `db:"start_time"`
-	EndTime   string     `db:"end_time"`
-	IsActive  bool       `db:"is_active"`
-	CreatedAt time.Time  `db:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at"`
+	ID        int       `gorm:"column:id"`
+	Name      string    `gorm:"column:name"`
+	StartTime string    `gorm:"column:start_time"`
+	EndTime   string    `gorm:"column:end_time"`
+	IsActive  bool      `gorm:"column:is_active"`
+	CreatedAt time.Time `gorm:"column:created_at"`
+	UpdatedAt time.Time `gorm:"column:updated_at"`
 }

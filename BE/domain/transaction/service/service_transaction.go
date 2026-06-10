@@ -1,22 +1,14 @@
-package service_transaction
+﻿package service
 
 import (
 	"strings"
 
-	dto_transaction "pos_api/domain/transaction/dto"
-	repo_transaction "pos_api/domain/transaction/repo"
+	"pos_api/domain/transaction/dto"
+	
 	"pos_api/errors"
 )
 
-type transactionService struct {
-	repo repo_transaction.TransactionRepo
-}
-
-func NewTransactionService(repo repo_transaction.TransactionRepo) TransactionService {
-	return &transactionService{repo: repo}
-}
-
-func (s *transactionService) GetAll(filter *dto_transaction.TransactionFilter) ([]*dto_transaction.TransactionResponse, int, error) {
+func (s *transactionService) GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error) {
 	transactions, total, err := s.repo.GetAll(filter)
 	if err != nil {
 		return nil, 0, &errors.InternalServerError{Message: err.Error()}
@@ -24,7 +16,7 @@ func (s *transactionService) GetAll(filter *dto_transaction.TransactionFilter) (
 	return transactions, total, nil
 }
 
-func (s *transactionService) GetByID(id int) (*dto_transaction.TransactionResponse, error) {
+func (s *transactionService) GetByID(id int) (*dto.TransactionResponse, error) {
 	t, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
@@ -35,7 +27,7 @@ func (s *transactionService) GetByID(id int) (*dto_transaction.TransactionRespon
 	return t, nil
 }
 
-func (s *transactionService) Create(req *dto_transaction.CreateTransactionRequest, userID int) (*dto_transaction.CreateTransactionResponse, error) {
+func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
 	resp, err := s.repo.Create(req, userID)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "stok_insufficient:") {
@@ -64,3 +56,4 @@ func (s *transactionService) Void(id, userID int) error {
 	}
 	return nil
 }
+

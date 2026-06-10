@@ -1,26 +1,25 @@
-package handler_pin
+package handler
 
 import (
-	dto_pin "pos_api/domain/pin/dto"
-	service_pin "pos_api/domain/pin/service"
+	"pos_api/domain/pin/dto"
+	"pos_api/domain/pin/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	"pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PinHandler struct {
-	service service_pin.PinService
+	service service.PinServiceInterface
 }
 
-func NewPinHandler(service service_pin.PinService) *PinHandler {
-	return &PinHandler{service: service}
+func NewPinHandler(svc service.PinServiceInterface) *PinHandler {
+	return &PinHandler{service: svc}
 }
 
-// GET /api/pin/check
 func (h *PinHandler) CheckPin(c *gin.Context) {
 	userID := helper.GetUserID(c)
 
@@ -34,18 +33,13 @@ func (h *PinHandler) CheckPin(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Status PIN",
-		Data:    &dto_pin.HasPinResponse{HasPin: hasPin},
+		Data:    &dto.HasPinResponse{HasPin: hasPin},
 	})
 }
 
-// POST /api/pin/set
 func (h *PinHandler) SetPin(c *gin.Context) {
-	var req dto_pin.SetPinRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.SetPinRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -63,14 +57,9 @@ func (h *PinHandler) SetPin(c *gin.Context) {
 	})
 }
 
-// POST /api/pin/verify
 func (h *PinHandler) VerifyPin(c *gin.Context) {
-	var req dto_pin.VerifyPinRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.VerifyPinRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -86,18 +75,13 @@ func (h *PinHandler) VerifyPin(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Verifikasi PIN",
-		Data:    &dto_pin.VerifyPinResponse{Valid: valid},
+		Data:    &dto.VerifyPinResponse{Valid: valid},
 	})
 }
 
-// POST /api/pin/change
 func (h *PinHandler) ChangePin(c *gin.Context) {
-	var req dto_pin.ChangePinRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
+	req, err := binder.BindJSON[dto.ChangePinRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

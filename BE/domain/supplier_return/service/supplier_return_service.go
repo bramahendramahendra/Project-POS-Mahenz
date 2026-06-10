@@ -162,8 +162,8 @@ func (s *supplierReturnService) UpdateStatus(req *dto.UpdateStatusRequest) error
 	return s.repo.UpdateStatus(req.ID, req.Status, req.Notes)
 }
 
-func (s *supplierReturnService) Delete(id int) error {
-	exists, err := s.repo.GetStatus(id)
+func (s *supplierReturnService) Delete(req *dto.GetSupplierReturnByIDRequest) error {
+	exists, err := s.repo.GetStatus(req.ID)
 	if err != nil {
 		return err
 	}
@@ -174,5 +174,5 @@ func (s *supplierReturnService) Delete(id int) error {
 		return &errors.BadRequestError{Message: "Retur yang sudah approved tidak bisa dihapus"}
 	}
 
-	return s.repo.Delete(id)
+	return s.repo.Delete(req)
 }

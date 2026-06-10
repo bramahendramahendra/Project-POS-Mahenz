@@ -1,8 +1,28 @@
-package repo_stock_mutation
+package repo
 
-import dto_stock_mutation "pos_api/domain/stock_mutation/dto"
+import (
+	dto "pos_api/domain/stock_mutation/dto"
 
-type StockMutationRepo interface {
-	GetAll(filter *dto_stock_mutation.StockMutationFilter) ([]*dto_stock_mutation.StockMutationResponse, int, error)
-	GetByProduct(productID int) ([]*dto_stock_mutation.StockMutationByProductResponse, error)
+	"gorm.io/gorm"
+)
+
+type (
+	StockMutationRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.StockMutationResponse, int64, error)
+		GetByProduct(productID int) ([]*dto.StockMutationByProductResponse, error)
+
+		GetDB() *gorm.DB
+	}
+
+	stockMutationRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewStockMutationRepo(db *gorm.DB) *stockMutationRepo {
+	return &stockMutationRepo{db: db}
+}
+
+func (r *stockMutationRepo) GetDB() *gorm.DB {
+	return r.db
 }

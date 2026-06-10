@@ -17,11 +17,11 @@ func UserRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/users", middleware.RoleMiddleware("owner", "admin"))
 	{
-		g.GET("", userHand.GetAll)
-		g.GET("/:id", userHand.GetByID)
-		g.POST("", userHand.Create)
-		g.PUT("/:id", userHand.Update)
-		g.DELETE("/:id", userHand.Delete)
-		g.PATCH("/:id/toggle-status", userHand.ToggleStatus)
+		g.POST("/list",              userHand.GetAll)
+		g.POST("/detail/:id",        userHand.GetByID)
+		g.POST("/create",            userHand.Create)
+		g.POST("/update/:id",        userHand.Update)
+		g.POST("/delete/:id",        userHand.Delete)
+		g.POST("/toggle-status/:id", userHand.ToggleStatus)
 	}
 }

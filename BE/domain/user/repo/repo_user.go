@@ -1,114 +1,81 @@
-package repo_user
+package repo
 
 import (
-	"fmt"
-	"strings"
-
-	dto_user "pos_api/domain/user/dto"
-	model_user "pos_api/domain/user/model"
-
-	"gorm.io/gorm"
+	dto "pos_api/domain/user/dto"
+	model "pos_api/domain/user/model"
 )
 
 const (
-	getUserByIDQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
+	getUserByIDQuery      = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
 	getUserByUsernameQuery = `SELECT u.id FROM users u WHERE u.username = ? AND u.id != ? LIMIT 1`
-	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
-	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = NOW() WHERE id = ?`
-	updatePasswordQuery    = `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`
-	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
-	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
-	deleteSessionQuery     = `DELETE FROM sessions WHERE user_id = ?`
+	createUserQuery       = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
+	updateUserQuery       = `UPDATE users SET full_name = ?, role_id = ?, updated_at = NOW() WHERE id = ?`
+	updatePasswordQuery   = `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`
+	deleteUserQuery       = `DELETE FROM users WHERE id = ?`
+	toggleUserStatusQuery = `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	deleteSessionQuery    = `DELETE FROM sessions WHERE user_id = ?`
 )
 
-type userRepo struct {
-	db *gorm.DB
-}
-
-func NewUserRepo(db *gorm.DB) UserRepo {
-	return &userRepo{db: db}
-}
-
-func (r *userRepo) GetAll(filter *dto_user.UserListFilter) ([]*model_user.User, error) {
+func (r *userRepo) GetAll(req *dto.GetAllRequest) ([]*model.User, error) {
 	query := `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE 1=1`
-	args := []any{}
+	var args []any
 
-	if filter.Search != "" {
-		safe := "%" + strings.ReplaceAll(filter.Search, "%", `\%`) + "%"
+	if req.Search != "" {
+		like := "%" + req.Search + "%"
 		query += ` AND (u.username LIKE ? OR u.full_name LIKE ?)`
-		args = append(args, safe, safe)
+		args = append(args, like, like)
 	}
-	if filter.RoleID != nil {
+	if req.RoleID != nil {
 		query += ` AND u.role_id = ?`
-		args = append(args, *filter.RoleID)
+		args = append(args, *req.RoleID)
 	}
-	if filter.IsActive != nil {
+	if req.IsActive != nil {
 		query += ` AND u.is_active = ?`
-		args = append(args, *filter.IsActive)
+		args = append(args, *req.IsActive)
 	}
-
 	query += ` ORDER BY u.id ASC`
 
-	rows, err := r.db.Raw(query, args...).Rows()
-	if err != nil {
+	var dataDB []*model.User
+	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var users []*model_user.User
-	for rows.Next() {
-		var u model_user.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.FullName, &u.RoleID, &u.RoleName,
-			&u.IsActive, &u.CreatedAt, &u.UpdatedAt); err != nil {
-			return nil, err
-		}
-		users = append(users, &u)
-	}
-	return users, nil
+	return dataDB, nil
 }
 
-func (r *userRepo) GetByID(id int) (*model_user.User, error) {
-	rows, err := r.db.Raw(getUserByIDQuery, id).Rows()
-	if err != nil {
+func (r *userRepo) GetByID(id int) (*model.User, error) {
+	var u model.User
+	if err := r.db.Raw(getUserByIDQuery, id).Scan(&u).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	if !rows.Next() {
-		return nil, nil
-	}
-	var u model_user.User
-	if err := rows.Scan(&u.ID, &u.Username, &u.FullName, &u.RoleID, &u.RoleName,
-		&u.IsActive, &u.CreatedAt, &u.UpdatedAt); err != nil {
-		return nil, err
-	}
-	return &u, nil
-}
-
-func (r *userRepo) GetByUsername(username string, excludeID int) (*model_user.User, error) {
-	var u model_user.User
-	result := r.db.Raw(getUserByUsernameQuery, username, excludeID).Scan(&u)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	if result.RowsAffected == 0 {
+	if u.ID == 0 {
 		return nil, nil
 	}
 	return &u, nil
 }
 
-func (r *userRepo) Create(user *model_user.User) (int64, error) {
-	res := r.db.Exec(createUserQuery, user.Username, user.Password, user.FullName, user.RoleID)
-	if res.Error != nil {
-		return 0, res.Error
+func (r *userRepo) GetByUsername(username string, excludeID int) (*model.User, error) {
+	var u model.User
+	if err := r.db.Raw(getUserByUsernameQuery, username, excludeID).Scan(&u).Error; err != nil {
+		return nil, err
+	}
+	if u.ID == 0 {
+		return nil, nil
+	}
+	return &u, nil
+}
+
+func (r *userRepo) Create(user *model.User) (int64, error) {
+	if err := r.db.Exec(createUserQuery, user.Username, user.Password, user.FullName, user.RoleID).Error; err != nil {
+		return 0, err
 	}
 	var id int64
 	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error; err != nil {
-		return 0, fmt.Errorf("failed to get last insert id: %w", err)
+		return 0, err
 	}
 	return id, nil
 }
 
-func (r *userRepo) Update(id int, req *dto_user.UpdateUserRequest) error {
+func (r *userRepo) Update(id int, req *dto.UpdateRequest) error {
 	return r.db.Exec(updateUserQuery, req.FullName, req.RoleID, id).Error
 }
 

@@ -29,11 +29,11 @@ type (
 		GenerateSku(categoryID int) (data dto.GenerateSkuResponse, err error)
 
 		GetPackagesByProduct(productID int) (data []*dto.PackageResponse, err error)
-		SavePackages(req *dto.SavePackageRequest) error
-		DeletePackage(req *dto.DeletePackageRequest) error
+		SavePackages(req *dto.SavePackageRequest) (err error)
+		DeletePackage(req *dto.DeletePackageRequest) (err error)
 
 		GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error)
-		SavePrices(req *dto.SavePriceRequest) error
+		SavePrices(req *dto.SavePriceRequest) (err error)
 
 		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)

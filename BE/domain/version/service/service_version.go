@@ -1,20 +1,11 @@
-package service_version
+package service
 
 import (
-	dto_version "pos_api/domain/version/dto"
-	repo_version "pos_api/domain/version/repo"
+	"pos_api/domain/version/dto"
 	"pos_api/errors"
 )
 
-type versionService struct {
-	repo repo_version.VersionRepo
-}
-
-func NewVersionService(repo repo_version.VersionRepo) VersionService {
-	return &versionService{repo: repo}
-}
-
-func (s *versionService) CheckAndroid(currentVersion string) (*dto_version.VersionCheckResponse, error) {
+func (s *versionService) CheckAndroid(currentVersion string) (*dto.VersionCheckResponse, error) {
 	latest, err := s.repo.GetLatestAndroid()
 	if err != nil {
 		return nil, &errors.NotFoundError{Message: "Data versi tidak ditemukan"}
@@ -22,7 +13,7 @@ func (s *versionService) CheckAndroid(currentVersion string) (*dto_version.Versi
 
 	hasUpdate := latest.Version != currentVersion
 
-	resp := &dto_version.VersionCheckResponse{
+	resp := &dto.VersionCheckResponse{
 		LatestVersion:  latest.Version,
 		CurrentVersion: currentVersion,
 		HasUpdate:      hasUpdate,
@@ -37,7 +28,7 @@ func (s *versionService) CheckAndroid(currentVersion string) (*dto_version.Versi
 	return resp, nil
 }
 
-func (s *versionService) UpdateAndroidVersion(req *dto_version.UpdateVersionRequest) error {
+func (s *versionService) UpdateAndroidVersion(req *dto.UpdateVersionRequest) error {
 	if err := s.repo.SetAllNotLatest(); err != nil {
 		return &errors.InternalServerError{Message: "Gagal mereset versi sebelumnya"}
 	}

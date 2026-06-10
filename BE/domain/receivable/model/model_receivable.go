@@ -1,27 +1,27 @@
-package model_receivable
+package model
 
 import "time"
 
 type Receivable struct {
-	ID              int        `db:"id"`
-	TransactionID   int        `db:"transaction_id"`
-	CustomerID      int        `db:"customer_id"`
-	TotalAmount     float64    `db:"total_amount"`
-	PaidAmount      float64    `db:"paid_amount"`
-	RemainingAmount float64    `db:"remaining_amount"`
-	Status          string     `db:"status"`
-	DueDate         *time.Time `db:"due_date"`
-	CreatedAt       time.Time  `db:"created_at"`
-	UpdatedAt       *time.Time `db:"updated_at"`
+	ID              int        `gorm:"column:id"`
+	TransactionID   int        `gorm:"column:transaction_id"`
+	CustomerID      int        `gorm:"column:customer_id"`
+	TotalAmount     float64    `gorm:"column:total_amount"`
+	PaidAmount      float64    `gorm:"column:paid_amount"`
+	RemainingAmount float64    `gorm:"column:remaining_amount"`
+	Status          string     `gorm:"column:status"`
+	DueDate         *time.Time `gorm:"column:due_date"`
+	CreatedAt       time.Time  `gorm:"column:created_at"`
+	UpdatedAt       *time.Time `gorm:"column:updated_at"`
 }
 
 type ReceivablePayment struct {
-	ID            int        `db:"id"`
-	ReceivableID  int        `db:"receivable_id"`
-	PaymentDate   time.Time  `db:"payment_date"`
-	Amount        float64    `db:"amount"`
-	PaymentMethod string     `db:"payment_method"`
-	Notes         string     `db:"notes"`
-	UserID        int        `db:"user_id"`
-	CreatedAt     time.Time  `db:"created_at"`
+	ID            int       `gorm:"column:id"`
+	ReceivableID  int       `gorm:"column:receivable_id"`
+	PaymentDate   time.Time `gorm:"column:payment_date"`
+	Amount        float64   `gorm:"column:amount"`
+	PaymentMethod string    `gorm:"column:payment_method"`
+	Notes         string    `gorm:"column:notes"`
+	UserID        int       `gorm:"column:user_id"`
+	CreatedAt     time.Time `gorm:"column:created_at"`
 }
