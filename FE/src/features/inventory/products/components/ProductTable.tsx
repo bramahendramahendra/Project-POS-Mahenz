@@ -12,9 +12,9 @@ import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import { calcMargin } from '../products.utils'
 import {
-  useBulkToggleProductStatusMutation,
-  useDeleteProductMutation,
   useProductListQuery,
+  useDeleteProductMutation,
+  useBulkToggleProductStatusMutation,
   useToggleProductStatusMutation,
 } from '../products.api'
 import { useCategoryOptionsQuery } from '@/features/inventory/categories'
@@ -33,10 +33,9 @@ export interface ProductTableHandle {
 
 export const ProductTable = forwardRef<ProductTableHandle, object>(function ProductTable(_, ref) {
   const [filter, setFilter] = useState<ProductListFilter>({ page: 1, limit: 10, search: '' })
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
-  const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
+  
+  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
@@ -44,20 +43,30 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const { isOpen: importOpen, open: openImport, close: closeImport } = useDisclosure()
   const { isOpen: labelOpen, open: openLabel, close: closeLabel } = useDisclosure()
 
-  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
-  const pageSizeOptions = usePageSizeOptions()
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+  const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
 
-  const { data: productData, isLoading } = useProductListQuery({ ...filter, page, limit: pageSize })
+
+
+  const { data: productData, isLoading } = useProductListQuery({ 
+    ...filter, 
+    page, 
+    limit: pageSize, 
+  })
+  const products = productData?.data ?? []
+  const total = productData?.total ?? 0
+
   const { data: categories = [], isLoading: isCatLoading } = useCategoryOptionsQuery()
   const { data: units = [], isLoading: isUnitLoading } = useUnitOptionsQuery()
+
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductMutation()
   const { mutate: toggleStatus } = useToggleProductStatusMutation()
   const { mutate: bulkToggleStatus, isPending: isBulkToggling } = useBulkToggleProductStatusMutation()
   const { selectedKeys, toggle, selectAll, clearSelection, hasSelection, count } =
     useTableSelection<Product & { id: number }>()
 
-  const products = productData?.data ?? []
-  const total = productData?.total ?? 0
 
   const selectedProducts = products.filter((p) => selectedKeys.has(p.id))
   const allActive = selectedProducts.length > 0 && selectedProducts.every((p) => p.is_active)

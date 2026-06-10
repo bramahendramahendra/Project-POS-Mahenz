@@ -40,9 +40,9 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
   const [pendingAction, setPendingAction] = useState<{ values: CategoryFormValues; category: Category | null } | null>(null)
 
   const { data: categoryData, isLoading } = useCategoryListQuery({
+    search: debouncedSearch,
     page,
     limit: pageSize,
-    search: debouncedSearch,
   })
   const categories = categoryData?.data ?? []
   const total = categoryData?.total ?? 0
