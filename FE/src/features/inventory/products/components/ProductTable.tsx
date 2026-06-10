@@ -48,8 +48,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
 
-
-
   const { data: productData, isLoading } = useProductListQuery({ 
     ...filter, 
     page, 
@@ -66,7 +64,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const { mutate: bulkToggleStatus, isPending: isBulkToggling } = useBulkToggleProductStatusMutation()
   const { selectedKeys, toggle, selectAll, clearSelection, hasSelection, count } =
     useTableSelection<Product & { id: number }>()
-
 
   const selectedProducts = products.filter((p) => selectedKeys.has(p.id))
   const allActive = selectedProducts.length > 0 && selectedProducts.every((p) => p.is_active)

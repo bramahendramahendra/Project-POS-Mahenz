@@ -18,6 +18,7 @@ export interface CategoryListFilter {
   page: number
   limit: number
   search: string
+  is_active?: boolean
 }
 
 export interface CreateCategoryPayload {

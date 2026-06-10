@@ -33,6 +33,11 @@ func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64,
 		args = append(args, search)
 	}
 
+	if req.IsActive != nil {
+		conditions += ` AND c.is_active = ?`
+		args = append(args, *req.IsActive)
+	}
+
 	var total int64
 	if err := r.db.Raw(countCategoriesQuery+conditions, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err

@@ -5,9 +5,10 @@ import "time"
 type (
 	// REQUEST
 	GetAllRequest struct {
-		Page   int    `json:"page"`
-		Limit  int    `json:"limit"`
-		Search string `json:"search" validate:"max=100"`
+		Page     int    `json:"page"`
+		Limit    int    `json:"limit"`
+		Search   string `json:"search" validate:"max=100"`
+		IsActive *bool  `json:"is_active"`
 	}
 
 	GetByIDRequest struct {

@@ -1,58 +1,48 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { Lock, LockOpen, Pencil, RotateCcw, Search, Trash2 } from 'lucide-react'
+import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, DataTable, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import { useDebounce, useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import {
   useCategoryListQuery,
-  useCreateCategoryMutation,
-  useUpdateCategoryMutation,
   useDeleteCategoryMutation,
   useToggleCategoryStatusMutation,
 } from '../categories.api'
-import type { Category } from '../categories.types'
+import type { Category, CategoryListFilter } from '../categories.types'
+import { CategoryFilterBar } from './CategoryFilterBar'
 import { CategoryFormModal } from './CategoryFormModal'
-import type { CategoryFormValues } from '../categories.schema'
 
 export interface CategoryTableHandle {
   openAdd: () => void
 }
 
 export const CategoryTable = forwardRef<CategoryTableHandle, object>(function CategoryTable(_, ref) {
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebounce(search, 300)
+  const [filter, setFilter] = useState<CategoryListFilter>({ page: 1, limit: 10, search: '' })
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
-  const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
-  const [pendingAction, setPendingAction] = useState<{ values: CategoryFormValues; category: Category | null } | null>(null)
 
   const { data: categoryData, isLoading } = useCategoryListQuery({
-    search: debouncedSearch,
+    ...filter,
     page,
     limit: pageSize,
   })
   const categories = categoryData?.data ?? []
   const total = categoryData?.total ?? 0
 
-  const { mutate: createCategory, isPending: isCreating } = useCreateCategoryMutation()
-  const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategoryMutation()
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategoryMutation()
   const { mutate: toggleStatus } = useToggleCategoryStatusMutation()
-
-  const isPending = isCreating || isUpdating
 
   const handleOpenAdd = () => {
     setEditingCategory(null)
@@ -71,47 +61,14 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     openDelete()
   }
 
-  const handleCloseForm = () => {
-    closeForm()
-    setEditingCategory(null)
+  const handleFilterChange = (newFilter: CategoryListFilter) => {
+    setFilter(newFilter)
+    resetPage()
   }
 
-  const onFormSubmit = (values: CategoryFormValues) => {
-    setPendingAction({ values, category: editingCategory })
-    closeForm()
-    openConfirm()
-  }
-
-  const handleConfirmCancel = () => {
-    closeConfirm()
-    if (pendingAction) {
-      setEditingCategory(pendingAction.category)
-      openForm()
-    }
-    setPendingAction(null)
-  }
-
-  const handleConfirmSave = () => {
-    if (!pendingAction) return
-    if (pendingAction.category !== null) {
-      updateCategory(
-        { id: pendingAction.category.id, ...pendingAction.values },
-        {
-          onSuccess: () => {
-            closeConfirm()
-            setEditingCategory(null)
-            setPendingAction(null)
-          },
-        }
-      )
-    } else {
-      createCategory(pendingAction.values, {
-        onSuccess: () => {
-          closeConfirm()
-          setPendingAction(null)
-        },
-      })
-    }
+  const handleReset = () => {
+    setFilter({ page: 1, limit: 10, search: '' })
+    resetPage()
   }
 
   const handleDelete = () => {
@@ -222,33 +179,16 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     },
   ]
 
+  const hasFilter = filter.search || filter.is_active !== undefined
+
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="flex items-center gap-2 rounded-lg border bg-white p-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input
-            placeholder="Cari kategori..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); resetPage() }}
-            className="pl-8 h-9 text-sm"
-          />
-        </div>
-        {search && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { setSearch(''); resetPage() }}
-            className="h-9 gap-1"
-          >
-            <RotateCcw size={13} />
-            Reset
-          </Button>
-        )}
-      </div>
+      <CategoryFilterBar
+        filter={filter}
+        onChange={handleFilterChange}
+        onReset={handleReset}
+      />
 
-      {/* Table */}
       <DataTable<Category & Record<string, unknown>>
         columns={columns}
         data={categories as (Category & Record<string, unknown>)[]}
@@ -261,38 +201,20 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
           onPageSizeChange,
           pageSizeOptions,
         }}
-        emptyMessage={debouncedSearch ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
+        emptyMessage={hasFilter ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
         emptyDescription={
-          debouncedSearch
-            ? 'Coba ubah kata kunci pencarian Anda.'
+          hasFilter
+            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
             : 'Tambah kategori pertama Anda untuk memulai.'
         }
       />
 
-      {/* Form Modal */}
       <CategoryFormModal
         open={formOpen}
-        onOpenChange={(open) => {
-          if (!open && pendingAction !== null) return
-          if (!open) handleCloseForm()
-        }}
+        onOpenChange={(val) => { if (!val) { closeForm(); setEditingCategory(null) } }}
         category={editingCategory}
-        onSubmit={onFormSubmit}
-        isLoading={isPending}
       />
 
-      {/* Confirm Save */}
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={(open) => { if (!open) handleConfirmCancel() }}
-        title={pendingAction?.category !== null ? 'Update Kategori' : 'Tambah Kategori'}
-        description={`Yakin ingin ${pendingAction?.category !== null ? 'mengupdate' : 'menambahkan'} kategori "${pendingAction?.values.name}"?`}
-        confirmLabel="Ya, Simpan"
-        isLoading={isPending}
-        onConfirm={handleConfirmSave}
-      />
-
-      {/* Confirm Delete */}
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={(open) => {
