@@ -48,7 +48,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
   function handleApproveConfirm() {
     if (!returnId) return
     updateStatus(
-      { id: returnId, payload: { status: 'approved' } },
+      { id: returnId, status: 'approved' },
       {
         onSuccess: () => {
           toast.success('Retur berhasil disetujui')
@@ -66,7 +66,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
       return
     }
     updateStatus(
-      { id: returnId, payload: { status: 'rejected', notes: rejectNotes } },
+      { id: returnId, status: 'rejected', notes: rejectNotes },
       {
         onSuccess: () => {
           toast.success('Retur ditolak')

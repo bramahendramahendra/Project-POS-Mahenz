@@ -25,8 +25,8 @@ export function CashierPerformanceTab() {
     date_to: dateTo || undefined,
   })
 
-  const items: CashierPerformance[] = (data?.data ?? []).slice().sort(
-    (a, b) => b.total_sales - a.total_sales,
+  const items: CashierPerformance[] = (data ?? []).slice().sort(
+    (a: CashierPerformance, b: CashierPerformance) => b.total_sales - a.total_sales,
   )
 
   return (

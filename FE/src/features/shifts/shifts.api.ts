@@ -9,7 +9,7 @@ import type { CloseShiftPayload, OpenShiftPayload, Shift, ShiftListFilter } from
 
 export function useShiftListQuery(filter?: ShiftListFilter) {
   return useQuery({
-    queryKey: queryKeys.shifts.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.shifts.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Shift>>('/shifts/list', filter ?? {}),
   })
 }

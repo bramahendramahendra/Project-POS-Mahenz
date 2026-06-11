@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { Eye, FileDown, Lock, LockOpen, Pencil, Printer, Trash2 } from 'lucide-react'
+import { Eye, Lock, LockOpen, Pencil, Printer, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -23,6 +23,7 @@ import type { Product, ProductListFilter } from '../products.types'
 import { ImportCsvModal } from './ImportCsvModal'
 import { LabelPrintModal } from './LabelPrintModal'
 import { ProductDetailModal } from './ProductDetailModal'
+import { ProductBulkActionBar } from './ProductBulkActionBar'
 import { ProductFilterBar } from './ProductFilter'
 import { ProductFormModal } from './ProductFormModal'
 
@@ -68,7 +69,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const selectedProducts = products.filter((p) => selectedKeys.has(p.id))
   const allActive = selectedProducts.length > 0 && selectedProducts.every((p) => p.is_active)
   const allInactive = selectedProducts.length > 0 && selectedProducts.every((p) => !p.is_active)
-  const showBulkStatus = allActive || allInactive
 
   const handleOpenAdd = () => {
     setEditingProduct(null)
@@ -349,32 +349,16 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
       />
 
       {hasSelection && (
-        <div className="flex items-center gap-3 rounded-lg border bg-blue-50 px-4 py-2 text-sm">
-          <span className="font-medium text-blue-700">{count} produk dipilih</span>
-          <div className="ml-auto flex gap-2">
-            {showBulkStatus && (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isBulkToggling}
-                onClick={handleBulkToggleStatus}
-                className={allActive ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'}
-              >
-                {isBulkToggling ? 'Memproses...' : allActive ? 'Nonaktifkan' : 'Aktifkan'}
-              </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-1">
-              <FileDown size={14} />
-              Export Excel
-            </Button>
-            <Button variant="outline" size="sm" onClick={openLabel}>
-              Cetak Label
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => clearSelection()}>
-              Batalkan Pilihan
-            </Button>
-          </div>
-        </div>
+        <ProductBulkActionBar
+          count={count}
+          allActive={allActive}
+          allInactive={allInactive}
+          isBulkToggling={isBulkToggling}
+          onToggleStatus={handleBulkToggleStatus}
+          onExport={handleExportExcel}
+          onPrintLabel={openLabel}
+          onClear={clearSelection}
+        />
       )}
 
       <DataTable<Product & Record<string, unknown>>

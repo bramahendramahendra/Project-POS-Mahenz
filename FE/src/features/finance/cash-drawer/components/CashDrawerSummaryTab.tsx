@@ -49,6 +49,8 @@ export function CashDrawerSummaryTab() {
   const [dateTo, setDateTo] = useState(todayString())
 
   const filter = {
+    page: 1,
+    limit: 1000,
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
   }

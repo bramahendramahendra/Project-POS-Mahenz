@@ -9,7 +9,7 @@ import type { CreatePaymentPayload, Receivable, ReceivableListFilter } from './r
 
 export function useReceivableListQuery(filter?: ReceivableListFilter) {
   return useQuery({
-    queryKey: queryKeys.receivables.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.receivables.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Receivable>>('/receivables/list', filter ?? {}),
   })
 }

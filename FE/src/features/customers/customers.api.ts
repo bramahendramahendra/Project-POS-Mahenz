@@ -14,7 +14,7 @@ import type {
 
 export function useCustomerListQuery(filter: CustomerListFilter) {
   return useQuery({
-    queryKey: queryKeys.customers.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.customers.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Customer>>('/customers/list', filter),
   })
 }

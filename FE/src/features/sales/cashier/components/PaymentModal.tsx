@@ -120,7 +120,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   const { data: activeShift } = useActiveShiftQuery()
 
   const { data: creditData } = useCustomerCreditQuery(selectedCustomer?.id ?? null)
-  const customerCredit = creditData?.data
+  const customerCredit = creditData
   const hasCustomer = selectedCustomer !== null
 
   const makeSchema = (grandTotal: number, isKredit: boolean) =>

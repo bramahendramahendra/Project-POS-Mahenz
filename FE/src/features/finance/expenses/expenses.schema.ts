@@ -18,12 +18,12 @@ export const EXPENSE_CATEGORIES = [
 export const expenseSchema = z.object({
   expense_date: z.string().min(1, 'Tanggal wajib diisi'),
   category: z.enum(['operasional', 'pembelian', 'gaji', 'lainnya'], {
-    required_error: 'Kategori wajib dipilih',
+    error: 'Kategori wajib dipilih',
   }),
   description: z.string().trim().min(1, 'Keterangan wajib diisi').max(255, 'Keterangan maksimal 255 karakter'),
-  amount: z.number({ invalid_type_error: 'Jumlah wajib diisi' }).positive('Jumlah harus lebih dari 0'),
+  amount: z.number({ error: 'Jumlah wajib diisi' }).positive('Jumlah harus lebih dari 0'),
   payment_method: z.enum(['cash', 'transfer', 'card', 'qris', 'kredit'], {
-    required_error: 'Metode pembayaran wajib dipilih',
+    error: 'Metode pembayaran wajib dipilih',
   }),
   notes: z.string().max(500, 'Catatan maksimal 500 karakter').optional().or(z.literal('')),
 })

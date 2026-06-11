@@ -103,7 +103,7 @@ export function PrinterSettingsTab() {
   const [form, setForm] = useState<PrinterSettings>(DEFAULT_SETTINGS)
 
   useEffect(() => {
-    if (data?.data) setForm(data.data)
+    if (data) setForm(data)
   }, [data])
 
   function handleSubmit(e: React.FormEvent) {

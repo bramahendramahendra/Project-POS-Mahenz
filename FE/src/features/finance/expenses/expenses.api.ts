@@ -9,7 +9,7 @@ import type { CreateExpensePayload, Expense, ExpenseListFilter, UpdateExpensePay
 
 export function useExpensesQuery(filter?: ExpenseListFilter) {
   return useQuery({
-    queryKey: queryKeys.expenses.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.expenses.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Expense>>('/expenses/list', filter ?? {}),
   })
 }
