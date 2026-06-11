@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button'
 
 import { ProductTable } from './components/ProductTable'
 import type { ProductTableHandle } from './components/ProductTable'
+import { ProductPrerequisiteGuard } from './components/ProductPrerequisiteGuard'
 
 export function ProductsPage() {
   const tableRef = useRef<ProductTableHandle>(null)
@@ -31,7 +32,9 @@ export function ProductsPage() {
           </RoleGuard>
         }
       />
-      <ProductTable ref={tableRef} />
+      <ProductPrerequisiteGuard>
+        <ProductTable ref={tableRef} />
+      </ProductPrerequisiteGuard>
     </div>
   )
 }
