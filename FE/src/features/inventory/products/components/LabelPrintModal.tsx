@@ -16,6 +16,7 @@ import {
 import { formatRupiah } from '@/shared/utils'
 
 import type { Product } from '../products.types'
+import { getDisplayPrice } from '../products.utils'
 
 interface LabelPrintModalProps {
   open: boolean
@@ -66,14 +67,6 @@ const SIZE_CONFIG: Record<LabelSize, SizeConfig> = {
   },
 }
 
-function getDisplayPrice(product: Product): number {
-  const defaultUnit = (product.units ?? []).find((u) => u.is_default)
-  if (!defaultUnit) return product.selling_price
-  const tiers = (product.prices ?? [])
-    .filter((p) => p.unit_id === defaultUnit.unit_id)
-    .sort((a, b) => a.min_qty - b.min_qty)
-  return tiers[0]?.price ?? product.selling_price
-}
 
 function LabelItem({ product, cfg }: { product: Product; cfg: SizeConfig }) {
   const price = getDisplayPrice(product)

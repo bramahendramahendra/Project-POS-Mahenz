@@ -30,3 +30,11 @@ export const grosirSchema = z.object({
 })
 
 export type GrosirFormValues = z.infer<typeof grosirSchema>
+
+export const priceTierSchema = z.object({
+  unit_id: z.number({ error: 'Satuan wajib dipilih' }),
+  tier_name: z.string().min(1, 'Nama tier wajib diisi'),
+  min_qty: z.number().min(1, 'Minimal qty harus > 0'),
+  price: z.number().min(0, 'Harga tidak boleh negatif'),
+})
+export type PriceTierFormValues = z.infer<typeof priceTierSchema>

@@ -94,3 +94,72 @@ export interface ProductOption {
   id: number
   name: string
 }
+
+// ─── Import Types ─────────────────────────────────────────────────────────────
+
+export interface ImportPreviewRow {
+  no: number
+  nama: string
+  barcode: string
+  kategori: string
+  harga_beli: number
+  harga_jual: number
+  margin: number
+  stok: number
+  stok_minimum: number
+  satuan: string
+  satuan_id: number
+  valid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+export interface ImportPreviewGrosirRow {
+  no_produk: number
+  nama_paket: string
+  satuan: string
+  satuan_id: number
+  konversi: number
+  harga_beli: number
+  harga_jual: number
+  valid: boolean
+  errors: string[]
+}
+
+export interface ImportPreviewResponse {
+  rows: ImportPreviewRow[]
+  grosir: ImportPreviewGrosirRow[]
+}
+
+export interface ImportBulkRow {
+  no: number
+  nama: string
+  barcode: string
+  kategori: string
+  harga_beli: number
+  harga_jual: number
+  stok: number
+  stok_minimum: number
+  satuan: string
+  satuan_id: number
+}
+
+export interface GrosirImportRow {
+  no_produk: number
+  nama_paket: string
+  satuan: string
+  satuan_id: number
+  konversi: number
+  harga_beli: number
+  harga_jual: number
+}
+
+export interface ImportBulkResult {
+  success: number
+  failed: { baris: number; data: ImportBulkRow; alasan: string }[]
+}
+
+export interface ImportBulkPayload {
+  rows: ImportBulkRow[]
+  grosir: GrosirImportRow[]
+}

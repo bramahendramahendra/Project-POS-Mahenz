@@ -3,16 +3,12 @@ import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
+import { calcMargin } from '../products.utils'
 
 interface ProductDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   productId?: number
-}
-
-function calcMargin(purchasePrice: number, sellingPrice: number): number {
-  if (purchasePrice <= 0 || sellingPrice <= 0) return 0
-  return Math.round(((sellingPrice - purchasePrice) / sellingPrice) * 100)
 }
 
 export function ProductDetailModal({ open, onOpenChange, productId }: ProductDetailModalProps) {

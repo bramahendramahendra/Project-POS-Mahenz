@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -30,16 +29,7 @@ import {
 } from '../products.api'
 import { useUnitOptionsQuery } from '@/features/inventory/units'
 import type { PriceTier, ProductPackage } from '../products.types'
-
-// ─── Price Tier Form ──────────────────────────────────────────────────────────
-
-const priceTierSchema = z.object({
-  unit_id: z.number({ error: 'Satuan wajib dipilih' }),
-  tier_name: z.string().min(1, 'Nama tier wajib diisi'),
-  min_qty: z.number().min(1, 'Minimal qty harus > 0'),
-  price: z.number().min(0, 'Harga tidak boleh negatif'),
-})
-type PriceTierFormValues = z.infer<typeof priceTierSchema>
+import { priceTierSchema, type PriceTierFormValues } from '../products.schema'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

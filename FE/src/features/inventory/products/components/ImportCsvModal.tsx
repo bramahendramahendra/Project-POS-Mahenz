@@ -3,11 +3,10 @@ import { Download, Upload } from 'lucide-react'
 
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { apiClient } from '@/services/api.client'
-
 import {
   useImportPreviewMutation,
   useImportProductsBulkMutation,
+  downloadImportTemplate,
   type ImportPreviewRow,
   type ImportPreviewGrosirRow,
 } from '../products.api'
@@ -20,15 +19,6 @@ interface ImportCsvModalProps {
 type FilterView = 'all' | 'valid' | 'error'
 type ActiveTab = 'produk' | 'grosir'
 
-async function downloadTemplate() {
-  const response = await apiClient.post('/products/import-template', {}, { responseType: 'blob' })
-  const url = URL.createObjectURL(response.data as Blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'template_import_produk.xlsx'
-  a.click()
-  URL.revokeObjectURL(url)
-}
 
 export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -131,7 +121,7 @@ export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
             variant="outline"
             size="sm"
             className="gap-1 h-7 text-xs"
-            onClick={downloadTemplate}
+            onClick={downloadImportTemplate}
           >
             <Download size={12} /> Excel (.xlsx)
           </Button>
