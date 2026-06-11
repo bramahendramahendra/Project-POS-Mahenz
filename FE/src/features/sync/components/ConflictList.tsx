@@ -8,22 +8,13 @@ import {
   useSyncConflictsQuery,
 } from '../sync.api'
 import type { SyncConflict } from '../sync.types'
+import { formatDateTime } from '../sync.utils'
 
 const CONFLICT_TYPE_LABEL: Record<string, string> = {
   product: 'PRODUK',
   transaction: 'TRANSAKSI',
   customer: 'PELANGGAN',
   stock: 'STOK',
-}
-
-function formatDateTime(str: string): string {
-  return new Date(str).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function DataDiff({

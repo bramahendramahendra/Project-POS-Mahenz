@@ -29,7 +29,7 @@ func (h *SyncHandler) PushSync(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.PushSync(&req)
+	data, err := h.service.PushSync(&req)
 	if err != nil {
 		c.Error(err)
 		return
@@ -39,7 +39,7 @@ func (h *SyncHandler) PushSync(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Push sync berhasil diproses",
-		Data:    result,
+		Data:    data,
 	})
 }
 

@@ -12,14 +12,14 @@ import (
 
 func SettingRoutes(r *gin.RouterGroup) {
 	settingRepo := setting_repo.NewSettingRepo(pkgdatabase.DB)
-	settingSvc := setting_service.NewSettingService(settingRepo)
-	settingHand := setting_handler.NewSettingHandler(settingSvc)
+	settingService := setting_service.NewSettingService(settingRepo)
+	settingHandler := setting_handler.NewSettingHandler(settingService)
 
 	g := r.Group("/settings")
 	{
-		g.GET("", settingHand.GetAll)
-		g.GET("/:key", settingHand.GetByKey)
-		g.POST("", middleware.RoleMiddleware("owner", "admin"), settingHand.Save)
-		g.POST("/reset", middleware.RoleMiddleware("admin"), settingHand.Reset)
+		g.GET("", settingHandler.GetAll)
+		g.GET("/:key", settingHandler.GetByKey)
+		g.POST("", middleware.RoleMiddleware("owner", "admin"), settingHandler.Save)
+		g.POST("/reset", middleware.RoleMiddleware("admin"), settingHandler.Reset)
 	}
 }

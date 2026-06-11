@@ -11,7 +11,7 @@ type (
 		GetByID(id int) (*dto.ReceivableDetailResponse, error)
 		GetSummary() ([]*dto.ReceivableSummaryItem, error)
 		GetPayments(id int) ([]*dto.PaymentResponse, error)
-		Pay(id int, req *dto.PayRequest, userID int) (*dto.PayResponse, error)
+		Pay(req *dto.PayRequest) (*dto.PayResponse, error)
 	}
 
 	receivableService struct {

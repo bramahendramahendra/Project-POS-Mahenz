@@ -70,9 +70,9 @@ func (h *SupplierHandler) GetDetail(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetDetail(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetDetail(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -96,9 +96,9 @@ func (h *SupplierHandler) Create(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -129,9 +129,9 @@ func (h *SupplierHandler) Update(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.Update(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Update(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -155,8 +155,8 @@ func (h *SupplierHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if svcErr := h.service.Delete(&req); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Delete(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -179,8 +179,8 @@ func (h *SupplierHandler) ToggleStatus(c *gin.Context) {
 		return
 	}
 
-	if svcErr := h.service.ToggleStatus(&req); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.ToggleStatus(&req); err != nil {
+		c.Error(err)
 		return
 	}
 

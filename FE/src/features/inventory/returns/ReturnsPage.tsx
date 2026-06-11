@@ -4,14 +4,6 @@ import { Plus, Truck } from 'lucide-react'
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useSupplierListQuery } from '@/features/inventory/suppliers'
 import { useProductListQuery } from '@/features/inventory/products'
@@ -19,6 +11,7 @@ import { useProductListQuery } from '@/features/inventory/products'
 import { useSupplierReturnsQuery, useDeleteSupplierReturnMutation } from './returns.api'
 import type { SupplierReturn, SupplierReturnFilter } from './returns.types'
 import { ReturnTable } from './components/ReturnTable'
+import { ReturnFilterBar } from './components/ReturnFilterBar'
 import { ReturnFormModal } from './components/ReturnFormModal'
 import { ReturnDetailModal } from './components/ReturnDetailModal'
 
@@ -32,11 +25,12 @@ function todayString() {
 }
 
 export function ReturnsPage() {
-  const today = todayString()
-  const [dateFrom, setDateFrom] = useState(monthStartString())
-  const [dateTo, setDateTo] = useState(today)
-  const [supplierId, setSupplierId] = useState<number | undefined>()
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [filter, setFilter] = useState<SupplierReturnFilter>({
+    date_from: monthStartString(),
+    date_to: todayString(),
+    page: 1,
+    limit: 10,
+  })
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -53,16 +47,7 @@ export function ReturnsPage() {
   const hasSuppliers = suppliers.length > 0
   const hasProducts = (productsData?.total ?? 0) > 0
 
-  const filter: SupplierReturnFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-    supplier_id: supplierId,
-    status: statusFilter !== 'all' ? statusFilter : undefined,
-    page,
-    limit: pageSize,
-  }
-
-  const { data, isLoading } = useSupplierReturnsQuery(filter)
+  const { data, isLoading } = useSupplierReturnsQuery({ ...filter, page, limit: pageSize })
   const { mutate: deleteReturn, isPending: isDeleting } = useDeleteSupplierReturnMutation()
 
   const returns = data?.data ?? []
@@ -157,59 +142,7 @@ export function ReturnsPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Supplier</label>
-          <Select
-            value={supplierId ? String(supplierId) : 'all'}
-            onValueChange={(v) => setSupplierId(v === 'all' ? undefined : Number(v))}
-          >
-            <SelectTrigger className="w-44 h-9">
-              <SelectValue placeholder="Semua Supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Supplier</SelectItem>
-              {suppliers.map((s) => (
-                <SelectItem key={s.id} value={String(s.id)}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Status</label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-9">
-              <SelectValue placeholder="Semua Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Disetujui</SelectItem>
-              <SelectItem value="rejected">Ditolak</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ReturnFilterBar filter={filter} suppliers={suppliers} onChange={setFilter} />
 
       <ReturnTable
         data={returns}

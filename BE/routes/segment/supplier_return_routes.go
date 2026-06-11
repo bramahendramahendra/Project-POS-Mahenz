@@ -12,15 +12,15 @@ import (
 
 func SupplierReturnRoutes(r *gin.RouterGroup) {
 	supplierReturnRepo := supplier_return_repo.NewSupplierReturnRepo(pkgdatabase.DB)
-	supplierReturnSvc := supplier_return_service.NewSupplierReturnService(supplierReturnRepo)
-	supplierReturnHand := supplier_return_handler.NewSupplierReturnHandler(supplierReturnSvc)
+	supplierReturnService := supplier_return_service.NewSupplierReturnService(supplierReturnRepo)
+	supplierReturnHandler := supplier_return_handler.NewSupplierReturnHandler(supplierReturnService)
 
 	g := r.Group("/supplier-returns")
 	{
-		g.POST("/list", supplierReturnHand.GetAll)
-		g.POST("/detail/:id", supplierReturnHand.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Create)
-		g.POST("/update-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.UpdateStatus)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHand.Delete)
+		g.POST("/list", supplierReturnHandler.GetAll)
+		g.POST("/detail/:id", supplierReturnHandler.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.Create)
+		g.POST("/update-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.UpdateStatus)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.Delete)
 	}
 }

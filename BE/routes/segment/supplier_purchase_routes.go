@@ -12,19 +12,19 @@ import (
 
 func PurchaseRoutes(r *gin.RouterGroup) {
 	purchaseRepo := purchase_repo.NewPurchaseRepo(pkgdatabase.DB)
-	purchaseSvc := purchase_service.NewPurchaseService(purchaseRepo)
-	purchaseHand := purchase_handler.NewPurchaseHandler(purchaseSvc)
+	purchaseService := purchase_service.NewPurchaseService(purchaseRepo)
+	purchaseHandler := purchase_handler.NewPurchaseHandler(purchaseService)
 
 	g := r.Group("/supplier-purchases")
 	{
-		g.POST("/generate-code", purchaseHand.GenerateCode)
-		g.POST("/list", purchaseHand.GetAll)
-		g.POST("/detail/:id", purchaseHand.GetByID)
-		g.POST("/detail/:id/items", purchaseHand.GetItems)
-		g.POST("/detail/:id/payments", purchaseHand.GetPayments)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Delete)
-		g.POST("/pay/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHand.Pay)
+		g.POST("/generate-code", purchaseHandler.GenerateCode)
+		g.POST("/list", purchaseHandler.GetAll)
+		g.POST("/detail/:id", purchaseHandler.GetByID)
+		g.POST("/detail/:id/items", purchaseHandler.GetItems)
+		g.POST("/detail/:id/payments", purchaseHandler.GetPayments)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Delete)
+		g.POST("/pay/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Pay)
 	}
 }

@@ -4,14 +4,6 @@ import { Plus, Truck } from 'lucide-react'
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useSupplierListQuery } from '@/features/inventory/suppliers'
 import { useProductListQuery } from '@/features/inventory/products'
@@ -20,8 +12,9 @@ import {
   useSupplierPurchasesQuery,
   useDeleteSupplierPurchaseMutation,
 } from './purchases.api'
-import type { PaymentStatus, SupplierPurchase, SupplierPurchaseFilter } from './purchases.types'
+import type { SupplierPurchase, SupplierPurchaseFilter } from './purchases.types'
 import { PurchaseTable } from './components/PurchaseTable'
+import { PurchaseFilterBar } from './components/PurchaseFilterBar'
 import { PurchaseFormModal } from './components/PurchaseFormModal'
 import { PurchaseDetailModal } from './components/PurchaseDetailModal'
 import { PaymentModal } from './components/PaymentModal'
@@ -36,11 +29,10 @@ function todayString() {
 }
 
 export function PurchasesPage() {
-  const today = todayString()
-  const [dateFrom, setDateFrom] = useState(monthStartString())
-  const [dateTo, setDateTo] = useState(today)
-  const [supplierId, setSupplierId] = useState<number | undefined>()
-  const [status, setStatus] = useState<PaymentStatus | 'all'>('all')
+  const [filter, setFilter] = useState<SupplierPurchaseFilter>({
+    start_date: monthStartString(),
+    end_date: todayString(),
+  })
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -59,16 +51,7 @@ export function PurchasesPage() {
   const hasSuppliers = suppliers.length > 0
   const hasProducts = (productsData?.total ?? 0) > 0
 
-  const filter: SupplierPurchaseFilter = {
-    start_date: dateFrom || undefined,
-    end_date: dateTo || undefined,
-    supplier_id: supplierId,
-    payment_status: status === 'all' ? undefined : status,
-    page,
-    limit: pageSize,
-  }
-
-  const { data, isLoading } = useSupplierPurchasesQuery(filter)
+  const { data, isLoading } = useSupplierPurchasesQuery({ ...filter, page, limit: pageSize })
   const { mutate: deletePurchase, isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
 
   const purchases = data?.data ?? []
@@ -168,62 +151,7 @@ export function PurchasesPage() {
         }
       />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Supplier</label>
-          <Select
-            value={supplierId ? String(supplierId) : 'all'}
-            onValueChange={(v) => setSupplierId(v === 'all' ? undefined : Number(v))}
-          >
-            <SelectTrigger className="w-44 h-9">
-              <SelectValue placeholder="Semua Supplier" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Supplier</SelectItem>
-              {suppliers.map((s) => (
-                <SelectItem key={s.id} value={String(s.id)}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Status</label>
-          <Select
-            value={status}
-            onValueChange={(v) => setStatus(v as PaymentStatus | 'all')}
-          >
-            <SelectTrigger className="w-36 h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              <SelectItem value="paid">Lunas</SelectItem>
-              <SelectItem value="unpaid">Hutang</SelectItem>
-              <SelectItem value="partial">Bayar Sebagian</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <PurchaseFilterBar filter={filter} suppliers={suppliers} onChange={setFilter} />
 
       <PurchaseTable
         data={purchases}

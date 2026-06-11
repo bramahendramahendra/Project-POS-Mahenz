@@ -12,16 +12,16 @@ import (
 
 func UserRoutes(r *gin.RouterGroup) {
 	userRepo := user_repo.NewUserRepo(pkgdatabase.DB)
-	userSvc := user_service.NewUserService(userRepo)
-	userHand := user_handler.NewUserHandler(userSvc)
+	userService := user_service.NewUserService(userRepo)
+	userHandler := user_handler.NewUserHandler(userService)
 
 	g := r.Group("/users", middleware.RoleMiddleware("owner", "admin"))
 	{
-		g.POST("/list",              userHand.GetAll)
-		g.POST("/detail/:id",        userHand.GetByID)
-		g.POST("/create",            userHand.Create)
-		g.POST("/update/:id",        userHand.Update)
-		g.POST("/delete/:id",        userHand.Delete)
-		g.POST("/toggle-status/:id", userHand.ToggleStatus)
+		g.POST("/list", userHandler.GetAll)
+		g.POST("/detail/:id", userHandler.GetByID)
+		g.POST("/create", userHandler.Create)
+		g.POST("/update/:id", userHandler.Update)
+		g.POST("/delete/:id", userHandler.Delete)
+		g.POST("/toggle-status/:id", userHandler.ToggleStatus)
 	}
 }

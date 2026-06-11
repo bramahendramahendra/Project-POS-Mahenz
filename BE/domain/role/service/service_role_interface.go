@@ -10,7 +10,7 @@ type (
 		GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, error)
 		GetByID(id int) (*dto.RoleResponse, error)
 		Create(req *dto.CreateRequest) (*dto.RoleResponse, error)
-		Update(id int, req *dto.UpdateRequest) error
+		Update(req *dto.UpdateRequest) error
 		Delete(id int) error
 		ToggleStatus(id int) error
 	}

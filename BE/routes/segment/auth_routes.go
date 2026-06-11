@@ -11,12 +11,12 @@ import (
 
 func AuthRoutes(r *gin.RouterGroup) {
 	authRepo := auth_repo.NewAuthRepo(pkgdatabase.DB)
-	authSvc := auth_service.NewAuthService(authRepo)
-	authHand := auth_handler.NewAuthHandler(authSvc)
+	authService := auth_service.NewAuthService(authRepo)
+	authHandler := auth_handler.NewAuthHandler(authService)
 
 	g := r.Group("/auth")
 	{
-		g.POST("/me", authHand.GetMe)
-		g.POST("/logout", authHand.Logout)
+		g.POST("/me", authHandler.GetMe)
+		g.POST("/logout", authHandler.Logout)
 	}
 }

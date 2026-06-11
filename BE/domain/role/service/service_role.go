@@ -50,15 +50,15 @@ func (s *roleService) Create(req *dto.CreateRequest) (*dto.RoleResponse, error) 
 	return toRoleResponse(created), nil
 }
 
-func (s *roleService) Update(id int, req *dto.UpdateRequest) error {
-	r, err := s.repo.GetByID(id)
+func (s *roleService) Update(req *dto.UpdateRequest) error {
+	r, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
 	}
 	if r == nil {
 		return &errors.NotFoundError{Message: "Role tidak ditemukan"}
 	}
-	return s.repo.Update(id, req)
+	return s.repo.Update(req.ID, req)
 }
 
 func (s *roleService) Delete(id int) error {

@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
-import { z } from 'zod'
 
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -15,13 +14,7 @@ import {
 } from '@/shared/components/ui/form'
 import { Input } from '@/shared/components/ui/input'
 import { useLoginMutation } from '../auth.api'
-
-const loginSchema = z.object({
-  username: z.string().min(1, 'Username wajib diisi'),
-  password: z.string().min(1, 'Password wajib diisi'),
-})
-
-type LoginFormValues = z.infer<typeof loginSchema>
+import { loginSchema, type LoginFormValues } from '../auth.schema'
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)

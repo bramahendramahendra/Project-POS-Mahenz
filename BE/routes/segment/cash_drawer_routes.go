@@ -11,17 +11,17 @@ import (
 
 func CashDrawerRoutes(r *gin.RouterGroup) {
 	cashDrawerRepo := cash_drawer_repo.NewCashDrawerRepo(pkgdatabase.DB)
-	cashDrawerSvc := cash_drawer_service.NewCashDrawerService(cashDrawerRepo)
-	cashDrawerHand := cash_drawer_handler.NewCashDrawerHandler(cashDrawerSvc)
+	cashDrawerService := cash_drawer_service.NewCashDrawerService(cashDrawerRepo)
+	cashDrawerHandler := cash_drawer_handler.NewCashDrawerHandler(cashDrawerService)
 
 	g := r.Group("/cash-drawer")
 	{
-		g.POST("/current", cashDrawerHand.GetCurrent)
-		g.POST("/list", cashDrawerHand.GetHistory)
-		g.POST("/detail/:id", cashDrawerHand.GetByID)
-		g.POST("/open", cashDrawerHand.Open)
-		g.POST("/close/:id", cashDrawerHand.Close)
-		g.POST("/update-sales/:id", cashDrawerHand.UpdateSales)
-		g.POST("/update-expenses/:id", cashDrawerHand.UpdateExpenses)
+		g.POST("/current", cashDrawerHandler.GetCurrent)
+		g.POST("/list", cashDrawerHandler.GetHistory)
+		g.POST("/detail/:id", cashDrawerHandler.GetByID)
+		g.POST("/open", cashDrawerHandler.Open)
+		g.POST("/close/:id", cashDrawerHandler.Close)
+		g.POST("/update-sales/:id", cashDrawerHandler.UpdateSales)
+		g.POST("/update-expenses/:id", cashDrawerHandler.UpdateExpenses)
 	}
 }

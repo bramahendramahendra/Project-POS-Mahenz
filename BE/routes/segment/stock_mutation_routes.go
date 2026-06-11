@@ -12,12 +12,12 @@ import (
 
 func StockMutationRoutes(r *gin.RouterGroup) {
 	stockMutationRepo := stock_mutation_repo.NewStockMutationRepo(pkgdatabase.DB)
-	stockMutationSvc := stock_mutation_service.NewStockMutationService(stockMutationRepo)
-	stockMutationHand := stock_mutation_handler.NewStockMutationHandler(stockMutationSvc)
+	stockMutationService := stock_mutation_service.NewStockMutationService(stockMutationRepo)
+	stockMutationHandler := stock_mutation_handler.NewStockMutationHandler(stockMutationService)
 
 	g := r.Group("/stock-mutations", middleware.RoleMiddleware("owner", "admin"))
 	{
-		g.POST("/list", stockMutationHand.GetAll)
-		g.POST("/product/:product_id", stockMutationHand.GetByProduct)
+		g.POST("/list", stockMutationHandler.GetAll)
+		g.POST("/product/:product_id", stockMutationHandler.GetByProduct)
 	}
 }

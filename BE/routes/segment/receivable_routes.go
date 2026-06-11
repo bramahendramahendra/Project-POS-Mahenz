@@ -12,15 +12,15 @@ import (
 
 func ReceivableRoutes(r *gin.RouterGroup) {
 	receivableRepo := receivable_repo.NewReceivableRepo(pkgdatabase.DB)
-	receivableSvc := receivable_service.NewReceivableService(receivableRepo)
-	receivableHand := receivable_handler.NewReceivableHandler(receivableSvc)
+	receivableService := receivable_service.NewReceivableService(receivableRepo)
+	receivableHandler := receivable_handler.NewReceivableHandler(receivableService)
 
 	g := r.Group("/receivables")
 	{
-		g.POST("/list", receivableHand.GetAll)
-		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), receivableHand.GetSummary)
-		g.POST("/detail/:id", receivableHand.GetByID)
-		g.POST("/payments/:id", receivableHand.GetPayments)
-		g.POST("/pay/:id", receivableHand.Pay)
+		g.POST("/list", receivableHandler.GetAll)
+		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), receivableHandler.GetSummary)
+		g.POST("/detail/:id", receivableHandler.GetByID)
+		g.POST("/payments/:id", receivableHandler.GetPayments)
+		g.POST("/pay/:id", receivableHandler.Pay)
 	}
 }

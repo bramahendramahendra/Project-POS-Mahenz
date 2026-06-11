@@ -14,15 +14,15 @@ import (
 func ExpenseRoutes(r *gin.RouterGroup) {
 	cashDrawerRepo := cash_drawer_repo.NewCashDrawerRepo(pkgdatabase.DB)
 	expenseRepo := expense_repo.NewExpenseRepo(pkgdatabase.DB)
-	expenseSvc := expense_service.NewExpenseService(expenseRepo, cashDrawerRepo)
-	expenseHand := expense_handler.NewExpenseHandler(expenseSvc)
+	expenseService := expense_service.NewExpenseService(expenseRepo, cashDrawerRepo)
+	expenseHandler := expense_handler.NewExpenseHandler(expenseService)
 
 	g := r.Group("/expenses")
 	{
-		g.POST("/list", expenseHand.GetAll)
-		g.POST("/detail/:id", expenseHand.GetByID)
-		g.POST("/create", expenseHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), expenseHand.Delete)
+		g.POST("/list", expenseHandler.GetAll)
+		g.POST("/detail/:id", expenseHandler.GetByID)
+		g.POST("/create", expenseHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), expenseHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), expenseHandler.Delete)
 	}
 }

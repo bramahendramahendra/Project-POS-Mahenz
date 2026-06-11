@@ -12,14 +12,14 @@ import (
 
 func TransactionRoutes(r *gin.RouterGroup) {
 	transactionRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
-	transactionSvc := transaction_service.NewTransactionService(transactionRepo)
-	transactionHand := transaction_handler.NewTransactionHandler(transactionSvc)
+	transactionService := transaction_service.NewTransactionService(transactionRepo)
+	transactionHandler := transaction_handler.NewTransactionHandler(transactionService)
 
 	g := r.Group("/transactions")
 	{
-		g.GET("", transactionHand.GetAll)
-		g.GET("/:id", transactionHand.GetByID)
-		g.POST("", transactionHand.Create)
-		g.PATCH("/:id/void", middleware.RoleMiddleware("owner", "admin"), transactionHand.Void)
+		g.GET("", transactionHandler.GetAll)
+		g.GET("/:id", transactionHandler.GetByID)
+		g.POST("", transactionHandler.Create)
+		g.PATCH("/:id/void", middleware.RoleMiddleware("owner", "admin"), transactionHandler.Void)
 	}
 }

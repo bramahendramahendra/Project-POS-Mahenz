@@ -1,32 +1,17 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Clock, Plus } from 'lucide-react'
 
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useActiveShiftQuery, useShiftListQuery } from './shifts.api'
 import type { Shift, ShiftListFilter, ShiftStatus } from './shifts.types'
+import { formatDateTime } from './shifts.utils'
 import { CloseShiftModal } from './components/CloseShiftModal'
 import { OpenShiftModal } from './components/OpenShiftModal'
+import { ShiftFilterBar } from './components/ShiftFilterBar'
 import { ShiftTable } from './components/ShiftTable'
-
-function formatDateTime(str: string): string {
-  return new Date(str).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 export function ShiftsPage() {
   const [status, setStatus] = useState<ShiftStatus | 'all'>('all')
@@ -46,6 +31,11 @@ export function ShiftsPage() {
   const { data, isLoading } = useShiftListQuery(filter)
   const shifts = data?.data ?? []
   const total = data?.total ?? 0
+
+  const handleStatusChange = (val: ShiftStatus | 'all') => {
+    setStatus(val)
+    reset()
+  }
 
   return (
     <div className="space-y-4">
@@ -83,21 +73,7 @@ export function ShiftsPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <Select
-          value={status}
-          onValueChange={(v) => { setStatus(v as ShiftStatus | 'all'); reset() }}
-        >
-          <SelectTrigger className="w-40 h-9">
-            <SelectValue placeholder="Semua Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua</SelectItem>
-            <SelectItem value="open">Berjalan</SelectItem>
-            <SelectItem value="closed">Selesai</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <ShiftFilterBar status={status} onChange={handleStatusChange} />
 
       <ShiftTable
         data={shifts}

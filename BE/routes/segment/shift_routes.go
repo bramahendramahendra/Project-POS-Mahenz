@@ -12,18 +12,18 @@ import (
 
 func ShiftRoutes(r *gin.RouterGroup) {
 	shiftRepo := shift_repo.NewShiftRepo(pkgdatabase.DB)
-	shiftSvc := shift_service.NewShiftService(shiftRepo)
-	shiftHand := shift_handler.NewShiftHandler(shiftSvc)
+	shiftService := shift_service.NewShiftService(shiftRepo)
+	shiftHandler := shift_handler.NewShiftHandler(shiftService)
 
 	g := r.Group("/shifts")
 	{
-		g.POST("/list", shiftHand.GetAll)
-		g.POST("/active", shiftHand.GetActive)
-		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHand.GetSummary)
-		g.POST("/detail/:id", shiftHand.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), shiftHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), shiftHand.ToggleStatus)
+		g.POST("/list", shiftHandler.GetAll)
+		g.POST("/active", shiftHandler.GetActive)
+		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHandler.GetSummary)
+		g.POST("/detail/:id", shiftHandler.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.ToggleStatus)
 	}
 }

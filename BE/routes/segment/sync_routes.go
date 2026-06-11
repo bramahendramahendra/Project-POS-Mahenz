@@ -14,18 +14,18 @@ import (
 
 func SyncRoutes(r *gin.RouterGroup) {
 	syncRepo := sync_repo.NewSyncRepo(pkgdatabase.DB)
-	txRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
-	expRepo := expense_repo.NewExpenseRepo(pkgdatabase.DB)
-	syncSvc := sync_service.NewSyncService(syncRepo, txRepo, expRepo)
-	syncHand := sync_handler.NewSyncHandler(syncSvc)
+	transactionRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
+	expenseRepo := expense_repo.NewExpenseRepo(pkgdatabase.DB)
+	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo)
+	syncHandler := sync_handler.NewSyncHandler(syncService)
 
 	g := r.Group("/sync")
 	{
-		g.GET("/conflicts", middleware.RoleMiddleware("owner", "admin"), syncHand.GetConflicts)
-		g.GET("/conflicts/count", middleware.RoleMiddleware("owner", "admin"), syncHand.GetConflictCount)
-		g.POST("/conflicts/:id/resolve", middleware.RoleMiddleware("owner", "admin"), syncHand.ResolveConflict)
-		g.GET("/queue", middleware.RoleMiddleware("owner", "admin"), syncHand.GetQueue)
-		g.GET("/history", middleware.RoleMiddleware("owner", "admin"), syncHand.GetHistory)
-		g.POST("/push", syncHand.PushSync)
+		g.GET("/conflicts", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetConflicts)
+		g.GET("/conflicts/count", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetConflictCount)
+		g.POST("/conflicts/:id/resolve", middleware.RoleMiddleware("owner", "admin"), syncHandler.ResolveConflict)
+		g.GET("/queue", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetQueue)
+		g.GET("/history", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetHistory)
+		g.POST("/push", syncHandler.PushSync)
 	}
 }

@@ -1,19 +1,13 @@
 import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
-import { Button } from '@/shared/components/ui/button'
 
 import { useDashboardStatsQuery, useSalesTrendQuery, useTopProductsQuery } from './dashboard.api'
 import type { DashboardPeriod } from './dashboard.types'
+import { DashboardPeriodSelector } from './components/DashboardPeriodSelector'
 import { SalesChart } from './components/SalesChart'
 import { SummaryCards } from './components/SummaryCards'
 import { TopProductsTable } from './components/TopProductsTable'
-
-const PERIODS: { label: string; value: DashboardPeriod }[] = [
-  { label: 'Hari Ini', value: 'today' },
-  { label: 'Minggu Ini', value: 'week' },
-  { label: 'Bulan Ini', value: 'month' },
-]
 
 export function DashboardPage() {
   const [period, setPeriod] = useState<DashboardPeriod>('today')
@@ -29,19 +23,7 @@ export function DashboardPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <PageHeader title="Dashboard" />
-        <div className="flex gap-1 rounded-lg border p-1 bg-gray-50">
-          {PERIODS.map((p) => (
-            <Button
-              key={p.value}
-              size="sm"
-              variant={period === p.value ? 'default' : 'ghost'}
-              className="h-7 text-xs"
-              onClick={() => setPeriod(p.value)}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
+        <DashboardPeriodSelector period={period} onChange={setPeriod} />
       </div>
 
       <SummaryCards stats={statsData} isLoading={statsLoading} />

@@ -28,9 +28,9 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetAll(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -54,9 +54,9 @@ func (h *RoleHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -80,9 +80,9 @@ func (h *RoleHandler) Create(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -101,24 +101,21 @@ func (h *RoleHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.UpdateRequest](c)
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if err := validator.Validate.Struct(bodyReq); err != nil {
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	if svcErr := h.service.Update(uriReq.ID, &bodyReq); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.Update(&req); err != nil {
+		c.Error(err)
 		return
 	}
 

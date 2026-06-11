@@ -14,12 +14,12 @@ import (
 func AccessRoutes(r *gin.RouterGroup) {
 	accessRepo := access_repo.NewAccessRepo(pkgdatabase.DB)
 	roleRepo := role_repo.NewRoleRepo(pkgdatabase.DB)
-	accessSvc := access_service.NewAccessService(accessRepo, roleRepo)
-	accessHand := access_handler.NewAccessHandler(accessSvc)
+	accessService := access_service.NewAccessService(accessRepo, roleRepo)
+	accessHandler := access_handler.NewAccessHandler(accessService)
 
 	g := r.Group("/roles/:id/menus")
 	{
-		g.POST("/list",  middleware.RoleMiddleware("owner", "admin"), accessHand.GetByRoleID)
-		g.POST("/set",   middleware.RoleMiddleware("owner"),          accessHand.SetRoleAccess)
+		g.POST("/list", middleware.RoleMiddleware("owner", "admin"), accessHandler.GetByRoleID)
+		g.POST("/set", middleware.RoleMiddleware("owner"), accessHandler.SetRoleAccess)
 	}
 }

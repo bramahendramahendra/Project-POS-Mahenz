@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import { FormModal } from '@/shared/components'
+import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -41,22 +41,17 @@ interface ExpenseFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   expense?: Expense | null
-  onSubmit?: (values: ExpenseFormValues) => void
-  isLoading?: boolean
 }
 
-export function ExpenseFormModal({
-  open,
-  onOpenChange,
-  expense,
-  onSubmit,
-  isLoading,
-}: ExpenseFormModalProps) {
+export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormModalProps) {
   const isEdit = expense != null
+
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [pendingValues, setPendingValues] = useState<ExpenseFormValues | null>(null)
 
   const { mutate: create, isPending: isCreating } = useCreateExpenseMutation()
   const { mutate: update, isPending: isUpdating } = useUpdateExpenseMutation()
-  const isPending = isLoading || isCreating || isUpdating
+  const isPending = isCreating || isUpdating
 
   const {
     register,
@@ -83,152 +78,191 @@ export function ExpenseFormModal({
       } else {
         reset({ ...defaultValues, expense_date: todayString() })
       }
+    } else {
+      setPendingValues(null)
+      setIsConfirming(false)
     }
   }, [open, expense, reset])
 
-  const handleFormSubmit = (values: ExpenseFormValues) => {
-    if (onSubmit) {
-      onSubmit(values)
-      return
-    }
-    const payload = { ...values, notes: values.notes || undefined }
-    if (isEdit) {
-      update({ id: expense.id, ...payload }, { onSuccess: () => onOpenChange(false) })
+  const onSubmit = (values: ExpenseFormValues) => {
+    setPendingValues(values)
+    setIsConfirming(true)
+  }
+
+  const handleConfirmedSave = () => {
+    if (!pendingValues) return
+    const payload = { ...pendingValues, notes: pendingValues.notes || undefined }
+
+    if (isEdit && expense) {
+      update(
+        { id: expense.id, ...payload },
+        {
+          onSuccess: () => {
+            setIsConfirming(false)
+            onOpenChange(false)
+          },
+        }
+      )
     } else {
-      create(payload, { onSuccess: () => onOpenChange(false) })
+      create(payload, {
+        onSuccess: () => {
+          setIsConfirming(false)
+          onOpenChange(false)
+        },
+      })
     }
   }
 
   return (
-    <FormModal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={isEdit ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}
-      size="md"
-      isLoading={isPending}
-      onSubmit={handleSubmit(handleFormSubmit)}
-    >
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+    <>
+      <FormModal
+        open={open && !isConfirming}
+        onOpenChange={(val) => {
+          if (isConfirming) return
+          onOpenChange(val)
+        }}
+        title={isEdit ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}
+        size="md"
+        isLoading={isPending}
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-date">
+                Tanggal <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="exp-date"
+                type="date"
+                {...register('expense_date')}
+                className={errors.expense_date ? 'border-red-500' : ''}
+              />
+              {errors.expense_date && (
+                <p className="text-xs text-red-500">{errors.expense_date.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-category">
+                Kategori <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="category"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Pilih kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.category && (
+                <p className="text-xs text-red-500">{errors.category.message}</p>
+              )}
+            </div>
+          </div>
+
           <div className="space-y-1.5">
-            <Label htmlFor="exp-date">
-              Tanggal <span className="text-red-500">*</span>
+            <Label htmlFor="exp-description">
+              Keterangan <span className="text-red-500">*</span>
             </Label>
             <Input
-              id="exp-date"
-              type="date"
-              {...register('expense_date')}
-              className={errors.expense_date ? 'border-red-500' : ''}
+              id="exp-description"
+              {...register('description')}
+              placeholder="Masukkan keterangan pengeluaran"
+              className={errors.description ? 'border-red-500' : ''}
             />
-            {errors.expense_date && (
-              <p className="text-xs text-red-500">{errors.expense_date.message}</p>
+            {errors.description && (
+              <p className="text-xs text-red-500">{errors.description.message}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-amount">
+                Jumlah <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <RupiahInput
+                    id="exp-amount"
+                    value={field.value}
+                    onChange={field.onChange}
+                    className={errors.amount ? 'border-red-500' : ''}
+                  />
+                )}
+              />
+              {errors.amount && (
+                <p className="text-xs text-red-500">{errors.amount.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="exp-payment">
+                Metode Bayar <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="payment_method"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className={errors.payment_method ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Pilih metode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPENSE_PAYMENT_METHODS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.payment_method && (
+                <p className="text-xs text-red-500">{errors.payment_method.message}</p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="exp-category">
-              Kategori <span className="text-red-500">*</span>
-            </Label>
-            <Controller
-              name="category"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Pilih kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            <Label htmlFor="exp-notes">Catatan</Label>
+            <Textarea
+              id="exp-notes"
+              {...register('notes')}
+              placeholder="Catatan tambahan (opsional)"
+              className="resize-none"
+              rows={2}
             />
-            {errors.category && (
-              <p className="text-xs text-red-500">{errors.category.message}</p>
-            )}
           </div>
         </div>
+      </FormModal>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="exp-description">
-            Keterangan <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="exp-description"
-            {...register('description')}
-            placeholder="Masukkan keterangan pengeluaran"
-            className={errors.description ? 'border-red-500' : ''}
-          />
-          {errors.description && (
-            <p className="text-xs text-red-500">{errors.description.message}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="exp-amount">
-              Jumlah <span className="text-red-500">*</span>
-            </Label>
-            <Controller
-              name="amount"
-              control={control}
-              render={({ field }) => (
-                <RupiahInput
-                  id="exp-amount"
-                  value={field.value}
-                  onChange={field.onChange}
-                  className={errors.amount ? 'border-red-500' : ''}
-                />
-              )}
-            />
-            {errors.amount && (
-              <p className="text-xs text-red-500">{errors.amount.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="exp-payment">
-              Metode Bayar <span className="text-red-500">*</span>
-            </Label>
-            <Controller
-              name="payment_method"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className={errors.payment_method ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Pilih metode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_PAYMENT_METHODS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.payment_method && (
-              <p className="text-xs text-red-500">{errors.payment_method.message}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="exp-notes">Catatan</Label>
-          <Textarea
-            id="exp-notes"
-            {...register('notes')}
-            placeholder="Catatan tambahan (opsional)"
-            className="resize-none"
-            rows={2}
-          />
-        </div>
-      </div>
-    </FormModal>
+      <ConfirmDialog
+        open={isConfirming}
+        onOpenChange={(val) => {
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
+        }}
+        title={isEdit ? 'Update Pengeluaran' : 'Tambah Pengeluaran'}
+        description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} pengeluaran "${pendingValues?.description}"?`}
+        confirmLabel="Ya, Simpan"
+        isLoading={isPending}
+        onConfirm={handleConfirmedSave}
+      />
+    </>
   )
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from 'sonner'
 
 import { FormModal } from '@/shared/components'
@@ -22,6 +21,7 @@ import {
 } from '@/features/inventory/purchases/purchases.api'
 
 import { useCreateSupplierReturnMutation } from '../returns.api'
+import { returnSchema, type ReturnFormValues } from '../returns.schema'
 
 interface ReturnFormModalProps {
   open: boolean
@@ -30,19 +30,7 @@ interface ReturnFormModalProps {
 
 const today = new Date().toISOString().slice(0, 10)
 
-const schema = z.object({
-  purchase_id: z.number({ error: 'Pilih pembelian' }).positive('Pilih pembelian'),
-  return_date: z
-    .string()
-    .min(1, 'Tanggal wajib diisi')
-    .refine((v) => v <= today, 'Tanggal retur tidak boleh lebih dari hari ini'),
-  reason: z.string().min(1, 'Alasan wajib diisi'),
-  notes: z.string().optional(),
-})
-
-type FormValues = z.infer<typeof schema>
-
-const defaultValues: FormValues = {
+const defaultValues: ReturnFormValues = {
   purchase_id: 0,
   return_date: today,
   reason: '',
@@ -66,7 +54,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
     setValue,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues })
+  } = useForm<ReturnFormValues>({ resolver: zodResolver(returnSchema), defaultValues })
 
   const purchaseId = watch('purchase_id')
 
@@ -105,7 +93,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
     }))
   }
 
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: ReturnFormValues) {
     if (!purchaseDetail) return
 
     const items = purchaseDetail.items

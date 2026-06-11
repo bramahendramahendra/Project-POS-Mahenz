@@ -1,4 +1,4 @@
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { Button } from '@/shared/components/ui/button'
@@ -38,7 +38,6 @@ export function GrosirRowForm({
   const {
     register,
     handleSubmit,
-    watch,
     setValue: setGrosirValue,
     control: grosirControl,
     formState: { errors },
@@ -47,8 +46,8 @@ export function GrosirRowForm({
     defaultValues: initialValues ?? { unit_id: 0, package_name: '', conversion_qty: 1, purchase_price: 0, selling_price: 0 },
   })
 
-  const convQty = watch('conversion_qty') || 0
-  const unitIdVal = watch('unit_id')
+  const convQty = useWatch({ control: grosirControl, name: 'conversion_qty' }) || 0
+  const unitIdVal = useWatch({ control: grosirControl, name: 'unit_id' })
   const refPurchase = basePurchase * convQty
   const refSelling = baseSelling * convQty
 

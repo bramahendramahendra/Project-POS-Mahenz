@@ -11,14 +11,14 @@ import (
 
 func PinRoutes(r *gin.RouterGroup) {
 	pinRepo := pin_repo.NewPinRepo(pkgdatabase.DB)
-	pinSvc := pin_service.NewPinService(pinRepo)
-	pinHand := pin_handler.NewPinHandler(pinSvc)
+	pinService := pin_service.NewPinService(pinRepo)
+	pinHandler := pin_handler.NewPinHandler(pinService)
 
 	g := r.Group("/pin")
 	{
-		g.GET("/check", pinHand.CheckPin)
-		g.POST("/set", pinHand.SetPin)
-		g.POST("/verify", pinHand.VerifyPin)
-		g.POST("/change", pinHand.ChangePin)
+		g.GET("/check", pinHandler.CheckPin)
+		g.POST("/set", pinHandler.SetPin)
+		g.POST("/verify", pinHandler.VerifyPin)
+		g.POST("/change", pinHandler.ChangePin)
 	}
 }

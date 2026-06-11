@@ -8,7 +8,7 @@ import (
 type (
 	ShiftServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) (data []dto.ShiftResponse, total int64, err error)
-		GetActive() (data []dto.ShiftActiveResponse, err error)
+		GetOptions() (data []dto.ShiftActiveResponse, err error)
 		GetByID(id int) (data dto.ShiftResponse, err error)
 		Create(req *dto.CreateRequest) (data dto.ShiftResponse, err error)
 		Update(req *dto.UpdateRequest) (err error)

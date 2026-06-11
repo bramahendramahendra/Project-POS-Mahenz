@@ -1,33 +1,23 @@
 import { useState } from 'react'
-import { Printer, X } from 'lucide-react'
+import { Printer } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 import { ReceiptPrint } from '@/features/sales/cashier/components/ReceiptPrint'
 import type { CartItem, CartSummary, Discount, Tax } from '@/features/sales/cashier'
 
 import { useTransactionDetailQuery, useVoidTransactionMutation } from '../transactions.api'
-import type { PaymentMethod, Transaction } from '../transactions.types'
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Kredit',
-}
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+import type { Transaction } from '../transactions.types'
+import { PAYMENT_LABELS, formatDateTimeLong } from '../transactions.utils'
 
 interface TransactionDetailModalProps {
   transactionId: number | null
@@ -59,12 +49,7 @@ function buildReceiptData(t: Transaction): {
     grandTotal: t.total_amount,
   }
 
-  const discount: Discount = {
-    type: 'amount',
-    value: t.discount,
-    amount: t.discount,
-  }
-
+  const discount: Discount = { type: 'amount', value: t.discount, amount: t.discount }
   const tax: Tax = { percent: 0, amount: t.tax }
 
   return { cart, summary, discount, tax }
@@ -79,8 +64,6 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
 
   const open = transactionId !== null
 
-  if (!open) return null
-
   const handleVoid = () => {
     if (!transactionId) return
     voidTransaction(transactionId, {
@@ -93,22 +76,17 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
 
   return (
     <>
-      <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b px-5 py-3 shrink-0">
-            <div>
-              <h2 className="font-semibold text-gray-800">Detail Transaksi</h2>
-              {transaction && (
-                <p className="text-xs font-mono text-gray-500">{transaction.transaction_code}</p>
-              )}
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X size={18} />
-            </button>
-          </div>
+      <Dialog open={open} onOpenChange={(val) => { if (!val) onClose() }}>
+        <DialogContent className="flex flex-col gap-0 p-0 max-w-lg max-h-[90vh]">
+          <DialogHeader className="border-b px-5 py-3 shrink-0">
+            <DialogTitle>Detail Transaksi</DialogTitle>
+            {transaction && (
+              <DialogDescription className="font-mono text-xs">
+                {transaction.transaction_code}
+              </DialogDescription>
+            )}
+          </DialogHeader>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto p-5">
             {isLoading ? (
               <div className="space-y-3">
@@ -122,7 +100,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <p className="text-xs text-gray-500">Tanggal</p>
-                    <p className="font-medium">{formatDateTime(transaction.transaction_date)}</p>
+                    <p className="font-medium">{formatDateTimeLong(transaction.transaction_date)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Status</p>
@@ -216,7 +194,6 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
             ) : null}
           </div>
 
-          {/* Footer */}
           {transaction && (
             <div className="border-t px-5 py-3 flex items-center gap-2 shrink-0">
               <Button
@@ -242,10 +219,9 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
               </RoleGuard>
             </div>
           )}
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Void confirm */}
       <ConfirmDialog
         open={voidConfirmOpen}
         onOpenChange={setVoidConfirmOpen}
@@ -257,33 +233,30 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
         onConfirm={handleVoid}
       />
 
-      {/* Reprint receipt */}
-      {transaction &&
-        receiptOpen &&
-        (() => {
-          const { cart, summary, discount, tax } = buildReceiptData(transaction)
-          return (
-            <ReceiptPrint
-              open={receiptOpen}
-              onClose={() => setReceiptOpen(false)}
-              checkoutData={{
-                id: transaction.id,
-                transaction_code: transaction.transaction_code,
-                total_amount: transaction.total_amount,
-                payment_amount: transaction.payment_amount,
-                change_amount: transaction.change_amount,
-                transaction_date: transaction.transaction_date,
-              }}
-              cart={cart}
-              summary={summary}
-              discount={discount}
-              tax={tax}
-              paymentMethod={transaction.payment_method}
-              amountPaid={transaction.payment_amount}
-              customerName={transaction.customer_name}
-            />
-          )
-        })()}
+      {transaction && receiptOpen && (() => {
+        const { cart, summary, discount, tax } = buildReceiptData(transaction)
+        return (
+          <ReceiptPrint
+            open={receiptOpen}
+            onClose={() => setReceiptOpen(false)}
+            checkoutData={{
+              id: transaction.id,
+              transaction_code: transaction.transaction_code,
+              total_amount: transaction.total_amount,
+              payment_amount: transaction.payment_amount,
+              change_amount: transaction.change_amount,
+              transaction_date: transaction.transaction_date,
+            }}
+            cart={cart}
+            summary={summary}
+            discount={discount}
+            tax={tax}
+            paymentMethod={transaction.payment_method}
+            amountPaid={transaction.payment_amount}
+            customerName={transaction.customer_name}
+          />
+        )
+      })()}
     </>
   )
 }

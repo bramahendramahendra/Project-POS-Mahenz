@@ -37,8 +37,8 @@ func (s *receivableService) GetPayments(id int) ([]*dto.PaymentResponse, error) 
 	return s.repo.GetPayments(id)
 }
 
-func (s *receivableService) Pay(id int, req *dto.PayRequest, userID int) (*dto.PayResponse, error) {
-	rec, err := s.repo.GetByID(id)
+func (s *receivableService) Pay(req *dto.PayRequest) (*dto.PayResponse, error) {
+	rec, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (s *receivableService) Pay(id int, req *dto.PayRequest, userID int) (*dto.P
 		}
 	}
 
-	if err := s.repo.CreatePayment(id, req, userID); err != nil {
+	if err := s.repo.CreatePayment(req.ID, req, req.UserID); err != nil {
 		return nil, err
 	}
-	if err := s.repo.UpdateAfterPayment(id, req.Amount); err != nil {
+	if err := s.repo.UpdateAfterPayment(req.ID, req.Amount); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +69,7 @@ func (s *receivableService) Pay(id int, req *dto.PayRequest, userID int) (*dto.P
 	}
 
 	return &dto.PayResponse{
-		ReceivableID:    id,
+		ReceivableID:    req.ID,
 		PaidAmount:      newPaid,
 		RemainingAmount: newRemaining,
 		Status:          status,

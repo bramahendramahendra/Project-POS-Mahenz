@@ -12,8 +12,8 @@ import (
 
 func VersionAdminRoutes(r *gin.RouterGroup) {
 	versionRepo := version_repo.NewVersionRepo(pkgdatabase.DB)
-	versionSvc := version_service.NewVersionService(versionRepo)
-	versionHand := version_handler.NewVersionHandler(versionSvc)
+	versionService := version_service.NewVersionService(versionRepo)
+	versionHandler := version_handler.NewVersionHandler(versionService)
 
-	r.POST("/version/android", middleware.RoleMiddleware("admin"), versionHand.UpdateAndroidVersion)
+	r.POST("/version/android", middleware.RoleMiddleware("admin"), versionHandler.UpdateAndroidVersion)
 }

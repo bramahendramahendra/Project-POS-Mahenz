@@ -12,17 +12,17 @@ import (
 
 func MenuRoutes(r *gin.RouterGroup) {
 	menuRepo := menu_repo.NewMenuRepo(pkgdatabase.DB)
-	menuSvc := menu_service.NewMenuService(menuRepo)
-	menuHand := menu_handler.NewMenuHandler(menuSvc)
+	menuService := menu_service.NewMenuService(menuRepo)
+	menuHandler := menu_handler.NewMenuHandler(menuService)
 
 	g := r.Group("/menus")
 	{
-		g.POST("/my",            menuHand.GetMyMenus)
-		g.POST("/list",          middleware.RoleMiddleware("owner", "admin"), menuHand.GetAll)
-		g.POST("/detail/:id",    middleware.RoleMiddleware("owner", "admin"), menuHand.GetByID)
-		g.POST("/create",        middleware.RoleMiddleware("owner"),          menuHand.Create)
-		g.POST("/update/:id",    middleware.RoleMiddleware("owner"),          menuHand.Update)
-		g.POST("/delete/:id",    middleware.RoleMiddleware("owner"),          menuHand.Delete)
-		g.POST("/reorder",       middleware.RoleMiddleware("owner"),          menuHand.Reorder)
+		g.POST("/my", menuHandler.GetMyMenus)
+		g.POST("/list", middleware.RoleMiddleware("owner", "admin"), menuHandler.GetAll)
+		g.POST("/detail/:id", middleware.RoleMiddleware("owner", "admin"), menuHandler.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner"), menuHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner"), menuHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), menuHandler.Delete)
+		g.POST("/reorder", middleware.RoleMiddleware("owner"), menuHandler.Reorder)
 	}
 }

@@ -26,8 +26,8 @@ func (s *shiftService) GetAll(req *dto.GetAllRequest) (data []dto.ShiftResponse,
 	return data, total, nil
 }
 
-func (s *shiftService) GetActive() (data []dto.ShiftActiveResponse, err error) {
-	dataDB, err := s.repo.GetActive()
+func (s *shiftService) GetOptions() (data []dto.ShiftActiveResponse, err error) {
+	dataDB, err := s.repo.GetOptions()
 	if err != nil {
 		return data, err
 	}

@@ -12,17 +12,17 @@ import (
 
 func CustomerRoutes(r *gin.RouterGroup) {
 	customerRepo := customer_repo.NewCustomerRepo(pkgdatabase.DB)
-	customerSvc := customer_service.NewCustomerService(customerRepo)
-	customerHand := customer_handler.NewCustomerHandler(customerSvc)
+	customerService := customer_service.NewCustomerService(customerRepo)
+	customerHandler := customer_handler.NewCustomerHandler(customerService)
 
 	g := r.Group("/customers")
 	{
-		g.POST("/list", customerHand.GetAll)
-		g.POST("/active", customerHand.GetOptions)
-		g.POST("/detail/:id", customerHand.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), customerHand.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), customerHand.ToggleStatus)
+		g.POST("/list", customerHandler.GetAll)
+		g.POST("/active", customerHandler.GetOptions)
+		g.POST("/detail/:id", customerHandler.GetByID)
+		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), customerHandler.Create)
+		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.Update)
+		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.Delete)
+		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.ToggleStatus)
 	}
 }

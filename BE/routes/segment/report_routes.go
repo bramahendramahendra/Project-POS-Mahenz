@@ -12,19 +12,19 @@ import (
 
 func ReportRoutes(r *gin.RouterGroup) {
 	reportRepo := report_repo.NewReportRepo(pkgdatabase.DB)
-	reportSvc := report_service.NewReportService(reportRepo)
-	reportHand := report_handler.NewReportHandler(reportSvc)
+	reportService := report_service.NewReportService(reportRepo)
+	reportHandler := report_handler.NewReportHandler(reportService)
 
 	g := r.Group("/reports")
 	{
-		g.GET("/sales", reportHand.GetSalesReport)
-		g.GET("/sales/chart", reportHand.GetSalesChart)
-		g.GET("/sales/export", middleware.RoleMiddleware("owner", "admin"), reportHand.ExportSalesReport)
-		g.GET("/profit-loss", middleware.RoleMiddleware("owner", "admin"), reportHand.GetProfitLoss)
-		g.GET("/profit-loss/export", middleware.RoleMiddleware("owner", "admin"), reportHand.ExportProfitLoss)
-		g.GET("/stock", reportHand.GetStockReport)
-		g.GET("/stock/export", middleware.RoleMiddleware("owner", "admin"), reportHand.ExportStockReport)
-		g.GET("/cashier", middleware.RoleMiddleware("owner", "admin"), reportHand.GetCashierReport)
-		g.GET("/cashier/export", middleware.RoleMiddleware("owner", "admin"), reportHand.ExportCashierReport)
+		g.GET("/sales", reportHandler.GetSalesReport)
+		g.GET("/sales/chart", reportHandler.GetSalesChart)
+		g.GET("/sales/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportSalesReport)
+		g.GET("/profit-loss", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetProfitLoss)
+		g.GET("/profit-loss/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportProfitLoss)
+		g.GET("/stock", reportHandler.GetStockReport)
+		g.GET("/stock/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportStockReport)
+		g.GET("/cashier", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetCashierReport)
+		g.GET("/cashier/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportCashierReport)
 	}
 }

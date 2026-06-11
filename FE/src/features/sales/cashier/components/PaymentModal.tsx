@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { useState } from 'react'
@@ -19,6 +18,7 @@ import {
 } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
+import { createPaymentSchema, type PaymentFormValues } from '../cashier.schema'
 import { useActiveShiftQuery, useCheckoutMutation, useCustomerCreditQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
 import type {
@@ -36,11 +36,6 @@ import { ReceiptPrint } from './ReceiptPrint'
 interface PaymentModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-type PaymentFormValues = {
-  payment_method: PaymentMethod
-  amount_paid?: number
 }
 
 const PAYMENT_METHODS: { key: PaymentMethod; label: string }[] = [
@@ -123,22 +118,6 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   const customerCredit = creditData
   const hasCustomer = selectedCustomer !== null
 
-  const makeSchema = (grandTotal: number, isKredit: boolean) =>
-    isKredit
-      ? z.object({
-          payment_method: z.enum(['cash', 'transfer', 'qris', 'card', 'kredit'] as const),
-          amount_paid: z.number().default(0),
-        })
-      : z
-          .object({
-            payment_method: z.enum(['cash', 'transfer', 'qris', 'card', 'kredit'] as const),
-            amount_paid: z.number().min(0, 'Jumlah bayar wajib diisi'),
-          })
-          .refine((d) => d.amount_paid >= grandTotal, {
-            message: 'Jumlah bayar kurang dari total',
-            path: ['amount_paid'],
-          })
-
   const {
     handleSubmit,
     watch,
@@ -146,7 +125,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     reset,
     formState: { errors },
   } = useForm<PaymentFormValues>({
-    resolver: zodResolver(makeSchema(summary.grandTotal, false)),
+    resolver: zodResolver(createPaymentSchema(summary.grandTotal, false)),
     defaultValues: { payment_method: 'cash', amount_paid: 0 },
   })
 

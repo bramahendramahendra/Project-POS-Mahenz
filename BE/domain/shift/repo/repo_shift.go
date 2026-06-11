@@ -7,8 +7,8 @@ import (
 
 const (
 	countShiftsQuery       = `SELECT COUNT(*) FROM shifts WHERE 1=1`
-	getAllShiftsQuery       = `SELECT id, name, start_time, end_time, is_active FROM shifts WHERE 1=1`
-	getAllShiftsOrder       = ` ORDER BY start_time`
+	getAllShiftsQuery      = `SELECT id, name, start_time, end_time, is_active FROM shifts WHERE 1=1`
+	getAllShiftsOrder      = ` ORDER BY start_time`
 	getActiveShiftsQuery   = `SELECT id, name, start_time, end_time FROM shifts WHERE is_active = 1 ORDER BY start_time`
 	getShiftByIDQuery      = `SELECT id, name, start_time, end_time, is_active, created_at FROM shifts WHERE id = ? LIMIT 1`
 	checkShiftUsedQuery    = `SELECT COUNT(*) FROM cash_drawer WHERE shift_id = ? AND status = 'open'`
@@ -55,7 +55,7 @@ func (r *shiftRepo) GetAll(req *dto.GetAllRequest) ([]*model.Shift, int64, error
 	return dataDB, total, nil
 }
 
-func (r *shiftRepo) GetActive() ([]*model.Shift, error) {
+func (r *shiftRepo) GetOptions() ([]*model.Shift, error) {
 	var dataDB []*model.Shift
 	if err := r.db.Raw(getActiveShiftsQuery).Scan(&dataDB).Error; err != nil {
 		return nil, err

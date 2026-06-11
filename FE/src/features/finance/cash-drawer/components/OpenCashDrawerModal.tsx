@@ -1,14 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 
-import { Button } from '@/shared/components/ui/button'
+import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/shared/components/ui/dialog'
+import { Label } from '@/shared/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -18,11 +14,13 @@ import {
 } from '@/shared/components/ui/select'
 
 import { useOpenCashDrawerMutation } from '../cash-drawer.api'
-import type { OpenCashDrawerPayload, ShiftType } from '../cash-drawer.types'
+import { openCashDrawerSchema, type OpenCashDrawerFormValues } from '../cash-drawer.schema'
+import type { ShiftType } from '../cash-drawer.types'
 
-interface OpenCashDrawerModalProps {
-  open: boolean
-  onClose: () => void
+const defaultValues: OpenCashDrawerFormValues = {
+  opening_balance: 0,
+  shift: undefined,
+  notes: '',
 }
 
 const SHIFT_OPTIONS: { value: ShiftType; label: string }[] = [
@@ -31,99 +29,148 @@ const SHIFT_OPTIONS: { value: ShiftType; label: string }[] = [
   { value: 'malam', label: 'Malam' },
 ]
 
-function getEmptyForm(): OpenCashDrawerPayload {
-  return { opening_balance: 0, shift: undefined, notes: '' }
+interface OpenCashDrawerModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function OpenCashDrawerModal({ open, onClose }: OpenCashDrawerModalProps) {
-  const [form, setForm] = useState<OpenCashDrawerPayload>(getEmptyForm)
-  const mutation = useOpenCashDrawerMutation()
+export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalProps) {
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [pendingValues, setPendingValues] = useState<OpenCashDrawerFormValues | null>(null)
 
-  function handleSubmit() {
-    const payload: OpenCashDrawerPayload = {
-      opening_balance: form.opening_balance,
-      shift: form.shift,
-      notes: form.notes || undefined,
+  const { mutate: openDrawer, isPending } = useOpenCashDrawerMutation()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm<OpenCashDrawerFormValues>({
+    resolver: zodResolver(openCashDrawerSchema),
+    defaultValues,
+  })
+
+  useEffect(() => {
+    if (open) {
+      reset(defaultValues)
+    } else {
+      setPendingValues(null)
+      setIsConfirming(false)
     }
-    mutation.mutate(payload, {
-      onSuccess: () => {
-        setForm(getEmptyForm())
-        onClose()
-      },
-    })
+  }, [open, reset])
+
+  const onSubmit = (values: OpenCashDrawerFormValues) => {
+    setPendingValues(values)
+    setIsConfirming(true)
   }
 
-  function handleOpenChange(o: boolean) {
-    if (!o) {
-      setForm(getEmptyForm())
-      onClose()
-    }
+  const handleConfirmedSave = () => {
+    if (!pendingValues) return
+
+    openDrawer(
+      {
+        opening_balance: pendingValues.opening_balance,
+        shift: pendingValues.shift,
+        notes: pendingValues.notes || undefined,
+      },
+      {
+        onSuccess: () => {
+          setIsConfirming(false)
+          onOpenChange(false)
+        },
+      }
+    )
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Buka Kas</DialogTitle>
-        </DialogHeader>
-
+    <>
+      <FormModal
+        open={open && !isConfirming}
+        onOpenChange={(val) => {
+          if (isConfirming) return
+          onOpenChange(val)
+        }}
+        title="Buka Kas"
+        size="sm"
+        isLoading={isPending}
+        onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Buka Kas"
+      >
         <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600">Saldo Awal (Rp)</label>
-            <Input
-              type="number"
-              min={0}
-              placeholder="0"
-              value={form.opening_balance === 0 ? '' : form.opening_balance}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, opening_balance: Number(e.target.value) || 0 }))
-              }
+          <div className="space-y-1.5">
+            <Label htmlFor="open-balance">Saldo Awal (Rp)</Label>
+            <Controller
+              name="opening_balance"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  id="open-balance"
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={field.value === 0 ? '' : field.value}
+                  onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                  className={errors.opening_balance ? 'border-red-500' : ''}
+                />
+              )}
+            />
+            {errors.opening_balance && (
+              <p className="text-xs text-red-500">{errors.opening_balance.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Shift (opsional)</Label>
+            <Controller
+              name="shift"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? ''}
+                  onValueChange={(v) => field.onChange(v === '' ? undefined : (v as ShiftType))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih shift..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tidak ada shift</SelectItem>
+                    {SHIFT_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600">Shift (opsional)</label>
-            <Select
-              value={form.shift ?? ''}
-              onValueChange={(v) =>
-                setForm((f) => ({ ...f, shift: v === '' ? undefined : (v as ShiftType) }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih shift..." />
-              </SelectTrigger>
-              <SelectContent>
-                {SHIFT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600">Catatan (opsional)</label>
+          <div className="space-y-1.5">
+            <Label htmlFor="open-notes">Catatan (opsional)</Label>
             <Input
+              id="open-notes"
+              {...register('notes')}
               placeholder="Catatan pembukaan kas..."
-              value={form.notes ?? ''}
-              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             />
           </div>
         </div>
+      </FormModal>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Batal
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={mutation.isPending || form.opening_balance < 0}
-          >
-            {mutation.isPending ? 'Memproses...' : 'Buka Kas'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <ConfirmDialog
+        open={isConfirming}
+        onOpenChange={(val) => {
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
+        }}
+        title="Buka Kas"
+        description="Yakin ingin membuka kas sekarang?"
+        confirmLabel="Ya, Buka Kas"
+        isLoading={isPending}
+        onConfirm={handleConfirmedSave}
+      />
+    </>
   )
 }

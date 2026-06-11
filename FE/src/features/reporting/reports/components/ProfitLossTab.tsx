@@ -1,19 +1,10 @@
 import { useState } from 'react'
 
-import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
 import { formatRupiah } from '@/shared/utils'
 
 import { useProfitLossReportQuery } from '../reports.api'
-
-function monthStart() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
-
-function todayStr() {
-  return new Date().toISOString().split('T')[0]
-}
+import { monthStart, todayStr } from '../reports.utils'
+import { ProfitLossFilterBar } from './ProfitLossFilterBar'
 
 interface PLRowProps {
   label: string
@@ -66,52 +57,21 @@ function Skeleton() {
 }
 
 export function ProfitLossTab() {
-  const [dateFrom, setDateFrom] = useState(monthStart())
-  const [dateTo, setDateTo] = useState(todayStr())
+  const [filter, setFilter] = useState({
+    date_from: monthStart(),
+    date_to: todayStr(),
+  })
 
   const { data, isLoading } = useProfitLossReportQuery({
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
+    date_from: filter.date_from || undefined,
+    date_to: filter.date_to || undefined,
   })
 
   const report = data
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-36 h-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => {
-              setDateFrom(monthStart())
-              setDateTo(todayStr())
-            }}
-          >
-            Bulan ini
-          </Button>
-        </div>
-      </div>
+      <ProfitLossFilterBar filter={filter} onChange={setFilter} />
 
       {/* Report body */}
       {isLoading && <Skeleton />}

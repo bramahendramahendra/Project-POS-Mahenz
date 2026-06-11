@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -29,39 +28,18 @@ import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
 import type { PaymentStatus } from '../purchases.types'
 import type { ProductPackage } from '@/features/inventory/products/products.types'
+import { purchaseSchema, type PurchaseFormValues } from '../purchases.schema'
 
 interface PurchaseFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const itemSchema = z.object({
-  product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
-  quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
-  price: z.number({ error: 'Wajib diisi' }).nonnegative(),
-  unit: z.string().min(1, 'Wajib diisi'),
-  conversion_qty: z.number().min(1).catch(1),
-})
-
-const schema = z.object({
-  purchase_date: z.string().min(1, 'Tanggal wajib diisi'),
-  invoice_number: z.string().min(1, 'No. faktur wajib diisi'),
-  supplier_id: z.number({ error: 'Pilih supplier' }).positive('Pilih supplier'),
-  items: z.array(itemSchema).min(1, 'Minimal 1 item'),
-  discount_amount: z.number().nonnegative(),
-  notes: z.string().optional(),
-  payment_status: z.enum(['paid', 'unpaid', 'partial']),
-  paid_amount: z.number().nonnegative(),
-  payment_method: z.string().optional(),
-})
-
-type FormValues = z.infer<typeof schema>
-
 function todayString() {
   return new Date().toISOString().split('T')[0]
 }
 
-const defaultValues: FormValues = {
+const defaultValues: PurchaseFormValues = {
   purchase_date: todayString(),
   invoice_number: '',
   supplier_id: 0,
@@ -92,8 +70,8 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
     setValue,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+  } = useForm<PurchaseFormValues>({
+    resolver: zodResolver(purchaseSchema),
     defaultValues,
   })
 
@@ -161,7 +139,7 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
       : (pkg.package_name || pkg.unit_name)
   }
 
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: PurchaseFormValues) {
     create(
       {
         ...values,

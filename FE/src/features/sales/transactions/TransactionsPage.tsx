@@ -5,7 +5,7 @@ import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useTransactionListQuery } from './transactions.api'
 import type { TransactionFilter } from './transactions.types'
-import { TransactionFilterBar } from './components/TransactionFilter'
+import { TransactionFilterBar } from './components/TransactionFilterBar'
 import { TransactionTable } from './components/TransactionTable'
 import { TransactionDetailModal } from './components/TransactionDetailModal'
 

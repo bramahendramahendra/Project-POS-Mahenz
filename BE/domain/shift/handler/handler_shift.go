@@ -43,8 +43,8 @@ func (h *ShiftHandler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *ShiftHandler) GetActive(c *gin.Context) {
-	data, err := h.service.GetActive()
+func (h *ShiftHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
 	if err != nil {
 		c.Error(err)
 		return

@@ -44,7 +44,7 @@ func (h *ReceivableHandler) GetAll(c *gin.Context) {
 }
 
 func (h *ReceivableHandler) GetSummary(c *gin.Context) {
-	items, err := h.service.GetSummary()
+	data, err := h.service.GetSummary()
 	if err != nil {
 		c.Error(err)
 		return
@@ -54,7 +54,7 @@ func (h *ReceivableHandler) GetSummary(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Ringkasan piutang per pelanggan",
-		Data:    items,
+		Data:    data,
 	})
 }
 
@@ -70,9 +70,9 @@ func (h *ReceivableHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	item, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (h *ReceivableHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail piutang",
-		Data:    item,
+		Data:    data,
 	})
 }
 
@@ -96,9 +96,9 @@ func (h *ReceivableHandler) GetPayments(c *gin.Context) {
 		return
 	}
 
-	items, svcErr := h.service.GetPayments(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.GetPayments(req.ID)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (h *ReceivableHandler) GetPayments(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Riwayat pembayaran piutang",
-		Data:    items,
+		Data:    data,
 	})
 }
 
@@ -117,25 +117,24 @@ func (h *ReceivableHandler) Pay(c *gin.Context) {
 		return
 	}
 
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.PayRequest](c)
+	req, err := binder.BindJSON[dto.PayRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	if err := validator.Validate.Struct(bodyReq); err != nil {
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
 	}
 
-	result, svcErr := h.service.Pay(uriReq.ID, &bodyReq, helper.GetUserID(c))
-	if svcErr != nil {
-		c.Error(svcErr)
+	req.UserID = helper.GetUserID(c)
+
+	data, err := h.service.Pay(&req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -143,6 +142,6 @@ func (h *ReceivableHandler) Pay(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Pembayaran piutang berhasil",
-		Data:    result,
+		Data:    data,
 	})
 }

@@ -1,23 +1,16 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
-import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useCashflowQuery, useFinanceSummaryQuery } from './finance.api'
 import type { FinanceFilter } from './finance.types'
+import { FinanceFilterBar } from './components/FinanceFilterBar'
 import { FinanceSummaryCard } from './components/FinanceSummaryCard'
 import { FinanceTable } from './components/FinanceTable'
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0]
-}
-
-function weekStartString(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - d.getDay() + 1)
-  return d.toISOString().split('T')[0]
 }
 
 function monthStartString(): string {
@@ -26,71 +19,32 @@ function monthStartString(): string {
 }
 
 export function FinancePage() {
-  const today = todayString()
-
-  const [dateFrom, setDateFrom] = useState(monthStartString())
-  const [dateTo, setDateTo] = useState(today)
+  const [filter, setFilter] = useState<FinanceFilter>({
+    date_from: monthStartString(),
+    date_to: todayString(),
+  })
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
-
   const pageSizeOptions = usePageSizeOptions()
-  const filter: FinanceFilter = {
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-    page,
-    page_size: pageSize,
-  }
 
   const { data: summaryData, isLoading: summaryLoading } = useFinanceSummaryQuery({
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
+    date_from: filter.date_from,
+    date_to: filter.date_to,
   })
-  const { data: cashflowData, isLoading: cashflowLoading } = useCashflowQuery(filter)
+  const { data: cashflowData, isLoading: cashflowLoading } = useCashflowQuery({
+    ...filter,
+    page,
+    page_size: pageSize,
+  })
 
   const cashflows = cashflowData?.data ?? []
   const total = cashflowData?.total ?? 0
-
-  const applyPreset = (from: string, to: string) => {
-    setDateFrom(from)
-    setDateTo(to)
-    reset()
-  }
 
   return (
     <div className="space-y-4">
       <PageHeader title="Keuangan" breadcrumbs={[{ label: 'Finance' }, { label: 'Keuangan' }]} />
 
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); reset() }}
-            className="w-40 h-9"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); reset() }}
-            className="w-40 h-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => applyPreset(today, today)}>
-            Hari ini
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => applyPreset(weekStartString(), today)}>
-            Minggu ini
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => applyPreset(monthStartString(), today)}>
-            Bulan ini
-          </Button>
-        </div>
-      </div>
+      <FinanceFilterBar filter={filter} onChange={setFilter} onReset={reset} />
 
       <FinanceSummaryCard summary={summaryData} isLoading={summaryLoading} />
 

@@ -10,7 +10,7 @@ import (
 type (
 	ShiftRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.Shift, int64, error)
-		GetActive() ([]*model.Shift, error)
+		GetOptions() ([]*model.Shift, error)
 		GetByID(id int) (*model.Shift, error)
 		CountOpenCashDrawer(shiftID int) (int, error)
 		Create(req *dto.CreateRequest) (int64, error)
