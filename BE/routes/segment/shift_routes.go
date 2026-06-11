@@ -18,7 +18,7 @@ func ShiftRoutes(r *gin.RouterGroup) {
 	g := r.Group("/shifts")
 	{
 		g.POST("/list", shiftHandler.GetAll)
-		g.POST("/active", shiftHandler.GetActive)
+		g.POST("/active", shiftHandler.GetOptions)
 		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHandler.GetSummary)
 		g.POST("/detail/:id", shiftHandler.GetByID)
 		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Create)
