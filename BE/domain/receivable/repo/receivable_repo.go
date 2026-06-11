@@ -9,13 +9,13 @@ import (
 
 const (
 	getAllReceivablesQuery    = `SELECT r.id, t.transaction_code, c.name as customer_name, r.total_amount, r.paid_amount, r.remaining_amount, r.status, r.due_date FROM receivables r LEFT JOIN transactions t ON r.transaction_id = t.id LEFT JOIN customers c ON r.customer_id = c.id WHERE 1=1`
-	countReceivablesBase     = `SELECT COUNT(*) FROM receivables r LEFT JOIN transactions t ON r.transaction_id = t.id LEFT JOIN customers c ON r.customer_id = c.id WHERE 1=1`
-	getReceivableByIDQuery   = `SELECT r.id, r.transaction_id, r.customer_id, r.total_amount, r.paid_amount, r.remaining_amount, r.status, r.due_date, r.created_at, r.updated_at FROM receivables r WHERE r.id = ?`
-	getReceivableDetailQuery = `SELECT r.id, t.transaction_code, c.name as customer_name, r.total_amount, r.paid_amount, r.remaining_amount, r.status, r.due_date FROM receivables r LEFT JOIN transactions t ON r.transaction_id = t.id LEFT JOIN customers c ON r.customer_id = c.id WHERE r.id = ?`
+	countReceivablesBase      = `SELECT COUNT(*) FROM receivables r LEFT JOIN transactions t ON r.transaction_id = t.id LEFT JOIN customers c ON r.customer_id = c.id WHERE 1=1`
+	getReceivableByIDQuery    = `SELECT r.id, r.transaction_id, r.customer_id, r.total_amount, r.paid_amount, r.remaining_amount, r.status, r.due_date, r.created_at, r.updated_at FROM receivables r WHERE r.id = ?`
+	getReceivableDetailQuery  = `SELECT r.id, t.transaction_code, c.name as customer_name, r.total_amount, r.paid_amount, r.remaining_amount, r.status, r.due_date FROM receivables r LEFT JOIN transactions t ON r.transaction_id = t.id LEFT JOIN customers c ON r.customer_id = c.id WHERE r.id = ?`
 	getReceivableSummaryQuery = `SELECT r.customer_id, c.name as customer_name, SUM(r.total_amount) as total_receivable, SUM(r.paid_amount) as total_paid, SUM(r.remaining_amount) as total_remaining, COUNT(r.id) as count FROM receivables r LEFT JOIN customers c ON r.customer_id = c.id WHERE r.status != 'paid' GROUP BY r.customer_id, c.name ORDER BY total_remaining DESC`
-	createPaymentQuery       = `INSERT INTO receivable_payments (receivable_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
-	updateReceivableQuery    = `UPDATE receivables SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, status = CASE WHEN remaining_amount - ? <= 0 THEN 'paid' WHEN paid_amount + ? > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getPaymentsQuery         = `SELECT rp.id, rp.payment_date, rp.amount, rp.payment_method, u.full_name as user_name, rp.notes FROM receivable_payments rp LEFT JOIN users u ON rp.user_id = u.id WHERE rp.receivable_id = ? ORDER BY rp.payment_date DESC`
+	createPaymentQuery        = `INSERT INTO receivable_payments (receivable_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+	updateReceivableQuery     = `UPDATE receivables SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, status = CASE WHEN remaining_amount - ? <= 0 THEN 'paid' WHEN paid_amount + ? > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPaymentsQuery          = `SELECT rp.id, rp.payment_date, rp.amount, rp.payment_method, u.full_name as user_name, rp.notes FROM receivable_payments rp LEFT JOIN users u ON rp.user_id = u.id WHERE rp.receivable_id = ? ORDER BY rp.payment_date DESC`
 )
 
 func (r *receivableRepo) GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableResponse, int64, error) {
