@@ -30,6 +30,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
     {
       key: 'name',
       header: 'Nama Kategori',
+      sortable: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),
@@ -49,6 +50,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       header: 'Jumlah Produk',
       align: 'center',
       width: '130px',
+      sortable: true,
       cell: (row) => (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
           {row.product_count} produk
@@ -60,6 +62,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       header: 'Status',
       align: 'center',
       width: '100px',
+      sortable: true,
       cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
     },
     {

@@ -29,7 +29,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.Login(&req, c.ClientIP())
+	data, err := h.service.Login(&req, c.ClientIP())
 	if err != nil {
 		c.Error(err)
 		return
@@ -39,7 +39,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Login berhasil",
-		Data:    resp,
+		Data:    data,
 	})
 }
 
@@ -69,7 +69,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.RefreshToken(req.RefreshToken)
+	data, err := h.service.RefreshToken(req.RefreshToken)
 	if err != nil {
 		c.Error(err)
 		return
@@ -79,14 +79,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Token diperbarui",
-		Data:    resp,
+		Data:    data,
 	})
 }
 
 func (h *AuthHandler) GetMe(c *gin.Context) {
 	userID := helper.GetUserID(c)
 
-	userData, err := h.service.GetMe(userID)
+	data, err := h.service.GetMe(userID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -96,7 +96,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Data user",
-		Data:    userData,
+		Data:    data,
 	})
 }
 
@@ -107,7 +107,7 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.VerifyToken(req.Token)
+	data, err := h.service.VerifyToken(req.Token)
 	if err != nil {
 		c.Error(err)
 		return
@@ -117,7 +117,7 @@ func (h *AuthHandler) VerifyToken(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Hasil verifikasi token",
-		Data:    resp,
+		Data:    data,
 	})
 }
 

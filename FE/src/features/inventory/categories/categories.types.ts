@@ -19,6 +19,8 @@ export interface CategoryListFilter {
   limit: number
   search: string
   is_active?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateCategoryPayload {

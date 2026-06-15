@@ -5,10 +5,18 @@ import (
 	model "pos_api/domain/product_category/model"
 )
 
+var allowedCategorySortFields = map[string]string{
+	"name":          "c.name",
+	"product_count": "product_count",
+	"is_active":     "c.is_active",
+	"created_at":    "c.created_at",
+}
+
 const (
-	countCategoriesQuery             = `SELECT COUNT(*) FROM categories c WHERE 1=1`
-	getAllCategoriesQuery            = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, COUNT(p.id) AS product_count, COUNT(CASE WHEN p.is_active = 1 THEN 1 END) AS active_product_count, c.created_at FROM categories c LEFT JOIN products p ON p.category_id = c.id WHERE 1=1`
-	getAllCategoriesGroupOrder       = ` GROUP BY c.id, c.name, c.code, c.description, c.is_active, c.created_at ORDER BY c.name`
+	countCategoriesQuery       = `SELECT COUNT(*) FROM categories c WHERE 1=1`
+	getAllCategoriesQuery       = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, COUNT(p.id) AS product_count, COUNT(CASE WHEN p.is_active = 1 THEN 1 END) AS active_product_count, c.created_at FROM categories c LEFT JOIN products p ON p.category_id = c.id WHERE 1=1`
+	getAllCategoriesGroupBy     = ` GROUP BY c.id, c.name, c.code, c.description, c.is_active, c.created_at`
+	getAllCategoriesDefaultSort = ` ORDER BY c.name`
 	getAllCategoryOptionsQuery       = `SELECT id, name FROM categories WHERE is_active = 1 ORDER BY name`
 	getCategoryByIDQuery             = `SELECT c.id, c.name, COALESCE(c.code, '') as code, c.description, COALESCE(c.is_active, 1) as is_active, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id AND p.is_active = 1) AS active_product_count, c.created_at FROM categories c WHERE c.id = ? LIMIT 1`
 	getCategoryByNameQuery           = `SELECT id, name, COALESCE(code, '') as code, description, COALESCE(is_active, 1) as is_active, created_at FROM categories WHERE name = ? LIMIT 1`
@@ -53,7 +61,16 @@ func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64,
 	}
 	offset := (page - 1) * limit
 
-	query := getAllCategoriesQuery + conditions + getAllCategoriesGroupOrder + " LIMIT ? OFFSET ?"
+	orderBy := getAllCategoriesDefaultSort
+	if col, ok := allowedCategorySortFields[req.SortBy]; ok {
+		dir := "ASC"
+		if req.SortOrder == "desc" {
+			dir = "DESC"
+		}
+		orderBy = " ORDER BY " + col + " " + dir
+	}
+
+	query := getAllCategoriesQuery + conditions + getAllCategoriesGroupBy + orderBy + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Category

@@ -82,6 +82,24 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     setEditingProduct(null)
   }
 
+    const handleFilterChange = (newFilter: ProductListFilter) => {
+    setFilter(newFilter)
+    reset()
+  }
+
+  const handleReset = () => {
+    setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    reset()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    reset()
+  }
+
+
   const handleOpenDelete = (product: Product) => {
     setDeleteTarget(product)
     openDelete()
@@ -107,22 +125,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     setDetailProduct(null)
   }
 
-  const handleFilterChange = (newFilter: ProductListFilter) => {
-    setFilter(newFilter)
-    reset()
-  }
-
-  const handleReset = () => {
-    setFilter({ page: 1, limit: 10, search: '' })
-    setSortState(undefined)
-    reset()
-  }
-
-  const handleSort = (sort: SortState) => {
-    setSortState(sort)
-    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
-    reset()
-  }
 
   function handleExportExcel() {
     exportProductsToExcel(selectedProducts)

@@ -37,7 +37,6 @@ func (h *BackupHandler) Create(c *gin.Context) {
 	})
 }
 
-// GET /api/backup/list
 func (h *BackupHandler) GetList(c *gin.Context) {
 	result, err := h.service.GetList()
 	if err != nil {

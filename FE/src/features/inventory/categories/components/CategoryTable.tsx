@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import {
   useCategoryListQuery,
@@ -20,15 +21,16 @@ export interface CategoryTableHandle {
 
 export const CategoryTable = forwardRef<CategoryTableHandle, object>(function CategoryTable(_, ref) {
   const [filter, setFilter] = useState<CategoryListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
-  const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
+  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
 
   const { data: categoryData, isLoading } = useCategoryListQuery({
     ...filter,
@@ -53,27 +55,40 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     openForm()
   }
 
-  const handleOpenDelete = (category: Category) => {
-    setDeletingCategory(category)
-    openDelete()
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingCategory(null)
   }
 
   const handleFilterChange = (newFilter: CategoryListFilter) => {
     setFilter(newFilter)
-    resetPage()
+    reset()
   }
 
   const handleReset = () => {
     setFilter({ page: 1, limit: 10, search: '' })
-    resetPage()
+    setSortState(undefined)
+    reset()
   }
 
-  const handleDelete = () => {
-    if (!deletingCategory) return
-    deleteCategory(deletingCategory.id, {
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    reset()
+  }
+
+  const handleOpenDelete = (category: Category) => {
+    setDeleteTarget(category)
+    openDelete()
+  }
+
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    deleteCategory(deleteTarget.id, {
       onSuccess: () => {
         closeDelete()
-        setDeletingCategory(null)
+        setDeleteTarget(null)
       },
     })
   }
@@ -105,6 +120,8 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
         columns={columns}
         data={categories as (Category & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         pagination={{
           page,
           pageSize,
@@ -123,21 +140,19 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
       <CategoryFormModal
         open={formOpen}
-        onOpenChange={(val) => { if (!val) { closeForm(); setEditingCategory(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
         category={editingCategory}
       />
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => {
-          if (!open) { closeDelete(); setDeletingCategory(null) }
-        }}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeleteTarget(null) } }}
         title="Hapus Kategori"
-        description={`Yakin ingin menghapus kategori "${deletingCategory?.name}"? Tindakan ini tidak bisa dibatalkan.`}
+        description={`Yakin ingin menghapus kategori "${deleteTarget?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )
