@@ -16,6 +16,9 @@ export interface UnitListFilter {
   page: number
   limit: number
   search: string
+  is_active?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateUnitPayload {
@@ -23,4 +26,7 @@ export interface CreateUnitPayload {
   abbreviation: string
 }
 
-export type UpdateUnitPayload = Partial<CreateUnitPayload>
+export interface UpdateUnitPayload {
+  name: string
+  abbreviation: string
+}

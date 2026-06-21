@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -52,13 +53,16 @@ export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalP
   })
 
   useEffect(() => {
-    if (open) {
-      reset(defaultValues)
-    } else {
-      setPendingValues(null)
-      setIsConfirming(false)
-    }
-  }, [open, reset])
+    if (!open) return
+    reset(defaultValues)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: OpenCashDrawerFormValues) => {
     setPendingValues(values)
@@ -76,8 +80,8 @@ export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalP
       },
       {
         onSuccess: () => {
-          setIsConfirming(false)
-          onOpenChange(false)
+          toast.success('Kas berhasil dibuka')
+          handleClose()
         },
       }
     )
@@ -88,8 +92,7 @@ export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalP
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title="Buka Kas"
         size="sm"
@@ -160,10 +163,7 @@ export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalP
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title="Buka Kas"
         description="Yakin ingin membuka kas sekarang?"

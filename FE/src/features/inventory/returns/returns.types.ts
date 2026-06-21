@@ -24,8 +24,8 @@ export interface SupplierReturn {
 }
 
 export interface SupplierReturnFilter {
-  date_from?: string
-  date_to?: string
+  start_date?: string
+  end_date?: string
   supplier_id?: number
   status?: string
   page?: number

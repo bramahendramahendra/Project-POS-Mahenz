@@ -10,7 +10,7 @@ import type { Unit } from '../units.types'
 export interface UnitColumnHandlers {
   onEdit: (unit: Unit) => void
   onDelete: (unit: Unit) => void
-  onToggleStatus: (unit: Unit) => void
+  onToggleStatus: (id: number, isActive: boolean) => void
 }
 
 export function buildUnitColumns(handlers: UnitColumnHandlers): ColumnDef<Unit>[] {
@@ -20,6 +20,7 @@ export function buildUnitColumns(handlers: UnitColumnHandlers): ColumnDef<Unit>[
     {
       key: 'name',
       header: 'Nama Satuan',
+      sortable: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),
@@ -39,7 +40,10 @@ export function buildUnitColumns(handlers: UnitColumnHandlers): ColumnDef<Unit>[
       header: 'Status',
       align: 'center',
       width: '100px',
-      cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
+      sortable: true,
+      cell: (row) => (
+        <StatusBadge status={row.is_active ? 'active' : 'inactive'} />
+      ),
     },
     {
       key: 'actions',
@@ -62,7 +66,7 @@ export function buildUnitColumns(handlers: UnitColumnHandlers): ColumnDef<Unit>[
               variant="ghost"
               size="icon"
               className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
-              onClick={() => onToggleStatus(row)}
+              onClick={() => onToggleStatus(row.id, row.is_active)}
               title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
             >
               {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}

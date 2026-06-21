@@ -22,6 +22,8 @@ export interface CustomerListFilter {
   limit: number
   search: string
   is_active?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateCustomerPayload {
@@ -32,4 +34,10 @@ export interface CreateCustomerPayload {
   notes?: string
 }
 
-export type UpdateCustomerPayload = Partial<CreateCustomerPayload>
+export interface UpdateCustomerPayload {
+  name: string
+  phone?: string
+  address?: string
+  credit_limit?: number
+  notes?: string
+}

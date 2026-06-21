@@ -93,7 +93,11 @@ export function CashDrawerPage() {
         </CardContent>
       </Card>
 
-      <CashDrawerFilterBar filter={filter} onChange={setFilter} />
+      <CashDrawerFilterBar
+        filter={filter}
+        onChange={setFilter}
+        onReset={() => setFilter({ page: 1, limit: 10, start_date: monthStartString(), end_date: todayString() })}
+      />
 
       <CashDrawerTable
         data={items}

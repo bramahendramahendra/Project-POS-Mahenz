@@ -52,7 +52,6 @@ export function useCreateSupplierPurchaseMutation() {
       api.post<SupplierPurchase>('/supplier-purchases/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
-      toast.success('Pembelian berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -77,7 +76,6 @@ export function usePaySupplierPurchaseMutation(id: number) {
       api.post<void>(`/supplier-purchases/pay/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
-      toast.success('Pembayaran berhasil dicatat')
     },
     onError: (e: Error) => toast.error(e.message),
   })

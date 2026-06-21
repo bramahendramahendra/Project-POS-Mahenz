@@ -6,9 +6,8 @@ import (
 )
 
 const (
-	countSuppliersQuery  = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
+	countSuppliersQuery = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
 	getAllSuppliersQuery = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
-	getAllSuppliersOrder           = ` ORDER BY name ASC`
 	getAllSupplierOptionsQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
 	getSupplierByIDQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
 	getSupplierPurchasesQuery      = `SELECT id, purchase_code, purchase_date, total_amount, payment_status, remaining_amount FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC LIMIT 10`
@@ -54,7 +53,20 @@ func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64,
 	}
 	offset := (page - 1) * limit
 
-	query := getAllSuppliersQuery + conditions + getAllSuppliersOrder + " LIMIT ? OFFSET ?"
+	allowedSortColumns := map[string]string{
+		"name":      "name",
+		"is_active": "is_active",
+	}
+	sortCol := "name"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "ASC"
+	if req.SortOrder == "desc" {
+		sortDir = "DESC"
+	}
+
+	query := getAllSuppliersQuery + conditions + " ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Supplier

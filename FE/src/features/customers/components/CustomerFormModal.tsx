@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -49,25 +50,28 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
   })
 
   useEffect(() => {
-    if (open) {
-      if (customer) {
-        reset({
-          name: customer.name,
-          phone: customer.phone ?? '',
-          address: customer.address ?? '',
-          credit_limit: customer.credit_limit ?? 0,
-          notes: customer.notes ?? '',
-        })
-      } else {
-        reset(defaultValues)
-      }
+    if (!open) return
+    if (customer) {
+      reset({
+        name: customer.name,
+        phone: customer.phone ?? '',
+        address: customer.address ?? '',
+        credit_limit: customer.credit_limit ?? 0,
+        notes: customer.notes ?? '',
+      })
     } else {
-      setPendingValues(null)
-      setIsConfirming(false)
+      reset(defaultValues)
     }
-  }, [open, customer, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, customer])
 
   const creditLimit = watch('credit_limit') ?? 0
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: CustomerFormValues) => {
     setPendingValues(values)
@@ -82,17 +86,19 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
         { id: customer.id, ...pendingValues },
         {
           onSuccess: () => {
-            setIsConfirming(false)
-            onOpenChange(false)
+            toast.success('Pelanggan berhasil diperbarui')
+            handleClose()
           },
+          onError: (error) => toast.error(error.message),
         }
       )
     } else {
       createCustomer(pendingValues, {
         onSuccess: () => {
-          setIsConfirming(false)
-          onOpenChange(false)
+          toast.success('Pelanggan berhasil ditambahkan')
+          handleClose()
         },
+        onError: (error) => toast.error(error.message),
       })
     }
   }
@@ -102,13 +108,13 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
         size="md"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Simpan"
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -167,10 +173,7 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Pelanggan' : 'Tambah Pelanggan'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} pelanggan "${pendingValues?.name}"?`}

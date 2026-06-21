@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -45,8 +46,16 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
   })
 
   useEffect(() => {
-    if (!open) reset({ amount: 0, payment_date: todayString(), notes: '' })
-  }, [open, reset])
+    if (!open) return
+    reset({ amount: 0, payment_date: todayString(), notes: '' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const handleClose = () => {
+    setConfirmOpen(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: PaymentFormValues) => {
     setPendingValues(values)
@@ -63,8 +72,8 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
       },
       {
         onSuccess: () => {
-          setConfirmOpen(false)
-          onOpenChange(false)
+          toast.success('Pembayaran berhasil dicatat')
+          handleClose()
         },
       }
     )
@@ -73,8 +82,10 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
   return (
     <>
       <FormModal
-        open={open}
-        onOpenChange={onOpenChange}
+        open={open && !confirmOpen}
+        onOpenChange={(val) => {
+          if (!val && !confirmOpen) handleClose()
+        }}
         title="Catat Pembayaran Piutang"
         size="sm"
         isLoading={isPending}
@@ -154,7 +165,9 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
 
       <ConfirmDialog
         open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        onOpenChange={(val) => {
+          if (!val) handleClose()
+        }}
         title="Konfirmasi Pembayaran"
         description={`Catat pembayaran ${formatRupiah(pendingValues?.amount ?? 0)} untuk piutang ${receivable?.customer_name ?? ''}?`}
         confirmLabel="Ya, Simpan"

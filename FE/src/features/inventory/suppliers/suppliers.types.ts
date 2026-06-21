@@ -52,6 +52,8 @@ export interface SupplierListFilter {
   limit: number
   search: string
   is_active?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateSupplierPayload {
@@ -63,4 +65,11 @@ export interface CreateSupplierPayload {
   notes?: string
 }
 
-export type UpdateSupplierPayload = Partial<CreateSupplierPayload>
+export interface UpdateSupplierPayload {
+  name: string
+  address?: string
+  phone?: string
+  email?: string
+  contact_person?: string
+  notes?: string
+}

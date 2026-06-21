@@ -94,7 +94,8 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
       setItemUnitOptions({})
       setItemSelectedPackageId({})
     }
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   async function handleProductChange(index: number, productId: string) {
     const id = Number(productId)

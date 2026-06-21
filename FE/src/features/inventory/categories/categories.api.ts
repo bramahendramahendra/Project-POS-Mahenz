@@ -34,7 +34,6 @@ export function useCreateCategoryMutation() {
       api.post<Category>('/categories/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
-      toast.success('Kategori berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -47,7 +46,6 @@ export function useUpdateCategoryMutation() {
       api.post<Category>(`/categories/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
-      toast.success('Kategori berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

@@ -1,3 +1,6 @@
+import { RotateCcw } from 'lucide-react'
+
+import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import {
   Select,
@@ -18,17 +21,18 @@ interface ReturnFilterBarProps {
   filter: SupplierReturnFilter
   suppliers: Supplier[]
   onChange: (filter: SupplierReturnFilter) => void
+  onReset: () => void
 }
 
-export function ReturnFilterBar({ filter, suppliers, onChange }: ReturnFilterBarProps) {
+export function ReturnFilterBar({ filter, suppliers, onChange, onReset }: ReturnFilterBarProps) {
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
         <label className="text-xs text-gray-500">Dari</label>
         <Input
           type="date"
-          value={filter.date_from ?? ''}
-          onChange={(e) => onChange({ ...filter, date_from: e.target.value || undefined })}
+          value={filter.start_date ?? ''}
+          onChange={(e) => onChange({ ...filter, start_date: e.target.value || undefined })}
           className="w-36 h-9"
         />
       </div>
@@ -36,8 +40,8 @@ export function ReturnFilterBar({ filter, suppliers, onChange }: ReturnFilterBar
         <label className="text-xs text-gray-500">Sampai</label>
         <Input
           type="date"
-          value={filter.date_to ?? ''}
-          onChange={(e) => onChange({ ...filter, date_to: e.target.value || undefined })}
+          value={filter.end_date ?? ''}
+          onChange={(e) => onChange({ ...filter, end_date: e.target.value || undefined })}
           className="w-36 h-9"
         />
       </div>
@@ -79,6 +83,15 @@ export function ReturnFilterBar({ filter, suppliers, onChange }: ReturnFilterBar
           </SelectContent>
         </Select>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onReset}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
+      </Button>
     </div>
   )
 }

@@ -35,7 +35,7 @@ export function SalesReportTab() {
     date_to: todayStr(),
   })
 
-  const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
+  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
 
   const { data, isLoading } = useSalesReportQuery({ ...filter, page, page_size: pageSize })
@@ -47,7 +47,7 @@ export function SalesReportTab() {
 
   return (
     <div className="space-y-4">
-      <SalesReportFilterBar filter={filter} onChange={setFilter} exportData={items} />
+      <SalesReportFilterBar filter={filter} onChange={setFilter} onReset={reset} exportData={items} />
 
       <div className="grid grid-cols-3 gap-3">
         <SummaryCard

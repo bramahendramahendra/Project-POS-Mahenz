@@ -26,20 +26,12 @@ export function SupplierFilterBar({ filter, onChange, onReset }: SupplierFilterB
 
   useEffect(() => {
     onChange({ ...filter, search: debouncedSearch ?? '' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch])
 
-  const handleStatusChange = (value: string) => {
-    const is_active = value === 'all' ? undefined : value === 'true'
-    onChange({ ...filter, is_active })
-  }
-
-  const statusValue =
-    filter.is_active === undefined ? 'all' : filter.is_active ? 'true' : 'false'
-
-  const hasFilter = !!search || filter.is_active !== undefined
-
   return (
-    <div className="flex items-center gap-2 rounded-lg border bg-white p-3">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
+      {/* Search */}
       <div className="relative min-w-[220px] flex-1">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <Input
@@ -49,27 +41,40 @@ export function SupplierFilterBar({ filter, onChange, onReset }: SupplierFilterB
           className="pl-8 h-9 text-sm"
         />
       </div>
-      <Select value={statusValue} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-36 h-9">
-          <SelectValue />
+
+      {/* Status */}
+      <Select
+        value={filter.is_active === undefined ? 'all' : filter.is_active ? 'active' : 'inactive'}
+        onValueChange={(v) =>
+          onChange({
+            ...filter,
+            is_active: v === 'all' ? undefined : v === 'active',
+          })
+        }
+      >
+        <SelectTrigger className="h-9 w-[160px] text-sm">
+          <SelectValue placeholder="Semua Status" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Status</SelectItem>
-          <SelectItem value="true">Aktif</SelectItem>
-          <SelectItem value="false">Nonaktif</SelectItem>
+          <SelectItem value="active">Aktif</SelectItem>
+          <SelectItem value="inactive">Nonaktif</SelectItem>
         </SelectContent>
       </Select>
-      {hasFilter && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => { setSearch(''); onReset() }}
-          className="h-9 gap-1"
-        >
-          <RotateCcw size={13} />
-          Reset
-        </Button>
-      )}
+
+      {/* Reset */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          setSearch('')
+          onReset()
+        }}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
+      </Button>
     </div>
   )
 }

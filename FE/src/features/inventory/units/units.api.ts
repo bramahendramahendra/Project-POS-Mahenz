@@ -33,7 +33,6 @@ export function useCreateUnitMutation() {
     mutationFn: (payload: CreateUnitPayload) => api.post<Unit>('/units/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
-      toast.success('Satuan berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -46,7 +45,6 @@ export function useUpdateUnitMutation() {
       api.post<Unit>(`/units/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
-      toast.success('Satuan berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

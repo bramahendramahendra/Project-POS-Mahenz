@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -38,13 +39,16 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
   })
 
   useEffect(() => {
-    if (open) {
-      reset(defaultValues)
-    } else {
-      setPendingValues(null)
-      setIsConfirming(false)
-    }
-  }, [open, reset])
+    if (!open) return
+    reset(defaultValues)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: CloseCashDrawerFormValues) => {
     setPendingValues(values)
@@ -62,8 +66,8 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
       },
       {
         onSuccess: () => {
-          setIsConfirming(false)
-          onOpenChange(false)
+          toast.success('Kas berhasil ditutup')
+          handleClose()
         },
       }
     )
@@ -74,8 +78,7 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title="Tutup Kas Hari Ini"
         size="sm"
@@ -119,10 +122,7 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title="Tutup Kas"
         description="Yakin ingin menutup kas hari ini? Tindakan ini tidak dapat dibatalkan."

@@ -71,7 +71,8 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
         notes: '',
       })
     }
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   function handleBayarLunas() {
     if (purchase) setValue('amount', purchase.remaining_amount)

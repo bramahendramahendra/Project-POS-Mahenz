@@ -30,4 +30,11 @@ export interface CreateExpensePayload {
   notes?: string
 }
 
-export type UpdateExpensePayload = Partial<CreateExpensePayload>
+export interface UpdateExpensePayload {
+  expense_date: string
+  category: ExpenseCategory
+  description: string
+  amount: number
+  payment_method: ExpensePaymentMethod
+  notes?: string
+}

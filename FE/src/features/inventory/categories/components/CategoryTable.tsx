@@ -137,7 +137,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
           onPageSizeChange,
           pageSizeOptions,
         }}
-       
       />
 
       <CategoryFormModal

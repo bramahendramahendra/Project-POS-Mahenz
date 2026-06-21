@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -32,7 +33,14 @@ export function OpenShiftModal({ open, onOpenChange }: OpenShiftModalProps) {
 
   useEffect(() => {
     if (!open) reset({ opening_balance: 0, notes: '' })
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  const handleClose = () => {
+    setConfirmOpen(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: OpenShiftFormValues) => {
     setPendingValues(values)
@@ -45,8 +53,8 @@ export function OpenShiftModal({ open, onOpenChange }: OpenShiftModalProps) {
       { opening_balance: pendingValues.opening_balance, notes: pendingValues.notes || undefined },
       {
         onSuccess: () => {
-          setConfirmOpen(false)
-          onOpenChange(false)
+          toast.success('Shift berhasil dibuka')
+          handleClose()
         },
       }
     )
@@ -55,8 +63,10 @@ export function OpenShiftModal({ open, onOpenChange }: OpenShiftModalProps) {
   return (
     <>
       <FormModal
-        open={open}
-        onOpenChange={onOpenChange}
+        open={open && !confirmOpen}
+        onOpenChange={(val) => {
+          if (!val) handleClose()
+        }}
         title="Buka Shift Baru"
         size="sm"
         isLoading={isPending}
@@ -89,7 +99,9 @@ export function OpenShiftModal({ open, onOpenChange }: OpenShiftModalProps) {
 
       <ConfirmDialog
         open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        onOpenChange={(val) => {
+          if (!val) handleClose()
+        }}
         title="Buka Shift Baru"
         description={`Mulai shift baru dengan modal awal Rp ${(pendingValues?.opening_balance ?? 0).toLocaleString('id-ID')}?`}
         confirmLabel="Ya, Buka Shift"

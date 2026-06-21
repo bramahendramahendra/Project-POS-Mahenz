@@ -151,7 +151,12 @@ export function PurchasesPage() {
         }
       />
 
-      <PurchaseFilterBar filter={filter} suppliers={suppliers} onChange={setFilter} />
+      <PurchaseFilterBar
+        filter={filter}
+        suppliers={suppliers}
+        onChange={setFilter}
+        onReset={() => setFilter({ start_date: monthStartString(), end_date: todayString() })}
+      />
 
       <PurchaseTable
         data={purchases}

@@ -1,3 +1,6 @@
+import { RotateCcw } from 'lucide-react'
+
+import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import {
   Select,
@@ -13,9 +16,10 @@ import { EXPENSE_CATEGORIES } from '../expenses.schema'
 interface ExpenseFilterBarProps {
   filter: ExpenseListFilter
   onChange: (filter: ExpenseListFilter) => void
+  onReset: () => void
 }
 
-export function ExpenseFilterBar({ filter, onChange }: ExpenseFilterBarProps) {
+export function ExpenseFilterBar({ filter, onChange, onReset }: ExpenseFilterBarProps) {
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
@@ -57,6 +61,15 @@ export function ExpenseFilterBar({ filter, onChange }: ExpenseFilterBarProps) {
           </SelectContent>
         </Select>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onReset}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
+      </Button>
     </div>
   )
 }

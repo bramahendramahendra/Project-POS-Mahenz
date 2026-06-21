@@ -1,7 +1,7 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
-import { RoleGuard } from '@/shared/components'
+import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -10,10 +10,11 @@ import type { Customer } from '../customers.types'
 export interface CustomerColumnHandlers {
   onEdit: (customer: Customer) => void
   onDelete: (customer: Customer) => void
+  onToggleStatus: (id: number, isActive: boolean) => void
 }
 
 export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDef<Customer>[] {
-  const { onEdit, onDelete } = handlers
+  const { onEdit, onDelete, onToggleStatus } = handlers
 
   return [
     {
@@ -29,6 +30,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
     {
       key: 'name',
       header: 'Nama Pelanggan',
+      sortable: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
     },
     {
@@ -52,10 +54,18 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
         ),
     },
     {
+      key: 'is_active',
+      header: 'Status',
+      align: 'center',
+      width: '100px',
+      sortable: true,
+      cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
+    },
+    {
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '100px',
+      width: '120px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
           <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
@@ -67,6 +77,15 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
               title="Edit"
             >
               <Pencil size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
+              onClick={() => onToggleStatus(row.id, row.is_active)}
+              title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+            >
+              {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}
             </Button>
           </RoleGuard>
           <RoleGuard allowedRoles={[ROLES.OWNER]}>

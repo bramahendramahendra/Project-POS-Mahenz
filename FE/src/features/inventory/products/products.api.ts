@@ -153,7 +153,6 @@ export function useCreateProductMutation() {
     mutationFn: (payload: CreateProductPayload) => api.post<Product>('/products/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
-      toast.success('Produk berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -166,7 +165,6 @@ export function useUpdateProductMutation() {
       api.post<Product>(`/products/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
-      toast.success('Produk berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

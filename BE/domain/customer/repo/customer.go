@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"fmt"
-
 	dto "pos_api/domain/customer/dto"
 	model "pos_api/domain/customer/model"
 )
@@ -10,7 +8,6 @@ import (
 const (
 	countCustomersBase         = `SELECT COUNT(*) FROM customers WHERE 1=1`
 	getAllCustomersQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, notes, is_active, created_at FROM customers WHERE 1=1`
-	getAllCustomersOrder       = ` ORDER BY name ASC`
 	getActiveCustomerListQuery = `SELECT id, name, customer_code, credit_limit FROM customers WHERE is_active = 1 ORDER BY name`
 	getCustomerByIDQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, notes, is_active, created_at FROM customers WHERE id = ? LIMIT 1`
 	checkCustomerHasReceivable = `SELECT COUNT(*) FROM receivables WHERE customer_id = ? AND status != 'paid'`
@@ -51,7 +48,21 @@ func (r *customerRepo) GetAll(req *dto.GetAllRequest) ([]*model.Customer, int64,
 	}
 	offset := (page - 1) * limit
 
-	query := getAllCustomersQuery + conditions + getAllCustomersOrder + fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+	allowedSortColumns := map[string]string{
+		"name":      "name",
+		"is_active": "is_active",
+	}
+	sortCol := "name"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "ASC"
+	if req.SortOrder == "desc" {
+		sortDir = "DESC"
+	}
+
+	query := getAllCustomersQuery + conditions + " ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
+	args = append(args, limit, offset)
 
 	var dataDB []*model.Customer
 	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {

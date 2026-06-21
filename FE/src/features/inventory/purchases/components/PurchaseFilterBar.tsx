@@ -1,3 +1,6 @@
+import { RotateCcw } from 'lucide-react'
+
+import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import {
   Select,
@@ -18,9 +21,10 @@ interface PurchaseFilterBarProps {
   filter: SupplierPurchaseFilter
   suppliers: Supplier[]
   onChange: (filter: SupplierPurchaseFilter) => void
+  onReset: () => void
 }
 
-export function PurchaseFilterBar({ filter, suppliers, onChange }: PurchaseFilterBarProps) {
+export function PurchaseFilterBar({ filter, suppliers, onChange, onReset }: PurchaseFilterBarProps) {
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
@@ -84,6 +88,15 @@ export function PurchaseFilterBar({ filter, suppliers, onChange }: PurchaseFilte
           </SelectContent>
         </Select>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onReset}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
+      </Button>
     </div>
   )
 }

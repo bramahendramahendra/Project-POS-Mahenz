@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -36,11 +37,18 @@ export function CloseShiftModal({ open, onOpenChange, shift }: CloseShiftModalPr
 
   useEffect(() => {
     if (!open) reset({ closing_balance: 0, notes: '' })
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const closingBalance = watch('closing_balance') || 0
   const expected = (shift?.opening_balance ?? 0) + (shift?.total_revenue ?? 0)
   const selisih = closingBalance - expected
+
+  const handleClose = () => {
+    setConfirmOpen(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: CloseShiftFormValues) => {
     setPendingValues(values)
@@ -56,8 +64,8 @@ export function CloseShiftModal({ open, onOpenChange, shift }: CloseShiftModalPr
       },
       {
         onSuccess: () => {
-          setConfirmOpen(false)
-          onOpenChange(false)
+          toast.success('Shift berhasil ditutup')
+          handleClose()
         },
       }
     )
@@ -66,8 +74,10 @@ export function CloseShiftModal({ open, onOpenChange, shift }: CloseShiftModalPr
   return (
     <>
       <FormModal
-        open={open}
-        onOpenChange={onOpenChange}
+        open={open && !confirmOpen}
+        onOpenChange={(val) => {
+          if (!val) handleClose()
+        }}
         title="Tutup Shift"
         size="sm"
         isLoading={isPending}
@@ -138,7 +148,9 @@ export function CloseShiftModal({ open, onOpenChange, shift }: CloseShiftModalPr
 
       <ConfirmDialog
         open={confirmOpen}
-        onOpenChange={setConfirmOpen}
+        onOpenChange={(val) => {
+          if (!val) handleClose()
+        }}
         title="Tutup Shift"
         description={`Shift kasir ${shift?.kasir_name ?? ''} akan ditutup. Tindakan ini tidak dapat dibatalkan. Lanjutkan?`}
         confirmLabel="Ya, Tutup Shift"

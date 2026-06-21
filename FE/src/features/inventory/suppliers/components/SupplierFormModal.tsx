@@ -48,24 +48,27 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
   })
 
   useEffect(() => {
-    if (open) {
-      if (supplier) {
-        reset({
-          name: supplier.name,
-          contact_person: supplier.contact_person ?? '',
-          phone: supplier.phone ?? '',
-          email: supplier.email ?? '',
-          address: supplier.address ?? '',
-          notes: supplier.notes ?? '',
-        })
-      } else {
-        reset(defaultValues)
-      }
+    if (!open) return
+    if (supplier) {
+      reset({
+        name: supplier.name,
+        contact_person: supplier.contact_person ?? '',
+        phone: supplier.phone ?? '',
+        email: supplier.email ?? '',
+        address: supplier.address ?? '',
+        notes: supplier.notes ?? '',
+      })
     } else {
-      setPendingValues(null)
-      setIsConfirming(false)
+      reset(defaultValues)
     }
-  }, [open, supplier, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, supplier])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: SupplierFormValues) => {
     setPendingValues(values)
@@ -81,8 +84,7 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
         {
           onSuccess: () => {
             toast.success('Supplier berhasil diperbarui')
-            setIsConfirming(false)
-            onOpenChange(false)
+            handleClose()
           },
           onError: (error) => toast.error(error.message),
         }
@@ -91,8 +93,7 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
       createSupplier(pendingValues, {
         onSuccess: () => {
           toast.success('Supplier berhasil ditambahkan')
-          setIsConfirming(false)
-          onOpenChange(false)
+          handleClose()
         },
         onError: (error) => toast.error(error.message),
       })
@@ -104,13 +105,13 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Supplier' : 'Tambah Supplier'}
         size="md"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Simpan"
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -176,10 +177,7 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Supplier' : 'Tambah Supplier'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} supplier "${pendingValues?.name}"?`}

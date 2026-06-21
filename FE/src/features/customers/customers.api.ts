@@ -26,7 +26,6 @@ export function useCreateCustomerMutation() {
       api.post<Customer>('/customers/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
-      toast.success('Pelanggan berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -39,7 +38,17 @@ export function useUpdateCustomerMutation() {
       api.post<Customer>(`/customers/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
-      toast.success('Pelanggan berhasil diperbarui')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useToggleCustomerStatusMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/customers/toggle-status/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.customers.all() })
     },
     onError: (e: Error) => toast.error(e.message),
   })

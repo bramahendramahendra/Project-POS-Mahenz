@@ -11,7 +11,7 @@ export interface SupplierColumnHandlers {
   onDetail: (id: number) => void
   onEdit: (supplier: Supplier) => void
   onDelete: (supplier: Supplier) => void
-  onToggleStatus: (supplier: Supplier) => void
+  onToggleStatus: (id: number, isActive: boolean) => void
 }
 
 export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDef<Supplier>[] {
@@ -31,6 +31,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
     {
       key: 'name',
       header: 'Nama Supplier',
+      sortable: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),
@@ -60,6 +61,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
       header: 'Status',
       align: 'center',
       width: '90px',
+      sortable: true,
       cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
     },
     {
@@ -92,7 +94,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
               variant="ghost"
               size="icon"
               className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
-              onClick={() => onToggleStatus(row)}
+              onClick={() => onToggleStatus(row.id, row.is_active)}
               title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
             >
               {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}

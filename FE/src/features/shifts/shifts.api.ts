@@ -36,7 +36,6 @@ export function useOpenShiftMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
       qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })
-      toast.success('Shift berhasil dibuka')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -50,7 +49,6 @@ export function useCloseShiftMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
       qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })
-      toast.success('Shift berhasil ditutup')
     },
     onError: (e: Error) => toast.error(e.message),
   })

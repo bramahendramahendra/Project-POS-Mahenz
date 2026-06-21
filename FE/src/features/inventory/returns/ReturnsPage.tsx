@@ -26,10 +26,8 @@ function todayString() {
 
 export function ReturnsPage() {
   const [filter, setFilter] = useState<SupplierReturnFilter>({
-    date_from: monthStartString(),
-    date_to: todayString(),
-    page: 1,
-    limit: 10,
+    start_date: monthStartString(),
+    end_date: todayString(),
   })
 
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
@@ -142,7 +140,12 @@ export function ReturnsPage() {
         }
       />
 
-      <ReturnFilterBar filter={filter} suppliers={suppliers} onChange={setFilter} />
+      <ReturnFilterBar
+        filter={filter}
+        suppliers={suppliers}
+        onChange={setFilter}
+        onReset={() => setFilter({ start_date: monthStartString(), end_date: todayString() })}
+      />
 
       <ReturnTable
         data={returns}

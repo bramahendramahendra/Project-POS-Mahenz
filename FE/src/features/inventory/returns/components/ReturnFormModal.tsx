@@ -69,7 +69,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       reset(defaultValues)
       setSelectedItems({})
     }
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   useEffect(() => {
     setSelectedItems({})

@@ -1,4 +1,4 @@
-import { Download } from 'lucide-react'
+import { Download, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -11,7 +11,7 @@ import {
 } from '@/shared/components/ui/select'
 
 import type { SalesReport, SalesReportFilter } from '../reports.types'
-import { formatDate } from '../reports.utils'
+import { formatDate, monthStart, todayStr } from '../reports.utils'
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Tunai' },
@@ -45,11 +45,17 @@ function exportCSV(data: SalesReport[], todayDate: string) {
 interface SalesReportFilterBarProps {
   filter: SalesReportFilter
   onChange: (filter: SalesReportFilter) => void
+  onReset: () => void
   exportData: SalesReport[]
 }
 
-export function SalesReportFilterBar({ filter, onChange, exportData }: SalesReportFilterBarProps) {
+export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: SalesReportFilterBarProps) {
   const today = new Date().toISOString().split('T')[0]
+
+  const handleReset = () => {
+    onChange({ date_from: monthStart(), date_to: todayStr() })
+    onReset()
+  }
 
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
@@ -90,6 +96,15 @@ export function SalesReportFilterBar({ filter, onChange, exportData }: SalesRepo
           </SelectContent>
         </Select>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleReset}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
+      </Button>
       <Button
         variant="outline"
         size="sm"

@@ -7,8 +7,7 @@ import (
 
 const (
 	countUnitsQuery = `SELECT COUNT(*) FROM units WHERE 1=1`
-	getAllUnitsQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
-	getAllUnitsOrder               = ` ORDER BY name`
+	getAllUnitsQuery = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
 	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
 	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
@@ -31,6 +30,11 @@ func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) 
 		args = append(args, search)
 	}
 
+	if req.IsActive != nil {
+		conditions += ` AND is_active = ?`
+		args = append(args, *req.IsActive)
+	}
+
 	var total int64
 	if err := r.db.Raw(countUnitsQuery+conditions, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
@@ -46,7 +50,20 @@ func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) 
 	}
 	offset := (page - 1) * limit
 
-	query := getAllUnitsQuery + conditions + getAllUnitsOrder + " LIMIT ? OFFSET ?"
+	allowedSortColumns := map[string]string{
+		"name":      "name",
+		"is_active": "is_active",
+	}
+	sortCol := "name"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "ASC"
+	if req.SortOrder == "desc" {
+		sortDir = "DESC"
+	}
+
+	query := getAllUnitsQuery + conditions + " ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Unit

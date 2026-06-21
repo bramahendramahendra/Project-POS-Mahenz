@@ -73,7 +73,11 @@ export function ShiftsPage() {
         </div>
       )}
 
-      <ShiftFilterBar status={status} onChange={handleStatusChange} />
+      <ShiftFilterBar
+        status={status}
+        onChange={handleStatusChange}
+        onReset={() => { setStatus('all'); reset() }}
+      />
 
       <ShiftTable
         data={shifts}

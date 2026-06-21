@@ -11,15 +11,15 @@ import { useCreateUnitMutation, useUpdateUnitMutation } from '../units.api'
 import type { Unit } from '../units.types'
 import { unitSchema, type UnitFormValues } from '../units.schema'
 
-const defaultValues: UnitFormValues = {
-  name: '',
-  abbreviation: '',
-}
-
 interface UnitFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   unit?: Unit | null
+}
+
+const defaultValues: UnitFormValues = {
+  name: '',
+  abbreviation: '',
 }
 
 export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) {
@@ -43,17 +43,20 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
   })
 
   useEffect(() => {
-    if (open) {
-      if (unit) {
-        reset({ name: unit.name, abbreviation: unit.abbreviation })
-      } else {
-        reset(defaultValues)
-      }
+    if (!open) return
+    if (unit) {
+      reset({ name: unit.name, abbreviation: unit.abbreviation })
     } else {
-      setPendingValues(null)
-      setIsConfirming(false)
+      reset(defaultValues)
     }
-  }, [open, unit, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, unit])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: UnitFormValues) => {
     setPendingValues(values)
@@ -69,8 +72,7 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
         {
           onSuccess: () => {
             toast.success('Satuan berhasil diperbarui')
-            setIsConfirming(false)
-            onOpenChange(false)
+            handleClose()
           },
           onError: (error) => toast.error(error.message),
         }
@@ -79,8 +81,7 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
       createUnit(pendingValues, {
         onSuccess: () => {
           toast.success('Satuan berhasil ditambahkan')
-          setIsConfirming(false)
-          onOpenChange(false)
+          handleClose()
         },
         onError: (error) => toast.error(error.message),
       })
@@ -92,13 +93,13 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Satuan' : 'Tambah Satuan'}
         size="sm"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Simpan"
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -133,10 +134,7 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Satuan' : 'Tambah Satuan'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} satuan "${pendingValues?.name}"?`}

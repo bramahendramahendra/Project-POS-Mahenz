@@ -41,7 +41,6 @@ export function useCreateSupplierMutation() {
     mutationFn: (payload: CreateSupplierPayload) => api.post<Supplier>('/suppliers/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
-      toast.success('Supplier berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -54,7 +53,6 @@ export function useUpdateSupplierMutation() {
       api.post<Supplier>(`/suppliers/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
-      toast.success('Supplier berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

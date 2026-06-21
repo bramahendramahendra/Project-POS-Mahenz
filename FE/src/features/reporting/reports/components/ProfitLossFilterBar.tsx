@@ -1,3 +1,5 @@
+import { RotateCcw } from 'lucide-react'
+
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 
@@ -41,6 +43,15 @@ export function ProfitLossFilterBar({ filter, onChange }: ProfitLossFilterBarPro
         onClick={() => onChange({ date_from: monthStart(), date_to: todayStr() })}
       >
         Bulan ini
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onChange({ date_from: monthStart(), date_to: todayStr() })}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
       </Button>
     </div>
   )

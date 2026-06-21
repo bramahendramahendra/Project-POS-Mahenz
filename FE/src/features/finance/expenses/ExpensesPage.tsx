@@ -83,7 +83,14 @@ export function ExpensesPage() {
         }
       />
 
-      <ExpenseFilterBar filter={filter} onChange={handleFilterChange} />
+      <ExpenseFilterBar
+        filter={filter}
+        onChange={handleFilterChange}
+        onReset={() => {
+          setFilter({ page: 1, limit: 10, start_date: monthStartString(), end_date: todayString() })
+          reset()
+        }}
+      />
 
       <ExpenseTable
         data={items}

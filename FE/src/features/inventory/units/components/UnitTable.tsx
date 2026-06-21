@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import { useUnitListQuery, useDeleteUnitMutation, useToggleUnitStatusMutation } from '../units.api'
 import type { Unit, UnitListFilter } from '../units.types'
@@ -16,6 +17,7 @@ export interface UnitTableHandle {
 
 export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(_, ref) {
   const [filter, setFilter] = useState<UnitListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
@@ -26,7 +28,10 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
   const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
 
-  const { data: unitData, isLoading } = useUnitListQuery({ ...filter, page, limit: pageSize })
+  const { data: unitData, isLoading } = useUnitListQuery({ 
+    ...filter, 
+    page, limit: pageSize, 
+  })
   const units = unitData?.data ?? []
   const total = unitData?.total ?? 0
 
@@ -45,9 +50,9 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     openForm()
   }
 
-  const handleOpenDelete = (unit: Unit) => {
-    setDeletingUnit(unit)
-    openDelete()
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingUnit(null)
   }
 
   const handleFilterChange = (newFilter: UnitListFilter) => {
@@ -57,10 +62,21 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
   const handleReset = () => {
     setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
     resetPage()
   }
 
-  const handleDelete = () => {
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    resetPage()
+  }
+
+  const handleOpenDelete = (unit: Unit) => {
+    setDeletingUnit(unit)
+    openDelete()
+  }
+  const handleConfirmDelete = () => {
     if (!deletingUnit) return
     deleteUnit(deletingUnit.id, {
       onSuccess: () => {
@@ -70,12 +86,14 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     })
   }
 
-  const handleToggleStatus = (row: Unit) => {
-    toggleStatus(row.id, {
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
       onSuccess: () =>
-        toast.success(`Satuan berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
+        toast.success(`Satuan berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
     })
   }
+
+  const hasFilter = !!filter.search || filter.is_active !== undefined
 
   const columns = buildUnitColumns({
     onEdit: handleOpenEdit,
@@ -83,28 +101,40 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     onToggleStatus: handleToggleStatus,
   })
 
-  const hasFilter = !!filter.search
 
   return (
     <div className="space-y-4">
-      <UnitFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
+      <UnitFilterBar 
+        filter={filter} 
+        onChange={handleFilterChange} 
+        onReset={handleReset} 
+      />
 
       <DataTable<Unit & Record<string, unknown>>
         columns={columns}
         data={units as (Unit & Record<string, unknown>)[]}
         isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage={hasFilter ? 'Satuan tidak ditemukan' : 'Belum ada satuan'}
         emptyDescription={
           hasFilter
-            ? 'Coba ubah kata kunci pencarian Anda.'
+            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
             : 'Tambah satuan pertama Anda untuk memulai.'
         }
+        pagination={{ 
+          page, 
+          pageSize, 
+          total, 
+          onPageChange, 
+          onPageSizeChange, 
+          pageSizeOptions,
+        }}
       />
 
       <UnitFormModal
         open={formOpen}
-        onOpenChange={(val) => { if (!val) { closeForm(); setEditingUnit(null) } }}
+        onOpenChange={(val) => { if (!val) handleCloseForm() }}
         unit={editingUnit}
       />
 
@@ -116,7 +146,7 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )

@@ -145,11 +145,13 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     if (open) {
       reset({ payment_method: 'cash', amount_paid: 0 })
     }
-  }, [open, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   useEffect(() => {
     if (isKredit) setValue('amount_paid', 0)
-  }, [isKredit, setValue])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKredit])
 
   const onSubmit = (values: PaymentFormValues) => {
     const effectiveAmountPaid = isKredit ? 0 : (values.amount_paid ?? 0)

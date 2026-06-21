@@ -1,3 +1,5 @@
+import { RotateCcw } from 'lucide-react'
+
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 
@@ -15,9 +17,10 @@ function todayString(): string {
 interface CashDrawerFilterBarProps {
   filter: CashDrawerListFilter
   onChange: (filter: CashDrawerListFilter) => void
+  onReset: () => void
 }
 
-export function CashDrawerFilterBar({ filter, onChange }: CashDrawerFilterBarProps) {
+export function CashDrawerFilterBar({ filter, onChange, onReset }: CashDrawerFilterBarProps) {
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
@@ -47,6 +50,15 @@ export function CashDrawerFilterBar({ filter, onChange }: CashDrawerFilterBarPro
         }
       >
         Bulan ini
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onReset}
+        className="h-9 gap-1"
+      >
+        <RotateCcw size={13} />
+        Reset
       </Button>
     </div>
   )

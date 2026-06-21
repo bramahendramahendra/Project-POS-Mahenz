@@ -1,9 +1,15 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
-import { useCustomerListQuery, useDeleteCustomerMutation } from '../customers.api'
+import {
+  useCustomerListQuery,
+  useDeleteCustomerMutation,
+  useToggleCustomerStatusMutation,
+} from '../customers.api'
 import type { Customer, CustomerListFilter } from '../customers.types'
 import { CustomerFilterBar } from './CustomerFilterBar'
 import { CustomerFormModal } from './CustomerFormModal'
@@ -15,6 +21,7 @@ export interface CustomerTableHandle {
 
 export const CustomerTable = forwardRef<CustomerTableHandle, object>(function CustomerTable(_, ref) {
   const [filter, setFilter] = useState<CustomerListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
@@ -30,6 +37,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
   const total = customerData?.total ?? 0
 
   const { mutate: deleteCustomer, isPending: isDeleting } = useDeleteCustomerMutation()
+  const { mutate: toggleStatus } = useToggleCustomerStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingCustomer(null)
@@ -37,6 +45,11 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
   }
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingCustomer(null)
+  }
 
   const handleOpenEdit = (customer: Customer) => {
     setEditingCustomer(customer)
@@ -48,13 +61,27 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
     openDelete()
   }
 
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
+      onSuccess: () =>
+        toast.success(`Pelanggan berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
+    })
+  }
+
   const handleFilterChange = (newFilter: CustomerListFilter) => {
     setFilter(newFilter)
     resetPage()
   }
 
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    resetPage()
+  }
+
   const handleReset = () => {
     setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
     resetPage()
   }
 
@@ -71,6 +98,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
   const columns = buildCustomerColumns({
     onEdit: handleOpenEdit,
     onDelete: handleOpenDelete,
+    onToggleStatus: handleToggleStatus,
   })
 
   const hasFilter = !!filter.search || filter.is_active !== undefined
@@ -84,6 +112,8 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
         data={customers as (Customer & Record<string, unknown>)[]}
         isLoading={isLoading}
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage={hasFilter ? 'Pelanggan tidak ditemukan' : 'Belum ada pelanggan'}
         emptyDescription={
           hasFilter
@@ -94,7 +124,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
 
       <CustomerFormModal
         open={formOpen}
-        onOpenChange={(val) => { if (!val) { closeForm(); setEditingCustomer(null) } }}
+        onOpenChange={(val) => { if (!val) handleCloseForm() }}
         customer={editingCustomer}
       />
 

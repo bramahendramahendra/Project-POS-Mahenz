@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Printer } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
@@ -68,6 +69,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
     if (!transactionId) return
     voidTransaction(transactionId, {
       onSuccess: () => {
+        toast.success('Transaksi berhasil dibatalkan')
         setVoidConfirmOpen(false)
         onClose()
       },
@@ -224,7 +226,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
 
       <ConfirmDialog
         open={voidConfirmOpen}
-        onOpenChange={setVoidConfirmOpen}
+        onOpenChange={(val) => { if (!val) setVoidConfirmOpen(false) }}
         title="Batalkan Transaksi"
         description="Transaksi yang dibatalkan tidak dapat dikembalikan. Yakin ingin melanjutkan?"
         confirmLabel="Ya, Batalkan"

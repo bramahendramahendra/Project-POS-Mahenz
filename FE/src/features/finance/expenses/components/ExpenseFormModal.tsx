@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -65,24 +66,27 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
   })
 
   useEffect(() => {
-    if (open) {
-      if (expense) {
-        reset({
-          expense_date: expense.expense_date,
-          category: expense.category,
-          description: expense.description,
-          amount: expense.amount,
-          payment_method: expense.payment_method,
-          notes: expense.notes ?? '',
-        })
-      } else {
-        reset({ ...defaultValues, expense_date: todayString() })
-      }
+    if (!open) return
+    if (expense) {
+      reset({
+        expense_date: expense.expense_date,
+        category: expense.category,
+        description: expense.description,
+        amount: expense.amount,
+        payment_method: expense.payment_method,
+        notes: expense.notes ?? '',
+      })
     } else {
-      setPendingValues(null)
-      setIsConfirming(false)
+      reset({ ...defaultValues, expense_date: todayString() })
     }
-  }, [open, expense, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, expense])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: ExpenseFormValues) => {
     setPendingValues(values)
@@ -98,16 +102,16 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
         { id: expense.id, ...payload },
         {
           onSuccess: () => {
-            setIsConfirming(false)
-            onOpenChange(false)
+            toast.success('Pengeluaran berhasil diperbarui')
+            handleClose()
           },
         }
       )
     } else {
       create(payload, {
         onSuccess: () => {
-          setIsConfirming(false)
-          onOpenChange(false)
+          toast.success('Pengeluaran berhasil ditambahkan')
+          handleClose()
         },
       })
     }
@@ -118,13 +122,13 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}
         size="md"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Simpan"
       >
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -252,10 +256,7 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Pengeluaran' : 'Tambah Pengeluaran'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} pengeluaran "${pendingValues?.description}"?`}

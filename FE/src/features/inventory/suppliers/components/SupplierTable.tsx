@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import { useSupplierListQuery, useDeleteSupplierMutation, useToggleSupplierStatusMutation } from '../suppliers.api'
 import type { Supplier, SupplierListFilter } from '../suppliers.types'
@@ -17,6 +18,7 @@ export interface SupplierTableHandle {
 
 export const SupplierTable = forwardRef<SupplierTableHandle, object>(function SupplierTable(_, ref) {
   const [filter, setFilter] = useState<SupplierListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
@@ -48,6 +50,11 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     openForm()
   }
 
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingSupplier(null)
+  }
+
   const handleOpenDetail = (id: number) => {
     setDetailSupplierId(id)
     openDetailModal()
@@ -65,6 +72,13 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
 
   const handleReset = () => {
     setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    resetPage()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     resetPage()
   }
 
@@ -78,10 +92,10 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     })
   }
 
-  const handleToggleStatus = (row: Supplier) => {
-    toggleStatus(row.id, {
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
       onSuccess: () =>
-        toast.success(`Supplier berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
+        toast.success(`Supplier berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
     })
   }
 
@@ -102,18 +116,20 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
         columns={columns}
         data={suppliers as (Supplier & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         emptyMessage={hasFilter ? 'Supplier tidak ditemukan' : 'Belum ada supplier'}
         emptyDescription={
           hasFilter
-            ? 'Coba ubah kata kunci pencarian Anda.'
+            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
             : 'Tambah supplier pertama Anda untuk memulai.'
         }
       />
 
       <SupplierFormModal
         open={formOpen}
-        onOpenChange={(val) => { if (!val) { closeForm(); setEditingSupplier(null) } }}
+        onOpenChange={(val) => { if (!val) handleCloseForm() }}
         supplier={editingSupplier}
       />
 
