@@ -3,14 +3,8 @@ package repo
 import (
 	dto "pos_api/domain/product_category/dto"
 	model "pos_api/domain/product_category/model"
+	request_helper "pos_api/helper/request"
 )
-
-var allowedCategorySortFields = map[string]string{
-	"name":          "c.name",
-	"product_count": "product_count",
-	"is_active":     "c.is_active",
-	"created_at":    "c.created_at",
-}
 
 const (
 	countCategoriesQuery       = `SELECT COUNT(*) FROM categories c WHERE 1=1`
@@ -61,16 +55,15 @@ func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64,
 	}
 	offset := (page - 1) * limit
 
-	orderBy := getAllCategoriesDefaultSort
-	if col, ok := allowedCategorySortFields[req.SortBy]; ok {
-		dir := "ASC"
-		if req.SortOrder == "desc" {
-			dir = "DESC"
-		}
-		orderBy = " ORDER BY " + col + " " + dir
+	allowedSortFields := map[string]string{
+		"name":          "c.name",
+		"product_count": "product_count",
+		"is_active":     "c.is_active",
+		"created_at":    "c.created_at",
 	}
-
-	query := getAllCategoriesQuery + conditions + getAllCategoriesGroupBy + orderBy + " LIMIT ? OFFSET ?"
+	query := getAllCategoriesQuery + conditions + getAllCategoriesGroupBy
+	query += request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllCategoriesDefaultSort)
+	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Category

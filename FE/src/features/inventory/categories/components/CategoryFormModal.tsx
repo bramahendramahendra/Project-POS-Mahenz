@@ -12,15 +12,15 @@ import { useCreateCategoryMutation, useUpdateCategoryMutation } from '../categor
 import type { Category } from '../categories.types'
 import { categorySchema, type CategoryFormValues } from '../categories.schema'
 
-const defaultValues: CategoryFormValues = {
-  name: '',
-  description: '',
-}
-
 interface CategoryFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   category?: Category | null
+}
+
+const defaultValues: CategoryFormValues = {
+  name: '',
+  description: '',
 }
 
 export function CategoryFormModal({ open, onOpenChange, category }: CategoryFormModalProps) {
@@ -44,17 +44,20 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
   })
 
   useEffect(() => {
-    if (open) {
-      if (category) {
-        reset({ name: category.name, description: category.description ?? '' })
-      } else {
-        reset(defaultValues)
-      }
+    if (!open) return
+    if (category) {
+      reset({ name: category.name, description: category.description ?? '' })
     } else {
-      setPendingValues(null)
-      setIsConfirming(false)
+      reset(defaultValues)
     }
-  }, [open, category, reset])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, category])
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
 
   const onSubmit = (values: CategoryFormValues) => {
     setPendingValues(values)
@@ -70,8 +73,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
         {
           onSuccess: () => {
             toast.success('Kategori berhasil diperbarui')
-            setIsConfirming(false)
-            onOpenChange(false)
+            handleClose()
           },
           onError: (error) => toast.error(error.message),
         }
@@ -80,8 +82,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       createCategory(pendingValues, {
         onSuccess: () => {
           toast.success('Kategori berhasil ditambahkan')
-          setIsConfirming(false)
-          onOpenChange(false)
+          handleClose()
         },
         onError: (error) => toast.error(error.message),
       })
@@ -93,13 +94,13 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Kategori' : 'Tambah Kategori'}
         size="sm"
         isLoading={isPending}
         onSubmit={handleSubmit(onSubmit)}
+        submitLabel="Simpan"
       >
         <div className="space-y-3">
           <div className="space-y-1.5">
@@ -130,10 +131,7 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Kategori' : 'Tambah Kategori'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} kategori "${pendingValues?.name}"?`}

@@ -93,12 +93,14 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     })
   }
 
-  const handleToggleStatus = (row: Category) => {
-    toggleStatus(row.id, {
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
       onSuccess: () =>
-        toast.success(`Kategori berhasil ${row.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
+        toast.success(`Kategori berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
     })
   }
+
+  const hasFilter = filter.search || filter.is_active !== undefined
 
   const columns = buildCategoryColumns({
     onEdit: handleOpenEdit,
@@ -106,7 +108,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     onToggleStatus: handleToggleStatus,
   })
 
-  const hasFilter = filter.search || filter.is_active !== undefined
 
   return (
     <div className="space-y-4">
@@ -122,6 +123,12 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
         isLoading={isLoading}
         currentSort={sortState}
         onSort={handleSort}
+        emptyMessage={hasFilter ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
+        emptyDescription={
+          hasFilter
+            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
+            : 'Tambah kategori pertama Anda untuk memulai.'
+        }
         pagination={{
           page,
           pageSize,
@@ -130,12 +137,7 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
           onPageSizeChange,
           pageSizeOptions,
         }}
-        emptyMessage={hasFilter ? 'Kategori tidak ditemukan' : 'Belum ada kategori'}
-        emptyDescription={
-          hasFilter
-            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
-            : 'Tambah kategori pertama Anda untuk memulai.'
-        }
+       
       />
 
       <CategoryFormModal

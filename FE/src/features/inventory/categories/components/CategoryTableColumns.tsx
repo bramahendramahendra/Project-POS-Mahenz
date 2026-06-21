@@ -10,7 +10,7 @@ import type { Category } from '../categories.types'
 export interface CategoryColumnHandlers {
   onEdit: (category: Category) => void
   onDelete: (category: Category) => void
-  onToggleStatus: (category: Category) => void
+  onToggleStatus: (id: number, isActive: boolean) => void
 }
 
 export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDef<Category>[] {
@@ -22,9 +22,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       header: 'Kode',
       width: '80px',
       cell: (row) => (
-        <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
-          {row.code}
-        </span>
+        <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{row.code}</span>
       ),
     },
     {
@@ -63,7 +61,9 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       align: 'center',
       width: '100px',
       sortable: true,
-      cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
+      cell: (row) => (
+        <StatusBadge status={row.is_active ? 'active' : 'inactive'} />
+      ),
     },
     {
       key: 'actions',
@@ -86,7 +86,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
               variant="ghost"
               size="icon"
               className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
-              onClick={() => onToggleStatus(row)}
+              onClick={() => onToggleStatus(row.id, row.is_active)}
               title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
             >
               {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}

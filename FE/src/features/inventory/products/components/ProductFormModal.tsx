@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Lock, Pencil, Plus, Trash2, Unlock } from 'lucide-react'
@@ -68,7 +68,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   const productId = product?.id
 
   const [generateSkuEnabled, setGenerateSkuEnabled] = useState(false)
-  const [grosirRows, setGrosirRows] = useState<CreateProductPackagePayload[]>([])
+  const [grosirEdits, setGrosirEdits] = useState<CreateProductPackagePayload[] | null>(null)
   const [showGrosirForm, setShowGrosirForm] = useState(false)
   const [editingGrosirIdx, setEditingGrosirIdx] = useState<number | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
@@ -89,15 +89,15 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   const { mutate: savePackages } = useSaveProductPackagesBulkMutation()
   const isPending = isCreating || isUpdating
 
-  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<ProductFormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues,
   })
 
-  const categoryIdValue = watch('category_id')
-  const unitIdValue = watch('unit_id')
-  const purchasePriceValue = watch('purchase_price')
-  const sellingPriceValue = watch('selling_price')
+  const categoryIdValue = useWatch({ control, name: 'category_id' })
+  const unitIdValue = useWatch({ control, name: 'unit_id' })
+  const purchasePriceValue = useWatch({ control, name: 'purchase_price' })
+  const sellingPriceValue = useWatch({ control, name: 'selling_price' })
   const margin = calcMargin(purchasePriceValue, sellingPriceValue)
 
   const { data: barcodeData, isFetching: isFetchingBarcode, refetch: refetchBarcode } = useGenerateBarcodeQuery()
@@ -119,42 +119,42 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   }, [skuData, generateSkuEnabled])
 
   useEffect(() => {
+    if (!open) return
     if (isEdit && detailData) {
       reset(mapProductToForm(detailData))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detailData, isEdit])
-
-  useEffect(() => {
-    if (isEdit && existingPackages.length > 0) {
-      setGrosirRows(
-        existingPackages
-          .filter((p) => !p.is_default)
-          .map((p) => ({
-            unit_id: p.unit_id,
-            package_name: p.package_name,
-            conversion_qty: p.conversion_qty,
-            purchase_price: p.purchase_price,
-            selling_price: p.selling_price,
-            is_default: false,
-          }))
-      )
-    }
-  }, [isEdit, existingPackages])
-
-  useEffect(() => {
-    if (!open) {
+    } else if (!isEdit) {
       reset(defaultValues)
-      setGenerateSkuEnabled(false)
-      setGrosirRows([])
-      setShowGrosirForm(false)
-      setEditingGrosirIdx(null)
-      setPendingValues(null)
-      setIsConfirming(false)
-      setBarcodeLocked(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, detailData, isEdit])
+
+   const handleClose = () => {
+    setGenerateSkuEnabled(false)
+    setGrosirEdits(null)
+    setShowGrosirForm(false)
+    setEditingGrosirIdx(null)
+    setPendingValues(null)
+    setIsConfirming(false)
+    setBarcodeLocked(true)
+    onOpenChange(false)
+  }
+
+  const grosirRows = useMemo<CreateProductPackagePayload[]>(() => {
+    if (grosirEdits !== null) return grosirEdits
+    if (!isEdit || !open) return []
+    return existingPackages
+      .filter((p) => !p.is_default)
+      .map((p) => ({
+        unit_id: p.unit_id,
+        package_name: p.package_name,
+        conversion_qty: p.conversion_qty,
+        purchase_price: p.purchase_price,
+        selling_price: p.selling_price,
+        is_default: false,
+      }))
+  }, [grosirEdits, isEdit, open, existingPackages])
+
+ 
 
   const onSubmit = (values: ProductFormValues) => {
     setPendingValues(values)
@@ -195,8 +195,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
           onSuccess: () => {
             savePackages({ productId, packages: allPackages })
             toast.success('Produk berhasil diperbarui')
-            setIsConfirming(false)
-            onOpenChange(false)
+            handleClose()
           },
           onError: (error) => toast.error(error.message),
         }
@@ -209,8 +208,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             savePackages({ productId: newId, packages: allPackages })
           }
           toast.success('Produk berhasil ditambahkan')
-          setIsConfirming(false)
-          onOpenChange(false)
+          handleClose()
         },
         onError: (error) => toast.error(error.message),
       })
@@ -220,10 +218,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   const handleAddGrosir = (values: GrosirFormValues) => {
     const row: CreateProductPackagePayload = { ...values, is_default: false }
     if (editingGrosirIdx !== null) {
-      setGrosirRows((prev) => prev.map((r, i) => (i === editingGrosirIdx ? row : r)))
+      setGrosirEdits(grosirRows.map((r, i) => (i === editingGrosirIdx ? row : r)))
       setEditingGrosirIdx(null)
     } else {
-      setGrosirRows((prev) => [...prev, row])
+      setGrosirEdits([...grosirRows, row])
     }
     setShowGrosirForm(false)
   }
@@ -235,8 +233,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
       <FormModal
         open={open && !isConfirming}
         onOpenChange={(val) => {
-          if (isConfirming) return
-          onOpenChange(val)
+          if (!val && !isConfirming) handleClose()
         }}
         title={isEdit ? 'Edit Produk' : 'Tambah Produk'}
         size="lg"
@@ -534,7 +531,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 text-gray-500 hover:text-red-600"
-                                onClick={() => setGrosirRows((prev) => prev.filter((_, i) => i !== idx))}
+                                onClick={() => setGrosirEdits(grosirRows.filter((_, i) => i !== idx))}
                               >
                                 <Trash2 size={12} />
                               </Button>
@@ -575,11 +572,8 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
 
       <ConfirmDialog
         open={isConfirming}
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsConfirming(false)
-            setPendingValues(null)
-          }
+        onOpenChange={(val) => {
+          if (!val) handleClose()
         }}
         title={isEdit ? 'Update Produk' : 'Tambah Produk'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} produk "${pendingValues?.name}"?`}

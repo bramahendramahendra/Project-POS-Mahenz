@@ -19,7 +19,7 @@ import { ImportCsvModal } from './ImportCsvModal'
 import { LabelPrintModal } from './LabelPrintModal'
 import { ProductDetailModal } from './ProductDetailModal'
 import { ProductBulkActionBar } from './ProductBulkActionBar'
-import { ProductFilterBar } from './ProductFilter'
+import { ProductFilterBar } from './ProductFilterBar'
 import { ProductFormModal } from './ProductFormModal'
 
 export interface ProductTableHandle {
@@ -82,7 +82,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     setEditingProduct(null)
   }
 
-    const handleFilterChange = (newFilter: ProductListFilter) => {
+  const handleFilterChange = (newFilter: ProductListFilter) => {
     setFilter(newFilter)
     reset()
   }
@@ -141,6 +141,15 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     })
   }
 
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
+      onSuccess: () =>
+        toast.success(`Produk berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
+    })
+  }
+
+  const hasFilter = filter.search || filter.category_id || filter.is_active !== undefined
+
   const columns = buildProductColumns({
     onDetail: handleOpenDetail,
     onEdit: handleOpenEdit,
@@ -149,11 +158,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
       setSingleLabelProduct(product)
       openLabel()
     },
-    onToggleStatus: (id, isActive) =>
-      toggleStatus(id, {
-        onSuccess: () =>
-          toast.success(`Produk berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
-      }),
+    onToggleStatus: handleToggleStatus,
   })
 
   return (
@@ -184,8 +189,12 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
         isLoading={isLoading}
         currentSort={sortState}
         onSort={handleSort}
-        emptyMessage={filter.search || filter.category_id || filter.is_active !== undefined ? 'Produk tidak ditemukan' : 'Belum ada produk'}
-        emptyDescription={filter.search || filter.category_id || filter.is_active !== undefined ? 'Coba ubah filter atau kata kunci pencarian Anda.' : 'Tambah produk pertama Anda untuk memulai.'}
+        emptyMessage={hasFilter ? 'Produk tidak ditemukan' : 'Belum ada produk'}
+        emptyDescription={
+          hasFilter 
+            ? 'Coba ubah filter atau kata kunci pencarian Anda.' 
+            : 'Tambah produk pertama Anda untuk memulai.'
+        }
         pagination={{
           page,
           pageSize,

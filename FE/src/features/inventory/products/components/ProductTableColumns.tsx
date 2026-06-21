@@ -25,7 +25,9 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       key: 'name',
       header: 'Nama Produk',
       sortable: true,
-      cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
+      cell: (row) => (
+        <span className="font-medium text-gray-800">{row.name}</span>
+      ),
     },
     {
       key: 'barcode',
@@ -62,14 +64,18 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       header: 'Harga Beli',
       align: 'right',
       sortable: true,
-      cell: (row) => <span className="text-sm">{formatRupiah(row.purchase_price)}</span>,
+      cell: (row) => (
+        <span className="text-sm">{formatRupiah(row.purchase_price)}</span>
+      ),
     },
     {
       key: 'selling_price',
       header: 'Harga Jual',
       align: 'right',
       sortable: true,
-      cell: (row) => <span className="font-medium">{formatRupiah(row.selling_price)}</span>,
+      cell: (row) => (
+        <span className="font-medium">{formatRupiah(row.selling_price)}</span>
+      ),
     },
     {
       key: 'margin',
@@ -129,7 +135,9 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       header: 'Status',
       align: 'center',
       width: '90px',
-      cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
+      cell: (row) => (
+        <StatusBadge status={row.is_active ? 'active' : 'inactive'} />
+      ),
     },
     {
       key: 'actions',
