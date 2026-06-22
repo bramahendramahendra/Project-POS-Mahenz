@@ -1,11 +1,16 @@
 package dto
 
+import "time"
+
 type (
 	// REQUEST
 	GetAllRequest struct {
-		Page   int    `json:"page"`
-		Limit  int    `json:"limit"`
-		Search string `json:"search" validate:"max=100"`
+		Page      int    `json:"page"`
+		Limit     int    `json:"limit"`
+		Search    string `json:"search" validate:"max=100"`
+		IsActive  *bool  `json:"is_active"`
+		SortBy    string `json:"sort_by"`
+		SortOrder string `json:"sort_order"`
 	}
 
 	GetByIDRequest struct {
@@ -39,11 +44,12 @@ type (
 
 	// RESPONSE
 	ShiftResponse struct {
-		ID        int    `json:"id"`
-		Name      string `json:"name"`
-		StartTime string `json:"start_time"`
-		EndTime   string `json:"end_time"`
-		IsActive  bool   `json:"is_active"`
+		ID        int       `json:"id"`
+		Name      string    `json:"name"`
+		StartTime string    `json:"start_time"`
+		EndTime   string    `json:"end_time"`
+		IsActive  bool      `json:"is_active"`
+		CreatedAt time.Time `json:"created_at"`
 	}
 
 	ShiftActiveResponse struct {

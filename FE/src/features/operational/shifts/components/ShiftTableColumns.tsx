@@ -1,4 +1,7 @@
-import { Badge } from '@/shared/components/ui/badge'
+import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
+
+import { ROLES } from '@/shared/constants'
+import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -8,15 +11,20 @@ import { formatShiftTime } from '../shifts.utils'
 interface ShiftColumnHandlers {
   onEdit: (shift: Shift) => void
   onDelete: (shift: Shift) => void
-  onToggleStatus: (shift: Shift) => void
+  onToggleStatus: (id: number, isActive: boolean) => void
 }
 
-export function buildShiftColumns({ onEdit, onDelete, onToggleStatus }: ShiftColumnHandlers): ColumnDef<Shift>[] {
+export function buildShiftColumns(handlers: ShiftColumnHandlers): ColumnDef<Shift>[] {
+  const { onEdit, onDelete, onToggleStatus } = handlers
+
   return [
     {
       key: 'name',
       header: 'Nama Shift',
-      cell: (row) => <span className="font-medium">{row.name}</span>,
+      sortable: true,
+      cell: (row) => (
+        <span className="font-medium text-gray-800">{row.name}</span>
+      ),
     },
     {
       key: 'start_time',
@@ -29,48 +37,50 @@ export function buildShiftColumns({ onEdit, onDelete, onToggleStatus }: ShiftCol
       key: 'is_active',
       header: 'Status',
       align: 'center',
-      cell: (row) =>
-        row.is_active ? (
-          <Badge variant="default" className="bg-green-600">Aktif</Badge>
-        ) : (
-          <Badge variant="secondary">Nonaktif</Badge>
-        ),
+      width: '100px',
+      sortable: true,
+      cell: (row) => (
+        <StatusBadge status={row.is_active ? 'active' : 'inactive'} />
+      ),
     },
     {
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '160px',
+      width: '120px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 px-3 text-xs"
-            onClick={() => onEdit(row)}
-          >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className={`h-7 px-3 text-xs ${
-              row.is_active
-                ? 'text-yellow-600 border-yellow-200 hover:bg-yellow-50'
-                : 'text-green-600 border-green-200 hover:bg-green-50'
-            }`}
-            onClick={() => onToggleStatus(row)}
-          >
-            {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-            onClick={() => onDelete(row)}
-          >
-            Hapus
-          </Button>
+          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-500 hover:text-blue-600"
+              onClick={() => onEdit(row)}
+              title="Edit"
+            >
+              <Pencil size={14} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
+              onClick={() => onToggleStatus(row.id, row.is_active)}
+              title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+            >
+              {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}
+            </Button>
+          </RoleGuard>
+          <RoleGuard allowedRoles={[ROLES.OWNER]}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-500 hover:text-red-600"
+              onClick={() => onDelete(row)}
+              title="Hapus"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </RoleGuard>
         </div>
       ),
     },

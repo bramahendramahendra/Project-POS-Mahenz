@@ -9,8 +9,8 @@ import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 
 import { useCreateCategoryMutation, useUpdateCategoryMutation } from '../categories.api'
-import type { Category } from '../categories.types'
 import { categorySchema, type CategoryFormValues } from '../categories.schema'
+import type { Category } from '../categories.types'
 
 interface CategoryFormModalProps {
   open: boolean

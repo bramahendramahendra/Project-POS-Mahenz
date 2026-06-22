@@ -7,10 +7,10 @@ import type { PaginatedData } from '@/shared/types'
 
 import type { Shift, ShiftFormPayload, ShiftListFilter, ShiftOption } from './shifts.types'
 
-export function useShiftListQuery(filter?: ShiftListFilter) {
+export function useShiftListQuery(filter: ShiftListFilter) {
   return useQuery({
     queryKey: queryKeys.shifts.list(filter as unknown as Record<string, unknown>),
-    queryFn: () => api.post<PaginatedData<Shift>>('/shifts/list', filter ?? {}),
+    queryFn: () => api.post<PaginatedData<Shift>>('/shifts/list', filter),
   })
 }
 
@@ -58,6 +58,7 @@ export function useDeleteShiftMutation() {
     mutationFn: (id: number) => api.post<void>(`/shifts/delete/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
+      toast.success('Shift berhasil dihapus')
     },
     onError: (e: Error) => toast.error(e.message),
   })

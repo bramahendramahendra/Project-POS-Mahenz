@@ -7,10 +7,13 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
 
+import { useShiftOptionsQuery } from '@/features/operational/shifts'
+
 import { useCashDrawerCurrentQuery } from './cash-drawer.api'
 import { CashDrawerTable } from './components/CashDrawerTable'
 import { OpenCashDrawerModal } from './components/OpenCashDrawerModal'
 import { CloseCashDrawerModal } from './components/CloseCashDrawerModal'
+import { ShiftPrerequisiteGuard } from './components/ShiftPrerequisiteGuard'
 
 export function CashDrawerPage() {
   const { user } = useAuthStore()
@@ -22,6 +25,9 @@ export function CashDrawerPage() {
   const { data: currentData } = useCashDrawerCurrentQuery()
   const currentDrawer = currentData ?? null
   const isOpen = currentDrawer?.status === 'open'
+
+  const { data: shiftsRaw } = useShiftOptionsQuery()
+  const hasShifts = (shiftsRaw ?? []).length > 0
 
   return (
     <div className="space-y-4">
@@ -55,14 +61,18 @@ export function CashDrawerPage() {
               {isOpen && isAdminOrOwner ? (
                 <Button onClick={() => setCloseModalOpen(true)}>Tutup Kas</Button>
               ) : !isOpen ? (
-                <Button onClick={() => setOpenModalOpen(true)}>Buka Kas</Button>
+                <Button onClick={() => setOpenModalOpen(true)} disabled={!hasShifts}>
+                  Buka Kas
+                </Button>
               ) : null}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <CashDrawerTable />
+      <ShiftPrerequisiteGuard>
+        <CashDrawerTable />
+      </ShiftPrerequisiteGuard>
 
       <OpenCashDrawerModal
         open={openModalOpen}

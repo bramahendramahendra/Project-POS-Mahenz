@@ -20,6 +20,7 @@ func (s *shiftService) GetAll(req *dto.GetAllRequest) (data []dto.ShiftResponse,
 			StartTime: v.StartTime,
 			EndTime:   v.EndTime,
 			IsActive:  v.IsActive,
+			CreatedAt: v.CreatedAt,
 		})
 	}
 
@@ -59,6 +60,7 @@ func (s *shiftService) GetByID(id int) (data dto.ShiftResponse, err error) {
 		StartTime: dataDB.StartTime,
 		EndTime:   dataDB.EndTime,
 		IsActive:  dataDB.IsActive,
+		CreatedAt: dataDB.CreatedAt,
 	}
 
 	return data, nil
@@ -86,6 +88,7 @@ func (s *shiftService) Create(req *dto.CreateRequest) (data dto.ShiftResponse, e
 		StartTime: dataDB.StartTime,
 		EndTime:   dataDB.EndTime,
 		IsActive:  dataDB.IsActive,
+		CreatedAt: dataDB.CreatedAt,
 	}
 
 	return data, nil

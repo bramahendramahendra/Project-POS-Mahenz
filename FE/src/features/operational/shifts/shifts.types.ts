@@ -4,6 +4,7 @@ export interface Shift {
   start_time: string
   end_time: string
   is_active: boolean
+  created_at: string
 }
 
 export interface ShiftOption {
@@ -16,7 +17,10 @@ export interface ShiftOption {
 export interface ShiftListFilter {
   page: number
   limit: number
-  search?: string
+  search: string
+  is_active?: boolean
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface ShiftFormPayload {

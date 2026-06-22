@@ -3,12 +3,13 @@ package repo
 import (
 	dto "pos_api/domain/shift/dto"
 	model "pos_api/domain/shift/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
 	countShiftsQuery       = `SELECT COUNT(*) FROM shifts WHERE 1=1`
-	getAllShiftsQuery      = `SELECT id, name, start_time, end_time, is_active FROM shifts WHERE 1=1`
-	getAllShiftsOrder      = ` ORDER BY start_time`
+	getAllShiftsQuery       = `SELECT id, name, start_time, end_time, is_active, created_at FROM shifts WHERE 1=1`
+	getAllShiftsDefaultSort = ` ORDER BY start_time`
 	getActiveShiftsQuery   = `SELECT id, name, start_time, end_time FROM shifts WHERE is_active = 1 ORDER BY start_time`
 	getShiftByIDQuery      = `SELECT id, name, start_time, end_time, is_active, created_at FROM shifts WHERE id = ? LIMIT 1`
 	checkShiftUsedQuery    = `SELECT COUNT(*) FROM cash_drawer WHERE shift_id = ? AND status = 'open'`
@@ -30,6 +31,11 @@ func (r *shiftRepo) GetAll(req *dto.GetAllRequest) ([]*model.Shift, int64, error
 		args = append(args, search)
 	}
 
+	if req.IsActive != nil {
+		conditions += ` AND is_active = ?`
+		args = append(args, *req.IsActive)
+	}
+
 	var total int64
 	if err := r.db.Raw(countShiftsQuery+conditions, args...).Scan(&total).Error; err != nil {
 		return nil, 0, err
@@ -45,7 +51,15 @@ func (r *shiftRepo) GetAll(req *dto.GetAllRequest) ([]*model.Shift, int64, error
 	}
 	offset := (page - 1) * limit
 
-	query := getAllShiftsQuery + conditions + getAllShiftsOrder + " LIMIT ? OFFSET ?"
+	allowedSortFields := map[string]string{
+		"name":       "name",
+		"start_time": "start_time",
+		"is_active":  "is_active",
+		"created_at": "created_at",
+	}
+	query := getAllShiftsQuery + conditions
+	query += request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllShiftsDefaultSort)
+	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Shift

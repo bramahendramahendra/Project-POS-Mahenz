@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import {
   useShiftListQuery,
@@ -19,18 +20,23 @@ export interface ShiftTableHandle {
 }
 
 export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTable(_, ref) {
-  const [filter, setFilter] = useState<ShiftListFilter>({ page: 1, limit: 10 })
+  const [filter, setFilter] = useState<ShiftListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
-  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination({ initialPageSize: 10 })
+  const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
   const [editingShift, setEditingShift] = useState<Shift | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Shift | null>(null)
+  const [deletingShift, setDeletingShift] = useState<Shift | null>(null)
 
-  const { data: shiftData, isLoading } = useShiftListQuery({ ...filter, page, limit: pageSize })
+  const { data: shiftData, isLoading } = useShiftListQuery({ 
+    ...filter, 
+    page, 
+    limit: pageSize,
+  })
   const shifts = shiftData?.data ?? []
   const total = shiftData?.total ?? 0
 
@@ -56,38 +62,44 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
 
   const handleFilterChange = (newFilter: ShiftListFilter) => {
     setFilter(newFilter)
-    reset()
+    resetPage()
   }
 
   const handleReset = () => {
-    setFilter({ page: 1, limit: 10 })
-    reset()
+    setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    resetPage()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    resetPage()
   }
 
   const handleOpenDelete = (shift: Shift) => {
-    setDeleteTarget(shift)
+    setDeletingShift(shift)
     openDelete()
   }
 
   const handleConfirmDelete = () => {
-    if (!deleteTarget) return
-    deleteShift(deleteTarget.id, {
+    if (!deletingShift) return
+    deleteShift(deletingShift.id, {
       onSuccess: () => {
-        toast.success('Shift berhasil dihapus')
         closeDelete()
-        setDeleteTarget(null)
+        setDeletingShift(null)
       },
     })
   }
 
-  const handleToggleStatus = (shift: Shift) => {
-    toggleStatus(shift.id, {
+  const handleToggleStatus = (id: number, isActive: boolean) => {
+    toggleStatus(id, {
       onSuccess: () =>
-        toast.success(`Shift berhasil ${shift.is_active ? 'dinonaktifkan' : 'diaktifkan'}`),
+        toast.success(`Shift berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
     })
   }
 
-  const hasFilter = !!filter.search
+  const hasFilter = !!filter.search || filter.is_active !== undefined
 
   const columns = buildShiftColumns({
     onEdit: handleOpenEdit,
@@ -97,19 +109,32 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
 
   return (
     <div className="space-y-4">
-      <ShiftFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
+      <ShiftFilterBar
+        filter={filter}
+        onChange={handleFilterChange}
+        onReset={handleReset}
+      />
 
       <DataTable<Shift & Record<string, unknown>>
         columns={columns}
         data={shifts as (Shift & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage={hasFilter ? 'Shift tidak ditemukan' : 'Belum ada data shift'}
         emptyDescription={
           hasFilter
-            ? 'Coba ubah kata kunci pencarian Anda.'
+            ? 'Coba ubah kata kunci atau filter pencarian Anda.'
             : 'Tambah shift pertama untuk memulai.'
         }
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange,
+          onPageSizeChange,
+          pageSizeOptions,
+        }}
       />
 
       <ShiftFormModal
@@ -120,9 +145,9 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeleteTarget(null) } }}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingShift(null) } }}
         title="Hapus Shift"
-        description={`Yakin ingin menghapus shift "${deleteTarget?.name}"? Tindakan ini tidak bisa dibatalkan.`}
+        description={`Yakin ingin menghapus shift "${deletingShift?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
