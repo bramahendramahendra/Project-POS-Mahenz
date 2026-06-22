@@ -5,6 +5,7 @@ import { Pencil, Settings, Shield, Trash2 } from 'lucide-react'
 import { ConfirmDialog, PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
+import { Switch } from '@/shared/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { Input } from '@/shared/components/ui/input'
 import { useDebounce } from '@/shared/hooks'
@@ -87,13 +88,11 @@ export function RolesPage() {
                   }
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => !role.is_system && toggleStatus(role.id)}
+                  <Switch
+                    checked={role.is_active}
+                    onCheckedChange={() => toggleStatus(role.id)}
                     disabled={role.is_system}
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${role.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'} disabled:cursor-not-allowed`}
-                  >
-                    {role.is_active ? 'Aktif' : 'Nonaktif'}
-                  </button>
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
