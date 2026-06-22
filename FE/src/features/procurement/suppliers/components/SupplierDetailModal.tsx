@@ -12,30 +12,6 @@ interface SupplierDetailModalProps {
   supplierId?: number
 }
 
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  paid: 'Lunas',
-  unpaid: 'Hutang',
-  partial: 'Bayar Sebagian',
-}
-
-const PAYMENT_STATUS_COLOR: Record<string, string> = {
-  paid: 'bg-green-100 text-green-700',
-  unpaid: 'bg-red-100 text-red-700',
-  partial: 'bg-yellow-100 text-yellow-700',
-}
-
-const RETURN_STATUS_LABEL: Record<string, string> = {
-  pending: 'Pending',
-  approved: 'Disetujui',
-  rejected: 'Ditolak',
-}
-
-const RETURN_STATUS_COLOR: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  approved: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-}
-
 type TabKey = 'pembelian' | 'retur'
 
 export function SupplierDetailModal({ open, onOpenChange, supplierId }: SupplierDetailModalProps) {
@@ -150,18 +126,7 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
                           <td className="px-2 py-1.5 text-gray-600">{formatDate(p.purchase_date)}</td>
                           <td className="px-2 py-1.5">{formatRupiah(p.total_amount)}</td>
                           <td className="px-2 py-1.5">
-                            {(() => {
-                              const status = p.payment_status || 'unpaid'
-                              return (
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${
-                                    PAYMENT_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'
-                                  }`}
-                                >
-                                  {PAYMENT_STATUS_LABEL[status] ?? status}
-                                </span>
-                              )
-                            })()}
+                            <StatusBadge status={p.payment_status} size="sm" />
                           </td>
                           <td className="px-2 py-1.5">
                             {p.remaining_amount > 0
@@ -202,18 +167,7 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
                             {r.reason || '—'}
                           </td>
                           <td className="px-2 py-1.5">
-                            {(() => {
-                              const status = r.status || 'pending'
-                              return (
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${
-                                    RETURN_STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600'
-                                  }`}
-                                >
-                                  {RETURN_STATUS_LABEL[status] ?? status}
-                                </span>
-                              )
-                            })()}
+                            <StatusBadge status={r.status} size="sm" />
                           </td>
                         </tr>
                       ))}

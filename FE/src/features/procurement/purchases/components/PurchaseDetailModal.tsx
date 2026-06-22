@@ -1,21 +1,14 @@
-import { FormModal, SummaryCard } from '@/shared/components'
+import { FormModal, StatusBadge, SummaryCard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatDate, formatRupiah } from '@/shared/utils'
 
 import { useSupplierPurchaseDetailQuery, useSupplierPurchasePaymentsQuery } from '../purchases.api'
-import type { PaymentStatus } from '../purchases.types'
-
 interface PurchaseDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   purchaseId: number | null
 }
 
-const STATUS_BADGE: Record<PaymentStatus, { label: string; className: string }> = {
-  paid:    { label: 'Lunas',          className: 'bg-green-100 text-green-700' },
-  unpaid:  { label: 'Hutang',         className: 'bg-red-100 text-red-700' },
-  partial: { label: 'Bayar Sebagian', className: 'bg-yellow-100 text-yellow-700' },
-}
 
 export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: PurchaseDetailModalProps) {
   const enabled = open && (purchaseId ?? 0) > 0
@@ -28,9 +21,6 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
   )
 
   const isLoading = loadingPurchase || loadingPayments
-  const statusBadge = purchase
-    ? (STATUS_BADGE[purchase.payment_status] ?? { label: purchase.payment_status, className: 'bg-gray-100 text-gray-600' })
-    : null
 
   return (
     <FormModal
@@ -60,9 +50,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
             <InfoField label="Supplier" value={purchase.supplier_name || '—'} />
             <InfoField label="Dicatat Oleh" value={purchase.user_name || '—'} />
             <InfoField label="Status">
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge?.className}`}>
-                {statusBadge?.label}
-              </span>
+              <StatusBadge status={purchase.payment_status} />
             </InfoField>
             {purchase.notes && (
               <div className="col-span-2">

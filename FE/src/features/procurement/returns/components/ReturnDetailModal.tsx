@@ -2,14 +2,13 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
-import { ConfirmDialog, FormModal, RoleGuard } from '@/shared/components'
+import { ConfirmDialog, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
 import { formatRupiah } from '@/shared/utils'
 
 import { useSupplierReturnDetailQuery, useUpdateSupplierReturnStatusMutation } from '../returns.api'
-import type { SupplierReturn } from '../returns.types'
 
 interface ReturnDetailModalProps {
   returnId: number | null
@@ -17,17 +16,6 @@ interface ReturnDetailModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-const STATUS_CLASS: Record<SupplierReturn['status'], string> = {
-  pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  approved: 'bg-green-100 text-green-700 border-green-200',
-  rejected: 'bg-red-100 text-red-700 border-red-200',
-}
-
-const STATUS_LABEL: Record<SupplierReturn['status'], string> = {
-  pending: 'Pending',
-  approved: 'Disetujui',
-  rejected: 'Ditolak',
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('id-ID', {
@@ -110,11 +98,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
               <DetailField label="Tanggal" value={formatDate(detail.return_date)} />
               <DetailField label="Supplier" value={detail.supplier_name} />
               <DetailField label="Status">
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${STATUS_CLASS[detail.status]}`}
-                >
-                  {STATUS_LABEL[detail.status]}
-                </span>
+                <StatusBadge status={detail.status} />
               </DetailField>
               <DetailField label="Alasan" value={detail.reason} />
               <DetailField label="Dibuat oleh" value={detail.user_name} />

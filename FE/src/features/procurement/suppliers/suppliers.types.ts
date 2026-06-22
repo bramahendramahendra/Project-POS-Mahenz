@@ -16,7 +16,7 @@ export interface SupplierPurchaseItem {
   purchase_code: string
   purchase_date: string
   total_amount: number
-  payment_status: string
+  payment_status: 'paid' | 'unpaid' | 'partial'
   remaining_amount: number
 }
 
@@ -26,7 +26,7 @@ export interface SupplierReturnHistoryItem {
   return_date: string
   total_return: number
   reason: string
-  status: string
+  status: 'pending' | 'approved' | 'rejected'
 }
 
 export interface SupplierDetail {

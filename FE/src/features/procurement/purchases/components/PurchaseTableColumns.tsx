@@ -1,11 +1,12 @@
 import { Eye, Trash2 } from 'lucide-react'
 
+import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Supplier } from '../../suppliers/suppliers.types'
-import type { PaymentStatus, SupplierPurchase } from '../purchases.types'
+import type { SupplierPurchase } from '../purchases.types'
 
 export interface PurchaseColumnHandlers {
   onDetail: (purchase: SupplierPurchase) => void
@@ -21,11 +22,6 @@ function formatDate(dateStr: string): string {
   })
 }
 
-const STATUS_BADGE: Record<PaymentStatus, { label: string; className: string }> = {
-  paid:    { label: 'Lunas',          className: 'bg-green-100 text-green-700' },
-  unpaid:  { label: 'Hutang',         className: 'bg-red-100 text-red-700' },
-  partial: { label: 'Bayar Sebagian', className: 'bg-yellow-100 text-yellow-700' },
-}
 
 export function buildPurchaseColumns(
   handlers: PurchaseColumnHandlers,
@@ -75,19 +71,7 @@ export function buildPurchaseColumns(
       key: 'payment_status',
       header: 'Status',
       align: 'center',
-      cell: (row) => {
-        const s = STATUS_BADGE[row.payment_status] ?? {
-          label: row.payment_status,
-          className: 'bg-gray-100 text-gray-600',
-        }
-        return (
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${s.className}`}
-          >
-            {s.label}
-          </span>
-        )
-      },
+      cell: (row) => <StatusBadge status={row.payment_status} />,
     },
     {
       key: 'remaining_amount',

@@ -8,6 +8,8 @@ type StatusType =
   | 'paid'
   | 'unpaid'
   | 'partial'
+  | 'approved'
+  | 'rejected'
   | 'open'
   | 'closed'
   | 'synced'
@@ -29,8 +31,10 @@ const STATUS_MAP: Record<StatusType, { label: string; className: string }> = {
   pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   processing: { label: 'Diproses', className: 'bg-blue-100 text-blue-700 border-blue-200' },
   paid: { label: 'Lunas', className: 'bg-green-100 text-green-700 border-green-200' },
-  unpaid: { label: 'Belum Lunas', className: 'bg-red-100 text-red-700 border-red-200' },
-  partial: { label: 'Sebagian', className: 'bg-orange-100 text-orange-700 border-orange-200' },
+  unpaid: { label: 'Hutang', className: 'bg-red-100 text-red-700 border-red-200' },
+  partial: { label: 'Bayar Sebagian', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  approved: { label: 'Disetujui', className: 'bg-green-100 text-green-700 border-green-200' },
+  rejected: { label: 'Ditolak', className: 'bg-red-100 text-red-700 border-red-200' },
   open: { label: 'Buka', className: 'bg-blue-100 text-blue-700 border-blue-200' },
   closed: { label: 'Tutup', className: 'bg-gray-100 text-gray-600 border-gray-200' },
   synced: { label: 'Tersinkron', className: 'bg-green-100 text-green-700 border-green-200' },
