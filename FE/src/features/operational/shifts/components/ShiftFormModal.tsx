@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { TimePickerInput } from '@/shared/components/ui/TimePickerInput'
 
 import { useCreateShiftMutation, useUpdateShiftMutation } from '../shifts.api'
 import { shiftFormSchema, type ShiftFormValues } from '../shifts.schema'
@@ -37,6 +38,7 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<ShiftFormValues>({
     resolver: zodResolver(shiftFormSchema),
@@ -121,11 +123,16 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
               <Label htmlFor="shift-start">
                 Jam Mulai <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="shift-start"
-                type="time"
-                {...register('start_time')}
-                className={errors.start_time ? 'border-red-500' : ''}
+              <Controller
+                control={control}
+                name="start_time"
+                render={({ field }) => (
+                  <TimePickerInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    hasError={!!errors.start_time}
+                  />
+                )}
               />
               {errors.start_time && (
                 <p className="text-xs text-red-500">{errors.start_time.message}</p>
@@ -136,11 +143,16 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
               <Label htmlFor="shift-end">
                 Jam Selesai <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="shift-end"
-                type="time"
-                {...register('end_time')}
-                className={errors.end_time ? 'border-red-500' : ''}
+              <Controller
+                control={control}
+                name="end_time"
+                render={({ field }) => (
+                  <TimePickerInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    hasError={!!errors.end_time}
+                  />
+                )}
               />
               {errors.end_time && (
                 <p className="text-xs text-red-500">{errors.end_time.message}</p>
