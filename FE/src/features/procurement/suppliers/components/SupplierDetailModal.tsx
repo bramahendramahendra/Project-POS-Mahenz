@@ -1,7 +1,6 @@
-import { useState } from 'react'
-
 import { DetailField, FormModal, StatusBadge, SummaryCard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { formatDate, formatRupiah } from '@/shared/utils'
 
 import { useSupplierDetailQuery } from '../suppliers.api'
@@ -12,12 +11,9 @@ interface SupplierDetailModalProps {
   supplierId?: number
 }
 
-type TabKey = 'pembelian' | 'retur'
-
 export function SupplierDetailModal({ open, onOpenChange, supplierId }: SupplierDetailModalProps) {
   const enabled = open && (supplierId ?? 0) > 0
   const { data: supplier, isLoading } = useSupplierDetailQuery(enabled ? (supplierId as number) : 0)
-  const [activeTab, setActiveTab] = useState<TabKey>('pembelian')
 
   return (
     <FormModal
@@ -86,96 +82,85 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
           </div>
 
           {/* Tabs */}
-          <div className="border-t pt-3 space-y-2">
-            <div className="flex gap-1 border-b">
-              {(['pembelian', 'retur'] as TabKey[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-                    activeTab === tab
-                      ? 'border-b-2 border-blue-600 text-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab === 'pembelian' ? `Riwayat Pembelian (${supplier.purchase_history.length})` : `Riwayat Retur (${supplier.return_history.length})`}
-                </button>
-              ))}
-            </div>
+          <div className="border-t pt-3">
+            <Tabs defaultValue="pembelian">
+              <TabsList>
+                <TabsTrigger value="pembelian">
+                  Riwayat Pembelian ({supplier.purchase_history.length})
+                </TabsTrigger>
+                <TabsTrigger value="retur">
+                  Riwayat Retur ({supplier.return_history.length})
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Tab Pembelian */}
-            {activeTab === 'pembelian' && (
-              supplier.purchase_history.length === 0 ? (
-                <p className="text-xs text-gray-400 py-2">Belum ada riwayat pembelian.</p>
-              ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {['Kode', 'Tanggal', 'Total', 'Status', 'Sisa'].map((h) => (
-                          <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {supplier.purchase_history.map((p) => (
-                        <tr key={p.id} className="border-t">
-                          <td className="px-2 py-1.5 font-mono">{p.purchase_code}</td>
-                          <td className="px-2 py-1.5 text-gray-600">{formatDate(p.purchase_date)}</td>
-                          <td className="px-2 py-1.5">{formatRupiah(p.total_amount)}</td>
-                          <td className="px-2 py-1.5">
-                            <StatusBadge status={p.payment_status} size="sm" />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            {p.remaining_amount > 0
-                              ? formatRupiah(p.remaining_amount)
-                              : <span className="text-gray-400">—</span>}
-                          </td>
+              <TabsContent value="pembelian">
+                {supplier.purchase_history.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Belum ada riwayat pembelian.</p>
+                ) : (
+                  <div className="rounded-md border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {['Kode', 'Tanggal', 'Total', 'Status', 'Sisa'].map((h) => (
+                            <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            )}
+                      </thead>
+                      <tbody>
+                        {supplier.purchase_history.map((p) => (
+                          <tr key={p.id} className="border-t">
+                            <td className="px-2 py-1.5 font-mono">{p.purchase_code}</td>
+                            <td className="px-2 py-1.5 text-gray-600">{formatDate(p.purchase_date)}</td>
+                            <td className="px-2 py-1.5">{formatRupiah(p.total_amount)}</td>
+                            <td className="px-2 py-1.5">
+                              <StatusBadge status={p.payment_status} size="sm" />
+                            </td>
+                            <td className="px-2 py-1.5">
+                              {p.remaining_amount > 0
+                                ? formatRupiah(p.remaining_amount)
+                                : <span className="text-gray-400">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
 
-            {/* Tab Retur */}
-            {activeTab === 'retur' && (
-              supplier.return_history.length === 0 ? (
-                <p className="text-xs text-gray-400 py-2">Belum ada riwayat retur.</p>
-              ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {['Kode', 'Tanggal', 'Total Retur', 'Alasan', 'Status'].map((h) => (
-                          <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {supplier.return_history.map((r) => (
-                        <tr key={r.id} className="border-t">
-                          <td className="px-2 py-1.5 font-mono">{r.return_code}</td>
-                          <td className="px-2 py-1.5 text-gray-600">{formatDate(r.return_date)}</td>
-                          <td className="px-2 py-1.5">{formatRupiah(r.total_return)}</td>
-                          <td className="px-2 py-1.5 max-w-[120px] truncate text-gray-600" title={r.reason}>
-                            {r.reason || '—'}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <StatusBadge status={r.status} size="sm" />
-                          </td>
+              <TabsContent value="retur">
+                {supplier.return_history.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Belum ada riwayat retur.</p>
+                ) : (
+                  <div className="rounded-md border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {['Kode', 'Tanggal', 'Total Retur', 'Alasan', 'Status'].map((h) => (
+                            <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-            )}
+                      </thead>
+                      <tbody>
+                        {supplier.return_history.map((r) => (
+                          <tr key={r.id} className="border-t">
+                            <td className="px-2 py-1.5 font-mono">{r.return_code}</td>
+                            <td className="px-2 py-1.5 text-gray-600">{formatDate(r.return_date)}</td>
+                            <td className="px-2 py-1.5">{formatRupiah(r.total_return)}</td>
+                            <td className="px-2 py-1.5 max-w-[120px] truncate text-gray-600" title={r.reason}>
+                              {r.reason || '—'}
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <StatusBadge status={r.status} size="sm" />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="flex justify-end border-t pt-3">

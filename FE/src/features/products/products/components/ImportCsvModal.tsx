@@ -3,6 +3,7 @@ import { Download, Upload } from 'lucide-react'
 
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import {
   useImportPreviewMutation,
   useImportProductsBulkMutation,
@@ -17,8 +18,6 @@ interface ImportCsvModalProps {
 }
 
 type FilterView = 'all' | 'valid' | 'error'
-type ActiveTab = 'produk' | 'grosir'
-
 
 export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -26,7 +25,7 @@ export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
   const [grosirRows, setGrosirRows] = useState<ImportPreviewGrosirRow[]>([])
   const [fileName, setFileName] = useState('')
   const [filterView, setFilterView] = useState<FilterView>('all')
-  const [activeTab, setActiveTab] = useState<ActiveTab>('produk')
+  const [activeTab, setActiveTab] = useState<'produk' | 'grosir'>('produk')
 
   const { mutate: fetchPreview, isPending: isLoadingPreview } = useImportPreviewMutation()
   const { mutate: importBulk, isPending: isImporting } = useImportProductsBulkMutation()
@@ -171,190 +170,168 @@ export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
 
         {/* Tabs */}
         {rows.length > 0 && (
-          <div className="flex border-b text-sm">
-            <button
-              type="button"
-              onClick={() => setActiveTab('produk')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                activeTab === 'produk'
-                  ? 'border-gray-800 text-gray-800'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Produk
-              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${validRows.length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                {rows.length}
-              </span>
-            </button>
-            {grosirRows.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('grosir')}
-                className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                  activeTab === 'grosir'
-                    ? 'border-gray-800 text-gray-800'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Grosir
-                <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${validGrosirRows.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {grosirRows.length}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'produk' | 'grosir')}>
+            <TabsList>
+              <TabsTrigger value="produk">
+                Produk
+                <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${validRows.length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {rows.length}
                 </span>
-              </button>
-            )}
-          </div>
-        )}
+              </TabsTrigger>
+              {grosirRows.length > 0 && (
+                <TabsTrigger value="grosir">
+                  Grosir
+                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-xs ${validGrosirRows.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                    {grosirRows.length}
+                  </span>
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-        {/* Stats + filter */}
-        {rows.length > 0 && (
-          <div className="flex items-center gap-3 text-sm flex-wrap">
-            {activeTab === 'produk' ? (
-              <>
+            <TabsContent value="produk" className="space-y-2">
+              {/* Stats + filter */}
+              <div className="flex items-center gap-3 text-sm flex-wrap">
                 <span className="text-gray-500">Total: <strong>{rows.length}</strong></span>
                 <span className="text-green-600">Valid: <strong>{validRows.length}</strong></span>
                 {invalidRows.length > 0 && (
                   <span className="text-red-500">Error: <strong>{invalidRows.length}</strong></span>
                 )}
-              </>
-            ) : (
-              <>
+                <div className="ml-auto flex gap-1">
+                  {(['all', 'valid', 'error'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFilterView(f)}
+                      className={`rounded px-2 py-0.5 text-xs border ${
+                        filterView === f
+                          ? 'bg-gray-800 text-white border-gray-800'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {f === 'all' ? 'Semua' : f === 'valid' ? 'Valid' : 'Error'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview table */}
+              <div className="max-h-64 overflow-y-auto rounded-md border text-xs">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-gray-50">
+                    <tr>
+                      {['No', 'Produk', 'Barcode', 'Kategori', 'H.Beli', 'H.Jual', 'Margin', 'Stok', 'Stok Min', 'Satuan', 'Status'].map((h) => (
+                        <th key={h} className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayRows.map((row) => (
+                      <React.Fragment key={row.no}>
+                        <tr className={row.valid ? 'bg-green-50' : 'bg-red-50'}>
+                          <td className="px-2 py-1.5 text-gray-400">{row.no}</td>
+                          <td className="px-2 py-1.5 font-medium">{row.nama || '—'}</td>
+                          <td className="px-2 py-1.5 font-mono">{row.barcode || <span className="text-gray-400 italic">auto</span>}</td>
+                          <td className="px-2 py-1.5">{row.kategori || '—'}</td>
+                          <td className="px-2 py-1.5 text-right">{row.harga_beli.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5 text-right">{row.harga_jual.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5 text-center">
+                            <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                              row.margin >= 30 ? 'bg-green-100 text-green-700'
+                                : row.margin >= 15 ? 'bg-amber-100 text-amber-700'
+                                  : row.margin > 0 ? 'bg-red-100 text-red-600'
+                                    : 'bg-gray-100 text-gray-400'
+                            }`}>
+                              {row.margin}%
+                            </span>
+                          </td>
+                          <td className="px-2 py-1.5 text-right">{row.stok}</td>
+                          <td className="px-2 py-1.5 text-right">{row.stok_minimum}</td>
+                          <td className="px-2 py-1.5">{row.satuan || '—'}</td>
+                          <td className="px-2 py-1.5">
+                            {row.valid ? <span className="text-green-600 font-medium">✓</span> : <span className="text-red-500">✗</span>}
+                          </td>
+                        </tr>
+                        {(row.errors.length > 0 || row.warnings.length > 0) && (
+                          <tr className={row.errors.length > 0 ? 'bg-red-50' : 'bg-yellow-50'}>
+                            <td colSpan={11} className="px-2 pb-1.5 text-xs">
+                              {row.errors.length > 0 && <span className="text-red-600">↳ {row.errors.join(' · ')}</span>}
+                              {row.warnings.length > 0 && (
+                                <span className="text-amber-600">{row.errors.length > 0 ? '  ' : '↳ '}{row.warnings.join(' · ')}</span>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="grosir" className="space-y-2">
+              {/* Stats + filter */}
+              <div className="flex items-center gap-3 text-sm flex-wrap">
                 <span className="text-gray-500">Total: <strong>{grosirRows.length}</strong></span>
                 <span className="text-green-600">Valid: <strong>{validGrosirRows.length}</strong></span>
                 {invalidGrosirRows.length > 0 && (
                   <span className="text-red-500">Error: <strong>{invalidGrosirRows.length}</strong></span>
                 )}
-              </>
-            )}
-            <div className="ml-auto flex gap-1">
-              {(['all', 'valid', 'error'] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFilterView(f)}
-                  className={`rounded px-2 py-0.5 text-xs border ${
-                    filterView === f
-                      ? 'bg-gray-800 text-white border-gray-800'
-                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {f === 'all' ? 'Semua' : f === 'valid' ? 'Valid' : 'Error'}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Preview table — Produk */}
-        {rows.length > 0 && activeTab === 'produk' && (
-          <div className="max-h-64 overflow-y-auto rounded-md border text-xs">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-gray-50">
-                <tr>
-                  {['No', 'Produk', 'Barcode', 'Kategori', 'H.Beli', 'H.Jual', 'Margin', 'Stok', 'Stok Min', 'Satuan', 'Status'].map((h) => (
-                    <th key={h} className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">
-                      {h}
-                    </th>
+                <div className="ml-auto flex gap-1">
+                  {(['all', 'valid', 'error'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFilterView(f)}
+                      className={`rounded px-2 py-0.5 text-xs border ${
+                        filterView === f
+                          ? 'bg-gray-800 text-white border-gray-800'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {f === 'all' ? 'Semua' : f === 'valid' ? 'Valid' : 'Error'}
+                    </button>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {displayRows.map((row) => (
-                  <React.Fragment key={row.no}>
-                    <tr className={row.valid ? 'bg-green-50' : 'bg-red-50'}>
-                      <td className="px-2 py-1.5 text-gray-400">{row.no}</td>
-                      <td className="px-2 py-1.5 font-medium">{row.nama || '—'}</td>
-                      <td className="px-2 py-1.5 font-mono">{row.barcode || <span className="text-gray-400 italic">auto</span>}</td>
-                      <td className="px-2 py-1.5">{row.kategori || '—'}</td>
-                      <td className="px-2 py-1.5 text-right">{row.harga_beli.toLocaleString('id-ID')}</td>
-                      <td className="px-2 py-1.5 text-right">{row.harga_jual.toLocaleString('id-ID')}</td>
-                      <td className="px-2 py-1.5 text-center">
-                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                          row.margin >= 30
-                            ? 'bg-green-100 text-green-700'
-                            : row.margin >= 15
-                              ? 'bg-amber-100 text-amber-700'
-                              : row.margin > 0
-                                ? 'bg-red-100 text-red-600'
-                                : 'bg-gray-100 text-gray-400'
-                        }`}>
-                          {row.margin}%
-                        </span>
-                      </td>
-                      <td className="px-2 py-1.5 text-right">{row.stok}</td>
-                      <td className="px-2 py-1.5 text-right">{row.stok_minimum}</td>
-                      <td className="px-2 py-1.5">{row.satuan || '—'}</td>
-                      <td className="px-2 py-1.5">
-                        {row.valid ? (
-                          <span className="text-green-600 font-medium">✓</span>
-                        ) : (
-                          <span className="text-red-500">✗</span>
-                        )}
-                      </td>
-                    </tr>
-                    {(row.errors.length > 0 || row.warnings.length > 0) && (
-                      <tr className={row.errors.length > 0 ? 'bg-red-50' : 'bg-yellow-50'}>
-                        <td colSpan={11} className="px-2 pb-1.5 text-xs">
-                          {row.errors.length > 0 && (
-                            <span className="text-red-600">↳ {row.errors.join(' · ')}</span>
-                          )}
-                          {row.warnings.length > 0 && (
-                            <span className="text-amber-600">{row.errors.length > 0 ? '  ' : '↳ '}{row.warnings.join(' · ')}</span>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </div>
+              </div>
 
-        {/* Preview table — Grosir */}
-        {grosirRows.length > 0 && activeTab === 'grosir' && (
-          <div className="max-h-64 overflow-y-auto rounded-md border text-xs">
-            <table className="w-full">
-              <thead className="sticky top-0 bg-gray-50">
-                <tr>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">No Produk</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">Nama Paket</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">Satuan</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">Konversi</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">H.Beli</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">H.Jual</th>
-                  <th className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayGrosirRows.map((row, i) => (
-                  <React.Fragment key={i}>
-                    <tr className={row.valid ? 'bg-green-50' : 'bg-red-50'}>
-                      <td className="px-2 py-1.5">{row.no_produk || '—'}</td>
-                      <td className="px-2 py-1.5 font-medium">{row.nama_paket || '—'}</td>
-                      <td className="px-2 py-1.5">{row.satuan || '—'}</td>
-                      <td className="px-2 py-1.5 text-right">{row.konversi}</td>
-                      <td className="px-2 py-1.5 text-right">{row.harga_beli.toLocaleString('id-ID')}</td>
-                      <td className="px-2 py-1.5 text-right">{row.harga_jual.toLocaleString('id-ID')}</td>
-                      <td className="px-2 py-1.5">
-                        {row.valid ? (
-                          <span className="text-green-600 font-medium">✓</span>
-                        ) : (
-                          <span className="text-red-500">✗</span>
-                        )}
-                      </td>
+              {/* Preview table */}
+              <div className="max-h-64 overflow-y-auto rounded-md border text-xs">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-gray-50">
+                    <tr>
+                      {['No Produk', 'Nama Paket', 'Satuan', 'Konversi', 'H.Beli', 'H.Jual', 'Status'].map((h) => (
+                        <th key={h} className="px-2 py-2 text-left font-medium text-gray-600 whitespace-nowrap">{h}</th>
+                      ))}
                     </tr>
-                    {row.errors.length > 0 && (
-                      <tr className="bg-red-50">
-                        <td colSpan={7} className="px-2 pb-1.5 text-xs">
-                          <span className="text-red-600">↳ {row.errors.join(' · ')}</span>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {displayGrosirRows.map((row, i) => (
+                      <React.Fragment key={i}>
+                        <tr className={row.valid ? 'bg-green-50' : 'bg-red-50'}>
+                          <td className="px-2 py-1.5">{row.no_produk || '—'}</td>
+                          <td className="px-2 py-1.5 font-medium">{row.nama_paket || '—'}</td>
+                          <td className="px-2 py-1.5">{row.satuan || '—'}</td>
+                          <td className="px-2 py-1.5 text-right">{row.konversi}</td>
+                          <td className="px-2 py-1.5 text-right">{row.harga_beli.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5 text-right">{row.harga_jual.toLocaleString('id-ID')}</td>
+                          <td className="px-2 py-1.5">
+                            {row.valid ? <span className="text-green-600 font-medium">✓</span> : <span className="text-red-500">✗</span>}
+                          </td>
+                        </tr>
+                        {row.errors.length > 0 && (
+                          <tr className="bg-red-50">
+                            <td colSpan={7} className="px-2 pb-1.5 text-xs">
+                              <span className="text-red-600">↳ {row.errors.join(' · ')}</span>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </FormModal>
