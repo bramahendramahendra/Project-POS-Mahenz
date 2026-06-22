@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { Product } from '@/features/inventory/products'
+import type { Product } from '@/features/products/products'
 
 import type { CheckoutResponse, PaymentPayload, ProductSearchResult } from './cashier.types'
 
@@ -24,7 +24,7 @@ export function useProductBarcodeSearchQuery(code: string, enabled: boolean) {
 }
 
 export { useCustomerListQuery } from '@/features/customers'
-export { useActiveShiftQuery } from '@/features/shifts'
+export { useActiveShiftQuery } from '@/features/operational/shifts'
 
 export function useCustomerCreditQuery(customerId: number | null) {
   return useQuery({

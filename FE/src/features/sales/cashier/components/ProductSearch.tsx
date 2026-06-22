@@ -7,7 +7,7 @@ import { Input } from '@/shared/components/ui/input'
 import { formatRupiah } from '@/shared/utils'
 import { queryKeys } from '@/shared/constants'
 import { api } from '@/services'
-import type { Product, ProductPackage, PriceTier } from '@/features/inventory/products'
+import type { Product, ProductPackage, PriceTier } from '@/features/products/products'
 
 import { useCashierStore } from '../cashier.store'
 import { getApplicablePrice } from '../cashier.utils'

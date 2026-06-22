@@ -51,3 +51,12 @@ export function toISODate(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
+
+export function todayStr(): string {
+  return toISODate(new Date())
+}
+
+export function monthStart(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}

@@ -13,15 +13,17 @@ const CashierPage      = lazy(() => import('@/features/sales/cashier/CashierPage
 const TransactionsPage = lazy(() => import('@/features/sales/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })))
 
 // Customers
-const CustomersPage    = lazy(() => import('@/features/customers/CustomersPage').then(m => ({ default: m.CustomersPage })))
+const CustomersPage    = lazy(() => import('@/features/customers/customers/CustomersPage').then(m => ({ default: m.CustomersPage })))
 
-// Inventory
-const ProductsPage     = lazy(() => import('@/features/inventory/products/ProductsPage').then(m => ({ default: m.ProductsPage })))
-const CategoryPage     = lazy(() => import('@/features/inventory/categories/CategoryPage').then(m => ({ default: m.CategoryPage })))
-const UnitPage         = lazy(() => import('@/features/inventory/units/UnitPage').then(m => ({ default: m.UnitPage })))
-const SuppliersPage    = lazy(() => import('@/features/inventory/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })))
-const PurchasesPage = lazy(() => import('@/features/inventory/purchases/PurchasesPage').then(m => ({ default: m.PurchasesPage })))
-const ReturnsPage   = lazy(() => import('@/features/inventory/returns/ReturnsPage').then(m => ({ default: m.ReturnsPage })))
+// Products
+const ProductsPage     = lazy(() => import('@/features/products/products/ProductsPage').then(m => ({ default: m.ProductsPage })))
+const CategoryPage     = lazy(() => import('@/features/products/categories/CategoryPage').then(m => ({ default: m.CategoryPage })))
+const UnitPage         = lazy(() => import('@/features/products/units/UnitPage').then(m => ({ default: m.UnitPage })))
+
+// Procurement
+const SuppliersPage    = lazy(() => import('@/features/procurement/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })))
+const PurchasesPage    = lazy(() => import('@/features/procurement/purchases/PurchasesPage').then(m => ({ default: m.PurchasesPage })))
+const ReturnsPage      = lazy(() => import('@/features/procurement/returns/ReturnsPage').then(m => ({ default: m.ReturnsPage })))
 
 // Finance
 const FinancePage           = lazy(() => import('@/features/finance/overview/FinancePage').then(m => ({ default: m.FinancePage })))
@@ -29,26 +31,25 @@ const CashDrawerPage        = lazy(() => import('@/features/finance/cash-drawer/
 const CashDrawerRekapPage   = lazy(() => import('@/features/finance/cash-drawer/CashDrawerRekapPage').then(m => ({ default: m.CashDrawerRekapPage })))
 const MyCashPage            = lazy(() => import('@/features/finance/my-cash/MyCashPage').then(m => ({ default: m.MyCashPage })))
 const ExpensesPage          = lazy(() => import('@/features/finance/expenses/ExpensesPage').then(m => ({ default: m.ExpensesPage })))
-const ReceivablesPage       = lazy(() => import('@/features/finance/receivables/ReceivablesPage').then(m => ({ default: m.ReceivablesPage })))
+const ReceivablesPage       = lazy(() => import('@/features/customers/receivables/ReceivablesPage').then(m => ({ default: m.ReceivablesPage })))
 
 // Reporting
-const DashboardPage         = lazy(() => import('@/features/reporting/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })))
-const ReportsPage           = lazy(() => import('@/features/reporting/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
-const SalesReportPage       = lazy(() => import('@/features/reporting/reports/SalesReportPage').then(m => ({ default: m.SalesReportPage })))
-const ProfitLossPage        = lazy(() => import('@/features/reporting/reports/ProfitLossPage').then(m => ({ default: m.ProfitLossPage })))
-const StockReportPage       = lazy(() => import('@/features/reporting/reports/StockReportPage').then(m => ({ default: m.StockReportPage })))
-const CashierPerformancePage = lazy(() => import('@/features/reporting/reports/CashierPerformancePage').then(m => ({ default: m.CashierPerformancePage })))
+const DashboardPage          = lazy(() => import('@/features/reporting/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const SalesReportPage        = lazy(() => import('@/features/reporting/sales/SalesReportPage').then(m => ({ default: m.SalesReportPage })))
+const ProfitLossPage         = lazy(() => import('@/features/reporting/profit-loss/ProfitLossPage').then(m => ({ default: m.ProfitLossPage })))
+const StockReportPage        = lazy(() => import('@/features/reporting/stock/StockReportPage').then(m => ({ default: m.StockReportPage })))
+const CashierPerformancePage = lazy(() => import('@/features/reporting/cashier-performance/CashierPerformancePage').then(m => ({ default: m.CashierPerformancePage })))
 
 // Operational
-const ShiftsPage       = lazy(() => import('@/features/shifts/ShiftsPage').then(m => ({ default: m.ShiftsPage })))
-const SyncCenterPage   = lazy(() => import('@/features/sync/SyncCenterPage').then(m => ({ default: m.SyncCenterPage })))
+const ShiftsPage       = lazy(() => import('@/features/operational/shifts/ShiftsPage').then(m => ({ default: m.ShiftsPage })))
+const SyncCenterPage   = lazy(() => import('@/features/operational/sync/SyncCenterPage').then(m => ({ default: m.SyncCenterPage })))
 
 // Settings
 const SettingsPage         = lazy(() => import('@/features/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
-const StoreProfilePage     = lazy(() => import('@/features/settings/StoreProfilePage').then(m => ({ default: m.StoreProfilePage })))
-const UserManagementPage   = lazy(() => import('@/features/settings/UserManagementPage').then(m => ({ default: m.UserManagementPage })))
-const PrinterSettingsPage  = lazy(() => import('@/features/settings/PrinterSettingsPage').then(m => ({ default: m.PrinterSettingsPage })))
-const AppVersionPage       = lazy(() => import('@/features/settings/AppVersionPage').then(m => ({ default: m.AppVersionPage })))
+const StoreProfilePage     = lazy(() => import('@/features/settings/store/StoreProfilePage').then(m => ({ default: m.StoreProfilePage })))
+const UserManagementPage   = lazy(() => import('@/features/settings/users/UserManagementPage').then(m => ({ default: m.UserManagementPage })))
+const PrinterSettingsPage  = lazy(() => import('@/features/settings/printer/PrinterSettingsPage').then(m => ({ default: m.PrinterSettingsPage })))
+const AppVersionPage       = lazy(() => import('@/features/settings/versions/AppVersionPage').then(m => ({ default: m.AppVersionPage })))
 const RolesPage            = lazy(() => import('@/features/settings/roles/RolesPage').then(m => ({ default: m.RolesPage })))
 const RoleAccessPage       = lazy(() => import('@/features/settings/roles/RoleAccessPage').then(m => ({ default: m.RoleAccessPage })))
 const MenusPage            = lazy(() => import('@/features/settings/menus/MenusPage').then(m => ({ default: m.MenusPage })))
@@ -99,7 +100,6 @@ export const router = createBrowserRouter([
       { path: ROUTES.FINANCE_EXPENSES,          element: <LazyRoute><ExpensesPage /></LazyRoute> },
 
       // Laporan
-      { path: ROUTES.REPORTS,           element: <LazyRoute><ReportsPage /></LazyRoute> },
       { path: ROUTES.REPORTS_SALES,     element: <LazyRoute><SalesReportPage /></LazyRoute> },
       { path: ROUTES.REPORTS_PROFIT_LOSS, element: <LazyRoute><ProfitLossPage /></LazyRoute> },
       { path: ROUTES.REPORTS_STOCK,     element: <LazyRoute><StockReportPage /></LazyRoute> },

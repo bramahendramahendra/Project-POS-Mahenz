@@ -3,7 +3,7 @@ import { Bell, LogOut, Menu } from 'lucide-react'
 
 import { useLogoutMutation } from '@/features/auth/auth.api'
 import { useAuth } from '@/features/auth/hooks/useAuth'
-import { useSyncStatus } from '@/features/sync'
+import { useSyncStatus } from '@/features/operational/sync'
 import { config, ROLES } from '@/shared/constants'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar'

@@ -1,5 +1,5 @@
 export { cn } from './cn'
 export { formatRupiah, parseRupiah, formatNumber } from './currency'
-export { formatDate, formatDateTime, formatRelative, toISODate } from './date'
+export { formatDate, formatDateTime, formatRelative, toISODate, todayStr, monthStart } from './date'
 export { truncate, capitalize, slugify } from './string'
 export { clamp, roundTo, percentage } from './number'

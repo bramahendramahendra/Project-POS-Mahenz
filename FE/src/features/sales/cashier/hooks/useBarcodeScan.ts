@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { Product, ProductPackage } from '@/features/inventory/products'
+import type { Product, ProductPackage } from '@/features/products/products'
 
 export const useBarcodeScan = () => {
   const [isScanning, setIsScanning] = useState(false)

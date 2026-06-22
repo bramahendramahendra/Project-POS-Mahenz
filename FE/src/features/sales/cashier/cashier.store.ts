@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { Product, ProductPackage } from '@/features/inventory/products'
+import type { Product, ProductPackage } from '@/features/products/products'
 
 import type { CartItem, Discount, DiscountType, Tax } from './cashier.types'
 import { calcDiscountAmount, calcItemSubtotal, calcTaxAmount, calculateItemDiscount } from './cashier.utils'

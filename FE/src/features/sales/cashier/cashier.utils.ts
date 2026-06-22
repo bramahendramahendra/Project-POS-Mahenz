@@ -1,4 +1,4 @@
-import type { PriceTier } from '@/features/inventory/products'
+import type { PriceTier } from '@/features/products/products'
 
 import type { CartItem, CartSummary, Discount, Tax } from './cashier.types'
 

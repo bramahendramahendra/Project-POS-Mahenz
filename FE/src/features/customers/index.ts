@@ -1,3 +1,3 @@
-export { CustomersPage } from './CustomersPage'
-export { useCustomerListQuery } from './customers.api'
-export type { Customer } from './customers.types'
+export { CustomersPage } from './customers/CustomersPage'
+export { useCustomerListQuery } from './customers/customers.api'
+export type { Customer } from './customers/customers.types'
