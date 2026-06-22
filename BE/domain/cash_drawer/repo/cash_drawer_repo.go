@@ -50,11 +50,11 @@ const (
 
 func (r *cashDrawerRepo) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
 	var res dto.CurrentCashDrawerResponse
-	result := r.db.Raw(getCurrentCashDrawerQuery, userID).Scan(&res)
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.db.Raw(getCurrentCashDrawerQuery, userID).Scan(&res).Error
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if res.ID == 0 {
 		return nil, nil
 	}
 	return &res, nil
@@ -62,11 +62,11 @@ func (r *cashDrawerRepo) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse,
 
 func (r *cashDrawerRepo) GetOpenCashDrawer(userID int) (*model.CashDrawer, error) {
 	var dataDB model.CashDrawer
-	result := r.db.Raw(getOpenCashDrawerQuery, userID).Scan(&dataDB)
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.db.Raw(getOpenCashDrawerQuery, userID).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
 	return &dataDB, nil
@@ -74,11 +74,11 @@ func (r *cashDrawerRepo) GetOpenCashDrawer(userID int) (*model.CashDrawer, error
 
 func (r *cashDrawerRepo) GetByID(id int) (*model.CashDrawer, error) {
 	var dataDB model.CashDrawer
-	result := r.db.Raw(getCashDrawerByIDQuery, id).Scan(&dataDB)
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.db.Raw(getCashDrawerByIDQuery, id).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
 	return &dataDB, nil
@@ -134,34 +134,34 @@ func (r *cashDrawerRepo) GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDraw
 	return dataDB, total, nil
 }
 
-func (r *cashDrawerRepo) GetDetailByID(id int) (*dto.CashDrawerDetailResponse, error) {
-	var res dto.CashDrawerDetailResponse
-	result := r.db.Raw(getCashDrawerDetailQuery, id).Scan(&res)
-	if result.Error != nil {
-		return nil, result.Error
+func (r *cashDrawerRepo) GetDetailByID(id int) (*model.CashDrawerDetail, error) {
+	var dataDB model.CashDrawerDetail
+	err := r.db.Raw(getCashDrawerDetailQuery, id).Scan(&dataDB).Error
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
+	if dataDB.ID == 0 {
 		return nil, nil
 	}
 
 	var nextOpenTime *string
-	r.db.Raw(getNextSessionOpenTimeQuery, res.UserID, res.OpenTime, res.ID).Scan(&nextOpenTime)
+	r.db.Raw(getNextSessionOpenTimeQuery, dataDB.UserID, dataDB.OpenTime, dataDB.ID).Scan(&nextOpenTime)
 
-	if err := r.db.Raw(getCashDrawerTransactionsQuery, res.UserID, res.OpenTime, res.CloseTime, nextOpenTime).Scan(&res.Transactions).Error; err != nil {
+	if err := r.db.Raw(getCashDrawerTransactionsQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&dataDB.Transactions).Error; err != nil {
 		return nil, err
 	}
-	if res.Transactions == nil {
-		res.Transactions = []dto.CashDrawerTransaction{}
+	if dataDB.Transactions == nil {
+		dataDB.Transactions = []model.CashDrawerTransactionItem{}
 	}
 
-	if err := r.db.Raw(getCashDrawerExpensesQuery, res.UserID, res.OpenTime, res.CloseTime, nextOpenTime).Scan(&res.Expenses).Error; err != nil {
+	if err := r.db.Raw(getCashDrawerExpensesQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&dataDB.Expenses).Error; err != nil {
 		return nil, err
 	}
-	if res.Expenses == nil {
-		res.Expenses = []dto.CashDrawerExpenseItem{}
+	if dataDB.Expenses == nil {
+		dataDB.Expenses = []model.CashDrawerExpenseItem{}
 	}
 
-	return &res, nil
+	return &dataDB, nil
 }
 
 func (r *cashDrawerRepo) Open(userID int, shiftID *int, openingBalance float64, notes string) (int64, error) {

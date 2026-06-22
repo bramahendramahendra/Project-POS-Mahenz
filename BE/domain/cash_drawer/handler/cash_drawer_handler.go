@@ -24,22 +24,17 @@ func NewCashDrawerHandler(service service.CashDrawerServiceInterface) *CashDrawe
 func (h *CashDrawerHandler) GetCurrent(c *gin.Context) {
 	userID := helper.GetUserID(c)
 
-	res, err := h.service.GetCurrent(userID)
+	data, err := h.service.GetCurrent(userID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	msg := "Success"
-	if res == nil {
-		msg = "Tidak ada kas yang terbuka"
-	}
-
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: msg,
-		Data:    res,
+		Message: "Status kas harian",
+		Data:    data,
 	})
 }
 
@@ -84,7 +79,7 @@ func (h *CashDrawerHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	res, err := h.service.GetByID(req.ID, helper.GetUserID(c), helper.GetUserRole(c))
+	data, err := h.service.GetByID(req.ID, helper.GetUserID(c), helper.GetUserRole(c))
 	if err != nil {
 		c.Error(err)
 		return
@@ -94,7 +89,7 @@ func (h *CashDrawerHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail kas",
-		Data:    res,
+		Data:    data,
 	})
 }
 
@@ -107,9 +102,9 @@ func (h *CashDrawerHandler) Open(c *gin.Context) {
 
 	userID := helper.GetUserID(c)
 
-	res, svcErr := h.service.Open(userID, &req)
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Open(userID, &req)
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -117,7 +112,7 @@ func (h *CashDrawerHandler) Open(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Kas berhasil dibuka",
-		Data:    res,
+		Data:    data,
 	})
 }
 
@@ -135,9 +130,9 @@ func (h *CashDrawerHandler) Close(c *gin.Context) {
 	}
 	req.ID = uriReq.ID
 
-	res, svcErr := h.service.Close(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c))
-	if svcErr != nil {
-		c.Error(svcErr)
+	data, err := h.service.Close(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c))
+	if err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -145,7 +140,7 @@ func (h *CashDrawerHandler) Close(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Kas berhasil ditutup",
-		Data:    res,
+		Data:    data,
 	})
 }
 
@@ -163,8 +158,8 @@ func (h *CashDrawerHandler) UpdateSales(c *gin.Context) {
 	}
 	req.ID = uriReq.ID
 
-	if svcErr := h.service.UpdateSales(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.UpdateSales(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -189,8 +184,8 @@ func (h *CashDrawerHandler) UpdateExpenses(c *gin.Context) {
 	}
 	req.ID = uriReq.ID
 
-	if svcErr := h.service.UpdateExpenses(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); svcErr != nil {
-		c.Error(svcErr)
+	if err := h.service.UpdateExpenses(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
+		c.Error(err)
 		return
 	}
 

@@ -1,5 +1,8 @@
+import { Eye, XCircle } from 'lucide-react'
+
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -111,20 +114,36 @@ export function buildCashDrawerColumns(
       key: 'id',
       header: 'Aksi',
       align: 'center',
+      width: '100px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => onRowClick(row)}>
-            Detail
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => onRowClick(row)}
+              >
+                <Eye size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Lihat Detail</TooltipContent>
+          </Tooltip>
           {canForceClose && row.status === 'open' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={() => onForceClose?.(row)}
-            >
-              Tutup
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-red-600"
+                  onClick={() => onForceClose?.(row)}
+                >
+                  <XCircle size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Tutup Paksa</TooltipContent>
+            </Tooltip>
           )}
         </div>
       ),

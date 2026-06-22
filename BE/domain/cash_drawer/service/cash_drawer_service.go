@@ -6,33 +6,67 @@ import (
 )
 
 func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
-	res, err := s.repo.GetCurrent(userID)
-	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
-	}
-	return res, nil
+	return s.repo.GetCurrent(userID)
 }
 
 func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error) {
-	res, err := s.repo.GetDetailByID(id)
+	dataDB, err := s.repo.GetDetailByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
-	if res == nil {
+	if dataDB == nil {
 		return nil, &errors.NotFoundError{Message: "Kas tidak ditemukan"}
 	}
-	if role != "owner" && role != "admin" && res.UserID != requestingUserID {
+	if role != "owner" && role != "admin" && dataDB.UserID != requestingUserID {
 		return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke kas ini"}
 	}
-	return res, nil
+
+	transactions := make([]dto.CashDrawerTransaction, len(dataDB.Transactions))
+	for i, t := range dataDB.Transactions {
+		transactions[i] = dto.CashDrawerTransaction{
+			TransactionDate: t.TransactionDate,
+			TransactionCode: t.TransactionCode,
+			CustomerName:    t.CustomerName,
+			TotalAmount:     t.TotalAmount,
+		}
+	}
+
+	expenses := make([]dto.CashDrawerExpenseItem, len(dataDB.Expenses))
+	for i, e := range dataDB.Expenses {
+		expenses[i] = dto.CashDrawerExpenseItem{
+			Category:    e.Category,
+			Description: e.Description,
+			Amount:      e.Amount,
+		}
+	}
+
+	data := &dto.CashDrawerDetailResponse{
+		ID:              dataDB.ID,
+		UserID:          dataDB.UserID,
+		CashierName:     dataDB.CashierName,
+		ShiftName:       dataDB.ShiftName,
+		ShiftStart:      dataDB.ShiftStart,
+		ShiftEnd:        dataDB.ShiftEnd,
+		OpenTime:        dataDB.OpenTime,
+		CloseTime:       dataDB.CloseTime,
+		OpeningBalance:  dataDB.OpeningBalance,
+		ClosingBalance:  dataDB.ClosingBalance,
+		ExpectedBalance: dataDB.ExpectedBalance,
+		TotalCashSales:  dataDB.TotalCashSales,
+		TotalExpenses:   dataDB.TotalExpenses,
+		Difference:      dataDB.Difference,
+		Status:          dataDB.Status,
+		Notes:           dataDB.Notes,
+		OpenNotes:       dataDB.OpenNotes,
+		Transactions:    transactions,
+		Expenses:        expenses,
+	}
+
+	return data, nil
 }
 
-func (s *cashDrawerService) GetHistory(req *dto.GetHistoryRequest) (data []*dto.CashDrawerHistoryResponse, total int64, err error) {
-	data, total, err = s.repo.GetHistory(req)
-	if err != nil {
-		return nil, 0, &errors.InternalServerError{Message: err.Error()}
-	}
-	return data, total, nil
+func (s *cashDrawerService) GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDrawerHistoryResponse, int64, error) {
+	return s.repo.GetHistory(req)
 }
 
 func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenResponse, error) {
@@ -42,7 +76,7 @@ func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenRes
 
 	existing, err := s.repo.GetOpenCashDrawer(userID)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if existing != nil {
 		return nil, &errors.BadRequestError{Message: "Sudah ada kas yang terbuka"}
@@ -50,7 +84,7 @@ func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenRes
 
 	id, err := s.repo.Open(userID, req.ShiftID, req.OpeningBalance, req.Notes)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	return &dto.OpenResponse{ID: int(id)}, nil
 }
@@ -62,7 +96,7 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 
 	current, err := s.repo.GetByID(id)
 	if err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 	if current == nil {
 		return nil, &errors.NotFoundError{Message: "Kas tidak ditemukan"}
@@ -78,7 +112,7 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 	difference := req.ClosingBalance - expected
 
 	if err := s.repo.Close(id, req.ClosingBalance, expected, difference, req.Notes); err != nil {
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, err
 	}
 
 	return &dto.CloseResponse{
@@ -91,7 +125,7 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if cd == nil {
 		return &errors.NotFoundError{Message: "Kas tidak ditemukan"}
@@ -109,7 +143,7 @@ func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, req
 func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+		return err
 	}
 	if cd == nil {
 		return &errors.NotFoundError{Message: "Kas tidak ditemukan"}

@@ -12,7 +12,7 @@ type (
 		GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error)
 		GetOpenCashDrawer(userID int) (*model.CashDrawer, error)
 		GetByID(id int) (*model.CashDrawer, error)
-		GetDetailByID(id int) (*dto.CashDrawerDetailResponse, error)
+		GetDetailByID(id int) (*model.CashDrawerDetail, error)
 		GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDrawerHistoryResponse, int64, error)
 		Open(userID int, shiftID *int, openingBalance float64, notes string) (int64, error)
 		Close(id int, closingBalance, expectedBalance, difference float64, notes string) error
