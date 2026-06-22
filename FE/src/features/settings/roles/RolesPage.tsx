@@ -5,6 +5,7 @@ import { Pencil, Settings, Shield, Trash2 } from 'lucide-react'
 import { ConfirmDialog, PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { Input } from '@/shared/components/ui/input'
 import { useDebounce } from '@/shared/hooks'
 
@@ -96,30 +97,44 @@ export function RolesPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      title="Atur Akses Menu"
-                      onClick={() => navigate(`/settings/roles/${role.id}/access`)}
-                    >
-                      <Settings size={14} />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => openRoleModal(role.id)}
-                    >
-                      <Pencil size={14} />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => navigate(`/settings/roles/${role.id}/access`)}
+                        >
+                          <Settings size={14} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Atur Akses Menu</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => openRoleModal(role.id)}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Edit</TooltipContent>
+                    </Tooltip>
                     {!role.is_system && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="text-red-500 hover:text-red-600"
-                        onClick={() => openDeleteConfirm({ id: role.id, name: role.display_name })}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => openDeleteConfirm({ id: role.id, name: role.display_name })}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Hapus</TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </td>

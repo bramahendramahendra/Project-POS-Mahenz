@@ -2,6 +2,7 @@ import { Download, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -60,7 +61,7 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Dari</label>
+        <Label className="text-xs text-gray-500">Dari</Label>
         <Input
           type="date"
           value={filter.date_from ?? ''}
@@ -69,7 +70,7 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Sampai</label>
+        <Label className="text-xs text-gray-500">Sampai</Label>
         <Input
           type="date"
           value={filter.date_to ?? ''}
@@ -78,7 +79,7 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Metode Bayar</label>
+        <Label className="text-xs text-gray-500">Metode Bayar</Label>
         <Select
           value={filter.payment_method ?? 'all'}
           onValueChange={(v) => onChange({ ...filter, payment_method: v === 'all' ? undefined : v })}

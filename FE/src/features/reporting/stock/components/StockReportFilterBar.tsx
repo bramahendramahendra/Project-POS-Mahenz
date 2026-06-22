@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -48,7 +49,7 @@ export function StockReportFilterBar({ filter, onChange, onReset }: StockReportF
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Kategori</label>
+        <Label className="text-xs text-gray-500">Kategori</Label>
         <Select
           value={filter.category_id ? String(filter.category_id) : 'all'}
           onValueChange={(v) => {

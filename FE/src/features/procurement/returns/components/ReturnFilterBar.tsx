@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -28,7 +29,7 @@ export function ReturnFilterBar({ filter, suppliers, onChange, onReset }: Return
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Dari</label>
+        <Label className="text-xs text-gray-500">Dari</Label>
         <Input
           type="date"
           value={filter.start_date ?? ''}
@@ -37,7 +38,7 @@ export function ReturnFilterBar({ filter, suppliers, onChange, onReset }: Return
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Sampai</label>
+        <Label className="text-xs text-gray-500">Sampai</Label>
         <Input
           type="date"
           value={filter.end_date ?? ''}
@@ -46,7 +47,7 @@ export function ReturnFilterBar({ filter, suppliers, onChange, onReset }: Return
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Supplier</label>
+        <Label className="text-xs text-gray-500">Supplier</Label>
         <Select
           value={filter.supplier_id ? String(filter.supplier_id) : 'all'}
           onValueChange={(v) =>
@@ -67,7 +68,7 @@ export function ReturnFilterBar({ filter, suppliers, onChange, onReset }: Return
         </Select>
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Status</label>
+        <Label className="text-xs text-gray-500">Status</Label>
         <Select
           value={filter.status ?? 'all'}
           onValueChange={(v) => onChange({ ...filter, status: v === 'all' ? undefined : v })}

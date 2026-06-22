@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -45,7 +46,7 @@ export function CashDrawerFilterBar({
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Dari</label>
+        <Label className="text-xs text-gray-500">Dari</Label>
         <Input
           type="date"
           value={filter.start_date ?? ''}
@@ -55,7 +56,7 @@ export function CashDrawerFilterBar({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Sampai</label>
+        <Label className="text-xs text-gray-500">Sampai</Label>
         <Input
           type="date"
           value={filter.end_date ?? ''}
@@ -65,7 +66,7 @@ export function CashDrawerFilterBar({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Shift</label>
+        <Label className="text-xs text-gray-500">Shift</Label>
         <Select
           value={filter.shift_id ? String(filter.shift_id) : 'all'}
           onValueChange={(v) =>
@@ -87,7 +88,7 @@ export function CashDrawerFilterBar({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Status</label>
+        <Label className="text-xs text-gray-500">Status</Label>
         <Select
           value={filter.status || 'all'}
           onValueChange={(v) => onChange({ ...filter, status: v === 'all' ? undefined : v })}
@@ -105,7 +106,7 @@ export function CashDrawerFilterBar({
 
       {showKasirFilter && (
         <div className="space-y-1">
-          <label className="text-xs text-gray-500">Kasir</label>
+          <Label className="text-xs text-gray-500">Kasir</Label>
           <Select
             value={filter.user_id ? String(filter.user_id) : 'all'}
             onValueChange={(v) =>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
+import { ScrollArea, ScrollBar } from '@/shared/components/ui/scroll-area'
 import { formatRupiah } from '@/shared/utils'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
@@ -102,7 +103,7 @@ export function CashDrawerSummaryTab() {
             />
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <ScrollArea className="rounded-lg border border-gray-200">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
@@ -172,7 +173,8 @@ export function CashDrawerSummaryTab() {
                 })}
               </tbody>
             </table>
-          </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </>
       )}
     </div>

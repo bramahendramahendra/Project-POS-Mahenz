@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -20,14 +21,12 @@ export function CustomerSelector() {
   return (
     <div className="px-4 py-2.5 border-b shrink-0">
       <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={showCustomer}
-          onChange={(e) => {
-            setShowCustomer(e.target.checked)
-            if (!e.target.checked) setCustomer(null)
+          onCheckedChange={(v) => {
+            setShowCustomer(!!v)
+            if (!v) setCustomer(null)
           }}
-          className="h-3.5 w-3.5 rounded accent-[#2c3e50]"
         />
         <span className="text-xs text-gray-500">Tambah Pelanggan</span>
         {selectedCustomer && (

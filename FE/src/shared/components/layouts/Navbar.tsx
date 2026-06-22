@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 
 function getRoleBadgeClass(role: string) {
   if (role === ROLES.OWNER) return 'bg-yellow-500 text-white border-transparent hover:bg-yellow-500'
@@ -76,16 +77,20 @@ export function Navbar() {
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLogoutDialogOpen(true)}
-            disabled={isPending}
-            className="text-white/80 hover:text-white hover:bg-red-500/20 h-8 w-8"
-            title="Logout"
-          >
-            <LogOut size={16} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLogoutDialogOpen(true)}
+                disabled={isPending}
+                className="text-white/80 hover:text-white hover:bg-red-500/20 h-8 w-8"
+              >
+                <LogOut size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Logout</TooltipContent>
+          </Tooltip>
         </div>
       </header>
 

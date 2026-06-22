@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { Label } from '@/shared/components/ui/label'
 import { monthStart, todayStr } from '@/shared/utils'
 
 interface DateFilter {
@@ -18,7 +19,7 @@ export function CashierPerformanceFilterBar({ filter, onChange }: CashierPerform
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Dari</label>
+        <Label className="text-xs text-gray-500">Dari</Label>
         <Input
           type="date"
           value={filter.date_from ?? ''}
@@ -27,7 +28,7 @@ export function CashierPerformanceFilterBar({ filter, onChange }: CashierPerform
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs text-gray-500">Sampai</label>
+        <Label className="text-xs text-gray-500">Sampai</Label>
         <Input
           type="date"
           value={filter.date_to ?? ''}
