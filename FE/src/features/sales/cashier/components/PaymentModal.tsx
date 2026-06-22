@@ -8,6 +8,7 @@ import { useState } from 'react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Label } from '@/shared/components/ui/label'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -209,7 +210,8 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="overflow-y-auto px-6 py-4 space-y-5" style={{ maxHeight: '70vh' }}>
+            <ScrollArea style={{ maxHeight: '70vh' }}>
+            <div className="px-6 py-4 space-y-5">
               {/* Guard kas belum buka */}
               {!kasOpen && (
                 <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
@@ -333,6 +335,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
                 </>
               )}
             </div>
+            </ScrollArea>
 
             <DialogFooter className="border-t px-6 py-4">
               <Button

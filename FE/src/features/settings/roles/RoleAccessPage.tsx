@@ -4,6 +4,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { ROUTES } from '@/shared/constants/routes'
 
 import { useRoleDetailQuery, useRoleMenuAccessQuery, useSetRoleAccessMutation } from './roles.api'
@@ -82,11 +83,10 @@ export function RoleAccessPage() {
     const checked = accessState[menuId]?.[field] ?? false
     return (
       <td className="text-center px-3 py-2.5">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={checked}
-          onChange={() => toggle(menuId, field)}
-          className="w-4 h-4 cursor-pointer accent-blue-600"
+          onCheckedChange={() => toggle(menuId, field)}
+          className="cursor-pointer"
         />
       </td>
     )

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 
 import { FormModal } from '@/shared/components'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -212,11 +213,9 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
                 const sel = selectedItems[item.id]
                 return (
                   <div key={item.id} className="flex items-center gap-3 px-3 py-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={!!sel}
-                      onChange={() => toggleItem(item.id, item.quantity)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={() => toggleItem(item.id, item.quantity)}
                     />
                     <span className="flex-1">{item.product_name}</span>
                     <span className="text-gray-400 text-xs">{item.unit}</span>

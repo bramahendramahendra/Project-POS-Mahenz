@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import {
@@ -236,7 +237,11 @@ function EditUserModal({
           {errors.role_id && <p className="text-xs text-red-500">{errors.role_id.message}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="is-active" {...register('is_active')} className="rounded" />
+          <Checkbox
+            id="is-active"
+            checked={!!watch('is_active')}
+            onCheckedChange={(v) => setValue('is_active', !!v)}
+          />
           <Label htmlFor="is-active">Akun Aktif</Label>
         </div>
       </div>

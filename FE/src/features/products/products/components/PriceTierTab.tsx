@@ -9,6 +9,7 @@ import { ConfirmDialog, DataTable, FormModal, RoleGuard } from '@/shared/compone
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import {
   Select,
   SelectContent,
@@ -201,28 +202,36 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
       width: '90px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-gray-500 hover:text-blue-600"
-            onClick={() => handleOpenEditPrice(row)}
-            title="Edit"
-          >
-            <Pencil size={14} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => handleOpenEditPrice(row)}
+              >
+                <Pencil size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
           <RoleGuard allowedRoles={[ROLES.OWNER]}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 hover:text-red-600"
-              onClick={() => {
-                setDeletingPriceId(row.id)
-                openPriceDelete()
-              }}
-              title="Hapus"
-            >
-              <Trash2 size={14} />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-red-600"
+                  onClick={() => {
+                    setDeletingPriceId(row.id)
+                    openPriceDelete()
+                  }}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Hapus</TooltipContent>
+            </Tooltip>
           </RoleGuard>
         </div>
       ),

@@ -1,6 +1,7 @@
 import { Printer, ShoppingCart } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -236,7 +237,8 @@ export function ReceiptPrint({
         </DialogHeader>
 
         {/* Receipt preview */}
-        <div className="overflow-y-auto px-6 py-5 space-y-4" style={{ maxHeight: '65vh' }}>
+        <ScrollArea style={{ maxHeight: '65vh' }}>
+        <div className="px-6 py-5 space-y-4">
 
           {/* Toko header */}
           <div className="text-center space-y-0.5">
@@ -340,6 +342,7 @@ export function ReceiptPrint({
             <p className="text-xs text-gray-400">Terima kasih telah berbelanja!</p>
           </div>
         </div>
+        </ScrollArea>
 
         <DialogFooter className="border-t px-6 py-4">
           <Button variant="outline" onClick={handlePrint} className="gap-1.5">
