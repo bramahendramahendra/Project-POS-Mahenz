@@ -1,6 +1,7 @@
 import { AlertTriangle, Receipt } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { formatRupiah } from '@/shared/utils'
 import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
 
@@ -28,7 +29,7 @@ export function SummaryPanel() {
       <CustomerSelector />
 
       {/* Read-only item list — 1 baris per item, compact */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {cart.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <p className="text-sm text-gray-400">Keranjang kosong</p>
@@ -79,7 +80,7 @@ export function SummaryPanel() {
             })}
           </ul>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Diskon & Pajak */}
       {cart.length > 0 && (

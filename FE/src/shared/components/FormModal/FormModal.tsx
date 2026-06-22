@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/components/ui/dialog'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { cn } from '@/shared/utils'
 
 const SIZE_MAP = {
@@ -74,9 +75,11 @@ export function FormModal({
         </DialogHeader>
 
         {/* Body — scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 py-4" style={{ maxHeight: '70vh' }}>
-          {children}
-        </div>
+        <ScrollArea className="flex-1" style={{ maxHeight: '70vh' }}>
+          <div className="px-6 py-4">
+            {children}
+          </div>
+        </ScrollArea>
 
         {/* Footer */}
         {!hideFooter && (

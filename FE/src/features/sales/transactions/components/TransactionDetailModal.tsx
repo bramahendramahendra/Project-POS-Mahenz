@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -89,7 +90,8 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
             )}
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-5">
+          <ScrollArea className="flex-1">
+          <div className="p-5">
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -195,6 +197,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
               </div>
             ) : null}
           </div>
+          </ScrollArea>
 
           {transaction && (
             <div className="border-t px-5 py-3 flex items-center gap-2 shrink-0">

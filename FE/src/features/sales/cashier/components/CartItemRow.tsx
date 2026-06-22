@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Minus, Plus, Trash2, Tag } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
+import { Collapsible, CollapsibleContent } from '@/shared/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { Input } from '@/shared/components/ui/input'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
@@ -214,9 +215,11 @@ export function CartItemRow({ item }: CartItemRowProps) {
       </div>
 
       {/* Inline discount input */}
-      {showDiscount && (
-        <DiscountInput item={item} onClose={() => setShowDiscount(false)} />
-      )}
+      <Collapsible open={showDiscount}>
+        <CollapsibleContent>
+          <DiscountInput item={item} onClose={() => setShowDiscount(false)} />
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Row 3: Qty controls */}
       <div className="flex items-center gap-1.5">

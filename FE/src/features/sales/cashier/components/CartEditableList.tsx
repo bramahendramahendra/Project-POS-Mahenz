@@ -3,6 +3,7 @@ import { ShoppingCart, Trash2 } from 'lucide-react'
 
 import { ConfirmDialog } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { formatRupiah } from '@/shared/utils'
 
 import { useCashierStore } from '../cashier.store'
@@ -42,7 +43,7 @@ export function CartEditableList() {
       </div>
 
       {/* List item editable — scrollable */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-gray-400">
             <ShoppingCart size={28} className="opacity-30" />
@@ -55,7 +56,7 @@ export function CartEditableList() {
             ))}
           </ul>
         )}
-      </div>
+      </ScrollArea>
 
       {/* Subtotal ringkas di bawah list */}
       {cart.length > 0 && (

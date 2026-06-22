@@ -1,3 +1,4 @@
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { SyncHistoryItem } from '../sync.types'
@@ -67,19 +68,16 @@ export function buildSyncHistoryColumns({ expandedId, onToggleExpand }: SyncHist
       header: 'Pesan',
       cell: (row) =>
         row.message ? (
-          <div>
-            <button
-              className="text-xs text-blue-600 hover:underline"
-              onClick={() => onToggleExpand(row.id)}
-            >
+          <Collapsible open={expandedId === row.id} onOpenChange={() => onToggleExpand(row.id)}>
+            <CollapsibleTrigger className="text-xs text-blue-600 hover:underline">
               {expandedId === row.id ? 'Sembunyikan' : 'Lihat pesan'}
-            </button>
-            {expandedId === row.id && (
+            </CollapsibleTrigger>
+            <CollapsibleContent>
               <p className="mt-1 text-xs text-gray-600 bg-gray-50 rounded p-2 max-w-xs">
                 {row.message}
               </p>
-            )}
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
         ) : (
           <span className="text-xs text-gray-400">—</span>
         ),
