@@ -10,7 +10,7 @@ func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerRespon
 }
 
 func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error) {
-	dataDB, err := s.repo.GetDetailByID(id)
+	dataDB, transactions, expenses, err := s.repo.GetDetailByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -21,9 +21,9 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 		return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke kas ini"}
 	}
 
-	transactions := make([]dto.CashDrawerTransaction, len(dataDB.Transactions))
-	for i, t := range dataDB.Transactions {
-		transactions[i] = dto.CashDrawerTransaction{
+	trxList := make([]dto.CashDrawerTransaction, len(transactions))
+	for i, t := range transactions {
+		trxList[i] = dto.CashDrawerTransaction{
 			TransactionDate: t.TransactionDate,
 			TransactionCode: t.TransactionCode,
 			CustomerName:    t.CustomerName,
@@ -31,9 +31,9 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 		}
 	}
 
-	expenses := make([]dto.CashDrawerExpenseItem, len(dataDB.Expenses))
-	for i, e := range dataDB.Expenses {
-		expenses[i] = dto.CashDrawerExpenseItem{
+	expList := make([]dto.CashDrawerExpenseItem, len(expenses))
+	for i, e := range expenses {
+		expList[i] = dto.CashDrawerExpenseItem{
 			Category:    e.Category,
 			Description: e.Description,
 			Amount:      e.Amount,
@@ -58,8 +58,8 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 		Status:          dataDB.Status,
 		Notes:           dataDB.Notes,
 		OpenNotes:       dataDB.OpenNotes,
-		Transactions:    transactions,
-		Expenses:        expenses,
+		Transactions:    trxList,
+		Expenses:        expList,
 	}
 
 	return data, nil

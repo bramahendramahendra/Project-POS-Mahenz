@@ -134,34 +134,36 @@ func (r *cashDrawerRepo) GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDraw
 	return dataDB, total, nil
 }
 
-func (r *cashDrawerRepo) GetDetailByID(id int) (*model.CashDrawerDetail, error) {
+func (r *cashDrawerRepo) GetDetailByID(id int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error) {
 	var dataDB model.CashDrawerDetail
 	err := r.db.Raw(getCashDrawerDetailQuery, id).Scan(&dataDB).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	if dataDB.ID == 0 {
-		return nil, nil
+		return nil, nil, nil, nil
 	}
 
 	var nextOpenTime *string
 	r.db.Raw(getNextSessionOpenTimeQuery, dataDB.UserID, dataDB.OpenTime, dataDB.ID).Scan(&nextOpenTime)
 
-	if err := r.db.Raw(getCashDrawerTransactionsQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&dataDB.Transactions).Error; err != nil {
-		return nil, err
+	var transactions []model.CashDrawerTransactionItem
+	if err := r.db.Raw(getCashDrawerTransactionsQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&transactions).Error; err != nil {
+		return nil, nil, nil, err
 	}
-	if dataDB.Transactions == nil {
-		dataDB.Transactions = []model.CashDrawerTransactionItem{}
-	}
-
-	if err := r.db.Raw(getCashDrawerExpensesQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&dataDB.Expenses).Error; err != nil {
-		return nil, err
-	}
-	if dataDB.Expenses == nil {
-		dataDB.Expenses = []model.CashDrawerExpenseItem{}
+	if transactions == nil {
+		transactions = []model.CashDrawerTransactionItem{}
 	}
 
-	return &dataDB, nil
+	var expenses []model.CashDrawerExpenseItem
+	if err := r.db.Raw(getCashDrawerExpensesQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&expenses).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	if expenses == nil {
+		expenses = []model.CashDrawerExpenseItem{}
+	}
+
+	return &dataDB, transactions, expenses, nil
 }
 
 func (r *cashDrawerRepo) Open(userID int, shiftID *int, openingBalance float64, notes string) (int64, error) {

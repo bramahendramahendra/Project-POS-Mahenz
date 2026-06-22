@@ -119,8 +119,8 @@ type (
 		Status          string                  `json:"status"`
 		Notes           *string                 `json:"notes"`
 		OpenNotes       *string                 `json:"open_notes"`
-		Transactions    []CashDrawerTransaction `json:"transactions" gorm:"-"`
-		Expenses        []CashDrawerExpenseItem `json:"expenses" gorm:"-"`
+		Transactions    []CashDrawerTransaction `json:"transactions"`
+		Expenses        []CashDrawerExpenseItem `json:"expenses"`
 	}
 
 	OpenResponse struct {
