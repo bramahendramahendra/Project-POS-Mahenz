@@ -2,6 +2,7 @@ import { Eye, Trash2 } from 'lucide-react'
 
 import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -69,13 +70,23 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
       align: 'center',
       cell: (row) => (
         <div className="flex gap-1 justify-center">
-          <Button variant="ghost" size="sm" onClick={() => onDetail(row)} title="Detail">
-            <Eye className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="sm" onClick={() => onDetail(row)}>
+                <Eye className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Detail</TooltipContent>
+          </Tooltip>
           {row.status === 'pending' && (
-            <Button variant="ghost" size="sm" onClick={() => onDelete(row)} title="Hapus">
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Hapus</TooltipContent>
+            </Tooltip>
           )}
         </div>
       ),

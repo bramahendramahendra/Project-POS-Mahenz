@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { ROLES } from '@/shared/constants'
 import { RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -89,24 +90,22 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
           <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 hover:text-blue-600"
-              onClick={() => onEdit(row)}
-              title="Edit"
-            >
-              <Pencil size={14} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 hover:text-red-600"
-              onClick={() => onDelete(row)}
-              title="Hapus"
-            >
-              <Trash2 size={14} />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>
+                  <Pencil size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-600" onClick={() => onDelete(row)}>
+                  <Trash2 size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Hapus</TooltipContent>
+            </Tooltip>
           </RoleGuard>
         </div>
       ),

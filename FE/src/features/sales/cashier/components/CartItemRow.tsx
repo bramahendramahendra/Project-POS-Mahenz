@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Minus, Plus, Trash2, Tag } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { Input } from '@/shared/components/ui/input'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { formatRupiah } from '@/shared/utils'
@@ -164,16 +165,20 @@ export function CartItemRow({ item }: CartItemRowProps) {
               className="h-6 text-xs"
             />
           ) : (
-            <button
-              onClick={() => {
-                setPriceInput(item.price)
-                setEditingPrice(true)
-              }}
-              className={`text-xs hover:underline ${hasDiscount ? 'text-gray-400 line-through' : 'text-blue-600'}`}
-              title="Klik untuk ubah harga"
-            >
-              {formatRupiah(item.price)}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    setPriceInput(item.price)
+                    setEditingPrice(true)
+                  }}
+                  className={`text-xs hover:underline ${hasDiscount ? 'text-gray-400 line-through' : 'text-blue-600'}`}
+                >
+                  {formatRupiah(item.price)}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Klik untuk ubah harga</TooltipContent>
+            </Tooltip>
           )}
 
           {hasDiscount && (
@@ -185,18 +190,22 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <DiscountBadge item={item} />
 
           {/* Discount toggle button */}
-          <button
-            type="button"
-            onClick={() => setShowDiscount((v) => !v)}
-            title="Atur diskon item"
-            className={`flex items-center justify-center h-5 w-5 rounded transition-colors ${
-              hasDiscount
-                ? 'bg-red-100 text-red-500'
-                : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
-            }`}
-          >
-            <Tag size={11} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => setShowDiscount((v) => !v)}
+                className={`flex items-center justify-center h-5 w-5 rounded transition-colors ${
+                  hasDiscount
+                    ? 'bg-red-100 text-red-500'
+                    : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                <Tag size={11} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Atur diskon item</TooltipContent>
+          </Tooltip>
         </div>
 
         <span className="text-sm font-semibold text-gray-800 shrink-0">

@@ -3,6 +3,7 @@ import { Eye, Lock, LockOpen, Pencil, Printer, Trash2 } from 'lucide-react'
 import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -146,56 +147,49 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       width: '130px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-gray-500 hover:text-blue-600"
-            onClick={() => onDetail(row)}
-            title="Lihat Detail"
-          >
-            <Eye size={14} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-gray-500 hover:text-indigo-600"
-            onClick={() => onLabel(row)}
-            title="Cetak Label"
-          >
-            <Printer size={14} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onDetail(row)}>
+                <Eye size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Lihat Detail</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-indigo-600" onClick={() => onLabel(row)}>
+                <Printer size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Cetak Label</TooltipContent>
+          </Tooltip>
           <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 hover:text-blue-600"
-              onClick={() => onEdit(row)}
-              title="Edit"
-            >
-              <Pencil size={14} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`}
-              onClick={() =>
-                onToggleStatus(row.id, row.is_active)
-              }
-              title={row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-            >
-              {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>
+                  <Pencil size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className={`h-7 w-7 ${row.is_active ? 'text-gray-500 hover:text-amber-600' : 'text-gray-400 hover:text-green-600'}`} onClick={() => onToggleStatus(row.id, row.is_active)}>
+                  {row.is_active ? <Lock size={14} /> : <LockOpen size={14} />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</TooltipContent>
+            </Tooltip>
           </RoleGuard>
           <RoleGuard allowedRoles={[ROLES.OWNER]}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-gray-500 hover:text-red-600"
-              onClick={() => onDelete(row)}
-              title="Hapus"
-            >
-              <Trash2 size={14} />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-600" onClick={() => onDelete(row)}>
+                  <Trash2 size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Hapus</TooltipContent>
+            </Tooltip>
           </RoleGuard>
         </div>
       ),
