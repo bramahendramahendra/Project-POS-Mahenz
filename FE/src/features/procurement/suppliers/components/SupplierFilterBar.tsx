@@ -3,13 +3,7 @@ import { RotateCcw, Search } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group'
 import { useDebounce } from '@/shared/hooks'
 
 import type { SupplierListFilter } from '../suppliers.types'
@@ -43,24 +37,15 @@ export function SupplierFilterBar({ filter, onChange, onReset }: SupplierFilterB
       </div>
 
       {/* Status */}
-      <Select
+      <ToggleGroup
+        type="single"
         value={filter.is_active === undefined ? 'all' : filter.is_active ? 'active' : 'inactive'}
-        onValueChange={(v) =>
-          onChange({
-            ...filter,
-            is_active: v === 'all' ? undefined : v === 'active',
-          })
-        }
+        onValueChange={(v) => v && onChange({ ...filter, is_active: v === 'all' ? undefined : v === 'active' })}
       >
-        <SelectTrigger className="h-9 w-[160px] text-sm">
-          <SelectValue placeholder="Semua Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua Status</SelectItem>
-          <SelectItem value="active">Aktif</SelectItem>
-          <SelectItem value="inactive">Nonaktif</SelectItem>
-        </SelectContent>
-      </Select>
+        <ToggleGroupItem value="all">Semua</ToggleGroupItem>
+        <ToggleGroupItem value="active">Aktif</ToggleGroupItem>
+        <ToggleGroupItem value="inactive">Nonaktif</ToggleGroupItem>
+      </ToggleGroup>
 
       {/* Reset */}
       <Button

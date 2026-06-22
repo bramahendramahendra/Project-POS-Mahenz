@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group'
 import { useDebounce } from '@/shared/hooks'
 
 import type { ProductFilter } from '../products.types'
@@ -65,38 +66,23 @@ export function ProductFilterBar({ filter, onChange, onReset, categories }: Prod
       </Select>
 
       {/* Status */}
-      <Select
-        value={
-          filter.low_stock
-            ? 'low_stock'
-            : filter.is_active === undefined
-              ? 'all'
-              : filter.is_active
-                ? 'active'
-                : 'inactive'
-        }
+      <ToggleGroup
+        type="single"
+        value={filter.low_stock ? 'low_stock' : filter.is_active === undefined ? 'all' : filter.is_active ? 'active' : 'inactive'}
         onValueChange={(v) => {
+          if (!v) return
           if (v === 'low_stock') {
             onChange({ ...filter, is_active: undefined, low_stock: true })
           } else {
-            onChange({
-              ...filter,
-              is_active: v === 'all' ? undefined : v === 'active',
-              low_stock: undefined,
-            })
+            onChange({ ...filter, is_active: v === 'all' ? undefined : v === 'active', low_stock: undefined })
           }
         }}
       >
-        <SelectTrigger className="h-9 w-[160px] text-sm">
-          <SelectValue placeholder="Semua Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua Status</SelectItem>
-          <SelectItem value="active">Aktif</SelectItem>
-          <SelectItem value="inactive">Nonaktif</SelectItem>
-          <SelectItem value="low_stock">Stok Menipis</SelectItem>
-        </SelectContent>
-      </Select>
+        <ToggleGroupItem value="all">Semua</ToggleGroupItem>
+        <ToggleGroupItem value="active">Aktif</ToggleGroupItem>
+        <ToggleGroupItem value="inactive">Nonaktif</ToggleGroupItem>
+        <ToggleGroupItem value="low_stock">Stok Menipis</ToggleGroupItem>
+      </ToggleGroup>
 
       {/* Reset */}
       <Button

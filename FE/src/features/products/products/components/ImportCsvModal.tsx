@@ -4,6 +4,7 @@ import { Download, Upload } from 'lucide-react'
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group'
 import {
   useImportPreviewMutation,
   useImportProductsBulkMutation,
@@ -196,22 +197,11 @@ export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
                 {invalidRows.length > 0 && (
                   <span className="text-red-500">Error: <strong>{invalidRows.length}</strong></span>
                 )}
-                <div className="ml-auto flex gap-1">
-                  {(['all', 'valid', 'error'] as const).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFilterView(f)}
-                      className={`rounded px-2 py-0.5 text-xs border ${
-                        filterView === f
-                          ? 'bg-gray-800 text-white border-gray-800'
-                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {f === 'all' ? 'Semua' : f === 'valid' ? 'Valid' : 'Error'}
-                    </button>
-                  ))}
-                </div>
+                <ToggleGroup type="single" value={filterView} onValueChange={(v) => v && setFilterView(v as FilterView)} className="ml-auto">
+                  <ToggleGroupItem value="all">Semua</ToggleGroupItem>
+                  <ToggleGroupItem value="valid">Valid</ToggleGroupItem>
+                  <ToggleGroupItem value="error">Error</ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               {/* Preview table */}
@@ -276,22 +266,11 @@ export function ImportCsvModal({ open, onOpenChange }: ImportCsvModalProps) {
                 {invalidGrosirRows.length > 0 && (
                   <span className="text-red-500">Error: <strong>{invalidGrosirRows.length}</strong></span>
                 )}
-                <div className="ml-auto flex gap-1">
-                  {(['all', 'valid', 'error'] as const).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFilterView(f)}
-                      className={`rounded px-2 py-0.5 text-xs border ${
-                        filterView === f
-                          ? 'bg-gray-800 text-white border-gray-800'
-                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {f === 'all' ? 'Semua' : f === 'valid' ? 'Valid' : 'Error'}
-                    </button>
-                  ))}
-                </div>
+                <ToggleGroup type="single" value={filterView} onValueChange={(v) => v && setFilterView(v as FilterView)} className="ml-auto">
+                  <ToggleGroupItem value="all">Semua</ToggleGroupItem>
+                  <ToggleGroupItem value="valid">Valid</ToggleGroupItem>
+                  <ToggleGroupItem value="error">Error</ToggleGroupItem>
+                </ToggleGroup>
               </div>
 
               {/* Preview table */}
