@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Separator } from '@/shared/components/ui/separator'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -119,7 +120,7 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
           <div className="rounded-lg bg-gray-50 p-3 space-y-1.5 text-sm">
             <InfoRow label="Supplier" value={purchase.supplier_name || '—'} />
             <InfoRow label="No. Faktur" value={purchase.invoice_number} />
-            <div className="border-t my-1" />
+            <Separator className="my-1" />
             <InfoRow label="Total Tagihan" value={formatRupiah(purchase.total_amount)} />
             <InfoRow
               label="Sudah Dibayar"
