@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 export const openCashDrawerSchema = z.object({
+  shift_id: z.number({ error: 'Shift wajib dipilih' }).min(1, 'Shift wajib dipilih'),
   opening_balance: z.number({ error: 'Saldo awal wajib diisi' }).min(0, 'Saldo tidak boleh negatif'),
-  shift: z.enum(['pagi', 'siang', 'malam']).optional(),
   notes: z.string().optional(),
 })
 

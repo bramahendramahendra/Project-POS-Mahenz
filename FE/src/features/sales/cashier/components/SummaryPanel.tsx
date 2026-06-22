@@ -1,7 +1,8 @@
-import { Receipt } from 'lucide-react'
+import { AlertTriangle, Receipt } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
+import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
 
 import { useCashierStore } from '../cashier.store'
 import { calcCartSummary } from '../cashier.utils'
@@ -12,6 +13,9 @@ import { TaxInput } from './TaxInput'
 export function SummaryPanel() {
   const { cart, discount, tax, openPaymentModal } = useCashierStore()
   const summary = calcCartSummary(cart, discount, tax)
+
+  const { data: currentDrawer } = useCashDrawerCurrentQuery()
+  const kasOpen = currentDrawer?.status === 'open'
 
   return (
     <div className="flex h-full flex-col bg-white border-l border-gray-200">
@@ -111,12 +115,20 @@ export function SummaryPanel() {
         </div>
       </div>
 
+      {/* Warning kas belum buka */}
+      {!kasOpen && (
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 shrink-0">
+          <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+          <span>Kas belum dibuka. Buka kas terlebih dahulu untuk memproses transaksi.</span>
+        </div>
+      )}
+
       {/* Tombol Bayar */}
       <div className="px-4 py-3 border-t shrink-0">
         <Button
           className="w-full gap-2"
           onClick={openPaymentModal}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || !kasOpen}
         >
           💳 Bayar
         </Button>

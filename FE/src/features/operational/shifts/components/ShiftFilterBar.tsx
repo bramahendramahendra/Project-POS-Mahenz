@@ -1,39 +1,25 @@
 import { RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { Input } from '@/shared/components/ui/input'
 
-import type { ShiftStatus } from '../shifts.types'
+import type { ShiftListFilter } from '../shifts.types'
 
 interface ShiftFilterBarProps {
-  status: ShiftStatus | 'all'
-  onChange: (status: ShiftStatus | 'all') => void
+  filter: ShiftListFilter
+  onChange: (filter: ShiftListFilter) => void
   onReset: () => void
 }
 
-export function ShiftFilterBar({ status, onChange, onReset }: ShiftFilterBarProps) {
+export function ShiftFilterBar({ filter, onChange, onReset }: ShiftFilterBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
-      <Select
-        value={status}
-        onValueChange={(v) => onChange(v as ShiftStatus | 'all')}
-      >
-        <SelectTrigger className="w-40 h-9">
-          <SelectValue placeholder="Semua Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Semua</SelectItem>
-          <SelectItem value="open">Berjalan</SelectItem>
-          <SelectItem value="closed">Selesai</SelectItem>
-        </SelectContent>
-      </Select>
-
+      <Input
+        className="w-56 h-9"
+        placeholder="Cari nama shift..."
+        value={filter.search ?? ''}
+        onChange={(e) => onChange({ ...filter, search: e.target.value || undefined })}
+      />
       <Button
         variant="outline"
         size="sm"

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 
-import { Input } from '@/shared/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Badge } from '@/shared/components/ui/badge'
 import { formatRupiah } from '@/shared/utils'
+import { useAuthStore } from '@/features/auth'
+import { ROLES } from '@/shared/constants/roles'
 
 import { useCashDrawerSummaryQuery } from '../cash-drawer.api'
-import type { CashDrawer } from '../cash-drawer.types'
+import type { CashDrawer, CashDrawerListFilter } from '../cash-drawer.types'
+import { CashDrawerFilterBar } from './CashDrawerFilterBar'
 
 function todayString(): string {
   return new Date().toISOString().split('T')[0]
@@ -17,12 +19,21 @@ function monthStartString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
+function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
+}
+
+const defaultFilter: CashDrawerListFilter = {
+  page: 1,
+  limit: 1000,
+  start_date: monthStartString(),
+  end_date: todayString(),
 }
 
 interface SummaryCardProps {
@@ -45,41 +56,30 @@ function SummaryCard({ title, value, valueClass = '' }: SummaryCardProps) {
 }
 
 export function CashDrawerSummaryTab() {
-  const [dateFrom, setDateFrom] = useState(monthStartString())
-  const [dateTo, setDateTo] = useState(todayString())
+  const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
 
-  const filter = {
-    page: 1,
-    limit: 1000,
-    date_from: dateFrom || undefined,
-    date_to: dateTo || undefined,
-  }
+  const { user } = useAuthStore()
+  const isAdminOrOwner = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
 
   const { data, isLoading } = useCashDrawerSummaryQuery(filter)
   const summary = data
 
+  const handleFilterChange = (newFilter: CashDrawerListFilter) => {
+    setFilter(newFilter)
+  }
+
+  const handleReset = () => {
+    setFilter(defaultFilter)
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 items-end">
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Dari</label>
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-40"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Sampai</label>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-40"
-          />
-        </div>
-      </div>
+      <CashDrawerFilterBar
+        filter={filter}
+        onChange={handleFilterChange}
+        onReset={handleReset}
+        showKasirFilter={isAdminOrOwner}
+      />
 
       {isLoading && (
         <div className="py-8 text-center text-sm text-gray-400">Memuat rekap...</div>
@@ -106,7 +106,9 @@ export function CashDrawerSummaryTab() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                 <tr>
-                  <th className="px-4 py-3 text-left">Tanggal</th>
+                  <th className="px-4 py-3 text-left">Waktu Buka</th>
+                  <th className="px-4 py-3 text-left">Shift</th>
+                  {isAdminOrOwner && <th className="px-4 py-3 text-left">Kasir</th>}
                   <th className="px-4 py-3 text-right">Saldo Buka</th>
                   <th className="px-4 py-3 text-right">Saldo Tutup</th>
                   <th className="px-4 py-3 text-right">Pengeluaran</th>
@@ -117,42 +119,57 @@ export function CashDrawerSummaryTab() {
               <tbody className="divide-y divide-gray-100">
                 {summary.records.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                    <td
+                      colSpan={isAdminOrOwner ? 8 : 7}
+                      className="px-4 py-8 text-center text-gray-400"
+                    >
                       Tidak ada data pada periode ini
                     </td>
                   </tr>
                 )}
-                {summary.records.map((row: CashDrawer) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-600">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-right">{formatRupiah(row.opening_balance)}</td>
-                    <td className="px-4 py-3 text-right">
-                      {row.status === 'closed' ? formatRupiah(row.closing_balance) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right text-red-600">
-                      {formatRupiah(row.total_out)}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        row.difference === 0
-                          ? 'text-gray-500'
-                          : row.difference > 0
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                      }`}
-                    >
-                      {row.difference > 0 ? '+' : ''}
-                      {formatRupiah(row.difference)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {row.status === 'closed' ? (
-                        <Badge variant="secondary">Tutup</Badge>
-                      ) : (
-                        <Badge variant="default">Buka</Badge>
+                {summary.records.map((row: CashDrawer) => {
+                  const diff = row.difference ?? 0
+                  return (
+                    <tr key={row.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-gray-600">{formatDateTime(row.open_time)}</td>
+                      <td className="px-4 py-3 text-gray-600">{row.shift_name ?? '—'}</td>
+                      {isAdminOrOwner && (
+                        <td className="px-4 py-3 font-medium">{row.user_name}</td>
                       )}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-3 text-right">{formatRupiah(row.opening_balance)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {row.status === 'closed' && row.closing_balance != null
+                          ? formatRupiah(row.closing_balance)
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right text-red-600">
+                        {formatRupiah(row.total_expenses)}
+                      </td>
+                      <td
+                        className={`px-4 py-3 text-right font-medium ${
+                          row.status !== 'closed'
+                            ? 'text-gray-400'
+                            : diff === 0
+                              ? 'text-gray-500'
+                              : diff > 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                        }`}
+                      >
+                        {row.status === 'closed'
+                          ? `${diff > 0 ? '+' : ''}${formatRupiah(diff)}`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {row.status === 'closed' ? (
+                          <Badge variant="secondary">Tutup</Badge>
+                        ) : (
+                          <Badge variant="default" className="bg-green-600">Buka</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -6,54 +6,20 @@ import { Button } from '@/shared/components/ui/button'
 import { Card, CardContent } from '@/shared/components/ui/card'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
-import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
-import { useCashDrawerCurrentQuery, useCashDrawerListQuery } from './cash-drawer.api'
-import type { CashDrawer, CashDrawerListFilter } from './cash-drawer.types'
-import { CashDrawerFilterBar } from './components/CashDrawerFilterBar'
+import { useCashDrawerCurrentQuery } from './cash-drawer.api'
 import { CashDrawerTable } from './components/CashDrawerTable'
-import { CashDrawerDetailModal } from './components/CashDrawerDetailModal'
 import { OpenCashDrawerModal } from './components/OpenCashDrawerModal'
 import { CloseCashDrawerModal } from './components/CloseCashDrawerModal'
-
-const SHIFT_LABELS: Record<string, string> = {
-  pagi: 'Pagi',
-  siang: 'Siang',
-  malam: 'Malam',
-}
-
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
-function monthStartString(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
 
 export function CashDrawerPage() {
   const { user } = useAuthStore()
   const isAdminOrOwner = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
 
-  const [filter, setFilter] = useState<CashDrawerListFilter>({
-    page: 1,
-    limit: 10,
-    start_date: monthStartString(),
-    end_date: todayString(),
-  })
-  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [openModalOpen, setOpenModalOpen] = useState(false)
   const [closeModalOpen, setCloseModalOpen] = useState(false)
 
-  const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
-  const pageSizeOptions = usePageSizeOptions()
-
-  const { data, isLoading } = useCashDrawerListQuery({ ...filter, page, limit: pageSize })
   const { data: currentData } = useCashDrawerCurrentQuery()
-
-  const items: CashDrawer[] = data?.data ?? []
-  const total = data?.total ?? 0
-
   const currentDrawer = currentData ?? null
   const isOpen = currentDrawer?.status === 'open'
 
@@ -75,9 +41,12 @@ export function CashDrawerPage() {
                 ) : (
                   <Badge variant="secondary">● Tutup</Badge>
                 )}
-                {isOpen && currentDrawer?.shift && (
+                {isOpen && currentDrawer?.shift_name && (
                   <span className="text-sm text-gray-500">
-                    Shift: {SHIFT_LABELS[currentDrawer.shift] ?? currentDrawer.shift}
+                    {currentDrawer.shift_name}
+                    {currentDrawer.shift_start && currentDrawer.shift_end
+                      ? ` (${currentDrawer.shift_start} – ${currentDrawer.shift_end})`
+                      : ''}
                   </span>
                 )}
               </div>
@@ -93,20 +62,7 @@ export function CashDrawerPage() {
         </CardContent>
       </Card>
 
-      <CashDrawerFilterBar
-        filter={filter}
-        onChange={setFilter}
-        onReset={() => setFilter({ page: 1, limit: 10, start_date: monthStartString(), end_date: todayString() })}
-      />
-
-      <CashDrawerTable
-        data={items}
-        isLoading={isLoading}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
-        onRowClick={(row) => setSelectedId(row.id)}
-      />
-
-      <CashDrawerDetailModal cashDrawerId={selectedId} onClose={() => setSelectedId(null)} />
+      <CashDrawerTable />
 
       <OpenCashDrawerModal
         open={openModalOpen}

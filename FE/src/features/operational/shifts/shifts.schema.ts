@@ -1,14 +1,12 @@
 import { z } from 'zod'
 
-export const openShiftSchema = z.object({
-  opening_balance: z.number({ error: 'Modal awal wajib diisi' }).min(0, 'Modal awal tidak boleh negatif'),
-  notes: z.string().optional(),
+export const shiftFormSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Nama shift minimal 2 karakter')
+    .max(100, 'Nama shift maksimal 100 karakter'),
+  start_time: z.string().min(1, 'Jam mulai wajib diisi'),
+  end_time: z.string().min(1, 'Jam selesai wajib diisi'),
 })
 
-export const closeShiftSchema = z.object({
-  closing_balance: z.number({ error: 'Uang akhir wajib diisi' }).min(0, 'Uang akhir tidak boleh negatif'),
-  notes: z.string().optional(),
-})
-
-export type OpenShiftFormValues = z.infer<typeof openShiftSchema>
-export type CloseShiftFormValues = z.infer<typeof closeShiftSchema>
+export type ShiftFormValues = z.infer<typeof shiftFormSchema>

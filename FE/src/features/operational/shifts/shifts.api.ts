@@ -5,7 +5,7 @@ import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
 import type { PaginatedData } from '@/shared/types'
 
-import type { CloseShiftPayload, OpenShiftPayload, Shift, ShiftListFilter } from './shifts.types'
+import type { Shift, ShiftFormPayload, ShiftListFilter, ShiftOption } from './shifts.types'
 
 export function useShiftListQuery(filter?: ShiftListFilter) {
   return useQuery({
@@ -14,10 +14,10 @@ export function useShiftListQuery(filter?: ShiftListFilter) {
   })
 }
 
-export function useActiveShiftQuery() {
+export function useShiftOptionsQuery() {
   return useQuery({
     queryKey: queryKeys.shifts.active(),
-    queryFn: () => api.post<Shift | null>('/shifts/active', {}),
+    queryFn: () => api.post<ShiftOption[]>('/shifts/active', {}),
   })
 }
 
@@ -29,26 +29,46 @@ export function useShiftDetailQuery(id: number) {
   })
 }
 
-export function useOpenShiftMutation() {
+export function useCreateShiftMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: OpenShiftPayload) => api.post<Shift>('/shifts/create', payload),
+    mutationFn: (payload: ShiftFormPayload) => api.post<Shift>('/shifts/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
-      qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })
     },
     onError: (e: Error) => toast.error(e.message),
   })
 }
 
-export function useCloseShiftMutation() {
+export function useUpdateShiftMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: CloseShiftPayload }) =>
-      api.post<Shift>(`/shifts/update/${id}`, payload),
+    mutationFn: ({ id, ...payload }: ShiftFormPayload & { id: number }) =>
+      api.post<void>(`/shifts/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
-      qc.invalidateQueries({ queryKey: queryKeys.shifts.active() })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useDeleteShiftMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/shifts/delete/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useToggleShiftStatusMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/shifts/toggle-status/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
     },
     onError: (e: Error) => toast.error(e.message),
   })

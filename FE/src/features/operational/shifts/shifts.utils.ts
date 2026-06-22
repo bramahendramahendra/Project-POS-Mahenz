@@ -1,9 +1,8 @@
-export function formatDateTime(str: string): string {
-  return new Date(str).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+export function formatTime(time: string): string {
+  const [hour, minute] = time.split(':')
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
+}
+
+export function formatShiftTime(start_time: string, end_time: string): string {
+  return `${formatTime(start_time)} – ${formatTime(end_time)}`
 }

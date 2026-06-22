@@ -1,90 +1,78 @@
-import { StatusBadge } from '@/shared/components'
+import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
-import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Shift } from '../shifts.types'
-import { formatDateTime } from '../shifts.utils'
+import { formatShiftTime } from '../shifts.utils'
 
 interface ShiftColumnHandlers {
-  onClose: (shift: Shift) => void
+  onEdit: (shift: Shift) => void
+  onDelete: (shift: Shift) => void
+  onToggleStatus: (shift: Shift) => void
 }
 
-export function buildShiftColumns({ onClose }: ShiftColumnHandlers): ColumnDef<Shift>[] {
+export function buildShiftColumns({ onEdit, onDelete, onToggleStatus }: ShiftColumnHandlers): ColumnDef<Shift>[] {
   return [
     {
-      key: 'kasir_name',
-      header: 'Kasir',
-      cell: (row) => <span className="font-medium">{row.kasir_name}</span>,
+      key: 'name',
+      header: 'Nama Shift',
+      cell: (row) => <span className="font-medium">{row.name}</span>,
     },
     {
-      key: 'opened_at',
-      header: 'Buka Shift',
-      cell: (row) => <span className="text-sm text-gray-600">{formatDateTime(row.opened_at)}</span>,
-    },
-    {
-      key: 'closed_at',
-      header: 'Tutup Shift',
-      cell: (row) =>
-        row.closed_at ? (
-          <span className="text-sm text-gray-600">{formatDateTime(row.closed_at)}</span>
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        ),
-    },
-    {
-      key: 'opening_balance',
-      header: 'Modal Awal',
-      align: 'right',
-      cell: (row) => <span>{formatRupiah(row.opening_balance)}</span>,
-    },
-    {
-      key: 'closing_balance',
-      header: 'Modal Akhir',
-      align: 'right',
-      cell: (row) =>
-        row.closing_balance !== undefined ? (
-          <span>{formatRupiah(row.closing_balance)}</span>
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        ),
-    },
-    {
-      key: 'total_transactions',
-      header: 'Transaksi',
-      align: 'right',
-      cell: (row) => <span>{row.total_transactions}</span>,
-    },
-    {
-      key: 'total_revenue',
-      header: 'Revenue',
-      align: 'right',
+      key: 'start_time',
+      header: 'Jam Operasional',
       cell: (row) => (
-        <span className="font-semibold text-blue-600">{formatRupiah(row.total_revenue)}</span>
+        <span className="text-sm text-gray-600">{formatShiftTime(row.start_time, row.end_time)}</span>
       ),
     },
     {
-      key: 'status',
+      key: 'is_active',
       header: 'Status',
       align: 'center',
-      cell: (row) => <StatusBadge status={row.status} />,
+      cell: (row) =>
+        row.is_active ? (
+          <Badge variant="default" className="bg-green-600">Aktif</Badge>
+        ) : (
+          <Badge variant="secondary">Nonaktif</Badge>
+        ),
     },
     {
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '90px',
-      cell: (row) =>
-        row.status === 'open' ? (
+      width: '160px',
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1">
           <Button
             size="sm"
             variant="outline"
-            className="h-7 px-3 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-            onClick={() => onClose(row)}
+            className="h-7 px-3 text-xs"
+            onClick={() => onEdit(row)}
           >
-            Tutup
+            Edit
           </Button>
-        ) : null,
+          <Button
+            size="sm"
+            variant="outline"
+            className={`h-7 px-3 text-xs ${
+              row.is_active
+                ? 'text-yellow-600 border-yellow-200 hover:bg-yellow-50'
+                : 'text-green-600 border-green-200 hover:bg-green-50'
+            }`}
+            onClick={() => onToggleStatus(row)}
+          >
+            {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-3 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            onClick={() => onDelete(row)}
+          >
+            Hapus
+          </Button>
+        </div>
+      ),
     },
   ]
 }

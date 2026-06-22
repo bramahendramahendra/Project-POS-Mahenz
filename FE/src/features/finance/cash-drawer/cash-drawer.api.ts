@@ -7,10 +7,12 @@ import type { PaginatedData } from '@/shared/types'
 
 import type {
   CashDrawer,
+  CashDrawerDetail,
   CashDrawerListFilter,
   CashDrawerSummary,
   CloseCashDrawerBody,
   CurrentCashDrawer,
+  KasirOption,
   OpenCashDrawerPayload,
 } from './cash-drawer.types'
 
@@ -31,7 +33,7 @@ export function useCashDrawerListQuery(filter?: CashDrawerListFilter) {
 export function useCashDrawerDetailQuery(id: number | null) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.detail(id ?? 0),
-    queryFn: () => api.post<CashDrawer>(`/cash-drawer/detail/${id}`, {}),
+    queryFn: () => api.post<CashDrawerDetail>(`/cash-drawer/detail/${id}`, {}),
     enabled: id !== null,
   })
 }
@@ -63,5 +65,14 @@ export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.summary(filter),
     queryFn: () => api.post<CashDrawerSummary>('/cash-drawer/summary', filter ?? {}),
+  })
+}
+
+export function useKasirOptionsQuery() {
+  return useQuery({
+    queryKey: ['users', 'kasir-options'],
+    queryFn: () =>
+      api.post<{ data: KasirOption[] }>('/users/list', { page: 1, limit: 100, is_active: true }),
+    select: (res) => res?.data ?? [],
   })
 }

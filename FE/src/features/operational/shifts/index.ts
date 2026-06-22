@@ -1,2 +1,2 @@
 export { ShiftsPage } from './ShiftsPage'
-export { useActiveShiftQuery } from './shifts.api'
+export { useShiftOptionsQuery } from './shifts.api'

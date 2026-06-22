@@ -122,7 +122,10 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title="Tutup Kas"
         description="Yakin ingin menutup kas hari ini? Tindakan ini tidak dapat dibatalkan."

@@ -7,42 +7,43 @@ import type { CashDrawer } from '../cash-drawer.types'
 
 export interface CashDrawerColumnHandlers {
   onRowClick: (row: CashDrawer) => void
+  onForceClose?: (row: CashDrawer) => void
+  canForceClose?: boolean
 }
 
-const SHIFT_LABELS: Record<string, string> = {
-  pagi: 'Pagi',
-  siang: 'Siang',
-  malam: 'Malam',
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
+function formatDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('id-ID', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
 export function buildCashDrawerColumns(
   handlers: CashDrawerColumnHandlers
 ): ColumnDef<CashDrawer>[] {
-  const { onRowClick } = handlers
+  const { onRowClick, onForceClose, canForceClose } = handlers
 
   return [
     {
-      key: 'date',
-      header: 'Tanggal',
-      cell: (row) => <span className="text-gray-600 text-sm">{formatDate(row.date)}</span>,
+      key: 'open_time',
+      header: 'Waktu Buka',
+      cell: (row) => <span className="text-gray-600 text-sm">{formatDateTime(row.open_time)}</span>,
     },
     {
-      key: 'shift',
+      key: 'shift_name',
       header: 'Shift',
       align: 'center',
       cell: (row) => (
-        <span className="text-sm text-gray-600">
-          {row.shift ? (SHIFT_LABELS[row.shift] ?? row.shift) : '—'}
-        </span>
+        <span className="text-sm text-gray-600">{row.shift_name ?? '—'}</span>
       ),
+    },
+    {
+      key: 'user_name',
+      header: 'Kasir',
+      cell: (row) => <span className="text-sm font-medium">{row.user_name}</span>,
     },
     {
       key: 'opening_balance',
@@ -51,19 +52,19 @@ export function buildCashDrawerColumns(
       cell: (row) => <span className="text-sm">{formatRupiah(row.opening_balance)}</span>,
     },
     {
-      key: 'total_in',
+      key: 'total_cash_sales',
       header: 'Total Masuk',
       align: 'right',
       cell: (row) => (
-        <span className="text-green-600 font-medium text-sm">{formatRupiah(row.total_in)}</span>
+        <span className="text-green-600 font-medium text-sm">{formatRupiah(row.total_cash_sales)}</span>
       ),
     },
     {
-      key: 'total_out',
+      key: 'total_expenses',
       header: 'Total Keluar',
       align: 'right',
       cell: (row) => (
-        <span className="text-red-600 font-medium text-sm">{formatRupiah(row.total_out)}</span>
+        <span className="text-red-600 font-medium text-sm">{formatRupiah(row.total_expenses)}</span>
       ),
     },
     {
@@ -72,7 +73,9 @@ export function buildCashDrawerColumns(
       align: 'right',
       cell: (row) => (
         <span className="font-semibold text-sm">
-          {row.status === 'closed' ? formatRupiah(row.closing_balance) : '—'}
+          {row.status === 'closed' && row.closing_balance != null
+            ? formatRupiah(row.closing_balance)
+            : '—'}
         </span>
       ),
     },
@@ -80,20 +83,18 @@ export function buildCashDrawerColumns(
       key: 'difference',
       header: 'Selisih',
       align: 'right',
-      cell: (row) => (
-        <span
-          className={`text-sm font-medium ${
-            row.difference === 0
-              ? 'text-gray-500'
-              : row.difference > 0
-                ? 'text-green-600'
-                : 'text-red-600'
-          }`}
-        >
-          {row.difference > 0 ? '+' : ''}
-          {formatRupiah(row.difference)}
-        </span>
-      ),
+      cell: (row) => {
+        const diff = row.difference ?? 0
+        return (
+          <span
+            className={`text-sm font-medium ${
+              diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            {row.status === 'closed' ? `${diff > 0 ? '+' : ''}${formatRupiah(diff)}` : '—'}
+          </span>
+        )
+      },
     },
     {
       key: 'status',
@@ -103,7 +104,7 @@ export function buildCashDrawerColumns(
         row.status === 'closed' ? (
           <Badge variant="secondary">Tutup</Badge>
         ) : (
-          <Badge variant="default">Buka</Badge>
+          <Badge variant="default" className="bg-green-600">Buka</Badge>
         ),
     },
     {
@@ -111,9 +112,21 @@ export function buildCashDrawerColumns(
       header: 'Aksi',
       align: 'center',
       cell: (row) => (
-        <Button variant="ghost" size="sm" onClick={() => onRowClick(row)}>
-          Detail
-        </Button>
+        <div className="flex items-center justify-center gap-1">
+          <Button variant="ghost" size="sm" onClick={() => onRowClick(row)}>
+            Detail
+          </Button>
+          {canForceClose && row.status === 'open' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => onForceClose?.(row)}
+            >
+              Tutup
+            </Button>
+          )}
+        </div>
       ),
     },
   ]

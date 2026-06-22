@@ -18,8 +18,9 @@ import {
 } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
+import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
 import { createPaymentSchema, type PaymentFormValues } from '../cashier.schema'
-import { useActiveShiftQuery, useCheckoutMutation, useCustomerCreditQuery } from '../cashier.api'
+import { useCheckoutMutation, useCustomerCreditQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
 import type {
   CartSummary,
@@ -112,7 +113,8 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   const { cart, discount, tax, selectedCustomer, clearCart, closePaymentModal } = useCashierStore()
   const summary = calcCartSummary(cart, discount, tax)
   const { mutate: checkout, isPending } = useCheckoutMutation()
-  const { data: activeShift } = useActiveShiftQuery()
+  const { data: currentDrawer } = useCashDrawerCurrentQuery()
+  const kasOpen = currentDrawer?.status === 'open'
 
   const { data: creditData } = useCustomerCreditQuery(selectedCustomer?.id ?? null)
   const customerCredit = creditData
@@ -166,7 +168,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     }
     const payload = buildPayload(
       cart, summary, discount, tax,
-      selectedCustomer?.id, activeShift?.id,
+      selectedCustomer?.id, currentDrawer?.shift_id ?? undefined,
       values.payment_method, effectiveAmountPaid,
     )
     checkout(payload, {
@@ -208,6 +210,14 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
 
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="overflow-y-auto px-6 py-4 space-y-5" style={{ maxHeight: '70vh' }}>
+              {/* Guard kas belum buka */}
+              {!kasOpen && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-700">
+                  <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+                  <span>Kas belum dibuka. Hubungi admin/owner untuk membuka kas sebelum memproses transaksi.</span>
+                </div>
+              )}
+
               {/* Grand total */}
               <div className="rounded-lg bg-gray-50 px-4 py-3 text-center">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Total Belanja</p>
@@ -333,7 +343,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
               >
                 Batal
               </Button>
-              <Button type="submit" disabled={!sufficient || isPending}>
+              <Button type="submit" disabled={!sufficient || isPending || !kasOpen}>
                 {isPending && <Loader2 size={14} className="animate-spin" />}
                 {isPending ? 'Memproses...' : '✓ Proses Bayar'}
               </Button>
