@@ -1,4 +1,4 @@
-import { FormModal, StatusBadge } from '@/shared/components'
+import { DetailField, FormModal, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 
@@ -134,22 +134,5 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
         </div>
       )}
     </FormModal>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-  children,
-}: {
-  label: string
-  value?: string
-  children?: React.ReactNode
-}) {
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-gray-500">{label}</p>
-      {children ?? <p className="font-medium text-gray-800">{value ?? '—'}</p>}
-    </div>
   )
 }

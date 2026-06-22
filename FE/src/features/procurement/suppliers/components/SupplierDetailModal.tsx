@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { FormModal, StatusBadge } from '@/shared/components'
+import { DetailField, FormModal, StatusBadge, SummaryCard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatDate, formatRupiah } from '@/shared/utils'
 
@@ -232,55 +232,5 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
         </div>
       )}
     </FormModal>
-  )
-}
-
-function DetailField({
-  label,
-  value,
-  children,
-}: {
-  label: string
-  value?: string
-  children?: React.ReactNode
-}) {
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-gray-500">{label}</p>
-      {children ?? <p className="font-medium text-gray-800">{value ?? '—'}</p>}
-    </div>
-  )
-}
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  color,
-}: {
-  label: string
-  value: string
-  sub: string
-  color: 'blue' | 'red' | 'green' | 'orange'
-}) {
-  const colorMap = {
-    blue: 'bg-blue-50 border-blue-100 text-blue-700',
-    red: 'bg-red-50 border-red-100 text-red-700',
-    green: 'bg-green-50 border-green-100 text-green-700',
-    orange: 'bg-orange-50 border-orange-100 text-orange-700',
-  }
-  const subColorMap = {
-    blue: 'text-blue-500',
-    red: 'text-red-400',
-    green: 'text-green-500',
-    orange: 'text-orange-400',
-  }
-
-  return (
-    <div className={`rounded-lg border p-2.5 ${colorMap[color]}`}>
-      <p className="text-xs opacity-70 mb-0.5">{label}</p>
-      <p className="font-semibold text-sm leading-tight">{value}</p>
-      <p className={`text-xs mt-0.5 ${subColorMap[color]}`}>{sub}</p>
-    </div>
   )
 }

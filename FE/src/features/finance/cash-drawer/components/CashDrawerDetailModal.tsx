@@ -36,7 +36,7 @@ function SummaryRow({ label, value, valueClass = '' }: SummaryRowProps) {
 }
 
 export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetailModalProps) {
-  const { data, isLoading } = useCashDrawerDetailQuery(cashDrawerId)
+  const { data, isLoading, isError, error } = useCashDrawerDetailQuery(cashDrawerId)
   const detail: CashDrawerDetail | undefined = data ?? undefined
 
   const diff = detail?.difference ?? 0
@@ -50,6 +50,12 @@ export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetai
 
         {isLoading && (
           <div className="py-8 text-center text-sm text-gray-400">Memuat data...</div>
+        )}
+
+        {isError && !isLoading && (
+          <div className="py-8 text-center text-sm text-red-500">
+            Gagal memuat data: {(error as Error)?.message ?? 'Terjadi kesalahan'}
+          </div>
         )}
 
         {detail && !isLoading && (
