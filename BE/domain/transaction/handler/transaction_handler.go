@@ -1,15 +1,14 @@
-﻿package handler
+package handler
 
 import (
-	"strconv"
-
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/service"
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
-	"pos_api/validation"
+	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,56 +21,41 @@ func NewTransactionHandler(service service.TransactionServiceInterface) *Transac
 	return &TransactionHandler{service: service}
 }
 
-// GET /api/transactions
 func (h *TransactionHandler) GetAll(c *gin.Context) {
-	filter := &dto.TransactionFilter{
-		Status:        c.Query("status"),
-		PaymentMethod: c.Query("payment_method"),
-		DateFrom:      c.Query("start_date"),
-		DateTo:        c.Query("end_date"),
-		Search:        c.Query("search"),
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
 	}
 
-	if uidStr := c.Query("user_id"); uidStr != "" {
-		if uid, err := strconv.Atoi(uidStr); err == nil {
-			filter.UserID = &uid
-		}
-	}
-
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	filter.Page = page
-	filter.Limit = limit
-
-	transactions, total, err := h.service.GetAll(filter)
+	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar transaksi",
-		Data: gin.H{
-			"data":       transactions,
-			"total":      total,
-			"page":       filter.Page,
-			"page_size":  filter.Limit,
-			"total_page": (total + filter.Limit - 1) / filter.Limit,
-		},
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar transaksi",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 
-// GET /api/transactions/:id
 func (h *TransactionHandler) GetByID(c *gin.Context) {
-	id, err := parseTransactionID(c)
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	t, svcErr := h.service.GetByID(id)
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	data, svcErr := h.service.GetByID(req.ID)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -81,18 +65,18 @@ func (h *TransactionHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail transaksi",
-		Data:    t,
+		Data:    data,
 	})
 }
 
-// POST /api/transactions
 func (h *TransactionHandler) Create(c *gin.Context) {
-	var req dto.CreateTransactionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	req, err := binder.BindJSON[dto.CreateTransactionRequest](c)
+	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
-	if err := validation.Validate.Struct(req); err != nil {
+
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -100,9 +84,9 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	uid, _ := userID.(int)
 
-	resp, err := h.service.Create(&req, uid)
-	if err != nil {
-		c.Error(err)
+	resp, svcErr := h.service.Create(&req, uid)
+	if svcErr != nil {
+		c.Error(svcErr)
 		return
 	}
 
@@ -114,18 +98,22 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 	})
 }
 
-// PATCH /api/transactions/:id/void
 func (h *TransactionHandler) Void(c *gin.Context) {
-	id, err := parseTransactionID(c)
+	req, err := binder.BindURI[dto.VoidRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
 	userID, _ := c.Get("user_id")
 	uid, _ := userID.(int)
 
-	if svcErr := h.service.Void(id, uid); svcErr != nil {
+	if svcErr := h.service.Void(&req, uid); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -136,12 +124,3 @@ func (h *TransactionHandler) Void(c *gin.Context) {
 		Message: "Transaksi berhasil di-void",
 	})
 }
-
-func parseTransactionID(c *gin.Context) (int, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return 0, &errors.BadRequestError{Message: "ID tidak valid"}
-	}
-	return id, nil
-}
-

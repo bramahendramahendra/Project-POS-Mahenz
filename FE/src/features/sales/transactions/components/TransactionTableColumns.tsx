@@ -1,15 +1,16 @@
-import { FileText } from 'lucide-react'
+import { Ban, Eye } from 'lucide-react'
 
 import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Transaction } from '../transactions.types'
 import { PAYMENT_LABELS, formatDateTimeShort } from '../transactions.utils'
 
-interface TransactionColumnHandlers {
+export interface TransactionColumnHandlers {
   onDetail: (transaction: Transaction) => void
   onVoid: (transaction: Transaction) => void
 }
@@ -73,28 +74,37 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '120px',
+      width: '90px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs text-gray-600 hover:text-blue-600"
-            onClick={() => onDetail(row)}
-          >
-            <FileText size={13} className="mr-1" />
-            Detail
-          </Button>
-          <RoleGuard allowedRoles={[ROLES.OWNER]}>
-            {row.status === 'completed' && (
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-gray-500 hover:text-red-600"
-                onClick={() => onVoid(row)}
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => onDetail(row)}
               >
-                Void
+                <Eye size={14} />
               </Button>
+            </TooltipTrigger>
+            <TooltipContent>Detail</TooltipContent>
+          </Tooltip>
+          <RoleGuard allowedRoles={[ROLES.OWNER]}>
+            {row.status === 'completed' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-red-600"
+                    onClick={() => onVoid(row)}
+                  >
+                    <Ban size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Void</TooltipContent>
+              </Tooltip>
             )}
           </RoleGuard>
         </div>

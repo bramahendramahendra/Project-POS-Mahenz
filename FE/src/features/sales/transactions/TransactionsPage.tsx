@@ -4,15 +4,15 @@ import { PageHeader } from '@/shared/components'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { useTransactionListQuery } from './transactions.api'
-import type { TransactionFilter } from './transactions.types'
+import type { TransactionListFilter } from './transactions.types'
 import { TransactionFilterBar } from './components/TransactionFilterBar'
 import { TransactionTable } from './components/TransactionTable'
 import { TransactionDetailModal } from './components/TransactionDetailModal'
 
-const DEFAULT_FILTER: TransactionFilter = {}
+const DEFAULT_FILTER: TransactionListFilter = {}
 
 export function TransactionsPage() {
-  const [filter, setFilter] = useState<TransactionFilter>(DEFAULT_FILTER)
+  const [filter, setFilter] = useState<TransactionListFilter>(DEFAULT_FILTER)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
 
@@ -26,7 +26,7 @@ export function TransactionsPage() {
   const transactions = txData?.data ?? []
   const total = txData?.total ?? 0
 
-  const handleFilterChange = (newFilter: TransactionFilter) => {
+  const handleFilterChange = (newFilter: TransactionListFilter) => {
     setFilter(newFilter)
     reset()
   }

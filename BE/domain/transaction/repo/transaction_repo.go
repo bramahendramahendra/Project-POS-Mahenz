@@ -49,49 +49,49 @@ const (
 )
 
 
-func (r *transactionRepo) GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error) {
+func (r *transactionRepo) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error) {
 	var args, countArgs []interface{}
 	conditions := ""
 
-	if filter.Status != "" {
+	if req.Status != "" {
 		conditions += " AND t.status = ?"
-		args = append(args, filter.Status)
-		countArgs = append(countArgs, filter.Status)
+		args = append(args, req.Status)
+		countArgs = append(countArgs, req.Status)
 	}
-	if filter.PaymentMethod != "" {
+	if req.PaymentMethod != "" {
 		conditions += " AND t.payment_method = ?"
-		args = append(args, filter.PaymentMethod)
-		countArgs = append(countArgs, filter.PaymentMethod)
+		args = append(args, req.PaymentMethod)
+		countArgs = append(countArgs, req.PaymentMethod)
 	}
-	if filter.DateFrom != "" {
+	if req.DateFrom != "" {
 		conditions += " AND DATE(t.transaction_date) >= ?"
-		args = append(args, filter.DateFrom)
-		countArgs = append(countArgs, filter.DateFrom)
+		args = append(args, req.DateFrom)
+		countArgs = append(countArgs, req.DateFrom)
 	}
-	if filter.DateTo != "" {
+	if req.DateTo != "" {
 		conditions += " AND DATE(t.transaction_date) <= ?"
-		args = append(args, filter.DateTo)
-		countArgs = append(countArgs, filter.DateTo)
+		args = append(args, req.DateTo)
+		countArgs = append(countArgs, req.DateTo)
 	}
-	if filter.UserID != nil {
+	if req.UserID != nil {
 		conditions += " AND t.user_id = ?"
-		args = append(args, *filter.UserID)
-		countArgs = append(countArgs, *filter.UserID)
+		args = append(args, *req.UserID)
+		countArgs = append(countArgs, *req.UserID)
 	}
-	if filter.Search != "" {
+	if req.Search != "" {
 		conditions += " AND (t.transaction_code LIKE ? OR c.name LIKE ?)"
-		like := "%" + filter.Search + "%"
+		like := "%" + req.Search + "%"
 		args = append(args, like, like)
 		countArgs = append(countArgs, like, like)
 	}
 
-	var total int
+	var total int64
 	if err := r.db.Raw(countTransactionsBase+conditions, countArgs...).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	page := filter.Page
-	limit := filter.Limit
+	page := req.Page
+	limit := req.Limit
 	if page <= 0 {
 		page = 1
 	}

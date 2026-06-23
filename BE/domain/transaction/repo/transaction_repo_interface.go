@@ -9,7 +9,7 @@ import (
 
 type (
 	TransactionRepoInterface interface {
-		GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error)
+		GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error)
 		GetByID(id int) (*dto.TransactionResponse, error)
 		Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
 		Void(id, userID int) error

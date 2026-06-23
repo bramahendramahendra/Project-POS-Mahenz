@@ -19,9 +19,9 @@ func TransactionRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/transactions")
 	{
-		g.GET("", transactionHandler.GetAll)
-		g.GET("/:id", transactionHandler.GetByID)
-		g.POST("", transactionHandler.Create)
-		g.PATCH("/:id/void", middleware.RoleMiddleware("owner", "admin"), transactionHandler.Void)
+		g.POST("/list", transactionHandler.GetAll)
+		g.POST("/detail/:id", transactionHandler.GetByID)
+		g.POST("/create", transactionHandler.Create)
+		g.POST("/void/:id", middleware.RoleMiddleware("owner", "admin"), transactionHandler.Void)
 	}
 }

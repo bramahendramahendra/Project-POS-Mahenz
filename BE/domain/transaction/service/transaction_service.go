@@ -8,8 +8,8 @@ import (
 	"pos_api/errors"
 )
 
-func (s *transactionService) GetAll(filter *dto.TransactionFilter) ([]*dto.TransactionResponse, int, error) {
-	transactions, total, err := s.repo.GetAll(filter)
+func (s *transactionService) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error) {
+	transactions, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return nil, 0, &errors.InternalServerError{Message: err.Error()}
 	}
@@ -47,8 +47,8 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 	return resp, nil
 }
 
-func (s *transactionService) Void(id, userID int) error {
-	t, err := s.repo.GetByID(id)
+func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
+	t, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
@@ -59,7 +59,7 @@ func (s *transactionService) Void(id, userID int) error {
 		return &errors.BadRequestError{Message: "Transaksi sudah di-void"}
 	}
 
-	if err := s.repo.Void(id, userID); err != nil {
+	if err := s.repo.Void(req.ID, userID); err != nil {
 		return &errors.InternalServerError{Message: err.Error()}
 	}
 	return nil

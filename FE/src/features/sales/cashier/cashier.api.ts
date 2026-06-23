@@ -43,7 +43,7 @@ export function useCheckoutMutation() {
 
   return useMutation({
     mutationFn: (payload: PaymentPayload) =>
-      api.post<CheckoutResponse>('/transactions', payload),
+      api.post<CheckoutResponse>('/transactions/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all() })
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })

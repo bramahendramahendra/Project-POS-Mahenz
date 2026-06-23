@@ -36,10 +36,10 @@ export interface Transaction {
   device_source: string
 }
 
-export interface TransactionFilter {
+export interface TransactionListFilter {
   search?: string
-  start_date?: string
-  end_date?: string
+  date_from?: string
+  date_to?: string
   payment_method?: PaymentMethod | ''
   status?: 'completed' | 'void' | ''
   page?: number

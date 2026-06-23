@@ -10,16 +10,16 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
-import type { TransactionFilter } from '../transactions.types'
+import type { TransactionListFilter } from '../transactions.types'
 
 interface TransactionFilterProps {
-  filter: TransactionFilter
-  onChange: (filter: TransactionFilter) => void
+  filter: TransactionListFilter
+  onChange: (filter: TransactionListFilter) => void
   onReset: () => void
 }
 
 export function TransactionFilterBar({ filter, onChange, onReset }: TransactionFilterProps) {
-  const set = (patch: Partial<TransactionFilter>) => onChange({ ...filter, ...patch })
+  const set = (patch: Partial<TransactionListFilter>) => onChange({ ...filter, ...patch })
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
@@ -37,15 +37,15 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
       {/* Date range */}
       <Input
         type="date"
-        value={filter.start_date ?? ''}
-        onChange={(e) => set({ start_date: e.target.value || undefined })}
+        value={filter.date_from ?? ''}
+        onChange={(e) => set({ date_from: e.target.value || undefined })}
         className="h-9 w-[150px] text-sm"
       />
       <span className="text-gray-400 text-sm">s/d</span>
       <Input
         type="date"
-        value={filter.end_date ?? ''}
-        onChange={(e) => set({ end_date: e.target.value || undefined })}
+        value={filter.date_to ?? ''}
+        onChange={(e) => set({ date_to: e.target.value || undefined })}
         className="h-9 w-[150px] text-sm"
       />
 
@@ -53,7 +53,7 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
       <Select
         value={filter.payment_method ?? 'all'}
         onValueChange={(v) =>
-          set({ payment_method: v === 'all' ? '' : (v as TransactionFilter['payment_method']) })
+          set({ payment_method: v === 'all' ? '' : (v as TransactionListFilter['payment_method']) })
         }
       >
         <SelectTrigger className="h-9 w-[140px] text-sm">
@@ -73,7 +73,7 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
       <Select
         value={filter.status ?? 'all'}
         onValueChange={(v) =>
-          set({ status: v === 'all' ? '' : (v as TransactionFilter['status']) })
+          set({ status: v === 'all' ? '' : (v as TransactionListFilter['status']) })
         }
       >
         <SelectTrigger className="h-9 w-[140px] text-sm">
