@@ -38,6 +38,23 @@ func (h *CashDrawerHandler) GetCurrent(c *gin.Context) {
 	})
 }
 
+func (h *CashDrawerHandler) GetMyCash(c *gin.Context) {
+	userID := helper.GetUserID(c)
+
+	data, err := h.service.GetMyCash(userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Kas saya",
+		Data:    data,
+	})
+}
+
 func (h *CashDrawerHandler) GetHistory(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetHistoryRequest](c)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 type (
 	CashDrawerServiceInterface interface {
 		GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error)
+		GetMyCash(userID int) (*dto.MyCashResponse, error)
 		GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error)
 		GetHistory(req *dto.GetHistoryRequest) (data []*dto.CashDrawerHistoryResponse, total int64, err error)
 		Open(userID int, req *dto.OpenRequest) (*dto.OpenResponse, error)

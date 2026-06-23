@@ -18,6 +18,7 @@ type (
 		Close(id int, closingBalance, expectedBalance, difference float64, notes string) error
 		UpdateSales(id int, totalSales, totalCashSales float64) error
 		UpdateExpenses(id int, totalExpenses float64) error
+		GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
 
 		GetDB() *gorm.DB
 	}

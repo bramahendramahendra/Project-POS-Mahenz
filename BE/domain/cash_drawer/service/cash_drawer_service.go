@@ -9,6 +9,56 @@ func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerRespon
 	return s.repo.GetCurrent(userID)
 }
 
+func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
+	dataDB, transactions, expenses, err := s.repo.GetMyCash(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if dataDB == nil {
+		return &dto.MyCashResponse{
+			Status:       "closed",
+			Transactions: []dto.CashDrawerTransaction{},
+			Expenses:     []dto.CashDrawerExpenseItem{},
+		}, nil
+	}
+
+	trxList := make([]dto.CashDrawerTransaction, len(transactions))
+	for i, t := range transactions {
+		trxList[i] = dto.CashDrawerTransaction{
+			TransactionDate: t.TransactionDate,
+			TransactionCode: t.TransactionCode,
+			CustomerName:    t.CustomerName,
+			TotalAmount:     t.TotalAmount,
+		}
+	}
+
+	expList := make([]dto.CashDrawerExpenseItem, len(expenses))
+	for i, e := range expenses {
+		expList[i] = dto.CashDrawerExpenseItem{
+			Category:    e.Category,
+			Description: e.Description,
+			Amount:      e.Amount,
+		}
+	}
+
+	return &dto.MyCashResponse{
+		ID:              &dataDB.ID,
+		Status:          dataDB.Status,
+		ShiftName:       dataDB.ShiftName,
+		ShiftStart:      dataDB.ShiftStart,
+		ShiftEnd:        dataDB.ShiftEnd,
+		OpenTime:        &dataDB.OpenTime,
+		OpeningBalance:  dataDB.OpeningBalance,
+		TotalCashSales:  dataDB.TotalCashSales,
+		TotalExpenses:   dataDB.TotalExpenses,
+		ExpectedBalance: dataDB.ExpectedBalance,
+		OpenNotes:       dataDB.OpenNotes,
+		Transactions:    trxList,
+		Expenses:        expList,
+	}, nil
+}
+
 func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error) {
 	dataDB, transactions, expenses, err := s.repo.GetDetailByID(id)
 	if err != nil {

@@ -17,6 +17,7 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 	g := r.Group("/cash-drawer")
 	{
 		g.POST("/current", cashDrawerHandler.GetCurrent)
+		g.POST("/my-cash", cashDrawerHandler.GetMyCash)
 		g.POST("/list", cashDrawerHandler.GetHistory)
 		g.POST("/detail/:id", cashDrawerHandler.GetByID)
 		g.POST("/open", cashDrawerHandler.Open)

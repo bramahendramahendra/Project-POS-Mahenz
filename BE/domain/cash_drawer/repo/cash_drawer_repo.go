@@ -46,6 +46,16 @@ const (
 		ORDER BY e.created_at ASC`
 
 	getNextSessionOpenTimeQuery = `SELECT MIN(open_time) FROM cash_drawer WHERE user_id = ? AND open_time > ? AND id != ?`
+
+	getMyCashQuery = `
+		SELECT cd.id, cd.user_id, s.name as shift_name,
+		       s.start_time as shift_start, s.end_time as shift_end,
+		       cd.open_time, cd.opening_balance, cd.total_cash_sales, cd.total_expenses,
+		       cd.expected_balance, cd.status, cd.open_notes
+		FROM cash_drawer cd
+		LEFT JOIN shifts s ON cd.shift_id = s.id
+		WHERE cd.user_id = ? AND DATE(cd.open_time) = CURDATE() AND cd.status = 'open'
+		LIMIT 1`
 )
 
 func (r *cashDrawerRepo) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
@@ -190,4 +200,36 @@ func (r *cashDrawerRepo) UpdateSales(id int, totalSales, totalCashSales float64)
 
 func (r *cashDrawerRepo) UpdateExpenses(id int, totalExpenses float64) error {
 	return r.db.Exec(updateExpensesQuery, totalExpenses, id).Error
+}
+
+func (r *cashDrawerRepo) GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error) {
+	var dataDB model.CashDrawerDetail
+	err := r.db.Raw(getMyCashQuery, userID).Scan(&dataDB).Error
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if dataDB.ID == 0 {
+		return nil, nil, nil, nil
+	}
+
+	var nextOpenTime *string
+	r.db.Raw(getNextSessionOpenTimeQuery, dataDB.UserID, dataDB.OpenTime, dataDB.ID).Scan(&nextOpenTime)
+
+	var transactions []model.CashDrawerTransactionItem
+	if err := r.db.Raw(getCashDrawerTransactionsQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&transactions).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	if transactions == nil {
+		transactions = []model.CashDrawerTransactionItem{}
+	}
+
+	var expenses []model.CashDrawerExpenseItem
+	if err := r.db.Raw(getCashDrawerExpensesQuery, dataDB.UserID, dataDB.OpenTime, dataDB.CloseTime, nextOpenTime).Scan(&expenses).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	if expenses == nil {
+		expenses = []model.CashDrawerExpenseItem{}
+	}
+
+	return &dataDB, transactions, expenses, nil
 }

@@ -44,6 +44,7 @@ export function useOpenCashDrawerMutation() {
     mutationFn: (body: OpenCashDrawerPayload) => api.post<void>('/cash-drawer/open', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
+      qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -56,6 +57,7 @@ export function useCloseCashDrawerMutation() {
       api.post<void>(`/cash-drawer/close/${id}`, { closing_balance, notes }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
+      qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
     },
     onError: (e: Error) => toast.error(e.message),
   })

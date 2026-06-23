@@ -1,43 +1,60 @@
+import { useState } from 'react'
+
 import { PageHeader, DataTable } from '@/shared/components'
-import { formatRupiah } from '@/shared/utils'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 
 import { useMyCashQuery } from './my-cash.api'
-import type { MyCashTransaction } from './my-cash.types'
-import { buildMyCashColumns } from './components/MyCashTableColumns'
+import type { CashDrawerTransaction, CashDrawerExpenseItem } from './my-cash.types'
+import { MyCashStatusCard } from './components/MyCashStatusCard'
+import { buildMyCashTransactionColumns } from './components/MyCashTransactionColumns'
+import { buildMyCashExpenseColumns } from './components/MyCashExpenseColumns'
 
 export function MyCashPage() {
   const { data, isLoading } = useMyCashQuery()
-  const myCash = data
-  const transactions: MyCashTransaction[] = myCash?.transactions ?? []
-  const columns = buildMyCashColumns()
+  const [activeTab, setActiveTab] = useState('transaksi')
+
+  const transactions = (data?.transactions ?? []) as CashDrawerTransaction[]
+  const expenses = (data?.expenses ?? []) as CashDrawerExpenseItem[]
+  const transactionColumns = buildMyCashTransactionColumns()
+  const expenseColumns = buildMyCashExpenseColumns()
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="Kas Saya"
-        breadcrumbs={[{ label: 'Finance' }, { label: 'Kas Saya' }]}
+        breadcrumbs={[{ label: 'Keuangan' }, { label: 'Kas Saya' }]}
       />
 
-      <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <p className="text-sm text-gray-500 mb-1">Saldo Kas Saat Ini</p>
-        {isLoading ? (
-          <div className="h-10 w-40 animate-pulse rounded bg-gray-100" />
-        ) : (
-          <p className="text-4xl font-bold text-gray-900">
-            {formatRupiah(myCash?.balance ?? 0)}
-          </p>
-        )}
-      </div>
+      <MyCashStatusCard data={data ?? undefined} isLoading={isLoading} />
 
-      <div className="space-y-3">
-        <h2 className="font-semibold text-gray-700">Riwayat Kas</h2>
-        <DataTable<MyCashTransaction & Record<string, unknown>>
-          columns={columns}
-          data={transactions as (MyCashTransaction & Record<string, unknown>)[]}
-          isLoading={isLoading}
-          emptyMessage="Belum ada riwayat kas"
-        />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="transaksi">
+            Transaksi ({transactions.length})
+          </TabsTrigger>
+          <TabsTrigger value="pengeluaran">
+            Pengeluaran ({expenses.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="transaksi" className="mt-3">
+          <DataTable<CashDrawerTransaction & Record<string, unknown>>
+            columns={transactionColumns}
+            data={transactions as (CashDrawerTransaction & Record<string, unknown>)[]}
+            isLoading={isLoading}
+            emptyMessage="Belum ada transaksi hari ini"
+          />
+        </TabsContent>
+
+        <TabsContent value="pengeluaran" className="mt-3">
+          <DataTable<CashDrawerExpenseItem & Record<string, unknown>>
+            columns={expenseColumns}
+            data={expenses as (CashDrawerExpenseItem & Record<string, unknown>)[]}
+            isLoading={isLoading}
+            emptyMessage="Belum ada pengeluaran hari ini"
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

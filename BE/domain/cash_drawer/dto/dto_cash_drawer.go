@@ -123,6 +123,22 @@ type (
 		Expenses        []CashDrawerExpenseItem `json:"expenses"`
 	}
 
+	MyCashResponse struct {
+		ID              *int                    `json:"id"`
+		Status          string                  `json:"status"`
+		ShiftName       *string                 `json:"shift_name"`
+		ShiftStart      *string                 `json:"shift_start"`
+		ShiftEnd        *string                 `json:"shift_end"`
+		OpenTime        *time.Time              `json:"open_time"`
+		OpeningBalance  float64                 `json:"opening_balance"`
+		TotalCashSales  float64                 `json:"total_cash_sales"`
+		TotalExpenses   float64                 `json:"total_expenses"`
+		ExpectedBalance float64                 `json:"expected_balance"`
+		OpenNotes       *string                 `json:"open_notes"`
+		Transactions    []CashDrawerTransaction `json:"transactions"`
+		Expenses        []CashDrawerExpenseItem `json:"expenses"`
+	}
+
 	OpenResponse struct {
 		ID int `json:"id"`
 	}
