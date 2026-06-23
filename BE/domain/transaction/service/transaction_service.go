@@ -36,6 +36,14 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		}
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
+
+	if req.PaymentMethod == "cash" {
+		openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(userID)
+		if openCashDrawer != nil {
+			_ = s.cashDrawerRepo.UpdateSales(openCashDrawer.ID, resp.TotalAmount, resp.TotalAmount)
+		}
+	}
+
 	return resp, nil
 }
 

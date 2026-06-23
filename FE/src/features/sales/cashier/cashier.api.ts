@@ -46,6 +46,8 @@ export function useCheckoutMutation() {
       api.post<CheckoutResponse>('/transactions', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all() })
+      qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
+      qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
     },
     onError: (e: Error) => toast.error(e.message),
   })
