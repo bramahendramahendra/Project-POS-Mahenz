@@ -5,6 +5,7 @@ export {
   useSupplierPurchaseDetailQuery,
   useSupplierPurchasePaymentsQuery,
   useCreateSupplierPurchaseMutation,
+  useUpdateSupplierPurchaseMutation,
   useDeleteSupplierPurchaseMutation,
   usePaySupplierPurchaseMutation,
 } from './purchases.api'
@@ -19,4 +20,5 @@ export type {
   SupplierPurchasePayment,
   CreatePurchaseItemPayload,
   CreateSupplierPurchasePayload,
+  UpdateSupplierPurchasePayload,
 } from './purchases.types'

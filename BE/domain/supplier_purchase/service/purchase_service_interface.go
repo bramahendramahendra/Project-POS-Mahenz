@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	PurchaseService interface {
+	PurchaseServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error)
 		GetByID(id int) (data dto.PurchaseResponse, err error)
 		GetItems(purchaseID int) (data []*dto.PurchaseItemResponse, err error)
@@ -19,10 +19,10 @@ type (
 	}
 
 	purchaseService struct {
-		repo repo.PurchaseRepo
+		repo repo.PurchaseRepoInterface
 	}
 )
 
-func NewPurchaseService(repo repo.PurchaseRepo) *purchaseService {
-	return &purchaseService{repo: repo}
+func NewPurchaseService(r repo.PurchaseRepoInterface) *purchaseService {
+	return &purchaseService{repo: r}
 }

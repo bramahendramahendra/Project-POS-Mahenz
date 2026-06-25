@@ -14,10 +14,10 @@ import (
 )
 
 type PurchaseHandler struct {
-	service service.PurchaseService
+	service service.PurchaseServiceInterface
 }
 
-func NewPurchaseHandler(service service.PurchaseService) *PurchaseHandler {
+func NewPurchaseHandler(service service.PurchaseServiceInterface) *PurchaseHandler {
 	return &PurchaseHandler{service: service}
 }
 

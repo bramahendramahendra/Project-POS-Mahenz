@@ -23,23 +23,28 @@ import { useSupplierListQuery } from '@/features/procurement/suppliers/suppliers
 import { useProductOptionsQuery } from '@/features/products/products/products.api'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
-import { useCreateSupplierPurchaseMutation, useGeneratePurchaseCodeQuery } from '../purchases.api'
+import {
+  useCreateSupplierPurchaseMutation,
+  useUpdateSupplierPurchaseMutation,
+  useGeneratePurchaseCodeQuery,
+} from '../purchases.api'
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
-import type { PaymentStatus } from '../purchases.types'
+import type { PaymentStatus, SupplierPurchase } from '../purchases.types'
 import type { ProductPackage } from '@/features/products/products/products.types'
 import { purchaseSchema, type PurchaseFormValues } from '../purchases.schema'
 
 interface PurchaseFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialData?: SupplierPurchase | null
 }
 
 function todayString() {
   return new Date().toISOString().split('T')[0]
 }
 
-const defaultValues: PurchaseFormValues = {
+const emptyValues: PurchaseFormValues = {
   purchase_date: todayString(),
   invoice_number: '',
   supplier_id: 0,
@@ -51,14 +56,41 @@ const defaultValues: PurchaseFormValues = {
   payment_method: 'cash',
 }
 
-export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps) {
+function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
+  return {
+    purchase_date: data.purchase_date,
+    invoice_number: data.invoice_number,
+    supplier_id: data.supplier_id,
+    items: data.items.map((item) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.purchase_price,
+      unit: item.unit,
+      conversion_qty: item.conversion_qty,
+    })),
+    discount_amount: data.discount_amount,
+    notes: data.notes ?? '',
+    payment_status: data.payment_status,
+    paid_amount: data.paid_amount,
+    payment_method: 'cash',
+  }
+}
+
+export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseFormModalProps) {
+  const isEditMode = !!initialData
+
   const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const { data: productOptions = [] } = useProductOptionsQuery()
   const suppliers = suppliersData?.data ?? []
 
   const queryClient = useQueryClient()
-  const { mutate: create, isPending } = useCreateSupplierPurchaseMutation()
-  const { data: codeData, isFetching: isGeneratingCode } = useGeneratePurchaseCodeQuery(open)
+  const { mutate: create, isPending: isCreating } = useCreateSupplierPurchaseMutation()
+  const { mutate: update, isPending: isUpdating } = useUpdateSupplierPurchaseMutation()
+  const isPending = isCreating || isUpdating
+
+  const { data: codeData, isFetching: isGeneratingCode } = useGeneratePurchaseCodeQuery(
+    open && !isEditMode
+  )
   const { data: paymentStatuses = [] } = usePaymentStatusesQuery()
   const { data: paymentMethods = [] } = usePaymentMethodsQuery()
 
@@ -72,7 +104,7 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
     formState: { errors },
   } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues,
+    defaultValues: emptyValues,
   })
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
@@ -84,27 +116,36 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
   const watchDiscount = watch('discount_amount') ?? 0
   const watchPaymentStatus = watch('payment_status')
   const watchPaymentMethod = watch('payment_method')
+  const watchSupplierId = watch('supplier_id')
 
   const subtotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
   const total = Math.max(0, subtotal - (watchDiscount || 0))
 
   useEffect(() => {
     if (!open) {
-      reset({ ...defaultValues, purchase_date: todayString() })
+      reset({ ...emptyValues, purchase_date: todayString() })
+      setItemUnitOptions({})
+      setItemSelectedPackageId({})
+      return
+    }
+    if (isEditMode && initialData) {
+      reset(buildDefaultValues(initialData))
       setItemUnitOptions({})
       setItemSelectedPackageId({})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, initialData])
 
   async function handleProductChange(index: number, productId: string) {
     const id = Number(productId)
     setValue(`items.${index}.product_id`, id)
 
-    const packages = await queryClient.fetchQuery<ProductPackage[]>({
-      queryKey: queryKeys.products.productUnits(id),
-      queryFn: () => api.get<ProductPackage[]>(`/products/${id}/packages`),
-    }).catch(() => [] as ProductPackage[])
+    const packages = await queryClient
+      .fetchQuery<ProductPackage[]>({
+        queryKey: queryKeys.products.productUnits(id),
+        queryFn: () => api.get<ProductPackage[]>(`/products/${id}/packages`),
+      })
+      .catch(() => [] as ProductPackage[])
 
     const validPackages = Array.isArray(packages) ? packages : []
     const defaultPkg = validPackages.find((pkg) => pkg.is_default) ?? validPackages[0]
@@ -116,8 +157,16 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
       setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
       setValue(`items.${index}.conversion_qty`, defaultPkg?.conversion_qty ?? 1)
     } else {
-      setItemUnitOptions((prev) => { const next = { ...prev }; delete next[index]; return next })
-      setItemSelectedPackageId((prev) => { const next = { ...prev }; delete next[index]; return next })
+      setItemUnitOptions((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+      setItemSelectedPackageId((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
       setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
       setValue(`items.${index}.conversion_qty`, 1)
@@ -137,40 +186,51 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
   function unitOptionLabel(pkg: ProductPackage) {
     return pkg.conversion_qty > 1
       ? `${pkg.package_name || pkg.unit_name} (x${pkg.conversion_qty})`
-      : (pkg.package_name || pkg.unit_name)
+      : pkg.package_name || pkg.unit_name
   }
 
   function onSubmit(values: PurchaseFormValues) {
-    create(
-      {
-        ...values,
-        items: values.items.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          purchase_price: item.price,
-          unit: item.unit,
-          conversion_qty: item.conversion_qty ?? 1,
-        })),
-        paid_amount: values.payment_status === 'paid' ? total : values.paid_amount,
-      },
-      {
+    const payload = {
+      ...values,
+      items: values.items.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        purchase_price: item.price,
+        unit: item.unit,
+        conversion_qty: item.conversion_qty ?? 1,
+      })),
+      paid_amount: values.payment_status === 'paid' ? total : values.paid_amount,
+    }
+
+    if (isEditMode && initialData) {
+      update(
+        { id: initialData.id, ...payload },
+        {
+          onSuccess: () => {
+            toast.success('Pembelian berhasil diperbarui')
+            onOpenChange(false)
+          },
+        },
+      )
+    } else {
+      create(payload, {
         onSuccess: () => {
           toast.success('Pembelian berhasil ditambahkan')
           onOpenChange(false)
         },
-      },
-    )
+      })
+    }
   }
 
   return (
     <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Tambah Pembelian"
+      title={isEditMode ? 'Edit Pembelian' : 'Tambah Pembelian'}
       size="xl"
       isLoading={isPending}
       onSubmit={handleSubmit(onSubmit)}
-      submitLabel="Simpan Pembelian"
+      submitLabel={isEditMode ? 'Simpan Perubahan' : 'Simpan Pembelian'}
     >
       <div className="space-y-5">
         {/* Header info */}
@@ -179,7 +239,13 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
             <Label htmlFor="pur-code">Kode PO</Label>
             <Input
               id="pur-code"
-              value={isGeneratingCode ? '...' : (codeData?.purchase_code ?? '')}
+              value={
+                isEditMode
+                  ? (initialData?.purchase_code ?? '')
+                  : isGeneratingCode
+                    ? '...'
+                    : (codeData?.purchase_code ?? '')
+              }
               readOnly
               className="bg-gray-50 font-mono text-blue-700 font-medium"
             />
@@ -209,6 +275,7 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
               Supplier <span className="text-red-500">*</span>
             </Label>
             <Select
+              value={watchSupplierId ? String(watchSupplierId) : ''}
               onValueChange={(v) => setValue('supplier_id', Number(v))}
             >
               <SelectTrigger className={errors.supplier_id ? 'border-red-500' : ''}>
@@ -259,10 +326,14 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
                 {fields.map((field, index) => {
                   const qty = watchItems[index]?.quantity || 0
                   const price = watchItems[index]?.price || 0
+                  const currentProductId = watchItems[index]?.product_id
                   return (
                     <tr key={field.id}>
                       <td className="px-3 py-2">
-                        <Select onValueChange={(v) => handleProductChange(index, v)}>
+                        <Select
+                          value={currentProductId ? String(currentProductId) : ''}
+                          onValueChange={(v) => handleProductChange(index, v)}
+                        >
                           <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Pilih produk" />
                           </SelectTrigger>
@@ -381,11 +452,7 @@ export function PurchaseFormModal({ open, onOpenChange }: PurchaseFormModalProps
                   control={control}
                   name="paid_amount"
                   render={({ field }) => (
-                    <RupiahInput
-                      id="pur-paid"
-                      value={field.value}
-                      onChange={field.onChange}
-                    />
+                    <RupiahInput id="pur-paid" value={field.value} onChange={field.onChange} />
                   )}
                 />
               </div>

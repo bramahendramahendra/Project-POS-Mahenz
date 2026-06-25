@@ -1,7 +1,6 @@
 import { DataTable } from '@/shared/components'
 import type { PaginationProps } from '@/shared/components/DataTable/DataTable.types'
 
-import type { Supplier } from '../../suppliers/suppliers.types'
 import type { SupplierPurchase } from '../purchases.types'
 import { buildPurchaseColumns } from './PurchaseTableColumns'
 
@@ -9,8 +8,8 @@ interface PurchaseTableProps {
   data: SupplierPurchase[]
   isLoading: boolean
   pagination: PaginationProps
-  suppliers: Supplier[]
   onDetail: (purchase: SupplierPurchase) => void
+  onEdit: (purchase: SupplierPurchase) => void
   onPay: (purchase: SupplierPurchase) => void
   onDelete: (purchase: SupplierPurchase) => void
 }
@@ -19,12 +18,12 @@ export function PurchaseTable({
   data,
   isLoading,
   pagination,
-  suppliers,
   onDetail,
+  onEdit,
   onPay,
   onDelete,
 }: PurchaseTableProps) {
-  const columns = buildPurchaseColumns({ onDetail, onPay, onDelete }, suppliers)
+  const columns = buildPurchaseColumns({ onDetail, onEdit, onPay, onDelete })
 
   return (
     <DataTable<SupplierPurchase & Record<string, unknown>>

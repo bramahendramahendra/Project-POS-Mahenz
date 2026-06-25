@@ -8,10 +8,7 @@ import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks
 import { useSupplierListQuery } from '@/features/procurement/suppliers'
 import { useProductListQuery } from '@/features/products/products'
 
-import {
-  useSupplierPurchasesQuery,
-  useDeleteSupplierPurchaseMutation,
-} from './purchases.api'
+import { useSupplierPurchasesQuery, useDeleteSupplierPurchaseMutation } from './purchases.api'
 import type { SupplierPurchase, SupplierPurchaseFilter } from './purchases.types'
 import { PurchaseTable } from './components/PurchaseTable'
 import { PurchaseFilterBar } from './components/PurchaseFilterBar'
@@ -41,6 +38,7 @@ export function PurchasesPage() {
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
+  const [editingPurchase, setEditingPurchase] = useState<SupplierPurchase | null>(null)
   const [payingPurchase, setPayingPurchase] = useState<SupplierPurchase | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
@@ -57,6 +55,11 @@ export function PurchasesPage() {
   const purchases = data?.data ?? []
   const total = data?.total ?? 0
 
+  function handleEdit(purchase: SupplierPurchase) {
+    setEditingPurchase(purchase)
+    openForm()
+  }
+
   function handlePay(purchase: SupplierPurchase) {
     setPayingPurchase(purchase)
     openPay()
@@ -70,6 +73,11 @@ export function PurchasesPage() {
   function handleDetail(purchase: SupplierPurchase) {
     setDetailId(purchase.id)
     openDetail()
+  }
+
+  function handleFormClose() {
+    closeForm()
+    setEditingPurchase(null)
   }
 
   const handleConfirmDelete = () => {
@@ -162,13 +170,17 @@ export function PurchasesPage() {
         data={purchases}
         isLoading={isLoading}
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
-        suppliers={suppliers}
         onDetail={handleDetail}
+        onEdit={handleEdit}
         onPay={handlePay}
         onDelete={handleDelete}
       />
 
-      <PurchaseFormModal open={formOpen} onOpenChange={(o) => !o && closeForm()} />
+      <PurchaseFormModal
+        open={formOpen}
+        onOpenChange={(o) => { if (!o) handleFormClose() }}
+        initialData={editingPurchase}
+      />
 
       <PurchaseDetailModal
         open={detailOpen}

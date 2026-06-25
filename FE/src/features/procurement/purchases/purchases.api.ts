@@ -11,6 +11,7 @@ import type {
   SupplierPurchase,
   SupplierPurchaseFilter,
   SupplierPurchasePayment,
+  UpdateSupplierPurchasePayload,
 } from './purchases.types'
 
 export function useGeneratePurchaseCodeQuery(enabled: boolean) {
@@ -50,6 +51,18 @@ export function useCreateSupplierPurchaseMutation() {
   return useMutation({
     mutationFn: (payload: CreateSupplierPurchasePayload) =>
       api.post<SupplierPurchase>('/supplier-purchases/create', payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useUpdateSupplierPurchaseMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...payload }: UpdateSupplierPurchasePayload) =>
+      api.post<SupplierPurchase>(`/supplier-purchases/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
     },

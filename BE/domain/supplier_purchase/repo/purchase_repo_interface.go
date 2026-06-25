@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	PurchaseRepo interface {
+	PurchaseRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error)
 		GetByID(id int) (*model.PurchaseRow, error)
 		GetItems(purchaseID int) ([]model.PurchaseItem, error)

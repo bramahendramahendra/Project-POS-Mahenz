@@ -79,3 +79,16 @@ export interface CreateSupplierPurchasePayload {
   paid_amount: number
   payment_method?: string
 }
+
+export interface UpdateSupplierPurchasePayload {
+  id: number
+  purchase_date: string
+  invoice_number: string
+  supplier_id: number
+  items: CreatePurchaseItemPayload[]
+  discount_amount: number
+  notes?: string
+  payment_status: PaymentStatus
+  paid_amount: number
+  payment_method?: string
+}

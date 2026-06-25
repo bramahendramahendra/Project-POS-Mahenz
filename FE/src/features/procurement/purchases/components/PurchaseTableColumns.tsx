@@ -1,16 +1,17 @@
-import { Eye, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 
-import { StatusBadge } from '@/shared/components'
+import { ROLES } from '@/shared/constants'
+import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
-import type { Supplier } from '../../suppliers/suppliers.types'
 import type { SupplierPurchase } from '../purchases.types'
 
 export interface PurchaseColumnHandlers {
   onDetail: (purchase: SupplierPurchase) => void
+  onEdit: (purchase: SupplierPurchase) => void
   onPay: (purchase: SupplierPurchase) => void
   onDelete: (purchase: SupplierPurchase) => void
 }
@@ -23,13 +24,8 @@ function formatDate(dateStr: string): string {
   })
 }
 
-
-export function buildPurchaseColumns(
-  handlers: PurchaseColumnHandlers,
-  suppliers: Supplier[]
-): ColumnDef<SupplierPurchase>[] {
-  const { onDetail, onPay, onDelete } = handlers
-  const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]))
+export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDef<SupplierPurchase>[] {
+  const { onDetail, onEdit, onPay, onDelete } = handlers
 
   return [
     {
@@ -55,9 +51,7 @@ export function buildPurchaseColumns(
       key: 'supplier_name',
       header: 'Supplier',
       cell: (row) => (
-        <span className="text-sm">
-          {row.supplier_id ? (supplierMap.get(row.supplier_id) ?? '-') : '-'}
-        </span>
+        <span className="text-sm">{row.supplier_name || '-'}</span>
       ),
     },
     {
@@ -87,34 +81,67 @@ export function buildPurchaseColumns(
       ),
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Aksi',
       align: 'center',
+      width: '140px',
       cell: (row) => (
-        <div className="flex gap-1 justify-center">
+        <div className="flex items-center justify-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => onDetail(row)}>
-                <Eye className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => onDetail(row)}
+              >
+                <Eye size={14} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Detail</TooltipContent>
           </Tooltip>
-          {row.payment_status !== 'paid' && (
-            <Button variant="outline" size="sm" onClick={() => onPay(row)} className="text-xs h-7 px-2">
-              Bayar
-            </Button>
-          )}
-          {row.paid_amount === 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Hapus</TooltipContent>
-            </Tooltip>
-          )}
+          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+            {row.paid_amount === 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-indigo-600"
+                    onClick={() => onEdit(row)}
+                  >
+                    <Pencil size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Edit</TooltipContent>
+              </Tooltip>
+            )}
+            {row.payment_status !== 'paid' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => onPay(row)}
+              >
+                Bayar
+              </Button>
+            )}
+            {row.paid_amount === 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-red-600"
+                    onClick={() => onDelete(row)}
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Hapus</TooltipContent>
+              </Tooltip>
+            )}
+          </RoleGuard>
         </div>
       ),
     },
