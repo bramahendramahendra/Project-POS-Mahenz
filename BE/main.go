@@ -2,12 +2,16 @@ package main
 
 import (
 	"pos_api/config"
+	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
+	cash_drawer_service "pos_api/domain/cash_drawer/service"
 	"pos_api/helper"
 	error_helper "pos_api/helper/error"
 	time_helper "pos_api/helper/time"
 	"pos_api/pkg/database"
+	pkgdatabase "pos_api/pkg/database"
 	"pos_api/pkg/logger"
 	"pos_api/routes"
+	"pos_api/scheduler"
 	bootstrap "pos_api/server"
 
 	// "pos_api/pkg/redis"
@@ -33,6 +37,11 @@ func main() {
 		Handler: engine,
 	}
 
+	schedulerCtx, cancelScheduler := context.WithCancel(context.Background())
+	cdRepo := cash_drawer_repo.NewCashDrawerRepo(pkgdatabase.DB)
+	cdService := cash_drawer_service.NewCashDrawerService(cdRepo)
+	scheduler.StartCashDrawerScheduler(schedulerCtx, cdService)
+
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v\n", err)
@@ -45,6 +54,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown Server ...")
+	cancelScheduler()
 
 	startTime := time_helper.GetTimeWithFormat()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Cfg.MaxTimeoutGracefulShutdown)*time.Second)

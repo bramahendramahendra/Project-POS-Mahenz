@@ -17,6 +17,7 @@ type CashDrawer struct {
 	Difference      *float64   `gorm:"column:difference"`
 	Status          string     `gorm:"column:status"`
 	Notes           *string    `gorm:"column:notes"`
+	IsAutoClosed    bool       `gorm:"column:is_auto_closed"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }

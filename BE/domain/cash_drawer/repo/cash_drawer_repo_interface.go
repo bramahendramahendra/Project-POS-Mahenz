@@ -19,6 +19,7 @@ type (
 		UpdateSales(id int, totalSales, totalCashSales float64) error
 		UpdateExpenses(id int, totalExpenses float64) error
 		GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
+		AutoCloseYesterday() (int, error)
 
 		GetDB() *gorm.DB
 	}

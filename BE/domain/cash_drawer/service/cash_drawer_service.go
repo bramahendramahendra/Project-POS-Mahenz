@@ -190,6 +190,10 @@ func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, req
 	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales)
 }
 
+func (s *cashDrawerService) AutoCloseYesterday() (int, error) {
+	return s.repo.AutoCloseYesterday()
+}
+
 func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {

@@ -47,6 +47,34 @@ const (
 
 	getNextSessionOpenTimeQuery = `SELECT MIN(open_time) FROM cash_drawer WHERE user_id = ? AND open_time > ? AND id != ?`
 
+	getOpenYesterdayQuery = `SELECT id, user_id, open_time, opening_balance FROM cash_drawer WHERE status = 'open' AND DATE(open_time) < CURDATE()`
+
+	calculateExpectedBalanceQuery = `
+		SELECT ? +
+		COALESCE((
+			SELECT SUM(total_amount) FROM transactions
+			WHERE user_id = ? AND payment_method = 'cash' AND status = 'completed'
+			  AND transaction_date >= ?
+			  AND transaction_date < CONCAT(DATE(?), ' 23:59:59')
+		), 0) -
+		COALESCE((
+			SELECT SUM(amount) FROM expenses
+			WHERE user_id = ? AND created_at >= ?
+			  AND created_at < CONCAT(DATE(?), ' 23:59:59')
+		), 0)`
+
+	autoCloseCashDrawerQuery = `
+		UPDATE cash_drawer SET
+			close_time       = CONCAT(DATE(open_time), ' 23:59:59'),
+			closing_balance  = ?,
+			expected_balance = ?,
+			difference       = 0,
+			status           = 'closed',
+			is_auto_closed   = TRUE,
+			notes            = 'Ditutup otomatis oleh sistem karena pergantian hari',
+			updated_at       = NOW()
+		WHERE id = ?`
+
 	getMyCashQuery = `
 		SELECT cd.id, cd.user_id, s.name as shift_name,
 		       s.start_time as shift_start, s.end_time as shift_end,
@@ -200,6 +228,44 @@ func (r *cashDrawerRepo) UpdateSales(id int, totalSales, totalCashSales float64)
 
 func (r *cashDrawerRepo) UpdateExpenses(id int, totalExpenses float64) error {
 	return r.db.Exec(updateExpensesQuery, totalExpenses, id).Error
+}
+
+func (r *cashDrawerRepo) AutoCloseYesterday() (int, error) {
+	type openDrawer struct {
+		ID             int
+		UserID         int
+		OpenTime       string
+		OpeningBalance float64
+	}
+
+	var drawers []openDrawer
+	if err := r.db.Raw(getOpenYesterdayQuery).Scan(&drawers).Error; err != nil {
+		return 0, err
+	}
+	if len(drawers) == 0 {
+		return 0, nil
+	}
+
+	count := 0
+	for _, cd := range drawers {
+		var expected float64
+		err := r.db.Raw(
+			calculateExpectedBalanceQuery,
+			cd.OpeningBalance,
+			cd.UserID, cd.OpenTime, cd.OpenTime,
+			cd.UserID, cd.OpenTime, cd.OpenTime,
+		).Scan(&expected).Error
+		if err != nil {
+			return count, err
+		}
+
+		if err := r.db.Exec(autoCloseCashDrawerQuery, expected, expected, cd.ID).Error; err != nil {
+			return count, err
+		}
+		count++
+	}
+
+	return count, nil
 }
 
 func (r *cashDrawerRepo) GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error) {
