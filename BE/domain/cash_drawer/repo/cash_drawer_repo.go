@@ -39,6 +39,15 @@ const (
 		  AND t.transaction_date >= ? AND t.transaction_date < COALESCE(?, ?, NOW())
 		ORDER BY t.transaction_date ASC`
 
+	getNonCashTransactionsQuery = `
+		SELECT t.transaction_date, t.transaction_code, COALESCE(c.name, '') as customer_name, pm.label as payment_method_label, t.total_amount
+		FROM transactions t
+		LEFT JOIN customers c ON t.customer_id = c.id
+		JOIN payment_methods pm ON t.payment_method = pm.code
+		WHERE t.user_id = ? AND t.payment_method != 'cash' AND t.status = 'completed'
+		  AND t.transaction_date >= ? AND t.transaction_date < COALESCE(?, ?, NOW())
+		ORDER BY t.transaction_date ASC`
+
 	getCashDrawerExpensesQuery = `
 		SELECT e.category, e.description, e.amount
 		FROM expenses e
@@ -74,6 +83,18 @@ const (
 			notes            = 'Ditutup otomatis oleh sistem karena pergantian hari',
 			updated_at       = NOW()
 		WHERE id = ?`
+
+	getNonCashSalesQuery = `
+		SELECT t.payment_method, pm.label, COALESCE(SUM(t.total_amount), 0) as total
+		FROM transactions t
+		JOIN payment_methods pm ON t.payment_method = pm.code
+		WHERE t.user_id = ?
+		  AND t.status = 'completed'
+		  AND t.payment_method != 'cash'
+		  AND t.transaction_date >= ?
+		  AND t.transaction_date < COALESCE(?, NOW())
+		GROUP BY t.payment_method, pm.label
+		ORDER BY total DESC`
 
 	getMyCashQuery = `
 		SELECT cd.id, cd.user_id, s.name as shift_name,
@@ -228,6 +249,28 @@ func (r *cashDrawerRepo) UpdateSales(id int, totalSales, totalCashSales float64)
 
 func (r *cashDrawerRepo) UpdateExpenses(id int, totalExpenses float64) error {
 	return r.db.Exec(updateExpensesQuery, totalExpenses, id).Error
+}
+
+func (r *cashDrawerRepo) GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string) ([]model.CashDrawerNonCashTransactionItem, error) {
+	var result []model.CashDrawerNonCashTransactionItem
+	if err := r.db.Raw(getNonCashTransactionsQuery, userID, openTime, closeTime, nextOpenTime).Scan(&result).Error; err != nil {
+		return nil, err
+	}
+	if result == nil {
+		result = []model.CashDrawerNonCashTransactionItem{}
+	}
+	return result, nil
+}
+
+func (r *cashDrawerRepo) GetNonCashSales(userID int, openTime string, closeTime *string) ([]dto.NonCashSaleItem, error) {
+	var result []dto.NonCashSaleItem
+	if err := r.db.Raw(getNonCashSalesQuery, userID, openTime, closeTime).Scan(&result).Error; err != nil {
+		return nil, err
+	}
+	if result == nil {
+		result = []dto.NonCashSaleItem{}
+	}
+	return result, nil
 }
 
 func (r *cashDrawerRepo) AutoCloseYesterday() (int, error) {

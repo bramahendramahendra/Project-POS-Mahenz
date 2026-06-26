@@ -114,6 +114,20 @@ export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetai
               )}
             </div>
 
+            {detail.non_cash_sales?.length > 0 && (
+              <div className="rounded-lg border border-gray-100 px-4 py-3 space-y-1">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide pb-1">Non-Tunai (Informasi)</p>
+                {detail.non_cash_sales.map((item) => (
+                  <SummaryRow key={item.payment_method} label={item.label} value={formatRupiah(item.total)} />
+                ))}
+                <SummaryRow
+                  label="Total Non-Tunai"
+                  value={formatRupiah(detail.non_cash_sales.reduce((sum, i) => sum + i.total, 0))}
+                  valueClass="font-semibold"
+                />
+              </div>
+            )}
+
             {detail.status === 'closed' && (
               <div className="space-y-1 text-sm">
                 {detail.close_time && (

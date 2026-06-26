@@ -34,3 +34,11 @@ type CashDrawerExpenseItem struct {
 	Description string  `gorm:"column:description"`
 	Amount      float64 `gorm:"column:amount"`
 }
+
+type CashDrawerNonCashTransactionItem struct {
+	TransactionDate    time.Time `gorm:"column:transaction_date"`
+	TransactionCode    string    `gorm:"column:transaction_code"`
+	CustomerName       string    `gorm:"column:customer_name"`
+	PaymentMethodLabel string    `gorm:"column:payment_method_label"`
+	TotalAmount        float64   `gorm:"column:total_amount"`
+}

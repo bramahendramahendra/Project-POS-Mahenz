@@ -1,6 +1,6 @@
-import type { CashDrawerTransaction, CashDrawerExpenseItem } from '@/features/finance/cash-drawer'
+import type { CashDrawerTransaction, CashDrawerExpenseItem, NonCashSaleItem, NonCashTransaction } from '@/features/finance/cash-drawer'
 
-export type { CashDrawerTransaction, CashDrawerExpenseItem }
+export type { CashDrawerTransaction, CashDrawerExpenseItem, NonCashSaleItem, NonCashTransaction }
 
 export interface MyCashData {
   id?: number
@@ -16,4 +16,6 @@ export interface MyCashData {
   open_notes?: string
   transactions: CashDrawerTransaction[]
   expenses: CashDrawerExpenseItem[]
+  non_cash_sales: NonCashSaleItem[]
+  non_cash_transactions: NonCashTransaction[]
 }

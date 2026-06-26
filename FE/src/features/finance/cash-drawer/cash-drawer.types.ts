@@ -33,12 +33,27 @@ export interface CashDrawerDetail {
   open_notes?: string
   transactions: CashDrawerTransaction[]
   expenses: CashDrawerExpenseItem[]
+  non_cash_sales: NonCashSaleItem[]
+}
+
+export interface NonCashSaleItem {
+  payment_method: string
+  label: string
+  total: number
 }
 
 export interface CashDrawerTransaction {
   transaction_date: string
   transaction_code: string
   customer_name: string
+  total_amount: number
+}
+
+export interface NonCashTransaction {
+  transaction_date: string
+  transaction_code: string
+  customer_name: string
+  payment_method_label: string
   total_amount: number
 }
 

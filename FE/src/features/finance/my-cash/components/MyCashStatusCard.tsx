@@ -93,27 +93,50 @@ export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
           </div>
 
           {isOpen && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatBox
-                label="Saldo Awal Tunai"
-                value={formatRupiah(data?.opening_balance ?? 0)}
-              />
-              <StatBox
-                label="Total Masuk"
-                value={formatRupiah(data?.total_cash_sales ?? 0)}
-                valueClass="text-green-600"
-              />
-              <StatBox
-                label="Total Keluar"
-                value={formatRupiah(data?.total_expenses ?? 0)}
-                valueClass="text-red-600"
-              />
-              <StatBox
-                label="Saldo Ekspektasi"
-                value={formatRupiah(data?.expected_balance ?? 0)}
-                valueClass="text-blue-600"
-              />
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatBox
+                  label="Saldo Awal Tunai"
+                  value={formatRupiah(data?.opening_balance ?? 0)}
+                />
+                <StatBox
+                  label="Total Masuk Tunai"
+                  value={formatRupiah(data?.total_cash_sales ?? 0)}
+                  valueClass="text-green-600"
+                />
+                <StatBox
+                  label="Total Keluar"
+                  value={formatRupiah(data?.total_expenses ?? 0)}
+                  valueClass="text-red-600"
+                />
+                <StatBox
+                  label="Saldo Ekspektasi"
+                  value={formatRupiah(data?.expected_balance ?? 0)}
+                  valueClass="text-blue-600"
+                />
+              </div>
+
+              {(data?.non_cash_sales?.length ?? 0) > 0 && (
+                <div className="rounded-lg border border-gray-100 px-4 py-3 space-y-2">
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Non-Tunai (Informasi)</p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {data!.non_cash_sales.map((item) => (
+                      <StatBox
+                        key={item.payment_method}
+                        label={item.label}
+                        value={formatRupiah(item.total)}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">Total Non-Tunai</p>
+                    <p className="text-sm font-semibold text-gray-700">
+                      {formatRupiah(data!.non_cash_sales.reduce((sum, i) => sum + i.total, 0))}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

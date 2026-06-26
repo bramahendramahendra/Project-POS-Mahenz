@@ -88,11 +88,25 @@ type (
 		Status          string     `json:"status"`
 	}
 
+	NonCashSaleItem struct {
+		PaymentMethod string  `json:"payment_method"`
+		Label         string  `json:"label"`
+		Total         float64 `json:"total"`
+	}
+
 	CashDrawerTransaction struct {
 		TransactionDate time.Time `json:"transaction_date"`
 		TransactionCode string    `json:"transaction_code"`
 		CustomerName    string    `json:"customer_name"`
 		TotalAmount     float64   `json:"total_amount"`
+	}
+
+	NonCashTransaction struct {
+		TransactionDate    time.Time `json:"transaction_date"`
+		TransactionCode    string    `json:"transaction_code"`
+		CustomerName       string    `json:"customer_name"`
+		PaymentMethodLabel string    `json:"payment_method_label"`
+		TotalAmount        float64   `json:"total_amount"`
 	}
 
 	CashDrawerExpenseItem struct {
@@ -121,22 +135,25 @@ type (
 		OpenNotes       *string                 `json:"open_notes"`
 		Transactions    []CashDrawerTransaction `json:"transactions"`
 		Expenses        []CashDrawerExpenseItem `json:"expenses"`
+		NonCashSales    []NonCashSaleItem       `json:"non_cash_sales"`
 	}
 
 	MyCashResponse struct {
-		ID              *int                    `json:"id"`
-		Status          string                  `json:"status"`
-		ShiftName       *string                 `json:"shift_name"`
-		ShiftStart      *string                 `json:"shift_start"`
-		ShiftEnd        *string                 `json:"shift_end"`
-		OpenTime        *time.Time              `json:"open_time"`
-		OpeningBalance  float64                 `json:"opening_balance"`
-		TotalCashSales  float64                 `json:"total_cash_sales"`
-		TotalExpenses   float64                 `json:"total_expenses"`
-		ExpectedBalance float64                 `json:"expected_balance"`
-		OpenNotes       *string                 `json:"open_notes"`
-		Transactions    []CashDrawerTransaction `json:"transactions"`
-		Expenses        []CashDrawerExpenseItem `json:"expenses"`
+		ID                  *int                    `json:"id"`
+		Status              string                  `json:"status"`
+		ShiftName           *string                 `json:"shift_name"`
+		ShiftStart          *string                 `json:"shift_start"`
+		ShiftEnd            *string                 `json:"shift_end"`
+		OpenTime            *time.Time              `json:"open_time"`
+		OpeningBalance      float64                 `json:"opening_balance"`
+		TotalCashSales      float64                 `json:"total_cash_sales"`
+		TotalExpenses       float64                 `json:"total_expenses"`
+		ExpectedBalance     float64                 `json:"expected_balance"`
+		OpenNotes           *string                 `json:"open_notes"`
+		Transactions        []CashDrawerTransaction `json:"transactions"`
+		Expenses            []CashDrawerExpenseItem `json:"expenses"`
+		NonCashSales        []NonCashSaleItem       `json:"non_cash_sales"`
+		NonCashTransactions []NonCashTransaction    `json:"non_cash_transactions"`
 	}
 
 	OpenResponse struct {

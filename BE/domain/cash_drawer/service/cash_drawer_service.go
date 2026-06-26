@@ -20,7 +20,19 @@ func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
 			Status:       "closed",
 			Transactions: []dto.CashDrawerTransaction{},
 			Expenses:     []dto.CashDrawerExpenseItem{},
+			NonCashSales: []dto.NonCashSaleItem{},
 		}, nil
+	}
+
+	openTimeStr := dataDB.OpenTime.String()
+	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	nonCashTrxDB, err := s.repo.GetNonCashTransactions(dataDB.UserID, openTimeStr, nil, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	trxList := make([]dto.CashDrawerTransaction, len(transactions))
@@ -42,20 +54,33 @@ func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
 		}
 	}
 
+	nonCashTrxList := make([]dto.NonCashTransaction, len(nonCashTrxDB))
+	for i, t := range nonCashTrxDB {
+		nonCashTrxList[i] = dto.NonCashTransaction{
+			TransactionDate:    t.TransactionDate,
+			TransactionCode:    t.TransactionCode,
+			CustomerName:       t.CustomerName,
+			PaymentMethodLabel: t.PaymentMethodLabel,
+			TotalAmount:        t.TotalAmount,
+		}
+	}
+
 	return &dto.MyCashResponse{
-		ID:              &dataDB.ID,
-		Status:          dataDB.Status,
-		ShiftName:       dataDB.ShiftName,
-		ShiftStart:      dataDB.ShiftStart,
-		ShiftEnd:        dataDB.ShiftEnd,
-		OpenTime:        &dataDB.OpenTime,
-		OpeningBalance:  dataDB.OpeningBalance,
-		TotalCashSales:  dataDB.TotalCashSales,
-		TotalExpenses:   dataDB.TotalExpenses,
-		ExpectedBalance: dataDB.ExpectedBalance,
-		OpenNotes:       dataDB.OpenNotes,
-		Transactions:    trxList,
-		Expenses:        expList,
+		ID:                  &dataDB.ID,
+		Status:              dataDB.Status,
+		ShiftName:           dataDB.ShiftName,
+		ShiftStart:          dataDB.ShiftStart,
+		ShiftEnd:            dataDB.ShiftEnd,
+		OpenTime:            &dataDB.OpenTime,
+		OpeningBalance:      dataDB.OpeningBalance,
+		TotalCashSales:      dataDB.TotalCashSales,
+		TotalExpenses:       dataDB.TotalExpenses,
+		ExpectedBalance:     dataDB.ExpectedBalance,
+		OpenNotes:           dataDB.OpenNotes,
+		Transactions:        trxList,
+		Expenses:            expList,
+		NonCashSales:        nonCashSales,
+		NonCashTransactions: nonCashTrxList,
 	}, nil
 }
 
@@ -69,6 +94,17 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 	}
 	if role != "owner" && role != "admin" && dataDB.UserID != requestingUserID {
 		return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke kas ini"}
+	}
+
+	openTimeStr := dataDB.OpenTime.String()
+	var closeTimeStr *string
+	if dataDB.CloseTime != nil {
+		s := dataDB.CloseTime.String()
+		closeTimeStr = &s
+	}
+	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, closeTimeStr)
+	if err != nil {
+		return nil, err
 	}
 
 	trxList := make([]dto.CashDrawerTransaction, len(transactions))
@@ -110,6 +146,7 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 		OpenNotes:       dataDB.OpenNotes,
 		Transactions:    trxList,
 		Expenses:        expList,
+		NonCashSales:    nonCashSales,
 	}
 
 	return data, nil
