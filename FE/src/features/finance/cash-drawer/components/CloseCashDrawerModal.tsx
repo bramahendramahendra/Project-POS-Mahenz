@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 
 import { useCloseCashDrawerMutation } from '../cash-drawer.api'
 import { closeCashDrawerSchema, type CloseCashDrawerFormValues } from '../cash-drawer.schema'
@@ -93,13 +94,11 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
               name="closing_balance"
               control={control}
               render={({ field }) => (
-                <Input
+                <RupiahInput
                   id="close-balance"
-                  type="number"
-                  min={0}
                   placeholder="0"
-                  value={field.value === 0 ? '' : field.value}
-                  onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                  value={field.value}
+                  onChange={field.onChange}
                   className={errors.closing_balance ? 'border-red-500' : ''}
                 />
               )}
