@@ -50,7 +50,7 @@ export function buildCashDrawerColumns(
     },
     {
       key: 'opening_balance',
-      header: 'Saldo Buka',
+      header: 'Saldo Awal Tunai',
       align: 'right',
       cell: (row) => <span className="text-sm">{formatRupiah(row.opening_balance)}</span>,
     },
@@ -72,7 +72,7 @@ export function buildCashDrawerColumns(
     },
     {
       key: 'closing_balance',
-      header: 'Saldo Tutup',
+      header: 'Saldo Akhir Tunai',
       align: 'right',
       cell: (row) => (
         <span className="font-semibold text-sm">

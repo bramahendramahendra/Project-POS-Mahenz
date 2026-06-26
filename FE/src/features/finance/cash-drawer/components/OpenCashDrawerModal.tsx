@@ -163,7 +163,7 @@ export function OpenCashDrawerModal({ open, onOpenChange }: OpenCashDrawerModalP
 
           <div className="space-y-1.5">
             <Label htmlFor="open-balance">
-              Saldo Awal (Rp) <span className="text-red-500">*</span>
+              Saldo Awal Tunai (Rp) <span className="text-red-500">*</span>
             </Label>
             <Controller
               name="opening_balance"

@@ -89,8 +89,8 @@ export function CashDrawerSummaryTab() {
       {summary && !isLoading && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <SummaryCard title="Total Saldo Buka" value={summary.total_opening} />
-            <SummaryCard title="Total Saldo Tutup" value={summary.total_closing} />
+            <SummaryCard title="Total Saldo Awal Tunai" value={summary.total_opening} />
+            <SummaryCard title="Total Saldo Akhir Tunai" value={summary.total_closing} />
             <SummaryCard
               title="Total Pengeluaran"
               value={summary.total_expenses}
@@ -110,8 +110,8 @@ export function CashDrawerSummaryTab() {
                   <th className="px-4 py-3 text-left">Waktu Buka</th>
                   <th className="px-4 py-3 text-left">Shift</th>
                   {isAdminOrOwner && <th className="px-4 py-3 text-left">Kasir</th>}
-                  <th className="px-4 py-3 text-right">Saldo Buka</th>
-                  <th className="px-4 py-3 text-right">Saldo Tutup</th>
+                  <th className="px-4 py-3 text-right">Saldo Awal Tunai</th>
+                  <th className="px-4 py-3 text-right">Saldo Akhir Tunai</th>
                   <th className="px-4 py-3 text-right">Pengeluaran</th>
                   <th className="px-4 py-3 text-right">Selisih</th>
                   <th className="px-4 py-3 text-center">Status</th>

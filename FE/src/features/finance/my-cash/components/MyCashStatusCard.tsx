@@ -95,7 +95,7 @@ export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
           {isOpen && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatBox
-                label="Saldo Buka"
+                label="Saldo Awal Tunai"
                 value={formatRupiah(data?.opening_balance ?? 0)}
               />
               <StatBox

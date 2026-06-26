@@ -81,7 +81,7 @@ export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetai
 
             <div className="bg-gray-50 rounded-lg p-4 space-y-1">
               <SummaryRow label="Kasir" value={detail.cashier_name} />
-              <SummaryRow label="Saldo Awal" value={formatRupiah(detail.opening_balance)} />
+              <SummaryRow label="Saldo Awal Tunai" value={formatRupiah(detail.opening_balance)} />
               <SummaryRow
                 label="Total Penjualan Tunai"
                 value={formatRupiah(detail.total_cash_sales)}
@@ -99,7 +99,7 @@ export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetai
               {detail.status === 'closed' && (
                 <>
                   <SummaryRow
-                    label="Saldo Akhir (Aktual)"
+                    label="Saldo Akhir Tunai"
                     value={formatRupiah(detail.closing_balance ?? 0)}
                     valueClass="font-semibold"
                   />
