@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
+import { todayStr } from '@/shared/utils'
 import { useCreateExpenseMutation, useUpdateExpenseMutation } from '../expenses.api'
 import type { Expense } from '../expenses.types'
 import {
@@ -25,12 +26,8 @@ import {
   EXPENSE_PAYMENT_METHODS,
 } from '../expenses.schema'
 
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
 const defaultValues: ExpenseFormValues = {
-  expense_date: todayString(),
+  expense_date: todayStr(),
   category: 'operasional',
   description: '',
   amount: 0,
@@ -77,7 +74,7 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
         notes: expense.notes ?? '',
       })
     } else {
-      reset({ ...defaultValues, expense_date: todayString() })
+      reset({ ...defaultValues, expense_date: todayStr() })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, expense])

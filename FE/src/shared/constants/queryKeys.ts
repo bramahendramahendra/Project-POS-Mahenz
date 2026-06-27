@@ -1,4 +1,4 @@
-type Filter = Record<string, unknown> | undefined
+type Filter = object | undefined
 
 export const queryKeys = {
   auth: {
@@ -123,6 +123,7 @@ export const queryKeys = {
     list: (filter?: Filter) => ['cashDrawer', 'list', filter] as const,
     detail: (id: number) => ['cashDrawer', 'detail', id] as const,
     summary: (filter?: Filter) => ['cashDrawer', 'summary', filter] as const,
+    kasirOptions: () => ['cashDrawer', 'kasirOptions'] as const,
   },
 
   supplierPurchases: {

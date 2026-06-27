@@ -2,11 +2,8 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 
+import { monthStart, todayStr } from '@/shared/utils'
 import type { FinanceFilter } from '../finance.types'
-
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
-}
 
 function weekStartString(): string {
   const d = new Date()
@@ -14,10 +11,6 @@ function weekStartString(): string {
   return d.toISOString().split('T')[0]
 }
 
-function monthStartString(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
 
 interface FinanceFilterBarProps {
   filter: FinanceFilter
@@ -56,7 +49,7 @@ export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBar
           variant="outline"
           size="sm"
           className="h-9"
-          onClick={() => applyPreset(todayString(), todayString())}
+          onClick={() => applyPreset(todayStr(), todayStr())}
         >
           Hari ini
         </Button>
@@ -64,7 +57,7 @@ export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBar
           variant="outline"
           size="sm"
           className="h-9"
-          onClick={() => applyPreset(weekStartString(), todayString())}
+          onClick={() => applyPreset(weekStartString(), todayStr())}
         >
           Minggu ini
         </Button>
@@ -72,7 +65,7 @@ export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBar
           variant="outline"
           size="sm"
           className="h-9"
-          onClick={() => applyPreset(monthStartString(), todayString())}
+          onClick={() => applyPreset(monthStart(), todayStr())}
         >
           Bulan ini
         </Button>

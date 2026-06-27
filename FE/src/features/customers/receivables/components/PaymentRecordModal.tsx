@@ -7,7 +7,7 @@ import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, todayStr } from '@/shared/utils'
 
 import { useAddPaymentMutation } from '../receivables.api'
 import type { Receivable } from '../receivables.types'
@@ -17,10 +17,6 @@ interface PaymentRecordModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   receivable: Receivable | null
-}
-
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
 }
 
 export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRecordModalProps) {
@@ -42,12 +38,12 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
     formState: { errors },
   } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: { amount: 0, payment_date: todayString(), notes: '' },
+    defaultValues: { amount: 0, payment_date: todayStr(), notes: '' },
   })
 
   useEffect(() => {
     if (!open) return
-    reset({ amount: 0, payment_date: todayString(), notes: '' })
+    reset({ amount: 0, payment_date: todayStr(), notes: '' })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 

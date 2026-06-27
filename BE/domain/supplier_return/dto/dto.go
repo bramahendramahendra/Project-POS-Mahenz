@@ -63,4 +63,6 @@ type SupplierReturnListRequest struct {
 	EndDate    string `json:"end_date"`
 	SupplierID *int   `json:"supplier_id"`
 	Status     string `json:"status"`
+	SortBy     string `json:"sort_by"`
+	SortOrder  string `json:"sort_order"`
 }

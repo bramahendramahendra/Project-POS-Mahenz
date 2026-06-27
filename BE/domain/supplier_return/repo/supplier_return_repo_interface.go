@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	SupplierReturnRepo interface {
+	SupplierReturnRepoInterface interface {
 		GetAll(req *dto.SupplierReturnListRequest) ([]*model.SupplierReturnRow, int64, error)
 		GetByID(id int) (*model.SupplierReturnRow, error)
 		GetStatus(id int) (string, error)

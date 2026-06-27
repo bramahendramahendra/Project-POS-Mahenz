@@ -10,7 +10,7 @@ import type { SupplierReturn } from '../returns.types'
 
 export interface ReturnColumnHandlers {
   onDetail: (row: SupplierReturn) => void
-  onDelete: (row: SupplierReturn) => void
+  onDelete: (id: number) => void
 }
 
 function formatDate(dateStr: string): string {
@@ -29,6 +29,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
     {
       key: 'return_date',
       header: 'Tanggal',
+      sortable: true,
       cell: (row) => <span className="text-sm text-gray-600">{formatDate(row.return_date)}</span>,
     },
     {
@@ -41,12 +42,14 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
     {
       key: 'supplier_name',
       header: 'Supplier',
+      sortable: true,
       cell: (row) => <span className="text-sm">{row.supplier_name}</span>,
     },
     {
       key: 'total_return_amount',
       header: 'Total Retur',
       align: 'right',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm font-semibold text-red-600">
           {formatRupiah(row.total_return_amount)}
@@ -62,6 +65,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
       key: 'status',
       header: 'Status',
       align: 'center',
+      sortable: true,
       cell: (row) => <StatusBadge status={row.status} />,
     },
     {
@@ -81,7 +85,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
           {row.status === 'pending' && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
+                <Button variant="ghost" size="sm" onClick={() => onDelete(row.id)}>
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </TooltipTrigger>

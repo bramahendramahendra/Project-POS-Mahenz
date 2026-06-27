@@ -9,6 +9,8 @@ type (
 		EndDate       string `json:"end_date"`
 		SupplierID    *int   `json:"supplier_id"`
 		PaymentStatus string `json:"payment_status"`
+		SortBy        string `json:"sort_by"`
+		SortOrder     string `json:"sort_order"`
 	}
 
 	GetByIDRequest struct {

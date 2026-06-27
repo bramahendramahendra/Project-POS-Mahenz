@@ -8,6 +8,7 @@ import (
 	dto "pos_api/domain/supplier_return/dto"
 	model "pos_api/domain/supplier_return/model"
 	custom_errors "pos_api/errors"
+	request_helper "pos_api/helper/request"
 
 	"gorm.io/gorm"
 )
@@ -23,9 +24,8 @@ const (
 	getPurchaseIDAndAmountQuery   = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
 	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= ? THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 	getReturnByIDQuery            = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
-	getAllReturnsBase             = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
-	getAllReturnsOrder            = ` ORDER BY sr.return_date DESC, sr.id DESC`
-	countReturnsBase              = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
+	getAllReturnsBase  = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
+	countReturnsBase  = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
 	getPurchaseDateQuery          = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
 	getPurchaseItemQtyQuery       = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
 	getTotalReturnedQtyQuery      = `SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = ? AND sr.status IN ('pending', 'approved')`
@@ -71,7 +71,15 @@ func (r *supplierReturnRepo) GetAll(req *dto.SupplierReturnListRequest) ([]*mode
 	}
 	offset := (page - 1) * limit
 
-	query := getAllReturnsBase + conditions + getAllReturnsOrder + " LIMIT ? OFFSET ?"
+	allowedSortFields := map[string]string{
+		"return_date":         "sr.return_date",
+		"total_return_amount": "sr.total_return_amount",
+		"supplier_name":       "sr.supplier_name",
+		"status":              "sr.status",
+	}
+	const defaultOrder = " ORDER BY sr.return_date DESC, sr.id DESC"
+
+	query := getAllReturnsBase + conditions + request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, defaultOrder) + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.SupplierReturnRow

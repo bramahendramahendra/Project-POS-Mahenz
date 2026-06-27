@@ -38,6 +38,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
     {
       key: 'purchase_date',
       header: 'Tanggal',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">{formatDate(row.purchase_date)}</span>
       ),
@@ -50,6 +51,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
     {
       key: 'supplier_name',
       header: 'Supplier',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm">{row.supplier_name || '-'}</span>
       ),
@@ -58,6 +60,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
       key: 'total_amount',
       header: 'Total',
       align: 'right',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm font-semibold">{formatRupiah(row.total_amount)}</span>
       ),
@@ -66,6 +69,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
       key: 'payment_status',
       header: 'Status',
       align: 'center',
+      sortable: true,
       cell: (row) => <StatusBadge status={row.payment_status} />,
     },
     {

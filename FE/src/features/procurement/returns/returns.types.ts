@@ -28,6 +28,8 @@ export interface SupplierReturnFilter {
   end_date?: string
   supplier_id?: number
   status?: string
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
   page?: number
   limit?: number
 }

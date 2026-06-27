@@ -45,6 +45,7 @@ export function useOpenCashDrawerMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
+      toast.success('Kas berhasil dibuka')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -58,6 +59,7 @@ export function useCloseCashDrawerMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
+      toast.success('Kas berhasil ditutup')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -72,7 +74,7 @@ export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
 
 export function useKasirOptionsQuery() {
   return useQuery({
-    queryKey: ['users', 'kasir-options'],
+    queryKey: queryKeys.cashDrawer.kasirOptions(),
     queryFn: () =>
       api.post<{ data: KasirOption[] }>('/users/list', { page: 1, limit: 100, is_active: true }),
     select: (res) => res?.data ?? [],

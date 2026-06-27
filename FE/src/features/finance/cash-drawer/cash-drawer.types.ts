@@ -64,14 +64,13 @@ export interface CashDrawerExpenseItem {
 }
 
 export interface CashDrawerListFilter {
-  page: number
-  limit: number
+  page?: number
+  limit?: number
   start_date?: string
   end_date?: string
   status?: string
   shift_id?: number
   user_id?: number
-  [key: string]: unknown
 }
 
 export interface KasirOption {

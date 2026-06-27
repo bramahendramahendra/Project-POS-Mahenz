@@ -19,7 +19,7 @@ import { formatRupiah } from '@/shared/utils'
 import {
   useSupplierPurchasesQuery,
   useSupplierPurchaseDetailQuery,
-} from '@/features/procurement/purchases/purchases.api'
+} from '@/features/procurement/purchases'
 
 import { useCreateSupplierReturnMutation } from '../returns.api'
 import { returnSchema, type ReturnFormValues } from '../returns.schema'
@@ -139,7 +139,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       },
       {
         onSuccess: () => {
-          toast.success('Retur berhasil dicatat')
+          toast.success('Retur berhasil dibuat')
           onOpenChange(false)
         },
       },

@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	SupplierReturnService interface {
+	SupplierReturnServiceInterface interface {
 		GetAll(req *dto.SupplierReturnListRequest) (data []dto.SupplierReturnResponse, total int64, err error)
 		GetByID(id int) (data dto.SupplierReturnResponse, err error)
 		Create(req *dto.CreateSupplierReturnRequest) (data dto.SupplierReturnResponse, err error)
@@ -15,10 +15,10 @@ type (
 	}
 
 	supplierReturnService struct {
-		repo repo.SupplierReturnRepo
+		repo repo.SupplierReturnRepoInterface
 	}
 )
 
-func NewSupplierReturnService(repo repo.SupplierReturnRepo) *supplierReturnService {
+func NewSupplierReturnService(repo repo.SupplierReturnRepoInterface) *supplierReturnService {
 	return &supplierReturnService{repo: repo}
 }

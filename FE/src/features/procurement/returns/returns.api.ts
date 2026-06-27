@@ -14,16 +14,16 @@ import type {
 
 export function useSupplierReturnsQuery(filter?: SupplierReturnFilter) {
   return useQuery({
-    queryKey: queryKeys.supplierReturns.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.supplierReturns.list(filter),
     queryFn: () => api.post<PaginatedData<SupplierReturn>>('/supplier-returns/list', filter ?? {}),
   })
 }
 
-export function useSupplierReturnDetailQuery(id: number | null) {
+export function useSupplierReturnDetailQuery(id: number) {
   return useQuery({
-    queryKey: queryKeys.supplierReturns.detail(id ?? 0),
+    queryKey: queryKeys.supplierReturns.detail(id),
     queryFn: () => api.post<SupplierReturn>(`/supplier-returns/detail/${id}`, {}),
-    enabled: id !== null && id > 0,
+    enabled: id > 0,
   })
 }
 
@@ -34,7 +34,6 @@ export function useCreateSupplierReturnMutation() {
       api.post<SupplierReturn>('/supplier-returns/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierReturns.all() })
-      toast.success('Retur berhasil dibuat')
     },
     onError: (e: Error) => toast.error(e.message),
   })

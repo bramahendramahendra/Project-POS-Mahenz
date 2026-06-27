@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, todayStr } from '@/shared/utils'
 
 import { usePaySupplierPurchaseMutation } from '../purchases.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
@@ -38,9 +38,6 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
 
-function todayString() {
-  return new Date().toISOString().split('T')[0]
-}
 
 export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps) {
   const { mutate: pay, isPending } = usePaySupplierPurchaseMutation(purchase?.id ?? 0)
@@ -57,7 +54,7 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       amount: 0,
-      payment_date: todayString(),
+      payment_date: todayStr(),
       payment_method: 'cash',
       notes: '',
     },
@@ -67,7 +64,7 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     if (open) {
       reset({
         amount: 0,
-        payment_date: todayString(),
+        payment_date: todayStr(),
         payment_method: 'cash',
         notes: '',
       })

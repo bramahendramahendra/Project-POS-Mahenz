@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, todayStr } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierListQuery } from '@/features/procurement/suppliers/suppliers.api'
@@ -40,12 +40,8 @@ interface PurchaseFormModalProps {
   initialData?: SupplierPurchase | null
 }
 
-function todayString() {
-  return new Date().toISOString().split('T')[0]
-}
-
 const emptyValues: PurchaseFormValues = {
-  purchase_date: todayString(),
+  purchase_date: todayStr(),
   invoice_number: '',
   supplier_id: 0,
   items: [{ product_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
@@ -123,7 +119,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
   useEffect(() => {
     if (!open) {
-      reset({ ...emptyValues, purchase_date: todayString() })
+      reset({ ...emptyValues, purchase_date: todayStr() })
       setItemUnitOptions({})
       setItemSelectedPackageId({})
       return

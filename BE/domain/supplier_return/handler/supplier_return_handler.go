@@ -14,10 +14,10 @@ import (
 )
 
 type SupplierReturnHandler struct {
-	service service.SupplierReturnService
+	service service.SupplierReturnServiceInterface
 }
 
-func NewSupplierReturnHandler(service service.SupplierReturnService) *SupplierReturnHandler {
+func NewSupplierReturnHandler(service service.SupplierReturnServiceInterface) *SupplierReturnHandler {
 	return &SupplierReturnHandler{service: service}
 }
 

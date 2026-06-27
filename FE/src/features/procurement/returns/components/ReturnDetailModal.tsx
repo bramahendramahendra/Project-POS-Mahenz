@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
+import { useDisclosure } from '@/shared/hooks'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
@@ -28,9 +29,9 @@ function formatDate(dateStr: string): string {
 export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetailModalProps) {
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectInput, setShowRejectInput] = useState(false)
-  const [approveOpen, setApproveOpen] = useState(false)
+  const { isOpen: approveOpen, open: openApprove, close: closeApprove } = useDisclosure()
 
-  const { data: detail, isLoading } = useSupplierReturnDetailQuery(open ? returnId : null)
+  const { data: detail, isLoading } = useSupplierReturnDetailQuery(open && returnId ? returnId : 0)
   const { mutate: updateStatus, isPending } = useUpdateSupplierReturnStatusMutation()
 
   function handleApproveConfirm() {
@@ -40,7 +41,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
       {
         onSuccess: () => {
           toast.success('Retur berhasil disetujui')
-          setApproveOpen(false)
+          closeApprove()
           onOpenChange(false)
         },
       },
@@ -172,7 +173,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
                       </Button>
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => setApproveOpen(true)}
+                        onClick={openApprove}
                         disabled={isPending}
                       >
                         Setujui
@@ -205,7 +206,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
 
       <ConfirmDialog
         open={approveOpen}
-        onOpenChange={setApproveOpen}
+        onOpenChange={(o) => { if (!o) closeApprove() }}
         title="Setujui Retur"
         description="Stok produk akan dikurangi dan hutang supplier akan disesuaikan. Yakin ingin menyetujui retur ini?"
         confirmLabel="Ya, Setujui"

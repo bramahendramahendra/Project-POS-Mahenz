@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { PageHeader } from '@/shared/components'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
+import { monthStart, todayStr } from '@/shared/utils'
 
 import { useCashflowQuery, useFinanceSummaryQuery } from './finance.api'
 import type { FinanceFilter } from './finance.types'
@@ -9,19 +10,10 @@ import { FinanceFilterBar } from './components/FinanceFilterBar'
 import { FinanceSummaryCard } from './components/FinanceSummaryCard'
 import { FinanceTable } from './components/FinanceTable'
 
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
-function monthStartString(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
-
 export function FinancePage() {
   const [filter, setFilter] = useState<FinanceFilter>({
-    date_from: monthStartString(),
-    date_to: todayString(),
+    date_from: monthStart(),
+    date_to: todayStr(),
   })
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()

@@ -6,6 +6,7 @@ import (
 
 	dto "pos_api/domain/supplier_purchase/dto"
 	model "pos_api/domain/supplier_purchase/model"
+	request_helper "pos_api/helper/request"
 
 	"gorm.io/gorm"
 )
@@ -68,7 +69,15 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 	}
 	offset := (page - 1) * limit
 
-	query := getAllPurchasesBase + conditions + " ORDER BY p.purchase_date DESC, p.id DESC LIMIT ? OFFSET ?"
+	allowedSortFields := map[string]string{
+		"purchase_date":   "p.purchase_date",
+		"total_amount":    "p.total_amount",
+		"supplier_name":   "s.name",
+		"payment_status":  "p.payment_status",
+	}
+	const defaultOrder = " ORDER BY p.purchase_date DESC, p.id DESC"
+
+	query := getAllPurchasesBase + conditions + request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, defaultOrder) + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()

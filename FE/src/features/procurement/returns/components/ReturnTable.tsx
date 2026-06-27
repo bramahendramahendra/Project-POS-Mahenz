@@ -1,9 +1,10 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
 import { Truck } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
+import { monthStart, todayStr } from '@/shared/utils'
 import { useSupplierListQuery } from '@/features/procurement/suppliers'
 import { useProductListQuery } from '@/features/products/products'
 
@@ -17,24 +18,16 @@ import { ReturnFilterBar } from './ReturnFilterBar'
 import { ReturnFormModal } from './ReturnFormModal'
 import { ReturnDetailModal } from './ReturnDetailModal'
 
-function monthStartString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
-
-function todayString() {
-  return new Date().toISOString().split('T')[0]
-}
-
 export interface ReturnTableHandle {
   openAdd: () => void
 }
 
 export const ReturnTable = forwardRef<ReturnTableHandle, object>(function ReturnTable(_, ref) {
   const [filter, setFilter] = useState<SupplierReturnFilter>({
-    start_date: monthStartString(),
-    end_date: todayString(),
+    start_date: monthStart(),
+    end_date: todayStr(),
   })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -66,7 +59,14 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
   }
 
   const handleReset = () => {
-    setFilter({ start_date: monthStartString(), end_date: todayString() })
+    setFilter({ start_date: monthStart(), end_date: todayStr() })
+    setSortState(undefined)
+    resetPage()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     resetPage()
   }
 
@@ -75,8 +75,8 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
     openDetail()
   }
 
-  const handleDelete = (row: SupplierReturn) => {
-    setDeletingId(row.id)
+  const handleDelete = (id: number) => {
+    setDeletingId(id)
     openDelete()
   }
 
@@ -145,6 +145,8 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
         columns={columns}
         data={returns as (SupplierReturn & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage="Belum ada data retur"
         emptyDescription="Data retur pembelian akan muncul sesuai filter yang dipilih."
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}

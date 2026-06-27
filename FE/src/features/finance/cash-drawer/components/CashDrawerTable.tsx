@@ -4,7 +4,7 @@ import { DataTable } from '@/shared/components'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, monthStart, todayStr } from '@/shared/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 
 import { useCashDrawerListQuery, useCashDrawerSummaryQuery } from '../cash-drawer.api'
@@ -14,20 +14,9 @@ import { CashDrawerDetailModal } from './CashDrawerDetailModal'
 import { CloseCashDrawerModal } from './CloseCashDrawerModal'
 import { buildCashDrawerColumns } from './CashDrawerTableColumns'
 
-function todayString(): string {
-  return new Date().toISOString().split('T')[0]
-}
-
-function monthStartString(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-}
-
 const defaultFilter: CashDrawerListFilter = {
-  page: 1,
-  limit: 10,
-  start_date: monthStartString(),
-  end_date: todayString(),
+  start_date: monthStart(),
+  end_date: todayStr(),
 }
 
 interface SummaryCardProps {
