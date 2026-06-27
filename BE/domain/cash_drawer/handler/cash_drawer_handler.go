@@ -117,6 +117,11 @@ func (h *CashDrawerHandler) Open(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	userID := helper.GetUserID(c)
 
 	data, err := h.service.Open(userID, &req)
@@ -140,11 +145,22 @@ func (h *CashDrawerHandler) Close(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(uriReq); err != nil {
+		c.Error(err)
+		return
+	}
+
 	req, err := binder.BindJSON[dto.CloseRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	req.ID = uriReq.ID
 
 	data, err := h.service.Close(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c))

@@ -33,17 +33,13 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
   const [editingPurchase, setEditingPurchase] = useState<SupplierPurchase | null>(null)
   const [payingPurchase, setPayingPurchase] = useState<SupplierPurchase | null>(null)
-  const [detailId, setDetailId] = useState<number | null>(null)
+  const [detailPurchase, setDetailPurchase] = useState<SupplierPurchase | null>(null)
   const [deletingPurchase, setDeletingPurchase] = useState<SupplierPurchase | null>(null)
 
   const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const suppliers = suppliersData?.data ?? []
 
-  const { data, isLoading } = useSupplierPurchasesQuery({
-    ...filter, 
-    page, 
-    limit: pageSize, 
-  })
+  const { data, isLoading } = useSupplierPurchasesQuery({ ...filter,  page,  limit: pageSize })
   const purchases = data?.data ?? []
   const total = data?.total ?? 0
 
@@ -84,19 +80,25 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   }
 
   const handleOpenDetail = (purchase: SupplierPurchase) => {
-    setDetailId(purchase.id)
+    setDetailPurchase(purchase)
     openDetail()
   }
 
   const handleCloseDetail = () => {
     closeDetail()
-    setDetailId(null)
+    setDetailPurchase(null)
   }
 
-  const handlePay = (purchase: SupplierPurchase) => {
+  const handleOpenPay = (purchase: SupplierPurchase) => {
     setPayingPurchase(purchase)
     openPay()
   }
+
+  const handleClosePay = () => {
+    closePay()
+    setPayingPurchase(null)
+  }
+
   const handleOpenDelete = (purchase: SupplierPurchase) => {
     setDeletingPurchase(purchase)
     openDelete()
@@ -117,7 +119,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const columns = buildPurchaseColumns({
     onDetail: handleOpenDetail,
     onEdit: handleOpenEdit,
-    onPay: handlePay,
+    onPay: handleOpenPay,
     onDelete: handleOpenDelete,
   })
 
@@ -154,24 +156,19 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
       <PurchaseFormModal
         open={formOpen}
-        onOpenChange={(o) => { if (!o) handleCloseForm() }}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
         initialData={editingPurchase}
       />
 
       <PurchaseDetailModal
         open={detailOpen}
         onOpenChange={(open) => { if (!open) handleCloseDetail() }}
-        purchaseId={detailId}
+        purchaseId={detailPurchase?.id ?? null}
       />
 
       <PaymentModal
         open={payOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            closePay()
-            setPayingPurchase(null)
-          }
-        }}
+        onOpenChange={(open) => { if (!open) handleClosePay() }}
         purchase={payingPurchase}
       />
 

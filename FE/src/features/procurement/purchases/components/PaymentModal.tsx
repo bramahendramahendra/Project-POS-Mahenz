@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from 'sonner'
 
 import { FormModal } from '@/shared/components'
@@ -22,21 +21,13 @@ import { formatRupiah, todayStr } from '@/shared/utils'
 import { usePaySupplierPurchaseMutation } from '../purchases.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
 import type { SupplierPurchase } from '../purchases.types'
+import { paymentSchema, type PaymentFormValues } from '../payment.schema'
 
 interface PaymentModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   purchase: SupplierPurchase | null
 }
-
-const paymentSchema = z.object({
-  amount:         z.number({ error: 'Jumlah wajib diisi' }).positive('Jumlah harus lebih dari 0'),
-  payment_date:   z.string().min(1, 'Tanggal wajib diisi'),
-  payment_method: z.string().min(1, 'Metode wajib dipilih'),
-  notes:          z.string().optional(),
-})
-
-type PaymentFormValues = z.infer<typeof paymentSchema>
 
 
 export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps) {
@@ -61,14 +52,13 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
   })
 
   useEffect(() => {
-    if (open) {
-      reset({
-        amount: 0,
-        payment_date: todayStr(),
-        payment_method: 'cash',
-        notes: '',
-      })
-    }
+    if (!open) return
+    reset({
+      amount: 0,
+      payment_date: todayStr(),
+      payment_method: 'cash',
+      notes: '',
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -93,18 +83,13 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     )
   }
 
-  function handleOpenChange(open: boolean) {
-    if (!open) reset()
-    onOpenChange(open)
-  }
-
   const amountValue = watch('amount')
   const paymentMethodValue = watch('payment_method')
 
   return (
     <FormModal
       open={open}
-      onOpenChange={handleOpenChange}
+      onOpenChange={onOpenChange}
       title="Catat Pembayaran"
       size="sm"
       isLoading={isPending}
@@ -113,7 +98,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     >
       {purchase && (
         <div className="space-y-4">
-          {/* Info Ringkasan */}
           <div className="rounded-lg bg-gray-50 p-3 space-y-1.5 text-sm">
             <InfoRow label="Supplier" value={purchase.supplier_name || '—'} />
             <InfoRow label="No. Faktur" value={purchase.invoice_number} />
@@ -131,7 +115,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
             />
           </div>
 
-          {/* Tanggal Pembayaran */}
           <div className="space-y-1.5">
             <Label htmlFor="pay-date">
               Tanggal Pembayaran <span className="text-red-500">*</span>
@@ -147,7 +130,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
             )}
           </div>
 
-          {/* Metode Pembayaran */}
           <div className="space-y-1.5">
             <Label>
               Metode Pembayaran <span className="text-red-500">*</span>
@@ -172,7 +154,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
             )}
           </div>
 
-          {/* Jumlah Bayar */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="pay-amount">
@@ -205,7 +186,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
             )}
           </div>
 
-          {/* Catatan */}
           <div className="space-y-1.5">
             <Label htmlFor="pay-notes">Catatan</Label>
             <Textarea

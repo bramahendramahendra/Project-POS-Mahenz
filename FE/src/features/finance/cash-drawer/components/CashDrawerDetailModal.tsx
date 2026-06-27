@@ -1,23 +1,14 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog'
+import { FormModal } from '@/shared/components'
 import { Badge } from '@/shared/components/ui/badge'
-import { formatRupiah } from '@/shared/utils'
+import { formatDateTime, formatRupiah } from '@/shared/utils'
 
 import { useCashDrawerDetailQuery } from '../cash-drawer.api'
 import type { CashDrawerDetail } from '../cash-drawer.types'
 
 interface CashDrawerDetailModalProps {
-  cashDrawerId: number | null
-  onClose: () => void
-}
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  cashDrawerId?: number
 }
 
 interface SummaryRowProps {
@@ -35,121 +26,118 @@ function SummaryRow({ label, value, valueClass = '' }: SummaryRowProps) {
   )
 }
 
-export function CashDrawerDetailModal({ cashDrawerId, onClose }: CashDrawerDetailModalProps) {
-  const { data, isLoading, isError, error } = useCashDrawerDetailQuery(cashDrawerId)
+export function CashDrawerDetailModal({ open, onOpenChange, cashDrawerId }: CashDrawerDetailModalProps) {
+  const enabled = open && (cashDrawerId ?? 0) > 0
+  const { data, isLoading } = useCashDrawerDetailQuery(enabled ? (cashDrawerId as number) : null)
   const detail: CashDrawerDetail | undefined = data ?? undefined
 
   const diff = detail?.difference ?? 0
 
   return (
-    <Dialog open={cashDrawerId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Detail Kas Harian</DialogTitle>
-        </DialogHeader>
-
-        {isLoading && (
-          <div className="py-8 text-center text-sm text-gray-400">Memuat data...</div>
-        )}
-
-        {isError && !isLoading && (
-          <div className="py-8 text-center text-sm text-red-500">
-            Gagal memuat data: {(error as Error)?.message ?? 'Terjadi kesalahan'}
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Detail Kas Harian"
+      size="sm"
+      hideFooter
+    >
+      {isLoading || !detail ? (
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded-md bg-gray-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-700">{formatDateTime(detail.open_time)}</p>
+              {detail.shift_name && (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {detail.shift_name}
+                  {detail.shift_start && detail.shift_end
+                    ? ` (${detail.shift_start} – ${detail.shift_end})`
+                    : ''}
+                </p>
+              )}
+            </div>
+            {detail.status === 'closed' ? (
+              <Badge variant="secondary">Tutup</Badge>
+            ) : (
+              <Badge variant="default" className="bg-green-600">Buka</Badge>
+            )}
           </div>
-        )}
 
-        {detail && !isLoading && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-gray-700">{formatDateTime(detail.open_time)}</p>
-                {detail.shift_name && (
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {detail.shift_name}
-                    {detail.shift_start && detail.shift_end
-                      ? ` (${detail.shift_start} – ${detail.shift_end})`
-                      : ''}
-                  </p>
-                )}
-              </div>
-              {detail.status === 'closed' ? (
-                <Badge variant="secondary">Tutup</Badge>
-              ) : (
-                <Badge variant="default" className="bg-green-600">Buka</Badge>
-              )}
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4 space-y-1">
-              <SummaryRow label="Kasir" value={detail.cashier_name} />
-              <SummaryRow label="Saldo Awal Tunai" value={formatRupiah(detail.opening_balance)} />
-              <SummaryRow
-                label="Total Penjualan Tunai"
-                value={formatRupiah(detail.total_cash_sales)}
-                valueClass="text-green-600"
-              />
-              <SummaryRow
-                label="Total Pengeluaran"
-                value={formatRupiah(detail.total_expenses)}
-                valueClass="text-red-600"
-              />
-              <SummaryRow
-                label="Saldo Ekspektasi"
-                value={formatRupiah(detail.expected_balance)}
-              />
-              {detail.status === 'closed' && (
-                <>
-                  <SummaryRow
-                    label="Saldo Akhir Tunai"
-                    value={formatRupiah(detail.closing_balance ?? 0)}
-                    valueClass="font-semibold"
-                  />
-                  <SummaryRow
-                    label="Selisih"
-                    value={`${diff >= 0 ? '+' : ''}${formatRupiah(diff)}`}
-                    valueClass={
-                      diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-green-600' : 'text-red-600'
-                    }
-                  />
-                </>
-              )}
-            </div>
-
-            {detail.non_cash_sales?.length > 0 && (
-              <div className="rounded-lg border border-gray-100 px-4 py-3 space-y-1">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide pb-1">Non-Tunai (Informasi)</p>
-                {detail.non_cash_sales.map((item) => (
-                  <SummaryRow key={item.payment_method} label={item.label} value={formatRupiah(item.total)} />
-                ))}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-1">
+            <SummaryRow label="Kasir" value={detail.cashier_name} />
+            <SummaryRow label="Saldo Awal Tunai" value={formatRupiah(detail.opening_balance)} />
+            <SummaryRow
+              label="Total Penjualan Tunai"
+              value={formatRupiah(detail.total_cash_sales)}
+              valueClass="text-green-600"
+            />
+            <SummaryRow
+              label="Total Pengeluaran"
+              value={formatRupiah(detail.total_expenses)}
+              valueClass="text-red-600"
+            />
+            <SummaryRow
+              label="Saldo Ekspektasi"
+              value={formatRupiah(detail.expected_balance)}
+            />
+            {detail.status === 'closed' && (
+              <>
                 <SummaryRow
-                  label="Total Non-Tunai"
-                  value={formatRupiah(detail.non_cash_sales.reduce((sum, i) => sum + i.total, 0))}
+                  label="Saldo Akhir Tunai"
+                  value={formatRupiah(detail.closing_balance ?? 0)}
                   valueClass="font-semibold"
                 />
-              </div>
-            )}
-
-            {detail.status === 'closed' && (
-              <div className="space-y-1 text-sm">
-                {detail.close_time && (
-                  <p className="text-gray-500">
-                    Ditutup: <span className="text-gray-700">{formatDateTime(detail.close_time)}</span>
-                  </p>
-                )}
-                {detail.notes && (
-                  <p className="text-gray-500">
-                    Catatan tutup: <span className="text-gray-700">{detail.notes}</span>
-                  </p>
-                )}
-              </div>
-            )}
-            {detail.open_notes && (
-              <p className="text-sm text-gray-500">
-                Catatan buka: <span className="text-gray-700">{detail.open_notes}</span>
-              </p>
+                <SummaryRow
+                  label="Selisih"
+                  value={`${diff >= 0 ? '+' : ''}${formatRupiah(diff)}`}
+                  valueClass={
+                    diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-green-600' : 'text-red-600'
+                  }
+                />
+              </>
             )}
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          {detail.non_cash_sales?.length > 0 && (
+            <div className="rounded-lg border border-gray-100 px-4 py-3 space-y-1">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide pb-1">Non-Tunai (Informasi)</p>
+              {detail.non_cash_sales.map((item) => (
+                <SummaryRow key={item.payment_method} label={item.label} value={formatRupiah(item.total)} />
+              ))}
+              <SummaryRow
+                label="Total Non-Tunai"
+                value={formatRupiah(detail.non_cash_sales.reduce((sum, i) => sum + i.total, 0))}
+                valueClass="font-semibold"
+              />
+            </div>
+          )}
+
+          {detail.status === 'closed' && (
+            <div className="space-y-1 text-sm">
+              {detail.close_time && (
+                <p className="text-gray-500">
+                  Ditutup: <span className="text-gray-700">{formatDateTime(detail.close_time)}</span>
+                </p>
+              )}
+              {detail.notes && (
+                <p className="text-gray-500">
+                  Catatan tutup: <span className="text-gray-700">{detail.notes}</span>
+                </p>
+              )}
+            </div>
+          )}
+          {detail.open_notes && (
+            <p className="text-sm text-gray-500">
+              Catatan buka: <span className="text-gray-700">{detail.open_notes}</span>
+            </p>
+          )}
+        </div>
+      )}
+    </FormModal>
   )
 }

@@ -3,7 +3,7 @@ import { Eye, XCircle } from 'lucide-react'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
-import { formatRupiah } from '@/shared/utils'
+import { formatDateTime, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { CashDrawer } from '../cash-drawer.types'
@@ -12,16 +12,6 @@ export interface CashDrawerColumnHandlers {
   onRowClick: (row: CashDrawer) => void
   onForceClose?: (row: CashDrawer) => void
   canForceClose?: boolean
-}
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export function buildCashDrawerColumns(

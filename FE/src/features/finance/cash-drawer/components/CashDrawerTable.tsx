@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { DataTable } from '@/shared/components'
-import { usePagination, usePageSizeOptions } from '@/shared/hooks'
+import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
 import { formatRupiah, monthStart, todayStr } from '@/shared/utils'
@@ -38,15 +38,18 @@ function SummaryCard({ title, value, valueClass = '', isLoading }: SummaryCardPr
   )
 }
 
+const defaultFilter: CashDrawerListFilter = {
+  start_date: monthStart(),
+  end_date: todayStr(),
+}
+
 export function CashDrawerTable() {
-  const [filter, setFilter] = useState<CashDrawerListFilter>({
-    page: 1,
-    limit: 10,
-    start_date: monthStart(),
-    end_date: todayStr(),
-  })
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [forceCloseId, setForceCloseId] = useState<number | null>(null)
+  const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
+  const [detailDrawerId, setDetailDrawerId] = useState<number | undefined>(undefined)
+  const [forceCloseDrawerId, setForceCloseDrawerId] = useState<number | undefined>(undefined)
+
+  const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
+  const { isOpen: forceCloseOpen, open: openForceClose, close: closeForceClose } = useDisclosure()
 
   const { user } = useAuthStore()
   const canForceClose = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
@@ -65,13 +68,33 @@ export function CashDrawerTable() {
   }
 
   const handleReset = () => {
-    setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
+    setFilter(defaultFilter)
     reset()
   }
 
+  const handleOpenDetail = (row: CashDrawer) => {
+    setDetailDrawerId(row.id)
+    openDetail()
+  }
+
+  const handleCloseDetail = () => {
+    closeDetail()
+    setDetailDrawerId(undefined)
+  }
+
+  const handleOpenForceClose = (row: CashDrawer) => {
+    setForceCloseDrawerId(row.id)
+    openForceClose()
+  }
+
+  const handleCloseForceClose = () => {
+    closeForceClose()
+    setForceCloseDrawerId(undefined)
+  }
+
   const columns = buildCashDrawerColumns({
-    onRowClick: (row) => setSelectedId(row.id),
-    onForceClose: (row) => setForceCloseId(row.id),
+    onRowClick: handleOpenDetail,
+    onForceClose: handleOpenForceClose,
     canForceClose,
   })
 
@@ -118,12 +141,16 @@ export function CashDrawerTable() {
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
       />
 
-      <CashDrawerDetailModal cashDrawerId={selectedId} onClose={() => setSelectedId(null)} />
+      <CashDrawerDetailModal
+        open={detailOpen}
+        onOpenChange={(val) => { if (!val) handleCloseDetail() }}
+        cashDrawerId={detailDrawerId}
+      />
 
       <CloseCashDrawerModal
-        open={forceCloseId !== null}
-        onOpenChange={(val) => { if (!val) setForceCloseId(null) }}
-        cashDrawerId={forceCloseId}
+        open={forceCloseOpen}
+        onOpenChange={(val) => { if (!val) handleCloseForceClose() }}
+        cashDrawerId={forceCloseDrawerId ?? null}
       />
     </div>
   )

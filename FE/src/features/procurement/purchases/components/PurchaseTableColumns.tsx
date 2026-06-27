@@ -4,7 +4,7 @@ import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { SupplierPurchase } from '../purchases.types'
@@ -14,14 +14,6 @@ export interface PurchaseColumnHandlers {
   onEdit: (purchase: SupplierPurchase) => void
   onPay: (purchase: SupplierPurchase) => void
   onDelete: (purchase: SupplierPurchase) => void
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDef<SupplierPurchase>[] {

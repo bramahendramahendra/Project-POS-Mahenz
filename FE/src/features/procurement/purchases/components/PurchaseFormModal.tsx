@@ -19,8 +19,8 @@ import {
 import { formatRupiah, todayStr } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
-import { useSupplierListQuery } from '@/features/procurement/suppliers/suppliers.api'
-import { useProductOptionsQuery } from '@/features/products/products/products.api'
+import { useSupplierListQuery } from '@/features/procurement/suppliers'
+import { useProductOptionsQuery } from '@/features/products/products'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
 import {
@@ -240,7 +240,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     <>
     <FormModal
       open={open && !isConfirming}
-      onOpenChange={(val) => { if (!val && !isConfirming) handleClose() }}
+      onOpenChange={(open) => { if (!open && !isConfirming) handleClose() }}
       title={isEditMode ? 'Edit Pembelian' : 'Tambah Pembelian'}
       size="xl"
       isLoading={isPending}
@@ -248,7 +248,6 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       submitLabel={isEditMode ? 'Simpan Perubahan' : 'Simpan Pembelian'}
     >
       <div className="space-y-5">
-        {/* Header info */}
         <div className="grid grid-cols-4 gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="pur-code">Kode PO</Label>
@@ -307,7 +306,6 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           </div>
         </div>
 
-        {/* Items */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>
@@ -427,7 +425,6 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           </div>
         </div>
 
-        {/* Totals + payment */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-3">
             <div className="space-y-1.5">

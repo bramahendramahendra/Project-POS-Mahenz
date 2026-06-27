@@ -177,7 +177,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
           <Input
             id="ret-date"
             type="date"
-            max={today}
+            max={todayStr()}
             {...register('return_date')}
             className={errors.return_date ? 'border-red-500' : ''}
           />
@@ -289,6 +289,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       title="Tambah Retur Pembelian"
       description="Yakin ingin menyimpan data retur ini?"
       confirmLabel="Ya, Simpan"
+      variant="destructive"
       isLoading={isPending}
       onConfirm={handleConfirmedSave}
     />

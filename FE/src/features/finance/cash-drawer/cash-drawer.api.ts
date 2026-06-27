@@ -45,7 +45,6 @@ export function useOpenCashDrawerMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
-      toast.success('Kas berhasil dibuka')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -59,7 +58,6 @@ export function useCloseCashDrawerMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
-      toast.success('Kas berhasil ditutup')
     },
     onError: (e: Error) => toast.error(e.message),
   })
