@@ -112,6 +112,8 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     })
   }
 
+  const hasFilter = !!filter.supplier_id || !!filter.payment_status
+
   const columns = buildPurchaseColumns({
     onDetail: handleOpenDetail,
     onEdit: handleOpenEdit,
@@ -123,9 +125,9 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     <div className="space-y-4">
       <PurchaseFilterBar
         filter={filter}
-        suppliers={suppliers}
         onChange={handleFilterChange}
         onReset={handleReset}
+        suppliers={suppliers}
       />
 
       <DataTable<SupplierPurchase & Record<string, unknown>>
@@ -134,9 +136,20 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
         isLoading={isLoading}
         currentSort={sortState}
         onSort={handleSort}
-        emptyMessage="Belum ada data pembelian"
-        emptyDescription="Data pembelian supplier akan muncul sesuai filter yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        emptyMessage={hasFilter ? 'Data pembelian tidak ditemukan' : 'Belum ada data pembelian'}
+        emptyDescription={
+          hasFilter
+            ? 'Coba ubah filter pencarian Anda.'
+            : 'Data pembelian supplier akan muncul di sini.'
+        }
+        pagination={{ 
+          page, 
+          pageSize, 
+          total, 
+          onPageChange, 
+          onPageSizeChange, 
+          pageSizeOptions, 
+        }}
       />
 
       <PurchaseFormModal

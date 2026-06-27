@@ -84,18 +84,20 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
     })
   }
 
-  const columns = buildReturnColumns({ 
-    onDetail: handleOpenDetail, 
+  const hasFilter = !!filter.supplier_id || !!filter.status
+
+  const columns = buildReturnColumns({
+    onDetail: handleOpenDetail,
     onDelete: handleOpenDelete,
   })
 
   return (
-    <>
+    <div className="space-y-4">
       <ReturnFilterBar
         filter={filter}
-        suppliers={suppliers}
         onChange={handleFilterChange}
         onReset={handleReset}
+        suppliers={suppliers}
       />
 
       <DataTable<SupplierReturn & Record<string, unknown>>
@@ -104,12 +106,26 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
         isLoading={isLoading}
         currentSort={sortState}
         onSort={handleSort}
-        emptyMessage="Belum ada data retur"
-        emptyDescription="Data retur pembelian akan muncul sesuai filter yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        emptyMessage={hasFilter ? 'Data retur tidak ditemukan' : 'Belum ada data retur'}
+        emptyDescription={
+          hasFilter
+            ? 'Coba ubah filter pencarian Anda.'
+            : 'Data retur pembelian akan muncul di sini.'
+        }
+        pagination={{ 
+          page, 
+          pageSize, 
+          total, 
+          onPageChange, 
+          onPageSizeChange, 
+          pageSizeOptions 
+        }}
       />
 
-      <ReturnFormModal open={formOpen} onOpenChange={(o) => !o && closeForm()} />
+      <ReturnFormModal 
+        open={formOpen} 
+        onOpenChange={(o) => !o && closeForm()} 
+      />
 
       <ReturnDetailModal
         returnId={detailReturn?.id ?? null}
@@ -127,6 +143,6 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
       />
-    </>
+    </div>
   )
 })
