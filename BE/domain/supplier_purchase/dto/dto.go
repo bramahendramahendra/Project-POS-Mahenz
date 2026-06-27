@@ -68,7 +68,7 @@ type (
 		UserID        int     `json:"-"`
 		Amount        float64 `json:"amount" validate:"required,gt=0"`
 		PaymentDate   string  `json:"payment_date" validate:"required"`
-		PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`
+		PaymentMethod string  `json:"payment_method" validate:"required"`
 		Notes         string  `json:"notes"`
 	}
 

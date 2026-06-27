@@ -1,15 +1,9 @@
 import { RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
+import { Combobox } from '@/shared/components/ui/combobox'
 import { Input } from '@/shared/components/ui/input'
-import { Label } from '@/shared/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group'
 
 import type { SupplierPurchaseFilter } from '../purchases.types'
 
@@ -26,75 +20,51 @@ interface PurchaseFilterBarProps {
 }
 
 export function PurchaseFilterBar({ filter, suppliers, onChange, onReset }: PurchaseFilterBarProps) {
+  const supplierOptions = suppliers.map((s) => ({ value: String(s.id), label: s.name }))
+
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-500">Dari</Label>
-        <Input
-          type="date"
-          value={filter.start_date ?? ''}
-          onChange={(e) => onChange({ ...filter, start_date: e.target.value || undefined })}
-          className="w-36 h-9"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-500">Sampai</Label>
-        <Input
-          type="date"
-          value={filter.end_date ?? ''}
-          onChange={(e) => onChange({ ...filter, end_date: e.target.value || undefined })}
-          className="w-36 h-9"
-        />
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-500">Supplier</Label>
-        <Select
-          value={filter.supplier_id ? String(filter.supplier_id) : 'all'}
-          onValueChange={(v) =>
-            onChange({ ...filter, supplier_id: v === 'all' ? undefined : Number(v) })
-          }
-        >
-          <SelectTrigger className="w-44 h-9">
-            <SelectValue placeholder="Semua Supplier" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Supplier</SelectItem>
-            {suppliers.map((s) => (
-              <SelectItem key={s.id} value={String(s.id)}>
-                {s.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1">
-        <Label className="text-xs text-gray-500">Status</Label>
-        <Select
-          value={filter.payment_status ?? 'all'}
-          onValueChange={(v) =>
-            onChange({
-              ...filter,
-              payment_status: v === 'all' ? undefined : (v as SupplierPurchaseFilter['payment_status']),
-            })
-          }
-        >
-          <SelectTrigger className="w-36 h-9">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="paid">Lunas</SelectItem>
-            <SelectItem value="unpaid">Hutang</SelectItem>
-            <SelectItem value="partial">Bayar Sebagian</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onReset}
-        className="h-9 gap-1"
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
+      <Input
+        type="date"
+        value={filter.start_date ?? ''}
+        onChange={(e) => onChange({ ...filter, start_date: e.target.value || undefined })}
+        className="w-36 h-9 text-sm"
+      />
+      <span className="text-xs text-gray-400">—</span>
+      <Input
+        type="date"
+        value={filter.end_date ?? ''}
+        onChange={(e) => onChange({ ...filter, end_date: e.target.value || undefined })}
+        className="w-36 h-9 text-sm"
+      />
+
+      <Combobox
+        options={supplierOptions}
+        value={filter.supplier_id ? String(filter.supplier_id) : undefined}
+        onValueChange={(v) => onChange({ ...filter, supplier_id: v ? Number(v) : undefined })}
+        placeholder="Semua Supplier"
+        searchPlaceholder="Cari supplier..."
+        emptyText="Supplier tidak ditemukan."
+        className="w-48"
+      />
+
+      <ToggleGroup
+        type="single"
+        value={filter.payment_status ?? 'all'}
+        onValueChange={(v) =>
+          v && onChange({
+            ...filter,
+            payment_status: v === 'all' ? undefined : (v as SupplierPurchaseFilter['payment_status']),
+          })
+        }
       >
+        <ToggleGroupItem value="all">Semua</ToggleGroupItem>
+        <ToggleGroupItem value="paid">Lunas</ToggleGroupItem>
+        <ToggleGroupItem value="partial">Sebagian</ToggleGroupItem>
+        <ToggleGroupItem value="unpaid">Hutang</ToggleGroupItem>
+      </ToggleGroup>
+
+      <Button variant="outline" size="sm" onClick={onReset} className="h-9 gap-1">
         <RotateCcw size={13} />
         Reset
       </Button>

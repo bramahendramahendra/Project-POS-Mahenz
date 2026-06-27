@@ -75,28 +75,6 @@ func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error)
 	return data, nil
 }
 
-func (s *purchaseService) GetItems(purchaseID int) (data []*dto.PurchaseItemResponse, err error) {
-	dataDB, err := s.repo.GetItems(purchaseID)
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.PurchaseItemResponse{
-			ID:            v.ID,
-			ProductID:     v.ProductID,
-			ProductName:   v.ProductName,
-			Quantity:      v.Quantity,
-			Unit:          v.Unit,
-			ConversionQty: v.ConversionQty,
-			PurchasePrice: v.PurchasePrice,
-			Subtotal:      v.Subtotal,
-		})
-	}
-
-	return data, nil
-}
-
 func (s *purchaseService) GenerateCode() (data dto.GenerateCodeResponse, err error) {
 	dataDB, err := s.repo.GenerateCode()
 	if err != nil {

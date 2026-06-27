@@ -34,6 +34,7 @@ export function useCreateSupplierReturnMutation() {
       api.post<SupplierReturn>('/supplier-returns/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierReturns.all() })
+      toast.success('Retur berhasil dibuat')
     },
     onError: (e: Error) => toast.error(e.message),
   })

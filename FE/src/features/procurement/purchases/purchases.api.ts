@@ -41,7 +41,7 @@ export function useSupplierPurchaseDetailQuery(id: number | null) {
 export function useSupplierPurchasePaymentsQuery(id: number | null) {
   return useQuery({
     queryKey: queryKeys.supplierPurchases.payments(id ?? 0),
-    queryFn: () => api.post<PurchasePayment[]>(`/supplier-purchases/detail/${id}/payments`, {}),
+    queryFn: () => api.post<PurchasePayment[]>(`/supplier-purchases/${id}/payments`, {}),
     enabled: id !== null && id > 0,
   })
 }

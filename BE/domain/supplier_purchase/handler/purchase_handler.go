@@ -84,31 +84,6 @@ func (h *PurchaseHandler) GetByID(c *gin.Context) {
 	})
 }
 
-func (h *PurchaseHandler) GetItems(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validation.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetItems(req.ID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Item purchase order",
-		Data:    data,
-	})
-}
-
 func (h *PurchaseHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {

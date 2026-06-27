@@ -9,7 +9,6 @@ type (
 	PurchaseServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error)
 		GetByID(id int) (data dto.PurchaseResponse, err error)
-		GetItems(purchaseID int) (data []*dto.PurchaseItemResponse, err error)
 		GenerateCode() (data dto.GenerateCodeResponse, err error)
 		Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error)
 		Update(req *dto.UpdateRequest) (data dto.PurchaseResponse, err error)

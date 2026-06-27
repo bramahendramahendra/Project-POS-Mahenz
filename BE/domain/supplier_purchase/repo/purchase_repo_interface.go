@@ -11,7 +11,6 @@ type (
 	PurchaseRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error)
 		GetByID(id int) (*model.PurchaseRow, error)
-		GetItems(purchaseID int) ([]model.PurchaseItem, error)
 		GetPayments(purchaseID int) ([]model.PurchasePayment, error)
 		GenerateCode() (string, error)
 		Create(req *dto.CreateRequest) (*model.PurchaseRow, error)
