@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { FormModal } from '@/shared/components'
+import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -75,6 +75,9 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
 export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseFormModalProps) {
   const isEditMode = !!initialData
 
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [pendingValues, setPendingValues] = useState<PurchaseFormValues | null>(null)
+
   const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const { data: productOptions = [] } = useProductOptionsQuery()
   const suppliers = suppliersData?.data ?? []
@@ -122,6 +125,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       reset({ ...emptyValues, purchase_date: todayStr() })
       setItemUnitOptions({})
       setItemSelectedPackageId({})
+      setIsConfirming(false)
+      setPendingValues(null)
       return
     }
     if (isEditMode && initialData) {
@@ -185,17 +190,30 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       : pkg.package_name || pkg.unit_name
   }
 
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingValues(null)
+    onOpenChange(false)
+  }
+
   function onSubmit(values: PurchaseFormValues) {
+    setPendingValues(values)
+    setIsConfirming(true)
+  }
+
+  function handleConfirmedSave() {
+    if (!pendingValues) return
+
     const payload = {
-      ...values,
-      items: values.items.map((item) => ({
+      ...pendingValues,
+      items: pendingValues.items.map((item) => ({
         product_id: item.product_id,
         quantity: item.quantity,
         purchase_price: item.price,
         unit: item.unit,
         conversion_qty: item.conversion_qty ?? 1,
       })),
-      paid_amount: values.payment_status === 'paid' ? total : values.paid_amount,
+      paid_amount: pendingValues.payment_status === 'paid' ? total : pendingValues.paid_amount,
     }
 
     if (isEditMode && initialData) {
@@ -204,7 +222,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         {
           onSuccess: () => {
             toast.success('Pembelian berhasil diperbarui')
-            onOpenChange(false)
+            handleClose()
           },
         },
       )
@@ -212,16 +230,17 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       create(payload, {
         onSuccess: () => {
           toast.success('Pembelian berhasil ditambahkan')
-          onOpenChange(false)
+          handleClose()
         },
       })
     }
   }
 
   return (
+    <>
     <FormModal
-      open={open}
-      onOpenChange={onOpenChange}
+      open={open && !isConfirming}
+      onOpenChange={(val) => { if (!val && !isConfirming) handleClose() }}
       title={isEditMode ? 'Edit Pembelian' : 'Tambah Pembelian'}
       size="xl"
       isLoading={isPending}
@@ -506,5 +525,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         </div>
       </div>
     </FormModal>
+
+    <ConfirmDialog
+      open={isConfirming}
+      onOpenChange={(val) => { if (!val) handleClose() }}
+      title={isEditMode ? 'Update Pembelian' : 'Tambah Pembelian'}
+      description={`Yakin ingin ${isEditMode ? 'memperbarui' : 'menyimpan'} data pembelian ini?`}
+      confirmLabel="Ya, Simpan"
+      isLoading={isPending}
+      onConfirm={handleConfirmedSave}
+    />
+    </>
   )
 }

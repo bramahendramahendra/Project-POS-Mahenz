@@ -45,16 +45,6 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
 
-  const handleOpenEdit = (unit: Unit) => {
-    setEditingUnit(unit)
-    openForm()
-  }
-
-  const handleCloseForm = () => {
-    closeForm()
-    setEditingUnit(null)
-  }
-
   const handleFilterChange = (newFilter: UnitListFilter) => {
     setFilter(newFilter)
     resetPage()
@@ -72,10 +62,21 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     resetPage()
   }
 
+  const handleOpenEdit = (unit: Unit) => {
+    setEditingUnit(unit)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingUnit(null)
+  }
+
   const handleOpenDelete = (unit: Unit) => {
     setDeletingUnit(unit)
     openDelete()
   }
+  
   const handleConfirmDelete = () => {
     if (!deletingUnit) return
     deleteUnit(deletingUnit.id, {

@@ -21,13 +21,13 @@ export interface PurchaseTableHandle {
   openAdd: () => void
 }
 
-const defaultFilter: SupplierPurchaseFilter = {
-  start_date: monthStart(),
-  end_date: todayStr(),
-}
-
 export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function PurchaseTable(_, ref) {
-  const [filter, setFilter] = useState<SupplierPurchaseFilter>(defaultFilter)
+  const [filter, setFilter] = useState<SupplierPurchaseFilter>({
+    page: 1,
+    limit: 10,
+    start_date: monthStart(),
+    end_date: todayStr(),
+  })
   const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
@@ -49,11 +49,15 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const hasSuppliers = suppliers.length > 0
   const hasProducts = (productsData?.total ?? 0) > 0
 
-  const { data, isLoading } = useSupplierPurchasesQuery({ ...filter, page, limit: pageSize })
-  const { mutate: deletePurchase, isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
-
+  const { data, isLoading } = useSupplierPurchasesQuery({ 
+    ...filter, 
+    page, 
+    limit: pageSize, 
+  })
   const purchases = data?.data ?? []
   const total = data?.total ?? 0
+
+  const { mutate: deletePurchase   , isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
 
   const handleOpenAdd = () => {
     setEditingPurchase(null)
@@ -93,7 +97,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   }
 
   const handleReset = () => {
-    setFilter(defaultFilter)
+    setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
     setSortState(undefined)
     resetPage()
   }

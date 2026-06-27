@@ -24,6 +24,8 @@ export interface ReturnTableHandle {
 
 export const ReturnTable = forwardRef<ReturnTableHandle, object>(function ReturnTable(_, ref) {
   const [filter, setFilter] = useState<SupplierReturnFilter>({
+    page: 1,
+    limit: 10,
     start_date: monthStart(),
     end_date: todayStr(),
   })
@@ -59,7 +61,7 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
   }
 
   const handleReset = () => {
-    setFilter({ start_date: monthStart(), end_date: todayStr() })
+    setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
     setSortState(undefined)
     resetPage()
   }

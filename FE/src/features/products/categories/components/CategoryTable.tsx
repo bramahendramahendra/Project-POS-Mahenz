@@ -50,16 +50,6 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
 
-  const handleOpenEdit = (category: Category) => {
-    setEditingCategory(category)
-    openForm()
-  }
-
-  const handleCloseForm = () => {
-    closeForm()
-    setEditingCategory(null)
-  }
-
   const handleFilterChange = (newFilter: CategoryListFilter) => {
     setFilter(newFilter)
     reset()
@@ -75,6 +65,16 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     setSortState(sort)
     setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     reset()
+  }
+
+  const handleOpenEdit = (category: Category) => {
+    setEditingCategory(category)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingCategory(null)
   }
 
   const handleOpenDelete = (category: Category) => {

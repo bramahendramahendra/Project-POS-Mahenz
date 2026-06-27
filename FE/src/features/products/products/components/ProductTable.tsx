@@ -72,16 +72,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd, openImport }))
 
-  const handleOpenEdit = (product: Product) => {
-    setEditingProduct(product)
-    openForm()
-  }
-
-  const handleCloseForm = () => {
-    closeForm()
-    setEditingProduct(null)
-  }
-
   const handleFilterChange = (newFilter: ProductListFilter) => {
     setFilter(newFilter)
     reset()
@@ -99,6 +89,15 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     reset()
   }
 
+  const handleOpenEdit = (product: Product) => {
+    setEditingProduct(product)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingProduct(null)
+  }
 
   const handleOpenDelete = (product: Product) => {
     setDeleteTarget(product)

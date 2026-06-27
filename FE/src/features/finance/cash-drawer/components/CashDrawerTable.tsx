@@ -14,11 +14,6 @@ import { CashDrawerDetailModal } from './CashDrawerDetailModal'
 import { CloseCashDrawerModal } from './CloseCashDrawerModal'
 import { buildCashDrawerColumns } from './CashDrawerTableColumns'
 
-const defaultFilter: CashDrawerListFilter = {
-  start_date: monthStart(),
-  end_date: todayStr(),
-}
-
 interface SummaryCardProps {
   title: string
   value: number
@@ -44,7 +39,12 @@ function SummaryCard({ title, value, valueClass = '', isLoading }: SummaryCardPr
 }
 
 export function CashDrawerTable() {
-  const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
+  const [filter, setFilter] = useState<CashDrawerListFilter>({
+    page: 1,
+    limit: 10,
+    start_date: monthStart(),
+    end_date: todayStr(),
+  })
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [forceCloseId, setForceCloseId] = useState<number | null>(null)
 
@@ -65,7 +65,7 @@ export function CashDrawerTable() {
   }
 
   const handleReset = () => {
-    setFilter(defaultFilter)
+    setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
     reset()
   }
 

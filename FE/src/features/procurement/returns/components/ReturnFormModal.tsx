@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 
-import { FormModal } from '@/shared/components'
+import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, todayStr } from '@/shared/utils'
 import {
   useSupplierPurchasesQuery,
   useSupplierPurchaseDetailQuery,
@@ -23,17 +23,16 @@ import {
 
 import { useCreateSupplierReturnMutation } from '../returns.api'
 import { returnSchema, type ReturnFormValues } from '../returns.schema'
+import type { CreateSupplierReturnPayload } from '../returns.types'
 
 interface ReturnFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const today = new Date().toISOString().slice(0, 10)
-
 const defaultValues: ReturnFormValues = {
   purchase_id: 0,
-  return_date: today,
+  return_date: todayStr(),
   reason: '',
   notes: '',
 }
@@ -42,6 +41,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
   const [selectedItems, setSelectedItems] = useState<
     Record<number, { checked: boolean; quantity: number }>
   >({})
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [pendingPayload, setPendingPayload] = useState<CreateSupplierReturnPayload | null>(null)
 
   const { data: purchasesData } = useSupplierPurchasesQuery({ limit: 200 })
   const purchases = purchasesData?.data ?? []
@@ -69,6 +70,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
     if (!open) {
       reset(defaultValues)
       setSelectedItems({})
+      setIsConfirming(false)
+      setPendingPayload(null)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -93,6 +96,12 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       ...prev,
       [purchaseItemId]: { ...prev[purchaseItemId], quantity: qty },
     }))
+  }
+
+  const handleClose = () => {
+    setIsConfirming(false)
+    setPendingPayload(null)
+    onOpenChange(false)
   }
 
   function onSubmit(values: ReturnFormValues) {
@@ -127,29 +136,33 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       }
     }
 
-    create(
-      {
-        purchase_id: values.purchase_id,
-        supplier_id: purchaseDetail.supplier_id > 0 ? purchaseDetail.supplier_id : undefined,
-        supplier_name: purchaseDetail.supplier_name,
-        return_date: values.return_date,
-        items,
-        reason: values.reason,
-        notes: values.notes || undefined,
+    setPendingPayload({
+      purchase_id: values.purchase_id,
+      supplier_id: purchaseDetail.supplier_id > 0 ? purchaseDetail.supplier_id : undefined,
+      supplier_name: purchaseDetail.supplier_name,
+      return_date: values.return_date,
+      items,
+      reason: values.reason,
+      notes: values.notes || undefined,
+    })
+    setIsConfirming(true)
+  }
+
+  function handleConfirmedSave() {
+    if (!pendingPayload) return
+    create(pendingPayload, {
+      onSuccess: () => {
+        toast.success('Retur berhasil dibuat')
+        handleClose()
       },
-      {
-        onSuccess: () => {
-          toast.success('Retur berhasil dibuat')
-          onOpenChange(false)
-        },
-      },
-    )
+    })
   }
 
   return (
+    <>
     <FormModal
-      open={open}
-      onOpenChange={onOpenChange}
+      open={open && !isConfirming}
+      onOpenChange={(val) => { if (!val && !isConfirming) handleClose() }}
       title="Tambah Retur Pembelian"
       size="lg"
       isLoading={isPending}
@@ -269,5 +282,16 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
         </div>
       </div>
     </FormModal>
+
+    <ConfirmDialog
+      open={isConfirming}
+      onOpenChange={(val) => { if (!val) handleClose() }}
+      title="Tambah Retur Pembelian"
+      description="Yakin ingin menyimpan data retur ini?"
+      confirmLabel="Ya, Simpan"
+      isLoading={isPending}
+      onConfirm={handleConfirmedSave}
+    />
+    </>
   )
 }

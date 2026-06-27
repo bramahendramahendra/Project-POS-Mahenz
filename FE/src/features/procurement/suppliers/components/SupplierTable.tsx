@@ -31,7 +31,11 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null)
   const [detailSupplierId, setDetailSupplierId] = useState<number | null>(null)
 
-  const { data: supplierData, isLoading } = useSupplierListQuery({ ...filter, page, limit: pageSize })
+  const { data: supplierData, isLoading } = useSupplierListQuery({ 
+    ...filter, 
+    page, 
+    limit: pageSize 
+  })
   const suppliers = supplierData?.data ?? []
   const total = supplierData?.total ?? 0
 
@@ -44,6 +48,23 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
   }
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
+
+  const handleFilterChange = (newFilter: SupplierListFilter) => {
+    setFilter(newFilter)
+    resetPage()
+  }
+
+  const handleReset = () => {
+    setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    resetPage()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    resetPage()
+  }
 
   const handleOpenEdit = (supplier: Supplier) => {
     setEditingSupplier(supplier)
@@ -65,24 +86,7 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     openDelete()
   }
 
-  const handleFilterChange = (newFilter: SupplierListFilter) => {
-    setFilter(newFilter)
-    resetPage()
-  }
-
-  const handleReset = () => {
-    setFilter({ page: 1, limit: 10, search: '' })
-    setSortState(undefined)
-    resetPage()
-  }
-
-  const handleSort = (sort: SortState) => {
-    setSortState(sort)
-    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
-    resetPage()
-  }
-
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     if (!deletingSupplier) return
     deleteSupplier(deletingSupplier.id, {
       onSuccess: () => {
@@ -99,14 +103,14 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     })
   }
 
+  const hasFilter = !!filter.search || filter.is_active !== undefined
+
   const columns = buildSupplierColumns({
     onDetail: handleOpenDetail,
     onEdit: handleOpenEdit,
     onDelete: handleOpenDelete,
     onToggleStatus: handleToggleStatus,
   })
-
-  const hasFilter = !!filter.search || filter.is_active !== undefined
 
   return (
     <div className="space-y-4">
@@ -141,7 +145,7 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
 
       <SupplierDetailModal
