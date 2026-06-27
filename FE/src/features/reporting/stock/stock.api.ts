@@ -2,18 +2,20 @@ import { useQuery } from '@tanstack/react-query'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
-import type { StockReport, StockReportFilter } from './stock.types'
+import type { StockFilter, StockListFilter, StockReport, StockSummary } from './stock.types'
 
-interface StockReportResponse {
-  items: StockReport[]
-  total: number
-  total_stock_value: number
+export function useStockListQuery(filter: StockListFilter) {
+  return useQuery({
+    queryKey: queryKeys.reports.stockList(filter as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<StockReport>>('/reports/stock/list', filter),
+  })
 }
 
-export function useStockReportQuery(filter?: StockReportFilter) {
+export function useStockSummaryQuery(filter: StockFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.stock(filter as Record<string, unknown>),
-    queryFn: () => api.get<StockReportResponse>('/reports/stock', filter),
+    queryKey: queryKeys.reports.stockSummary(filter as Record<string, unknown>),
+    queryFn: () => api.post<StockSummary>('/reports/stock/summary', filter),
   })
 }

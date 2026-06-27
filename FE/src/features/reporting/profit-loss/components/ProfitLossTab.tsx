@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 
 import { formatRupiah, monthStart, todayStr } from '@/shared/utils'
 
 import { useProfitLossReportQuery } from '../profit-loss.api'
+import type { ProfitLossDateFilter } from '../profit-loss.types'
 import { ProfitLossFilterBar } from './ProfitLossFilterBar'
 
 interface PLRowProps {
@@ -37,7 +39,7 @@ function PLRow({ label, value, indent = false, bold = false, colored = false }: 
   )
 }
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionHeader({ children }: { children: ReactNode }) {
   return (
     <div className="px-4 py-2 bg-gray-50 rounded-t-lg border-b">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{children}</p>
@@ -55,27 +57,25 @@ function Skeleton() {
   )
 }
 
-interface DateFilter {
-  date_from?: string
-  date_to?: string
-}
-
 export function ProfitLossTab() {
-  const [filter, setFilter] = useState<DateFilter>({
+  const [filter, setFilter] = useState<ProfitLossDateFilter>({
     date_from: monthStart(),
     date_to: todayStr(),
   })
 
-  const { data, isLoading } = useProfitLossReportQuery({
-    date_from: filter.date_from || undefined,
-    date_to: filter.date_to || undefined,
-  })
+  const { data: report, isLoading } = useProfitLossReportQuery(filter)
 
-  const report = data
+  const handleFilterChange = (newFilter: ProfitLossDateFilter) => {
+    setFilter(newFilter)
+  }
+
+  const handleReset = () => {
+    setFilter({ date_from: monthStart(), date_to: todayStr() })
+  }
 
   return (
     <div className="space-y-4">
-      <ProfitLossFilterBar filter={filter} onChange={setFilter} />
+      <ProfitLossFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
 
       {isLoading && <Skeleton />}
 
@@ -90,26 +90,16 @@ export function ProfitLossTab() {
           <div className="rounded-lg border bg-white overflow-hidden">
             <SectionHeader>Pendapatan</SectionHeader>
             <div className="px-4">
-              <PLRow label="Total Penjualan" value={report.total_sales} />
-              <PLRow label="Retur Penjualan" value={-report.total_returns} indent />
-              <PLRow
-                label="Net Penjualan"
-                value={report.total_sales - report.total_returns}
-                bold
-              />
+              <PLRow label="Total Pendapatan" value={report.total_revenue} bold />
             </div>
           </div>
 
           <div className="rounded-lg border bg-white overflow-hidden">
             <SectionHeader>Pengeluaran</SectionHeader>
             <div className="px-4">
-              <PLRow label="Harga Pokok Penjualan (HPP)" value={report.total_hpp} />
-              <PLRow label="Total Pengeluaran (Expense)" value={report.total_expense} />
-              <PLRow
-                label="Total Pengeluaran"
-                value={report.total_hpp + report.total_expense}
-                bold
-              />
+              <PLRow label="Harga Pokok Penjualan (HPP)" value={report.total_cogs} />
+              <PLRow label="Total Pengeluaran (Expense)" value={report.total_expenses} />
+              <PLRow label="Total Pengeluaran" value={report.total_cogs + report.total_expenses} bold />
             </div>
           </div>
 

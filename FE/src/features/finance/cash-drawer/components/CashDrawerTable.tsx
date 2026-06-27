@@ -45,6 +45,10 @@ const defaultFilter: CashDrawerListFilter = {
 
 export function CashDrawerTable() {
   const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
+
+  const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
+  const pageSizeOptions = usePageSizeOptions()
+  
   const [detailDrawerId, setDetailDrawerId] = useState<number | undefined>(undefined)
   const [forceCloseDrawerId, setForceCloseDrawerId] = useState<number | undefined>(undefined)
 
@@ -54,8 +58,6 @@ export function CashDrawerTable() {
   const { user } = useAuthStore()
   const canForceClose = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
 
-  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination({ initialPageSize: 10 })
-  const pageSizeOptions = usePageSizeOptions()
 
   const { data, isLoading } = useCashDrawerListQuery({ ...filter, page, limit: pageSize })
   const { data: summary, isLoading: summaryLoading } = useCashDrawerSummaryQuery(filter)
@@ -64,16 +66,16 @@ export function CashDrawerTable() {
 
   const handleFilterChange = (newFilter: CashDrawerListFilter) => {
     setFilter(newFilter)
-    reset()
+    resetPage()
   }
 
   const handleReset = () => {
     setFilter(defaultFilter)
-    reset()
+    resetPage()
   }
 
-  const handleOpenDetail = (row: CashDrawer) => {
-    setDetailDrawerId(row.id)
+  const handleOpenDetail = (cashDrawer: CashDrawer) => {
+    setDetailDrawerId(cashDrawer.id)
     openDetail()
   }
 
@@ -82,8 +84,8 @@ export function CashDrawerTable() {
     setDetailDrawerId(undefined)
   }
 
-  const handleOpenForceClose = (row: CashDrawer) => {
-    setForceCloseDrawerId(row.id)
+  const handleOpenForceClose = (cashDrawer: CashDrawer) => {
+    setForceCloseDrawerId(cashDrawer.id)
     openForceClose()
   }
 
@@ -138,7 +140,14 @@ export function CashDrawerTable() {
         isLoading={isLoading}
         emptyMessage="Belum ada data kas harian"
         emptyDescription="Data kas harian akan muncul sesuai filter periode yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        pagination={{ 
+          page, 
+          pageSize, 
+          total, 
+          onPageChange, 
+          onPageSizeChange, 
+          pageSizeOptions 
+        }}
       />
 
       <CashDrawerDetailModal

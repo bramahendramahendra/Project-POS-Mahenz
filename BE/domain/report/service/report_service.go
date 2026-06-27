@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"pos_api/domain/report/dto"
 
@@ -91,6 +92,19 @@ func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossR
 	}, nil
 }
 
+func (s *reportService) GetProfitLossData(req *dto.ProfitLossRequest) (*dto.ProfitLossResponse, error) {
+	today := time.Now().Format("2006-01-02")
+	dateFrom := req.DateFrom
+	dateTo := req.DateTo
+	if dateFrom == "" {
+		dateFrom = today + " 00:00:00"
+	}
+	if dateTo == "" {
+		dateTo = today + " 23:59:59"
+	}
+	return s.GetProfitLoss(dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo})
+}
+
 func (s *reportService) ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error) {
 	data, err := s.GetProfitLoss(params)
 	if err != nil {
@@ -160,6 +174,14 @@ func (s *reportService) GetStockReport() (*dto.StockReportResponse, error) {
 	}, nil
 }
 
+func (s *reportService) GetStockList(req *dto.StockListRequest) ([]dto.StockItem, int64, error) {
+	return s.repo.GetStockItemsPaginated(req)
+}
+
+func (s *reportService) GetStockSummaryData(req *dto.StockSummaryRequest) (*dto.StockSummary, error) {
+	return s.repo.GetStockSummaryWithFilters(req)
+}
+
 func (s *reportService) ExportStockReport() (*bytes.Buffer, error) {
 	data, err := s.GetStockReport()
 	if err != nil {
@@ -183,8 +205,8 @@ func (s *reportService) ExportStockReport() (*bytes.Buffer, error) {
 		if item.IsLowStock {
 			status = "Stok Rendah"
 		}
-		vals := []interface{}{idx + 1, item.Name, item.CategoryName, item.Stock, item.MinStock,
-			item.UnitName, item.PurchasePrice, item.StockValue, status}
+		vals := []interface{}{idx + 1, item.ProductName, item.CategoryName, item.CurrentStock, item.MinStock,
+			item.Unit, item.CostPrice, item.StockValue, status}
 		for col, v := range vals {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row)
 			f.SetCellValue(sheet, cell, v)

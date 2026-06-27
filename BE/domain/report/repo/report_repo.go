@@ -71,13 +71,38 @@ const (
 		GROUP BY category`
 
 	stockReportQuery = `
-		SELECT p.id, p.name, COALESCE(c.name,'') as category_name, p.stock, p.min_stock,
-		       COALESCE(u.name,'') as unit_name,
-		       p.purchase_price, (p.stock * p.purchase_price) as stock_value,
+		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
+		       COALESCE(c.name,'') as category_name, p.stock as current_stock, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price,
+		       (p.stock * p.purchase_price) as stock_value,
 		       CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END as is_low_stock
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.is_active = 1`
+
+	stockListBase = `
+		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
+		       COALESCE(c.name,'') as category_name, p.stock as current_stock, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price,
+		       (p.stock * p.purchase_price) as stock_value,
+		       CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END as is_low_stock
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.is_active = 1`
+
+	stockListCountBase = `
+		SELECT COUNT(*) FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		WHERE p.is_active = 1`
+
+	stockSummaryBase = `
+		SELECT COUNT(*) as total_products,
+		       SUM(CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END) as low_stock_count,
+		       COALESCE(SUM(p.stock * p.purchase_price),0) as total_stock_value
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE p.is_active = 1`
 
 	cashierReportQuery = `
@@ -283,8 +308,8 @@ func (r *reportRepo) GetStockItems() ([]dto.StockItem, error) {
 	for rows.Next() {
 		var item dto.StockItem
 		var isLowInt int
-		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryName, &item.Stock, &item.MinStock,
-			&item.UnitName, &item.PurchasePrice, &item.StockValue, &isLowInt); err != nil {
+		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
+			&item.CurrentStock, &item.MinStock, &item.Unit, &item.CostPrice, &item.StockValue, &isLowInt); err != nil {
 			return nil, err
 		}
 		item.IsLowStock = isLowInt == 1
@@ -294,6 +319,83 @@ func (r *reportRepo) GetStockItems() ([]dto.StockItem, error) {
 		items = []dto.StockItem{}
 	}
 	return items, nil
+}
+
+func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error) {
+	args := []any{}
+	listConditions := ""
+	countConditions := ""
+
+	if req.Search != "" {
+		listConditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
+		countConditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
+		like := "%" + req.Search + "%"
+		args = append(args, like, like)
+	}
+	if req.CategoryID != nil {
+		listConditions += " AND p.category_id = ?"
+		countConditions += " AND p.category_id = ?"
+		args = append(args, *req.CategoryID)
+	}
+
+	var total int64
+	r.db.Raw(stockListCountBase+countConditions, args...).Scan(&total)
+
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listArgs := append(args, limit, offset)
+	query := stockListBase + listConditions + " ORDER BY p.name ASC LIMIT ? OFFSET ?"
+
+	rows, err := r.db.Raw(query, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.StockItem
+	for rows.Next() {
+		var item dto.StockItem
+		var isLowInt int
+		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
+			&item.CurrentStock, &item.MinStock, &item.Unit, &item.CostPrice, &item.StockValue, &isLowInt); err != nil {
+			return nil, 0, err
+		}
+		item.IsLowStock = isLowInt == 1
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.StockItem{}
+	}
+	return items, total, nil
+}
+
+func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error) {
+	args := []any{}
+	conditions := ""
+
+	if req.Search != "" {
+		conditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
+		like := "%" + req.Search + "%"
+		args = append(args, like, like)
+	}
+	if req.CategoryID != nil {
+		conditions += " AND p.category_id = ?"
+		args = append(args, *req.CategoryID)
+	}
+
+	var summary dto.StockSummary
+	if err := r.db.Raw(stockSummaryBase+conditions, args...).Scan(&summary).Error; err != nil {
+		return nil, err
+	}
+	return &summary, nil
 }
 
 func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error) {

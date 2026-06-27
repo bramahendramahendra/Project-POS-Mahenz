@@ -16,9 +16,12 @@ type (
 		GetSalesSummaryData(req *dto.SalesListRequest) (*dto.SalesSummary, error)
 
 		GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossResponse, error)
+		GetProfitLossData(req *dto.ProfitLossRequest) (*dto.ProfitLossResponse, error)
 		ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error)
 
 		GetStockReport() (*dto.StockReportResponse, error)
+		GetStockList(req *dto.StockListRequest) ([]dto.StockItem, int64, error)
+		GetStockSummaryData(req *dto.StockSummaryRequest) (*dto.StockSummary, error)
 		ExportStockReport() (*bytes.Buffer, error)
 
 		GetCashierReport(params dto.FilterParams) ([]dto.CashierItem, error)

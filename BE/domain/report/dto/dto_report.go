@@ -50,6 +50,11 @@ type SalesReportResponse struct {
 
 // ─── Profit/Loss Report ────────────────────────────────────────
 
+type ProfitLossRequest struct {
+	DateFrom string `json:"date_from"`
+	DateTo   string `json:"date_to"`
+}
+
 type ProfitLossItem struct {
 	ProductID     int     `json:"product_id"`
 	ProductName   string  `json:"product_name"`
@@ -77,23 +82,42 @@ type ProfitLossResponse struct {
 
 // ─── Stock Report ──────────────────────────────────────────────
 
+type StockListRequest struct {
+	Search     string `json:"search"`
+	CategoryID *int   `json:"category_id"`
+	Page       int    `json:"page"`
+	Limit      int    `json:"limit"`
+}
+
+type StockSummaryRequest struct {
+	Search     string `json:"search"`
+	CategoryID *int   `json:"category_id"`
+}
+
 type StockItem struct {
-	ID            int     `json:"id"`
-	Name          string  `json:"name"`
-	CategoryName  string  `json:"category_name"`
-	Stock         float64 `json:"stock"`
-	MinStock      float64 `json:"min_stock"`
-	UnitName      string  `json:"unit_name"`
-	PurchasePrice float64 `json:"purchase_price"`
-	StockValue    float64 `json:"stock_value"`
-	IsLowStock    bool    `json:"is_low_stock"`
+	ID           int     `json:"id"`
+	ProductCode  string  `json:"product_code"`
+	ProductName  string  `json:"product_name"`
+	CategoryName string  `json:"category_name"`
+	CurrentStock float64 `json:"current_stock"`
+	MinStock     float64 `json:"min_stock"`
+	Unit         string  `json:"unit"`
+	CostPrice    float64 `json:"cost_price"`
+	StockValue   float64 `json:"stock_value"`
+	IsLowStock   bool    `json:"is_low_stock"`
+}
+
+type StockSummary struct {
+	TotalProducts   int     `json:"total_products"`
+	LowStockCount   int     `json:"low_stock_count"`
+	TotalStockValue float64 `json:"total_stock_value"`
 }
 
 type StockReportResponse struct {
-	TotalProducts  int         `json:"total_products"`
-	LowStockCount  int         `json:"low_stock_count"`
-	TotalStockValue float64    `json:"total_stock_value"`
-	Items          []StockItem `json:"items"`
+	TotalProducts   int         `json:"total_products"`
+	LowStockCount   int         `json:"low_stock_count"`
+	TotalStockValue float64     `json:"total_stock_value"`
+	Items           []StockItem `json:"items"`
 }
 
 // ─── Cashier Report ────────────────────────────────────────────

@@ -16,6 +16,8 @@ type (
 		GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error)
 		GetExpenseSummary(params dto.FilterParams) ([]dto.ExpenseSummaryItem, error)
 		GetStockItems() ([]dto.StockItem, error)
+		GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error)
+		GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error)
 		GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error)
 	}
 
