@@ -44,7 +44,7 @@ func (s *reportService) ExportSalesReport(params dto.FilterParams) (*bytes.Buffe
 
 	for idx, item := range data.Items {
 		row := idx + 2
-		vals := []interface{}{idx + 1, item.TransactionCode, item.TransactionDate, item.UserName,
+		vals := []interface{}{idx + 1, item.TransactionCode, item.TransactionDate, item.CashierName,
 			item.TotalAmount, item.Discount, item.PaymentMethod, item.Status}
 		for col, v := range vals {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row)
@@ -234,6 +234,14 @@ func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buf
 		return nil, err
 	}
 	return buf, nil
+}
+
+func (s *reportService) GetSalesList(req *dto.SalesListRequest) ([]dto.SalesItem, int64, error) {
+	return s.repo.GetSalesItemsPaginated(req)
+}
+
+func (s *reportService) GetSalesSummaryData(req *dto.SalesListRequest) (*dto.SalesSummary, error) {
+	return s.repo.GetSalesSummaryWithFilters(req)
 }
 
 func applyHeaderStyle(f *excelize.File, sheet string, colCount int) {

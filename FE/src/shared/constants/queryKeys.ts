@@ -78,6 +78,8 @@ export const queryKeys = {
   reports: {
     all: () => ['reports'] as const,
     sales: (filter?: Filter) => ['reports', 'sales', filter] as const,
+    salesList: (filter?: Filter) => ['reports', 'sales', 'list', filter] as const,
+    salesSummary: (filter?: Filter) => ['reports', 'sales', 'summary', filter] as const,
     profitLoss: (filter?: Filter) => ['reports', 'profitLoss', filter] as const,
     stock: (filter?: Filter) => ['reports', 'stock', filter] as const,
     cashierPerformance: (filter?: Filter) => ['reports', 'cashierPerformance', filter] as const,

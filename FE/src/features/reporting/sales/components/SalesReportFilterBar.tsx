@@ -10,9 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { formatDate, monthStart, todayStr } from '@/shared/utils'
 
-import type { SalesReport, SalesReportFilter } from '../sales.types'
+import type { SalesFilter, SalesReport } from '../sales.types'
+import { exportSalesCSV } from '../sales.utils'
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Tunai' },
@@ -22,42 +22,14 @@ const PAYMENT_METHODS = [
   { value: 'kredit', label: 'Kredit' },
 ]
 
-function exportCSV(data: SalesReport[], todayDate: string) {
-  const headers = ['Tanggal', 'Kode Transaksi', 'Kasir', 'Customer', 'Total', 'Metode Bayar', 'Status']
-  const rows = data.map((r) => [
-    formatDate(r.transaction_date),
-    r.transaction_code,
-    r.cashier_name,
-    r.customer_name ?? '-',
-    r.total_amount,
-    r.payment_method,
-    r.status,
-  ])
-  const csv = [headers, ...rows].map((row) => row.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `laporan-penjualan-${todayDate}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 interface SalesReportFilterBarProps {
-  filter: SalesReportFilter
-  onChange: (filter: SalesReportFilter) => void
+  filter: SalesFilter
+  onChange: (filter: SalesFilter) => void
   onReset: () => void
   exportData: SalesReport[]
 }
 
 export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: SalesReportFilterBarProps) {
-  const today = new Date().toISOString().split('T')[0]
-
-  const handleReset = () => {
-    onChange({ date_from: monthStart(), date_to: todayStr() })
-    onReset()
-  }
-
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
@@ -97,12 +69,7 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
           </SelectContent>
         </Select>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleReset}
-        className="h-9 gap-1"
-      >
+      <Button variant="outline" size="sm" onClick={onReset} className="h-9 gap-1">
         <RotateCcw size={13} />
         Reset
       </Button>
@@ -110,7 +77,7 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
         variant="outline"
         size="sm"
         className="h-9 gap-1.5"
-        onClick={() => exportCSV(exportData, today)}
+        onClick={() => exportSalesCSV(exportData)}
         disabled={exportData.length === 0}
       >
         <Download className="h-4 w-4" />

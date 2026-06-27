@@ -11,6 +11,8 @@ type (
 		GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error)
 		GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error)
 		GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error)
+		GetSalesItemsPaginated(req *dto.SalesListRequest) ([]dto.SalesItem, int64, error)
+		GetSalesSummaryWithFilters(req *dto.SalesListRequest) (*dto.SalesSummary, error)
 		GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error)
 		GetExpenseSummary(params dto.FilterParams) ([]dto.ExpenseSummaryItem, error)
 		GetStockItems() ([]dto.StockItem, error)

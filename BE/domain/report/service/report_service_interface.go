@@ -12,6 +12,8 @@ type (
 		GetSalesReport(params dto.FilterParams) (*dto.SalesReportResponse, error)
 		GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error)
 		ExportSalesReport(params dto.FilterParams) (*bytes.Buffer, error)
+		GetSalesList(req *dto.SalesListRequest) ([]dto.SalesItem, int64, error)
+		GetSalesSummaryData(req *dto.SalesListRequest) (*dto.SalesSummary, error)
 
 		GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossResponse, error)
 		ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error)

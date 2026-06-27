@@ -8,11 +8,21 @@ type FilterParams struct {
 
 // ─── Sales Report ──────────────────────────────────────────────
 
+type SalesListRequest struct {
+	DateFrom      string `json:"date_from"`
+	DateTo        string `json:"date_to"`
+	PaymentMethod string `json:"payment_method"`
+	UserID        *int   `json:"user_id"`
+	Page          int    `json:"page"`
+	Limit         int    `json:"limit"`
+}
+
 type SalesItem struct {
 	ID              int     `json:"id"`
 	TransactionCode string  `json:"transaction_code"`
 	TransactionDate string  `json:"transaction_date"`
-	UserName        string  `json:"user_name"`
+	CashierName     string  `json:"cashier_name"`
+	CustomerName    string  `json:"customer_name"`
 	TotalAmount     float64 `json:"total_amount"`
 	Discount        float64 `json:"discount"`
 	PaymentMethod   string  `json:"payment_method"`
@@ -21,7 +31,8 @@ type SalesItem struct {
 
 type SalesSummary struct {
 	TotalTransactions int     `json:"total_transactions"`
-	TotalSales        float64 `json:"total_sales"`
+	TotalRevenue      float64 `json:"total_revenue"`
+	AvgPerTransaction float64 `json:"avg_per_transaction"`
 	TotalDiscount     float64 `json:"total_discount"`
 	TotalTax          float64 `json:"total_tax"`
 }

@@ -10,13 +10,11 @@ import { FinanceFilterBar } from './FinanceFilterBar'
 import { FinanceSummaryCard } from './FinanceSummaryCard'
 import { buildFinanceColumns } from './FinanceTableColumns'
 
-const defaultDateFilter: FinanceDateFilter = {
-  date_from: monthStart(),
-  date_to: todayStr(),
-}
-
 export function FinanceTable() {
-  const [dateFilter, setDateFilter] = useState<FinanceDateFilter>(defaultDateFilter)
+  const [dateFilter, setDateFilter] = useState<FinanceDateFilter>({
+    date_from: monthStart(),
+    date_to: todayStr(),
+  })
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()

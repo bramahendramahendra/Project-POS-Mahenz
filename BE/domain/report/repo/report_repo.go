@@ -1,23 +1,52 @@
 ﻿package repo
 
 import (
-	dto "pos_api/domain/report/dto"
+	"fmt"
+	"time"
 
-	)
+	dto "pos_api/domain/report/dto"
+)
 
 const (
 	salesReportQuery = `
 		SELECT t.id, t.transaction_code, DATE_FORMAT(t.transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date,
-		       u.full_name as user_name, t.total_amount, t.discount, t.payment_method, t.status
+		       u.full_name as cashier_name, COALESCE(cu.name,'') as customer_name,
+		       t.total_amount, t.discount, t.payment_method, t.status
 		FROM transactions t
 		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
 		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
 		ORDER BY t.transaction_date DESC`
 
+	salesListBase = `
+		SELECT t.id, t.transaction_code, DATE_FORMAT(t.transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date,
+		       u.full_name as cashier_name, COALESCE(cu.name,'') as customer_name,
+		       t.total_amount, t.discount, t.payment_method, t.status
+		FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
+
+	salesListCountBase = `
+		SELECT COUNT(*) FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
+
 	salesSummaryQuery = `
-		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
+		SELECT COUNT(*) as total_transactions,
+		       COALESCE(SUM(total_amount),0) as total_revenue,
+		       COALESCE(AVG(total_amount),0) as avg_per_transaction,
 		       COALESCE(SUM(discount),0) as total_discount, COALESCE(SUM(tax),0) as total_tax
 		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?`
+
+	salesSummaryBase = `
+		SELECT COUNT(*) as total_transactions,
+		       COALESCE(SUM(t.total_amount),0) as total_revenue,
+		       COALESCE(AVG(t.total_amount),0) as avg_per_transaction,
+		       COALESCE(SUM(t.discount),0) as total_discount, COALESCE(SUM(t.tax),0) as total_tax
+		FROM transactions t
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
 
 	salesChartQuery = `
 		SELECT DATE(transaction_date) as label, COALESCE(SUM(total_amount),0) as total_sales, COUNT(*) as total_transactions
@@ -65,8 +94,6 @@ const (
 		ORDER BY total_sales DESC`
 )
 
-
-
 func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error) {
 	rows, err := r.db.Raw(salesReportQuery, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
@@ -78,7 +105,7 @@ func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, er
 	for rows.Next() {
 		var item dto.SalesItem
 		if err := rows.Scan(&item.ID, &item.TransactionCode, &item.TransactionDate,
-			&item.UserName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
+			&item.CashierName, &item.CustomerName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -87,6 +114,89 @@ func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, er
 		items = []dto.SalesItem{}
 	}
 	return items, nil
+}
+
+func (r *reportRepo) GetSalesItemsPaginated(req *dto.SalesListRequest) ([]dto.SalesItem, int64, error) {
+	dateFrom, dateTo := resolveSalesDates(req.DateFrom, req.DateTo)
+	args := []any{dateFrom, dateTo}
+	conditions := ""
+
+	if req.PaymentMethod != "" {
+		conditions += " AND t.payment_method = ?"
+		args = append(args, req.PaymentMethod)
+	}
+	if req.UserID != nil {
+		conditions += " AND t.user_id = ?"
+		args = append(args, *req.UserID)
+	}
+
+	var total int64
+	r.db.Raw(salesListCountBase+conditions, args...).Scan(&total)
+
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	listArgs := append(args, limit, offset)
+	query := salesListBase + conditions + " ORDER BY t.transaction_date DESC LIMIT ? OFFSET ?"
+
+	rows, err := r.db.Raw(query, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.SalesItem
+	for rows.Next() {
+		var item dto.SalesItem
+		if err := rows.Scan(&item.ID, &item.TransactionCode, &item.TransactionDate,
+			&item.CashierName, &item.CustomerName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.SalesItem{}
+	}
+	return items, total, nil
+}
+
+func (r *reportRepo) GetSalesSummaryWithFilters(req *dto.SalesListRequest) (*dto.SalesSummary, error) {
+	dateFrom, dateTo := resolveSalesDates(req.DateFrom, req.DateTo)
+	args := []any{dateFrom, dateTo}
+	conditions := ""
+
+	if req.PaymentMethod != "" {
+		conditions += " AND t.payment_method = ?"
+		args = append(args, req.PaymentMethod)
+	}
+	if req.UserID != nil {
+		conditions += " AND t.user_id = ?"
+		args = append(args, *req.UserID)
+	}
+
+	var summary dto.SalesSummary
+	if err := r.db.Raw(salesSummaryBase+conditions, args...).Scan(&summary).Error; err != nil {
+		return nil, err
+	}
+	return &summary, nil
+}
+
+func resolveSalesDates(dateFrom, dateTo string) (string, string) {
+	today := time.Now().Format("2006-01-02")
+	if dateFrom == "" {
+		dateFrom = fmt.Sprintf("%s 00:00:00", today)
+	}
+	if dateTo == "" {
+		dateTo = fmt.Sprintf("%s 23:59:59", today)
+	}
+	return dateFrom, dateTo
 }
 
 func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error) {
