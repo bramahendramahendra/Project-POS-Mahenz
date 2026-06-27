@@ -16,6 +16,7 @@ type (
 		UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error
 		UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error
 		AutoCloseYesterday() (int, error)
+		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 	}
 
 	cashDrawerService struct {

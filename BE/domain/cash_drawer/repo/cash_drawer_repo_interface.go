@@ -22,6 +22,7 @@ type (
 		GetNonCashSales(userID int, openTime string, closeTime *string) ([]dto.NonCashSaleItem, error)
 		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string) ([]model.CashDrawerNonCashTransactionItem, error)
 		AutoCloseYesterday() (int, error)
+		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 
 		GetDB() *gorm.DB
 	}

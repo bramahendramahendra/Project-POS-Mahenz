@@ -1,6 +1,5 @@
 import {
   BarChart2,
-  BookOpen,
   Clock,
   CreditCard,
   Landmark,
@@ -135,13 +134,6 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Kas Harian',
     path: ROUTES.FINANCE_CASH_DRAWER,
     icon: Landmark,
-    allowedRoles: [ROLES.OWNER, ROLES.ADMIN],
-    group: 'Keuangan',
-  },
-  {
-    label: 'Rekap Kas',
-    path: ROUTES.FINANCE_CASH_DRAWER_REKAP,
-    icon: BookOpen,
     allowedRoles: [ROLES.OWNER, ROLES.ADMIN],
     group: 'Keuangan',
   },

@@ -4,8 +4,10 @@ import { DataTable } from '@/shared/components'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
+import { formatRupiah } from '@/shared/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
 
-import { useCashDrawerListQuery } from '../cash-drawer.api'
+import { useCashDrawerListQuery, useCashDrawerSummaryQuery } from '../cash-drawer.api'
 import type { CashDrawer, CashDrawerListFilter } from '../cash-drawer.types'
 import { CashDrawerFilterBar } from './CashDrawerFilterBar'
 import { CashDrawerDetailModal } from './CashDrawerDetailModal'
@@ -28,6 +30,30 @@ const defaultFilter: CashDrawerListFilter = {
   end_date: todayString(),
 }
 
+interface SummaryCardProps {
+  title: string
+  value: number
+  valueClass?: string
+  isLoading?: boolean
+}
+
+function SummaryCard({ title, value, valueClass = '', isLoading }: SummaryCardProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-gray-500">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
+        ) : (
+          <p className={`text-lg font-semibold ${valueClass}`}>{formatRupiah(value)}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function CashDrawerTable() {
   const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -40,6 +66,7 @@ export function CashDrawerTable() {
   const pageSizeOptions = usePageSizeOptions()
 
   const { data, isLoading } = useCashDrawerListQuery({ ...filter, page, limit: pageSize })
+  const { data: summary, isLoading: summaryLoading } = useCashDrawerSummaryQuery(filter)
   const items: CashDrawer[] = data?.data ?? []
   const total = data?.total ?? 0
 
@@ -67,6 +94,31 @@ export function CashDrawerTable() {
         onReset={handleReset}
         showKasirFilter={canForceClose}
       />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <SummaryCard
+          title="Total Saldo Awal Tunai"
+          value={summary?.total_opening ?? 0}
+          isLoading={summaryLoading}
+        />
+        <SummaryCard
+          title="Total Saldo Akhir Tunai"
+          value={summary?.total_closing ?? 0}
+          isLoading={summaryLoading}
+        />
+        <SummaryCard
+          title="Total Pengeluaran"
+          value={summary?.total_expenses ?? 0}
+          valueClass="text-red-600"
+          isLoading={summaryLoading}
+        />
+        <SummaryCard
+          title="Selisih Bersih"
+          value={summary?.net ?? 0}
+          valueClass={(summary?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
+          isLoading={summaryLoading}
+        />
+      </div>
 
       <DataTable<CashDrawer & Record<string, unknown>>
         columns={columns}

@@ -28,7 +28,6 @@ const ReturnsPage      = lazy(() => import('@/features/procurement/returns/Retur
 // Finance
 const FinancePage           = lazy(() => import('@/features/finance/overview/FinancePage').then(m => ({ default: m.FinancePage })))
 const CashDrawerPage        = lazy(() => import('@/features/finance/cash-drawer/CashDrawerPage').then(m => ({ default: m.CashDrawerPage })))
-const CashDrawerRekapPage   = lazy(() => import('@/features/finance/cash-drawer/CashDrawerRekapPage').then(m => ({ default: m.CashDrawerRekapPage })))
 const MyCashPage            = lazy(() => import('@/features/finance/my-cash/MyCashPage').then(m => ({ default: m.MyCashPage })))
 const ExpensesPage          = lazy(() => import('@/features/finance/expenses/ExpensesPage').then(m => ({ default: m.ExpensesPage })))
 const ReceivablesPage       = lazy(() => import('@/features/customers/receivables/ReceivablesPage').then(m => ({ default: m.ReceivablesPage })))
@@ -95,9 +94,8 @@ export const router = createBrowserRouter([
 
       // Keuangan
       { path: ROUTES.FINANCE,                   element: <LazyRoute><FinancePage /></LazyRoute> },
-      { path: ROUTES.FINANCE_CASH_DRAWER,       element: <LazyRoute><CashDrawerPage /></LazyRoute> },
-      { path: ROUTES.FINANCE_CASH_DRAWER_REKAP, element: <LazyRoute><CashDrawerRekapPage /></LazyRoute> },
-      { path: ROUTES.FINANCE_EXPENSES,          element: <LazyRoute><ExpensesPage /></LazyRoute> },
+      { path: ROUTES.FINANCE_CASH_DRAWER, element: <LazyRoute><CashDrawerPage /></LazyRoute> },
+      { path: ROUTES.FINANCE_EXPENSES,    element: <LazyRoute><ExpensesPage /></LazyRoute> },
 
       // Laporan
       { path: ROUTES.REPORTS_SALES,     element: <LazyRoute><SalesReportPage /></LazyRoute> },

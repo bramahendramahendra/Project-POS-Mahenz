@@ -156,6 +156,14 @@ type (
 		NonCashTransactions []NonCashTransaction    `json:"non_cash_transactions"`
 	}
 
+	CashDrawerSummaryResponse struct {
+		TotalOpening  float64                      `json:"total_opening"`
+		TotalClosing  float64                      `json:"total_closing"`
+		TotalExpenses float64                      `json:"total_expenses"`
+		Net           float64                      `json:"net"`
+		Records       []*CashDrawerHistoryResponse `json:"records"`
+	}
+
 	OpenResponse struct {
 		ID int `json:"id"`
 	}

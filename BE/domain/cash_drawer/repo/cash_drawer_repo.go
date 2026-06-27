@@ -96,6 +96,8 @@ const (
 		GROUP BY t.payment_method, pm.label
 		ORDER BY total DESC`
 
+	getCashDrawerSummaryAggregateQuery = `SELECT COALESCE(SUM(cd.opening_balance), 0) as total_opening, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.closing_balance ELSE 0 END), 0) as total_closing, COALESCE(SUM(cd.total_expenses), 0) as total_expenses FROM cash_drawer cd WHERE 1=1`
+
 	getMyCashQuery = `
 		SELECT cd.id, cd.user_id, s.name as shift_name,
 		       s.start_time as shift_start, s.end_time as shift_end,
@@ -309,6 +311,59 @@ func (r *cashDrawerRepo) AutoCloseYesterday() (int, error) {
 	}
 
 	return count, nil
+}
+
+func (r *cashDrawerRepo) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error) {
+	var args []any
+	conditions := ""
+
+	if req.StartDate != "" {
+		conditions += " AND cd.open_time >= ?"
+		args = append(args, req.StartDate)
+	}
+	if req.EndDate != "" {
+		conditions += " AND cd.open_time < DATE_ADD(?, INTERVAL 1 DAY)"
+		args = append(args, req.EndDate)
+	}
+	if req.UserID != nil {
+		conditions += " AND cd.user_id = ?"
+		args = append(args, *req.UserID)
+	}
+	if req.ShiftID != nil {
+		conditions += " AND cd.shift_id = ?"
+		args = append(args, *req.ShiftID)
+	}
+	if req.Status != "" {
+		conditions += " AND cd.status = ?"
+		args = append(args, req.Status)
+	}
+
+	type aggregateResult struct {
+		TotalOpening  float64 `gorm:"column:total_opening"`
+		TotalClosing  float64 `gorm:"column:total_closing"`
+		TotalExpenses float64 `gorm:"column:total_expenses"`
+	}
+	var agg aggregateResult
+	if err := r.db.Raw(getCashDrawerSummaryAggregateQuery+conditions, args...).Scan(&agg).Error; err != nil {
+		return nil, err
+	}
+
+	recordQuery := getCashDrawerHistoryBase + conditions + " ORDER BY cd.open_time DESC LIMIT 1000"
+	var records []*dto.CashDrawerHistoryResponse
+	if err := r.db.Raw(recordQuery, args...).Scan(&records).Error; err != nil {
+		return nil, err
+	}
+	if records == nil {
+		records = []*dto.CashDrawerHistoryResponse{}
+	}
+
+	return &dto.CashDrawerSummaryResponse{
+		TotalOpening:  agg.TotalOpening,
+		TotalClosing:  agg.TotalClosing,
+		TotalExpenses: agg.TotalExpenses,
+		Net:           agg.TotalClosing - agg.TotalExpenses,
+		Records:       records,
+	}, nil
 }
 
 func (r *cashDrawerRepo) GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error) {

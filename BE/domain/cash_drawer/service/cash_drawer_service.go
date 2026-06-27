@@ -231,6 +231,10 @@ func (s *cashDrawerService) AutoCloseYesterday() (int, error) {
 	return s.repo.AutoCloseYesterday()
 }
 
+func (s *cashDrawerService) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error) {
+	return s.repo.GetSummary(req)
+}
+
 func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {

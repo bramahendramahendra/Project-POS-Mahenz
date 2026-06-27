@@ -187,6 +187,34 @@ func (h *CashDrawerHandler) UpdateSales(c *gin.Context) {
 	})
 }
 
+func (h *CashDrawerHandler) GetSummary(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetHistoryRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	role := helper.GetUserRole(c)
+	requestingUserID := helper.GetUserID(c)
+
+	if role != "owner" && role != "admin" {
+		req.UserID = &requestingUserID
+	}
+
+	data, err := h.service.GetSummary(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Rekap kas",
+		Data:    data,
+	})
+}
+
 func (h *CashDrawerHandler) UpdateExpenses(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateExpensesUriRequest](c)
 	if err != nil {

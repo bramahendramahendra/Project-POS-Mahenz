@@ -21,7 +21,6 @@ export const ROUTES = {
   // Keuangan
   FINANCE: '/finance',
   FINANCE_CASH_DRAWER: '/finance/cash-drawer',
-  FINANCE_CASH_DRAWER_REKAP: '/finance/cash-drawer/rekap',
   FINANCE_EXPENSES: '/finance/expenses',
   FINANCE_MY_CASH: '/finance/my-cash',
 
