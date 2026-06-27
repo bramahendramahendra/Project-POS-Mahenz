@@ -1,15 +1,7 @@
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { CashflowItem } from '../finance.types'
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 export function buildFinanceColumns(): ColumnDef<CashflowItem>[] {
   return [
@@ -48,11 +40,7 @@ export function buildFinanceColumns(): ColumnDef<CashflowItem>[] {
       header: 'Nominal',
       align: 'right',
       cell: (row) => (
-        <span
-          className={
-            row.type === 'income' ? 'font-semibold text-green-600' : 'font-semibold text-red-600'
-          }
-        >
+        <span className={row.type === 'income' ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
           {row.type === 'income' ? '+' : '-'}
           {formatRupiah(row.amount)}
         </span>

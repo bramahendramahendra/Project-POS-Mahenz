@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { ArrowDownCircle, ArrowUpCircle, ClipboardList, TrendingUp } from 'lucide-react'
+
 import { formatRupiah } from '@/shared/utils'
 
 import type { FinanceSummary } from '../finance.types'
@@ -8,7 +11,7 @@ interface FinanceSummaryCardProps {
 }
 
 interface CardProps {
-  icon: string
+  icon: ReactNode
   label: string
   value: number
   isLoading: boolean
@@ -19,7 +22,7 @@ function SummaryCard({ icon, label, value, isLoading, valueClass = 'text-gray-90
   return (
     <div className="rounded-xl border bg-white p-4 shadow-sm space-y-1">
       <div className="flex items-center gap-2 text-gray-500 text-sm">
-        <span>{icon}</span>
+        {icon}
         <span>{label}</span>
       </div>
       {isLoading ? (
@@ -35,28 +38,28 @@ export function FinanceSummaryCard({ summary, isLoading }: FinanceSummaryCardPro
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       <SummaryCard
-        icon="💰"
+        icon={<ArrowUpCircle size={16} />}
         label="Pemasukan"
         value={summary?.total_income ?? 0}
         isLoading={isLoading}
         valueClass="text-green-600"
       />
       <SummaryCard
-        icon="💸"
+        icon={<ArrowDownCircle size={16} />}
         label="Pengeluaran"
         value={summary?.total_expense ?? 0}
         isLoading={isLoading}
         valueClass="text-red-600"
       />
       <SummaryCard
-        icon="📈"
+        icon={<TrendingUp size={16} />}
         label="Laba"
         value={summary?.net_profit ?? 0}
         isLoading={isLoading}
         valueClass={(summary?.net_profit ?? 0) >= 0 ? 'text-blue-600' : 'text-red-600'}
       />
       <SummaryCard
-        icon="📋"
+        icon={<ClipboardList size={16} />}
         label="Piutang"
         value={summary?.total_receivable ?? 0}
         isLoading={isLoading}

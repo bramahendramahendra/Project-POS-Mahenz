@@ -34,6 +34,7 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.ReceivableRoutes(r)
 	segment.ShiftRoutes(r)
 	segment.StockMutationRoutes(r)
+	segment.FinanceRoutes(r)
 	segment.ReportRoutes(r)
 	segment.DashboardRoutes(r)
 	segment.SettingRoutes(r)

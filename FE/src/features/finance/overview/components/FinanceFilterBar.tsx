@@ -1,27 +1,21 @@
+import { RotateCcw } from 'lucide-react'
+
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { monthStart, todayStr, weekStart } from '@/shared/utils'
 
-import { monthStart, todayStr } from '@/shared/utils'
-import type { FinanceFilter } from '../finance.types'
-
-function weekStartString(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - d.getDay() + 1)
-  return d.toISOString().split('T')[0]
-}
-
+import type { FinanceDateFilter } from '../finance.types'
 
 interface FinanceFilterBarProps {
-  filter: FinanceFilter
-  onChange: (filter: FinanceFilter) => void
+  filter: FinanceDateFilter
+  onChange: (filter: FinanceDateFilter) => void
   onReset: () => void
 }
 
 export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBarProps) {
   const applyPreset = (from: string, to: string) => {
-    onChange({ ...filter, date_from: from, date_to: to })
-    onReset()
+    onChange({ date_from: from, date_to: to })
   }
 
   return (
@@ -31,7 +25,7 @@ export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBar
         <Input
           type="date"
           value={filter.date_from ?? ''}
-          onChange={(e) => { onChange({ ...filter, date_from: e.target.value || undefined }); onReset() }}
+          onChange={(e) => onChange({ ...filter, date_from: e.target.value || undefined })}
           className="w-40 h-9"
         />
       </div>
@@ -40,34 +34,23 @@ export function FinanceFilterBar({ filter, onChange, onReset }: FinanceFilterBar
         <Input
           type="date"
           value={filter.date_to ?? ''}
-          onChange={(e) => { onChange({ ...filter, date_to: e.target.value || undefined }); onReset() }}
+          onChange={(e) => onChange({ ...filter, date_to: e.target.value || undefined })}
           className="w-40 h-9"
         />
       </div>
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9"
-          onClick={() => applyPreset(todayStr(), todayStr())}
-        >
+        <Button variant="outline" size="sm" className="h-9" onClick={() => applyPreset(todayStr(), todayStr())}>
           Hari ini
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9"
-          onClick={() => applyPreset(weekStartString(), todayStr())}
-        >
+        <Button variant="outline" size="sm" className="h-9" onClick={() => applyPreset(weekStart(), todayStr())}>
           Minggu ini
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9"
-          onClick={() => applyPreset(monthStart(), todayStr())}
-        >
+        <Button variant="outline" size="sm" className="h-9" onClick={() => applyPreset(monthStart(), todayStr())}>
           Bulan ini
+        </Button>
+        <Button variant="outline" size="sm" className="h-9 gap-1" onClick={onReset}>
+          <RotateCcw size={13} />
+          Reset
         </Button>
       </div>
     </div>

@@ -15,9 +15,13 @@ export interface CashflowItem {
   date: string
 }
 
-export interface FinanceFilter {
+export interface FinanceDateFilter {
   date_from?: string
   date_to?: string
-  page?: number
-  page_size?: number
+}
+
+export interface CashflowFilter extends FinanceDateFilter {
+  type?: 'income' | 'expense'
+  page: number
+  limit: number
 }
