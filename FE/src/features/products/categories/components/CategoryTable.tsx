@@ -30,13 +30,9 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
 
-  const { data: categoryData, isLoading } = useCategoryListQuery({
-    ...filter,
-    page,
-    limit: pageSize,
-  })
+  const { data: categoryData, isLoading } = useCategoryListQuery({ ...filter, page, limit: pageSize })
   const categories = categoryData?.data ?? []
   const total = categoryData?.total ?? 0
 
@@ -78,17 +74,17 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
   }
 
   const handleOpenDelete = (category: Category) => {
-    setDeleteTarget(category)
+    setDeletingCategory(category)
     openDelete()
   }
 
 
   const handleConfirmDelete = () => {
-    if (!deleteTarget) return
-    deleteCategory(deleteTarget.id, {
+    if (!deletingCategory) return
+    deleteCategory(deletingCategory.id, {
       onSuccess: () => {
         closeDelete()
-        setDeleteTarget(null)
+        setDeletingCategory(null)
       },
     })
   }
@@ -147,9 +143,9 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeleteTarget(null) } }}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingCategory(null) } }}
         title="Hapus Kategori"
-        description={`Yakin ingin menghapus kategori "${deleteTarget?.name}"? Tindakan ini tidak bisa dibatalkan.`}
+        description={`Yakin ingin menghapus kategori "${deletingCategory?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}

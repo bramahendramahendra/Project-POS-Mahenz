@@ -22,12 +22,7 @@ export interface PurchaseTableHandle {
 }
 
 export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function PurchaseTable(_, ref) {
-  const [filter, setFilter] = useState<SupplierPurchaseFilter>({
-    page: 1,
-    limit: 10,
-    start_date: monthStart(),
-    end_date: todayStr(),
-  })
+  const [filter, setFilter] = useState<SupplierPurchaseFilter>({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
   const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
@@ -65,32 +60,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   }
 
   useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
-
-  const handleEdit = (purchase: SupplierPurchase) => {
-    setEditingPurchase(purchase)
-    openForm()
-  }
-
-  const handlePay = (purchase: SupplierPurchase) => {
-    setPayingPurchase(purchase)
-    openPay()
-  }
-
-  const handleDelete = (purchase: SupplierPurchase) => {
-    setDeletingId(purchase.id)
-    openDelete()
-  }
-
-  const handleDetail = (purchase: SupplierPurchase) => {
-    setDetailId(purchase.id)
-    openDetail()
-  }
-
-  const handleFormClose = () => {
-    closeForm()
-    setEditingPurchase(null)
-  }
-
+  
   const handleFilterChange = (newFilter: SupplierPurchaseFilter) => {
     setFilter(newFilter)
     resetPage()
@@ -108,6 +78,30 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     resetPage()
   }
 
+  const handleOpenEdit = (purchase: SupplierPurchase) => {
+    setEditingPurchase(purchase)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingPurchase(null)
+  }
+
+  const handleDetail = (purchase: SupplierPurchase) => {
+    setDetailId(purchase.id)
+    openDetail()
+  }
+
+  const handlePay = (purchase: SupplierPurchase) => {
+    setPayingPurchase(purchase)
+    openPay()
+  }
+  const handleDelete = (purchase: SupplierPurchase) => {
+    setDeletingId(purchase.id)
+    openDelete()
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingId) return
     deletePurchase(deletingId, {
@@ -120,7 +114,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
   const columns = buildPurchaseColumns({
     onDetail: handleDetail,
-    onEdit: handleEdit,
+    onEdit: handleOpenEdit,
     onPay: handlePay,
     onDelete: handleDelete,
   })
@@ -189,7 +183,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
       <PurchaseFormModal
         open={formOpen}
-        onOpenChange={(o) => { if (!o) handleFormClose() }}
+        onOpenChange={(o) => { if (!o) handleCloseForm() }}
         initialData={editingPurchase}
       />
 

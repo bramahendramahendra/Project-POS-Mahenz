@@ -25,11 +25,11 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
-  const { isOpen: detailOpen, open: openDetailModal, close: closeDetailModal } = useDisclosure()
+  const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
 
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null)
-  const [detailSupplierId, setDetailSupplierId] = useState<number | null>(null)
+  const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null)
 
   const { data: supplierData, isLoading } = useSupplierListQuery({ 
     ...filter, 
@@ -76,9 +76,14 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     setEditingSupplier(null)
   }
 
-  const handleOpenDetail = (id: number) => {
-    setDetailSupplierId(id)
-    openDetailModal()
+  const handleOpenDetail = (supplier: Supplier) => {
+    setDetailSupplier(supplier)
+    openDetail()
+  }
+
+  const handleCloseDetail = () => {
+    closeDetail()
+    setDetailSupplier(null)
   }
 
   const handleOpenDelete = (supplier: Supplier) => {
@@ -114,7 +119,11 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
 
   return (
     <div className="space-y-4">
-      <SupplierFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
+      <SupplierFilterBar 
+        filter={filter} 
+        onChange={handleFilterChange} 
+        onReset={handleReset} 
+      />
 
       <DataTable<Supplier & Record<string, unknown>>
         columns={columns}
@@ -122,18 +131,25 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
         isLoading={isLoading}
         currentSort={sortState}
         onSort={handleSort}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
         emptyMessage={hasFilter ? 'Supplier tidak ditemukan' : 'Belum ada supplier'}
         emptyDescription={
           hasFilter
             ? 'Coba ubah kata kunci atau filter pencarian Anda.'
             : 'Tambah supplier pertama Anda untuk memulai.'
         }
+        pagination={{ 
+          page, 
+          pageSize, 
+          total, 
+          onPageChange, 
+          onPageSizeChange, 
+          pageSizeOptions 
+        }}
       />
 
       <SupplierFormModal
         open={formOpen}
-        onOpenChange={(val) => { if (!val) handleCloseForm() }}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
         supplier={editingSupplier}
       />
 
@@ -150,8 +166,8 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
 
       <SupplierDetailModal
         open={detailOpen}
-        onOpenChange={(open) => { if (!open) { closeDetailModal(); setDetailSupplierId(null) } }}
-        supplierId={detailSupplierId ?? undefined}
+        onOpenChange={(open) => { if (!open) handleCloseDetail() }}
+        supplierId={detailSupplier?.id}
       />
     </div>
   )

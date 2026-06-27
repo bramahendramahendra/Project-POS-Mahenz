@@ -28,10 +28,7 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
   const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
 
-  const { data: unitData, isLoading } = useUnitListQuery({ 
-    ...filter, 
-    page, limit: pageSize, 
-  })
+  const { data: unitData, isLoading } = useUnitListQuery({ ...filter, page, limit: pageSize })
   const units = unitData?.data ?? []
   const total = unitData?.total ?? 0
 
@@ -76,7 +73,7 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     setDeletingUnit(unit)
     openDelete()
   }
-  
+
   const handleConfirmDelete = () => {
     if (!deletingUnit) return
     deleteUnit(deletingUnit.id, {

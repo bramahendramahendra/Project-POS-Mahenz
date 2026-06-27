@@ -41,15 +41,11 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const { isOpen: labelOpen, open: openLabel, close: closeLabel } = useDisclosure()
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
 
-  const { data: productData, isLoading } = useProductListQuery({ 
-    ...filter, 
-    page, 
-    limit: pageSize, 
-  })
+  const { data: productData, isLoading } = useProductListQuery({ ...filter, page, limit: pageSize })
   const products = productData?.data ?? []
   const total = productData?.total ?? 0
 
@@ -99,21 +95,6 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     setEditingProduct(null)
   }
 
-  const handleOpenDelete = (product: Product) => {
-    setDeleteTarget(product)
-    openDelete()
-  }
-
-  const handleConfirmDelete = () => {
-    if (!deleteTarget) return
-    deleteProduct(deleteTarget.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeleteTarget(null)
-      },
-    })
-  }
-
   const handleOpenDetail = (product: Product) => {
     setDetailProduct(product)
     openDetail()
@@ -124,6 +105,21 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     setDetailProduct(null)
   }
 
+
+  const handleOpenDelete = (product: Product) => {
+    setDeletingProduct(product)
+    openDelete()
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deletingProduct) return
+    deleteProduct(deletingProduct.id, {
+      onSuccess: () => {
+        closeDelete()
+        setDeletingProduct(null)
+      },
+    })
+  }
 
   function handleExportExcel() {
     exportProductsToExcel(selectedProducts)
@@ -229,9 +225,9 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeleteTarget(null) } }}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingProduct(null) } }}
         title="Hapus Produk"
-        description={`Yakin ingin menghapus produk "${deleteTarget?.name}"? Tindakan ini tidak bisa dibatalkan.`}
+        description={`Yakin ingin menghapus produk "${deletingProduct?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
