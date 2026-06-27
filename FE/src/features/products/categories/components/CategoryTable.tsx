@@ -78,14 +78,15 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingCategory(null)
+  }
 
   const handleConfirmDelete = () => {
     if (!deletingCategory) return
     deleteCategory(deletingCategory.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingCategory(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -143,7 +144,7 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingCategory(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Kategori"
         description={`Yakin ingin menghapus kategori "${deletingCategory?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

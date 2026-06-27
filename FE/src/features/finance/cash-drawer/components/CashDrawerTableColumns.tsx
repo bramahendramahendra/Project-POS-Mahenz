@@ -23,6 +23,7 @@ export function buildCashDrawerColumns(
     {
       key: 'open_time',
       header: 'Waktu Buka',
+      sortable: true,
       cell: (row) => <span className="text-gray-600 text-sm">{formatDateTime(row.open_time)}</span>,
     },
     {
@@ -36,18 +37,21 @@ export function buildCashDrawerColumns(
     {
       key: 'user_name',
       header: 'Kasir',
+      sortable: true,
       cell: (row) => <span className="text-sm font-medium">{row.user_name}</span>,
     },
     {
       key: 'opening_balance',
       header: 'Saldo Awal Tunai',
       align: 'right',
+      sortable: true,
       cell: (row) => <span className="text-sm">{formatRupiah(row.opening_balance)}</span>,
     },
     {
       key: 'total_cash_sales',
       header: 'Total Masuk',
       align: 'right',
+      sortable: true,
       cell: (row) => (
         <span className="text-green-600 font-medium text-sm">{formatRupiah(row.total_cash_sales)}</span>
       ),
@@ -56,6 +60,7 @@ export function buildCashDrawerColumns(
       key: 'total_expenses',
       header: 'Total Keluar',
       align: 'right',
+      sortable: true,
       cell: (row) => (
         <span className="text-red-600 font-medium text-sm">{formatRupiah(row.total_expenses)}</span>
       ),

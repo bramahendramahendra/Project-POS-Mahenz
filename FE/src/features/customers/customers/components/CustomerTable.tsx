@@ -61,6 +61,11 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingCustomer(null)
+  }
+
   const handleToggleStatus = (id: number, isActive: boolean) => {
     toggleStatus(id, {
       onSuccess: () =>
@@ -88,10 +93,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
   const handleDelete = () => {
     if (!deletingCustomer) return
     deleteCustomer(deletingCustomer.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingCustomer(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -130,7 +132,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingCustomer(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Pelanggan"
         description={`Yakin ingin menghapus pelanggan "${deletingCustomer?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

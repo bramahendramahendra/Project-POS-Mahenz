@@ -111,13 +111,20 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingProduct(null)
+  }
+
+  const handleCloseLabel = () => {
+    closeLabel()
+    setSingleLabelProduct(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingProduct) return
     deleteProduct(deletingProduct.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingProduct(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -225,7 +232,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingProduct(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Produk"
         description={`Yakin ingin menghapus produk "${deletingProduct?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
@@ -241,7 +248,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
 
       <LabelPrintModal
         open={labelOpen}
-        onOpenChange={(open) => { if (!open) { closeLabel(); setSingleLabelProduct(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseLabel() }}
         products={singleLabelProduct ? [singleLabelProduct] : selectedProducts}
       />
 

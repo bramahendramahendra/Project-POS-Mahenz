@@ -4,60 +4,36 @@ import { DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useAuthStore } from '@/features/auth'
 import { ROLES } from '@/shared/constants/roles'
-import { formatRupiah, monthStart, todayStr } from '@/shared/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { monthStart, todayStr } from '@/shared/utils'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import { useCashDrawerListQuery, useCashDrawerSummaryQuery } from '../cash-drawer.api'
 import type { CashDrawer, CashDrawerListFilter } from '../cash-drawer.types'
 import { CashDrawerFilterBar } from './CashDrawerFilterBar'
 import { CashDrawerDetailModal } from './CashDrawerDetailModal'
 import { CloseCashDrawerModal } from './CloseCashDrawerModal'
+import { CashDrawerSummaryCard } from './CashDrawerSummaryCard'
 import { buildCashDrawerColumns } from './CashDrawerTableColumns'
 
-interface SummaryCardProps {
-  title: string
-  value: number
-  valueClass?: string
-  isLoading?: boolean
-}
-
-function SummaryCard({ title, value, valueClass = '', isLoading }: SummaryCardProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-gray-500">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
-        ) : (
-          <p className={`text-lg font-semibold ${valueClass}`}>{formatRupiah(value)}</p>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-const defaultFilter: CashDrawerListFilter = {
-  start_date: monthStart(),
-  end_date: todayStr(),
-}
-
 export function CashDrawerTable() {
-  const [filter, setFilter] = useState<CashDrawerListFilter>(defaultFilter)
+  const [filter, setFilter] = useState<CashDrawerListFilter>({
+    start_date: monthStart(),
+    end_date: todayStr(),
+  })
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset: resetPage } = usePagination({ initialPageSize: 10 })
   const pageSizeOptions = usePageSizeOptions()
-  
-  const [detailDrawerId, setDetailDrawerId] = useState<number | undefined>(undefined)
-  const [forceCloseDrawerId, setForceCloseDrawerId] = useState<number | undefined>(undefined)
+
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
+
+  const [detailDrawerId, setDetailDrawerId] = useState<number | null>(null)
+  const [forceCloseDrawerId, setForceCloseDrawerId] = useState<number | null>(null)
 
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: forceCloseOpen, open: openForceClose, close: closeForceClose } = useDisclosure()
 
   const { user } = useAuthStore()
   const canForceClose = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
-
 
   const { data, isLoading } = useCashDrawerListQuery({ ...filter, page, limit: pageSize })
   const { data: summary, isLoading: summaryLoading } = useCashDrawerSummaryQuery(filter)
@@ -70,7 +46,14 @@ export function CashDrawerTable() {
   }
 
   const handleReset = () => {
-    setFilter(defaultFilter)
+    setFilter({ start_date: monthStart(), end_date: todayStr() })
+    setSortState(undefined)
+    resetPage()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     resetPage()
   }
 
@@ -81,7 +64,7 @@ export function CashDrawerTable() {
 
   const handleCloseDetail = () => {
     closeDetail()
-    setDetailDrawerId(undefined)
+    setDetailDrawerId(null)
   }
 
   const handleOpenForceClose = (cashDrawer: CashDrawer) => {
@@ -91,7 +74,7 @@ export function CashDrawerTable() {
 
   const handleCloseForceClose = () => {
     closeForceClose()
-    setForceCloseDrawerId(undefined)
+    setForceCloseDrawerId(null)
   }
 
   const columns = buildCashDrawerColumns({
@@ -109,57 +92,36 @@ export function CashDrawerTable() {
         showKasirFilter={canForceClose}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard
-          title="Total Saldo Awal Tunai"
-          value={summary?.total_opening ?? 0}
-          isLoading={summaryLoading}
-        />
-        <SummaryCard
-          title="Total Saldo Akhir Tunai"
-          value={summary?.total_closing ?? 0}
-          isLoading={summaryLoading}
-        />
-        <SummaryCard
-          title="Total Pengeluaran"
-          value={summary?.total_expenses ?? 0}
-          valueClass="text-red-600"
-          isLoading={summaryLoading}
-        />
-        <SummaryCard
-          title="Selisih Bersih"
-          value={summary?.net ?? 0}
-          valueClass={(summary?.net ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}
-          isLoading={summaryLoading}
-        />
-      </div>
+      <CashDrawerSummaryCard summary={summary} isLoading={summaryLoading} />
 
       <DataTable<CashDrawer & Record<string, unknown>>
         columns={columns}
         data={items as (CashDrawer & Record<string, unknown>)[]}
         isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage="Belum ada data kas harian"
         emptyDescription="Data kas harian akan muncul sesuai filter periode yang dipilih."
-        pagination={{ 
-          page, 
-          pageSize, 
-          total, 
-          onPageChange, 
-          onPageSizeChange, 
-          pageSizeOptions 
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange,
+          onPageSizeChange,
+          pageSizeOptions
         }}
       />
 
       <CashDrawerDetailModal
         open={detailOpen}
         onOpenChange={(val) => { if (!val) handleCloseDetail() }}
-        cashDrawerId={detailDrawerId}
+        cashDrawerId={detailDrawerId ?? undefined}
       />
 
       <CloseCashDrawerModal
         open={forceCloseOpen}
         onOpenChange={(val) => { if (!val) handleCloseForceClose() }}
-        cashDrawerId={forceCloseDrawerId ?? null}
+        cashDrawerId={forceCloseDrawerId}
       />
     </div>
   )

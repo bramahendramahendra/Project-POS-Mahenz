@@ -74,13 +74,15 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingReturn(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingReturn) return
     deleteReturn(deletingReturn.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingReturn(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -135,7 +137,7 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingReturn(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Retur"
         description={`Yakin ingin menghapus retur "${deletingReturn?.return_code}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

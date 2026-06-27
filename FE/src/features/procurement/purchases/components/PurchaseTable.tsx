@@ -104,13 +104,15 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingPurchase(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingPurchase) return
     deletePurchase(deletingPurchase.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingPurchase(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -174,7 +176,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingPurchase(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Pembelian"
         description={`Yakin ingin menghapus pembelian "${deletingPurchase?.invoice_number}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

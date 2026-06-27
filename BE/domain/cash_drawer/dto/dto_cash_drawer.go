@@ -12,6 +12,8 @@ type (
 		UserID    *int   `json:"user_id"`
 		ShiftID   *int   `json:"shift_id"`
 		Status    string `json:"status" validate:"max=20"`
+		SortBy    string `json:"sort_by"`
+		SortOrder string `json:"sort_order"`
 	}
 
 	GetByIDRequest struct {

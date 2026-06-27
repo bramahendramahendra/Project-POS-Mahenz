@@ -82,13 +82,15 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingShift(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingShift) return
     deleteShift(deletingShift.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingShift(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -145,7 +147,7 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingShift(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Shift"
         description={`Yakin ingin menghapus shift "${deletingShift?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

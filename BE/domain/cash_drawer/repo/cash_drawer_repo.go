@@ -185,7 +185,23 @@ func (r *cashDrawerRepo) GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDraw
 	}
 	offset := (page - 1) * limit
 
-	query := getCashDrawerHistoryBase + conditions + " ORDER BY cd.open_time DESC LIMIT ? OFFSET ?"
+	allowedSortColumns := map[string]string{
+		"open_time":        "cd.open_time",
+		"user_name":        "u.full_name",
+		"opening_balance":  "cd.opening_balance",
+		"total_cash_sales": "cd.total_cash_sales",
+		"total_expenses":   "cd.total_expenses",
+	}
+	sortCol := "cd.open_time"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "DESC"
+	if req.SortOrder == "asc" {
+		sortDir = "ASC"
+	}
+
+	query := getCashDrawerHistoryBase + conditions + " ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*dto.CashDrawerHistoryResponse

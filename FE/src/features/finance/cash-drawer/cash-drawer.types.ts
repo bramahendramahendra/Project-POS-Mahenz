@@ -71,6 +71,8 @@ export interface CashDrawerListFilter {
   status?: string
   shift_id?: number
   user_id?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface KasirOption {

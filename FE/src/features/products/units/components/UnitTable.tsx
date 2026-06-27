@@ -74,13 +74,15 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingUnit(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingUnit) return
     deleteUnit(deletingUnit.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingUnit(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -138,7 +140,7 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingUnit(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Satuan"
         description={`Yakin ingin menghapus satuan "${deletingUnit?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"

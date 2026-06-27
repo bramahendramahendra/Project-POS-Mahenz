@@ -87,13 +87,15 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     openDelete()
   }
 
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingSupplier(null)
+  }
+
   const handleConfirmDelete = () => {
     if (!deletingSupplier) return
     deleteSupplier(deletingSupplier.id, {
-      onSuccess: () => {
-        closeDelete()
-        setDeletingSupplier(null)
-      },
+      onSuccess: () => handleCloseDelete(),
     })
   }
 
@@ -151,7 +153,7 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingSupplier(null) } }}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Supplier"
         description={`Yakin ingin menghapus supplier "${deletingSupplier?.name}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
