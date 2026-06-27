@@ -1,13 +1,11 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { Truck } from 'lucide-react'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { SortState } from '@/shared/components/DataTable/DataTable.types'
-import { useSupplierListQuery } from '@/features/procurement/suppliers'
-import { useProductListQuery } from '@/features/products/products'
-
 import { monthStart, todayStr } from '@/shared/utils'
+
+import { useSupplierListQuery } from '@/features/procurement/suppliers'
 
 import { useSupplierPurchasesQuery, useDeleteSupplierPurchaseMutation } from '../purchases.api'
 import type { SupplierPurchase, SupplierPurchaseFilter } from '../purchases.types'
@@ -36,15 +34,12 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const [editingPurchase, setEditingPurchase] = useState<SupplierPurchase | null>(null)
   const [payingPurchase, setPayingPurchase] = useState<SupplierPurchase | null>(null)
   const [detailId, setDetailId] = useState<number | null>(null)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deletingPurchase, setDeletingPurchase] = useState<SupplierPurchase | null>(null)
 
-  const { data: suppliersData, isLoading: isSuppliersLoading } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const { data: productsData, isLoading: isProductsLoading } = useProductListQuery({ page: 1, limit: 1, search: '' })
+  const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const suppliers = suppliersData?.data ?? []
-  const hasSuppliers = suppliers.length > 0
-  const hasProducts = (productsData?.total ?? 0) > 0
 
-  const { data, isLoading } = useSupplierPurchasesQuery({ 
+  const { data, isLoading } = useSupplierPurchasesQuery({
     ...filter, 
     page, 
     limit: pageSize, 
@@ -88,78 +83,41 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     setEditingPurchase(null)
   }
 
-  const handleDetail = (purchase: SupplierPurchase) => {
+  const handleOpenDetail = (purchase: SupplierPurchase) => {
     setDetailId(purchase.id)
     openDetail()
+  }
+
+  const handleCloseDetail = () => {
+    closeDetail()
+    setDetailId(null)
   }
 
   const handlePay = (purchase: SupplierPurchase) => {
     setPayingPurchase(purchase)
     openPay()
   }
-  const handleDelete = (purchase: SupplierPurchase) => {
-    setDeletingId(purchase.id)
+  const handleOpenDelete = (purchase: SupplierPurchase) => {
+    setDeletingPurchase(purchase)
     openDelete()
   }
 
   const handleConfirmDelete = () => {
-    if (!deletingId) return
-    deletePurchase(deletingId, {
+    if (!deletingPurchase) return
+    deletePurchase(deletingPurchase.id, {
       onSuccess: () => {
         closeDelete()
-        setDeletingId(null)
+        setDeletingPurchase(null)
       },
     })
   }
 
   const columns = buildPurchaseColumns({
-    onDetail: handleDetail,
+    onDetail: handleOpenDetail,
     onEdit: handleOpenEdit,
     onPay: handlePay,
-    onDelete: handleDelete,
+    onDelete: handleOpenDelete,
   })
-
-  if (isSuppliersLoading || isProductsLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="h-12 animate-pulse rounded-md bg-gray-100" />
-        ))}
-      </div>
-    )
-  }
-
-  if (!hasSuppliers || !hasProducts) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-white px-6 py-16 text-center">
-        <div className="mb-4">
-          <div className="rounded-full p-3 bg-amber-50">
-            <Truck size={24} className="text-amber-500" />
-          </div>
-        </div>
-        <h3 className="mb-1 text-base font-semibold text-gray-800">
-          Belum bisa menambah pembelian
-        </h3>
-        <p className="mb-1 text-sm text-gray-500">
-          Sebelum menambah pembelian, pastikan data berikut sudah tersedia:
-        </p>
-        <ul className="mb-6 space-y-1 text-sm">
-          {!hasSuppliers && (
-            <li className="flex items-center gap-2 text-amber-600">
-              <span>!</span>
-              Belum ada supplier — tambahkan di menu Supplier
-            </li>
-          )}
-          {!hasProducts && (
-            <li className="flex items-center gap-2 text-amber-600">
-              <span>!</span>
-              Belum ada produk — tambahkan di menu Produk
-            </li>
-          )}
-        </ul>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-4">
@@ -189,12 +147,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
       <PurchaseDetailModal
         open={detailOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            closeDetail()
-            setDetailId(null)
-          }
-        }}
+        onOpenChange={(open) => { if (!open) handleCloseDetail() }}
         purchaseId={detailId}
       />
 
@@ -211,14 +164,9 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
 
       <ConfirmDialog
         open={deleteOpen}
-        onOpenChange={(o) => {
-          if (!o) {
-            closeDelete()
-            setDeletingId(null)
-          }
-        }}
+        onOpenChange={(open) => { if (!open) { closeDelete(); setDeletingPurchase(null) } }}
         title="Hapus Pembelian"
-        description="Data pembelian yang dihapus tidak bisa dikembalikan. Yakin ingin melanjutkan?"
+        description={`Yakin ingin menghapus pembelian "${deletingPurchase?.invoice_number}"? Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}

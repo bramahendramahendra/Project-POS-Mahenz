@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button'
 
 import { PurchaseTable } from './components/PurchaseTable'
 import type { PurchaseTableHandle } from './components/PurchaseTable'
+import { PurchasePrerequisiteGuard } from './components/PurchasePrerequisiteGuard'
 
 export function PurchasesPage() {
   const tableRef = useRef<PurchaseTableHandle>(null)
@@ -25,7 +26,9 @@ export function PurchasesPage() {
           </RoleGuard>
         }
       />
-      <PurchaseTable ref={tableRef} />
+      <PurchasePrerequisiteGuard>
+        <PurchaseTable ref={tableRef} />
+      </PurchasePrerequisiteGuard>
     </div>
   )
 }

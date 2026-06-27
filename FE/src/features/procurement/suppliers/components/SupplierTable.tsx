@@ -31,11 +31,7 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null)
   const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null)
 
-  const { data: supplierData, isLoading } = useSupplierListQuery({ 
-    ...filter, 
-    page, 
-    limit: pageSize 
-  })
+  const { data: supplierData, isLoading } = useSupplierListQuery({ ...filter, page, limit: pageSize })
   const suppliers = supplierData?.data ?? []
   const total = supplierData?.total ?? 0
 

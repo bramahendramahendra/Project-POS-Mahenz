@@ -10,7 +10,7 @@ import type { SupplierReturn } from '../returns.types'
 
 export interface ReturnColumnHandlers {
   onDetail: (row: SupplierReturn) => void
-  onDelete: (id: number) => void
+  onDelete: (row: SupplierReturn) => void
 }
 
 function formatDate(dateStr: string): string {
@@ -85,7 +85,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
           {row.status === 'pending' && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(row.id)}>
+                <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </TooltipTrigger>
