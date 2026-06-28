@@ -19,6 +19,7 @@ type (
 		GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error)
 		GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error)
 		GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error)
+		GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error)
 	}
 
 	reportRepo struct {

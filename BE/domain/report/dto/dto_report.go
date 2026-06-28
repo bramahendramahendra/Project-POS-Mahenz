@@ -122,12 +122,22 @@ type StockReportResponse struct {
 
 // ─── Cashier Report ────────────────────────────────────────────
 
+type CashierReportRequest struct {
+	DateFrom  string `json:"date_from"`
+	DateTo    string `json:"date_to"`
+	Page      int    `json:"page"`
+	Limit     int    `json:"limit"`
+	SortBy    string `json:"sort_by"`
+	SortOrder string `json:"sort_order"`
+}
+
 type CashierItem struct {
 	UserID            int     `json:"user_id"`
-	UserName          string  `json:"user_name"`
+	CashierName       string  `json:"cashier_name"`
 	TotalTransactions int     `json:"total_transactions"`
 	TotalSales        float64 `json:"total_sales"`
 	TotalCash         float64 `json:"total_cash"`
 	TotalNonCash      float64 `json:"total_non_cash"`
-	AvgTransaction    float64 `json:"avg_transaction"`
+	AvgPerTransaction float64 `json:"avg_per_transaction"`
+	VoidCount         int     `json:"void_count"`
 }

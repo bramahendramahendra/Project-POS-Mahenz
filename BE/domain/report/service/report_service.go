@@ -224,6 +224,10 @@ func (s *reportService) GetCashierReport(params dto.FilterParams) ([]dto.Cashier
 	return s.repo.GetCashierItems(params)
 }
 
+func (s *reportService) GetCashierList(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error) {
+	return s.repo.GetCashierItemsPaginated(req)
+}
+
 func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buffer, error) {
 	items, err := s.GetCashierReport(params)
 	if err != nil {
@@ -243,8 +247,8 @@ func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buf
 
 	for idx, item := range items {
 		row := idx + 2
-		vals := []interface{}{idx + 1, item.UserName, item.TotalTransactions, item.TotalSales,
-			item.TotalCash, item.TotalNonCash, item.AvgTransaction}
+		vals := []interface{}{idx + 1, item.CashierName, item.TotalTransactions, item.TotalSales,
+			item.TotalCash, item.TotalNonCash, item.AvgPerTransaction}
 		for col, v := range vals {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row)
 			f.SetCellValue(sheet, cell, v)

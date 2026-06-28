@@ -105,18 +105,24 @@ const (
 		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE p.is_active = 1`
 
-	cashierReportQuery = `
-		SELECT t.user_id, u.full_name as user_name,
-		       COUNT(t.id) as total_transactions,
-		       COALESCE(SUM(t.total_amount),0) as total_sales,
-		       COALESCE(SUM(CASE WHEN t.payment_method='cash' THEN t.total_amount ELSE 0 END),0) as total_cash,
-		       COALESCE(SUM(CASE WHEN t.payment_method!='cash' THEN t.total_amount ELSE 0 END),0) as total_non_cash,
-		       COALESCE(AVG(t.total_amount),0) as avg_transaction
+	cashierReportBase = `
+		SELECT t.user_id, u.full_name as cashier_name,
+		       COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as total_transactions,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' THEN t.total_amount ELSE 0 END),0) as total_sales,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' AND t.payment_method='cash' THEN t.total_amount ELSE 0 END),0) as total_cash,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' AND t.payment_method!='cash' THEN t.total_amount ELSE 0 END),0) as total_non_cash,
+		       COALESCE(AVG(CASE WHEN t.status = 'completed' THEN t.total_amount END),0) as avg_per_transaction,
+		       COUNT(CASE WHEN t.status = 'void' THEN 1 END) as void_count
 		FROM transactions t
 		LEFT JOIN users u ON t.user_id = u.id
-		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
-		GROUP BY t.user_id, u.full_name
-		ORDER BY total_sales DESC`
+		WHERE t.transaction_date BETWEEN ? AND ?`
+
+	cashierReportGroupBy = ` GROUP BY t.user_id, u.full_name`
+
+	cashierCountBase = `
+		SELECT COUNT(DISTINCT t.user_id)
+		FROM transactions t
+		WHERE t.transaction_date BETWEEN ? AND ?`
 )
 
 func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error) {
@@ -399,7 +405,8 @@ func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*
 }
 
 func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error) {
-	rows, err := r.db.Raw(cashierReportQuery, params.DateFrom, params.DateTo).Rows()
+	query := cashierReportBase + cashierReportGroupBy + " ORDER BY total_sales DESC"
+	rows, err := r.db.Raw(query, params.DateFrom, params.DateTo).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -408,8 +415,8 @@ func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem
 	var items []dto.CashierItem
 	for rows.Next() {
 		var item dto.CashierItem
-		if err := rows.Scan(&item.UserID, &item.UserName, &item.TotalTransactions,
-			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgTransaction); err != nil {
+		if err := rows.Scan(&item.UserID, &item.CashierName, &item.TotalTransactions,
+			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgPerTransaction, &item.VoidCount); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -418,5 +425,70 @@ func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem
 		items = []dto.CashierItem{}
 	}
 	return items, nil
+}
+
+func (r *reportRepo) GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error) {
+	today := time.Now().Format("2006-01-02")
+	dateFrom := req.DateFrom
+	dateTo := req.DateTo
+	if dateFrom == "" {
+		dateFrom = today + " 00:00:00"
+	}
+	if dateTo == "" {
+		dateTo = today + " 23:59:59"
+	}
+
+	var total int64
+	if err := r.db.Raw(cashierCountBase, dateFrom, dateTo).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	allowedSortColumns := map[string]string{
+		"cashier_name":        "cashier_name",
+		"total_transactions":  "total_transactions",
+		"total_sales":         "total_sales",
+		"avg_per_transaction": "avg_per_transaction",
+		"void_count":          "void_count",
+	}
+	sortCol := "total_sales"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "DESC"
+	if req.SortOrder == "asc" {
+		sortDir = "ASC"
+	}
+
+	query := cashierReportBase + cashierReportGroupBy +
+		" ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
+	rows, err := r.db.Raw(query, dateFrom, dateTo, limit, offset).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.CashierItem
+	for rows.Next() {
+		var item dto.CashierItem
+		if err := rows.Scan(&item.UserID, &item.CashierName, &item.TotalTransactions,
+			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgPerTransaction, &item.VoidCount); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.CashierItem{}
+	}
+	return items, total, nil
 }
 

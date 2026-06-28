@@ -30,6 +30,7 @@ func ReportRoutes(r *gin.RouterGroup) {
 		g.POST("/stock/summary", reportHandler.GetStockSummaryData)
 		g.GET("/stock/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportStockReport)
 		g.GET("/cashier", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetCashierReport)
+		g.POST("/cashier/list", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetCashierList)
 		g.GET("/cashier/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportCashierReport)
 	}
 }

@@ -25,6 +25,7 @@ type (
 		ExportStockReport() (*bytes.Buffer, error)
 
 		GetCashierReport(params dto.FilterParams) ([]dto.CashierItem, error)
+		GetCashierList(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error)
 		ExportCashierReport(params dto.FilterParams) (*bytes.Buffer, error)
 	}
 

@@ -3,9 +3,12 @@ package handler
 import (
 	"net/http"
 
+	"pos_api/domain/report/dto"
 	global_dto "pos_api/dto"
+	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	binder "pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +25,34 @@ func (h *ReportHandler) GetCashierReport(c *gin.Context) {
 		Status:  true,
 		Message: "Laporan kasir",
 		Data:    data,
+	})
+}
+
+func (h *ReportHandler) GetCashierList(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CashierReportRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	data, total, err := h.service.GetCashierList(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar kinerja kasir",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: page, Limit: limit}, total),
 	})
 }
 
