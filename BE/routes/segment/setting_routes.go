@@ -18,8 +18,15 @@ func SettingRoutes(r *gin.RouterGroup) {
 	g := r.Group("/settings")
 	{
 		g.GET("", settingHandler.GetAll)
-		g.GET("/:key", settingHandler.GetByKey)
 		g.POST("", middleware.RoleMiddleware("owner", "admin"), settingHandler.Save)
 		g.POST("/reset", middleware.RoleMiddleware("admin"), settingHandler.Reset)
+
+		g.GET("/store", settingHandler.GetStoreProfile)
+		g.POST("/store", middleware.RoleMiddleware("owner", "admin"), settingHandler.UpdateStoreProfile)
+
+		g.GET("/printer", settingHandler.GetPrinterSettings)
+		g.POST("/printer", middleware.RoleMiddleware("owner", "admin"), settingHandler.UpdatePrinterSettings)
+
+		g.GET("/:key", settingHandler.GetByKey)
 	}
 }

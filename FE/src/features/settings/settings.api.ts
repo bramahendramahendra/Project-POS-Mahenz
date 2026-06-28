@@ -9,6 +9,7 @@ import type {
   AppUser,
   ChangePasswordPayload,
   CreateUserPayload,
+  PrinterSettings,
   StoreProfile,
   UpdateUserPayload,
 } from './settings.types'
@@ -103,17 +104,9 @@ export function usePageSizeOptionsQuery() {
   })
 }
 
-export interface PrinterSettings {
-  paper_size: '58mm' | '80mm'
-  receipt_header: string
-  receipt_footer: string
-  show_logo: boolean
-  auto_print: boolean
-}
-
 export function usePrinterSettingsQuery() {
   return useQuery({
-    queryKey: ['settings', 'printer'],
+    queryKey: queryKeys.settings.printer(),
     queryFn: () => api.get<PrinterSettings>('/settings/printer'),
   })
 }
@@ -123,7 +116,7 @@ export function useUpdatePrinterSettingsMutation() {
   return useMutation({
     mutationFn: (payload: PrinterSettings) => api.post<PrinterSettings>('/settings/printer', payload),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings', 'printer'] })
+      qc.invalidateQueries({ queryKey: queryKeys.settings.printer() })
       toast.success('Pengaturan printer berhasil disimpan')
     },
     onError: (e: Error) => toast.error(e.message),

@@ -1,23 +1,13 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 
 import { useStoreProfileQuery, useUpdateStoreProfileMutation } from '../../settings.api'
-
-const storeSchema = z.object({
-  name: z.string().min(1, 'Nama toko wajib diisi'),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Format email tidak valid').optional().or(z.literal('')),
-  tax_default: z.number().min(0).max(100).optional(),
-})
-
-type StoreForm = z.infer<typeof storeSchema>
+import { storeProfileSchema, type StoreProfileFormValues } from '../store.schema'
 
 export function StoreProfileForm() {
   const { data: profile, isLoading } = useStoreProfileQuery()
@@ -28,8 +18,8 @@ export function StoreProfileForm() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<StoreForm>({
-    resolver: zodResolver(storeSchema),
+  } = useForm<StoreProfileFormValues>({
+    resolver: zodResolver(storeProfileSchema),
     defaultValues: { name: '', address: '', phone: '', email: '', tax_default: 0 },
   })
 
@@ -45,7 +35,7 @@ export function StoreProfileForm() {
     }
   }, [profile, reset])
 
-  const onSubmit = (values: StoreForm) => {
+  const onSubmit = (values: StoreProfileFormValues) => {
     updateProfile({
       name: values.name,
       address: values.address || undefined,

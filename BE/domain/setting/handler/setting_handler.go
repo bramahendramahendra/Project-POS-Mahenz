@@ -6,6 +6,7 @@ import (
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	binder "pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,5 +78,71 @@ func (h *SettingHandler) Reset(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Settings berhasil direset ke default",
+	})
+}
+
+// GET /api/settings/store
+func (h *SettingHandler) GetStoreProfile(c *gin.Context) {
+	data, err := h.service.GetStoreProfile()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Success",
+		Data:    data,
+	})
+}
+
+// POST /api/settings/store
+func (h *SettingHandler) UpdateStoreProfile(c *gin.Context) {
+	req, err := binder.BindJSON[dto.StoreProfileRequest](c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if err := h.service.UpdateStoreProfile(&req); err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Profil toko berhasil disimpan",
+	})
+}
+
+// GET /api/settings/printer
+func (h *SettingHandler) GetPrinterSettings(c *gin.Context) {
+	data, err := h.service.GetPrinterSettings()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Success",
+		Data:    data,
+	})
+}
+
+// POST /api/settings/printer
+func (h *SettingHandler) UpdatePrinterSettings(c *gin.Context) {
+	req, err := binder.BindJSON[dto.PrinterSettingsRequest](c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if err := h.service.UpdatePrinterSettings(&req); err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Pengaturan printer berhasil disimpan",
 	})
 }

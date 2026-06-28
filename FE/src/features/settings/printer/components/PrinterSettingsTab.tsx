@@ -14,7 +14,7 @@ import {
 } from '@/shared/components/ui/select'
 
 import { usePrinterSettingsQuery, useUpdatePrinterSettingsMutation } from '../../settings.api'
-import type { PrinterSettings } from '../../settings.api'
+import type { PrinterSettings } from '../../settings.types'
 
 const DEFAULT_SETTINGS: PrinterSettings = {
   paper_size: '80mm',

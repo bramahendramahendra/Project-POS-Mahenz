@@ -100,6 +100,7 @@ export const queryKeys = {
     users: () => ['settings', 'users'] as const,
     appVersions: () => ['settings', 'appVersions'] as const,
     pageSizeOptions: () => ['settings', 'pageSizeOptions'] as const,
+    printer: () => ['settings', 'printer'] as const,
   },
 
   sync: {
