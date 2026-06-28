@@ -9,7 +9,12 @@ import { Label } from '@/shared/components/ui/label'
 import { useStoreProfileQuery, useUpdateStoreProfileMutation } from '../../settings.api'
 import { storeProfileSchema, type StoreProfileFormValues } from '../store.schema'
 
-export function StoreProfileForm() {
+interface StoreProfileFormProps {
+  onCancel: () => void
+  onSuccess: () => void
+}
+
+export function StoreProfileForm({ onCancel, onSuccess }: StoreProfileFormProps) {
   const { data: profile, isLoading } = useStoreProfileQuery()
   const { mutate: updateProfile, isPending } = useUpdateStoreProfileMutation()
 
@@ -36,13 +41,16 @@ export function StoreProfileForm() {
   }, [profile, reset])
 
   const onSubmit = (values: StoreProfileFormValues) => {
-    updateProfile({
-      name: values.name,
-      address: values.address || undefined,
-      phone: values.phone || undefined,
-      email: values.email || undefined,
-      tax_default: values.tax_default,
-    })
+    updateProfile(
+      {
+        name: values.name,
+        address: values.address || undefined,
+        phone: values.phone || undefined,
+        email: values.email || undefined,
+        tax_default: values.tax_default,
+      },
+      { onSuccess },
+    )
   }
 
   if (isLoading) {
@@ -106,9 +114,14 @@ export function StoreProfileForm() {
         <p className="text-xs text-gray-400">Dipakai sebagai nilai awal pajak di halaman kasir</p>
       </div>
 
-      <Button type="submit" disabled={isPending}>
-        {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+        </Button>
+      </div>
     </form>
   )
 }

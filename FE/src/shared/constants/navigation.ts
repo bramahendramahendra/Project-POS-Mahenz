@@ -203,7 +203,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Profil Toko',
     path: ROUTES.SETTINGS_STORE,
     icon: Settings,
-    allowedRoles: [ROLES.OWNER],
+    allowedRoles: [ROLES.OWNER, ROLES.ADMIN, ROLES.KASIR],
     group: 'Sistem',
   },
   {

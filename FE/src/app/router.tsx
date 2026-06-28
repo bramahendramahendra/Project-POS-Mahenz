@@ -67,6 +67,7 @@ export const router = createBrowserRouter([
     children: [
       { path: ROUTES.KASIR,           element: <LazyRoute><CashierPage /></LazyRoute> },
       { path: ROUTES.FINANCE_MY_CASH, element: <LazyRoute><MyCashPage /></LazyRoute> },
+      { path: ROUTES.SETTINGS_STORE,  element: <LazyRoute><StoreProfilePage /></LazyRoute> },
     ],
   },
 
@@ -109,7 +110,6 @@ export const router = createBrowserRouter([
 
       // Pengaturan — owner & admin
       { path: ROUTES.SETTINGS,              element: <LazyRoute><SettingsPage /></LazyRoute> },
-      { path: ROUTES.SETTINGS_STORE,        element: <LazyRoute><StoreProfilePage /></LazyRoute> },
       { path: ROUTES.SETTINGS_PRINTER,      element: <LazyRoute><PrinterSettingsPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_ROLES,        element: <LazyRoute><RolesPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_ROLES_ACCESS, element: <LazyRoute><RoleAccessPage /></LazyRoute> },
