@@ -413,6 +413,7 @@ CREATE TABLE IF NOT EXISTS cash_drawer (
     status           ENUM('open','closed') DEFAULT 'open',
     notes            TEXT          NULL,
     open_notes       TEXT          NULL,
+    is_auto_closed   BOOLEAN       NOT NULL DEFAULT FALSE,
     created_at       DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at       DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE SET NULL,
@@ -523,6 +524,15 @@ CREATE TABLE IF NOT EXISTS sync_history (
 -- -------------------------------------------------------------
 -- Logging
 -- -------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS log_schedulers (
+    id             VARCHAR(36)              NOT NULL PRIMARY KEY,
+    scheduler_name VARCHAR(100)             NOT NULL,
+    status         ENUM('success','failed') NOT NULL,
+    message        TEXT                     NULL,
+    duration_ms    INT                      NULL,
+    executed_at    DATETIME                 NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS log_requests (
     id            VARCHAR(36)  NOT NULL PRIMARY KEY,

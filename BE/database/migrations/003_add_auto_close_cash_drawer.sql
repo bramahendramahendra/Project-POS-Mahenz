@@ -1,2 +1,0 @@
-ALTER TABLE cash_drawer
-    ADD COLUMN is_auto_closed BOOLEAN NOT NULL DEFAULT FALSE AFTER notes;

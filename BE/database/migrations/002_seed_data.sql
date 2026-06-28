@@ -139,15 +139,11 @@ SELECT m.id, 'keuangan.kas_harian', 'Kas Harian', 'Landmark', '/finance/cash-dra
 FROM menus m WHERE m.key_name = 'keuangan';
 
 INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
-SELECT m.id, 'keuangan.rekap_kas', 'Rekap Kas', 'BookOpen', '/finance/cash-drawer/rekap', 3
+SELECT m.id, 'keuangan.pengeluaran', 'Pengeluaran', 'TrendingDown', '/finance/expenses', 3
 FROM menus m WHERE m.key_name = 'keuangan';
 
 INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
-SELECT m.id, 'keuangan.pengeluaran', 'Pengeluaran', 'TrendingDown', '/finance/expenses', 4
-FROM menus m WHERE m.key_name = 'keuangan';
-
-INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
-SELECT m.id, 'keuangan.kas_saya', 'Kas Saya', 'Wallet', '/finance/my-cash', 5
+SELECT m.id, 'keuangan.kas_saya', 'Kas Saya', 'Wallet', '/finance/my-cash', 4
 FROM menus m WHERE m.key_name = 'keuangan';
 
 -- Group: Pelaporan
@@ -238,9 +234,15 @@ FROM roles r
 JOIN menus m ON m.key_name IN ('sistem.roles', 'sistem.menus', 'sistem.versi')
 WHERE r.name = 'admin';
 
--- KASIR: hanya kasir dan kas saya
+-- KASIR: kasir, kas saya, dan profil toko (view only)
 INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 SELECT r.id, m.id, 1, 1, 0, 0
 FROM roles r
 JOIN menus m ON m.key_name IN ('penjualan.kasir', 'keuangan.kas_saya')
+WHERE r.name = 'kasir';
+
+INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, m.id, 1, 0, 0, 0
+FROM roles r
+JOIN menus m ON m.key_name = 'sistem.profil_toko'
 WHERE r.name = 'kasir';
