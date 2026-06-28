@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
-import { useForm, type UseFormRegister } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -9,21 +8,10 @@ import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 
 import { useCreateRoleMutation, useRoleDetailQuery, useUpdateRoleMutation } from '../roles.api'
-import type { Role } from '../roles.types'
+import { createRoleSchema, editRoleSchema, type CreateRoleFormValues, type EditRoleFormValues } from '../roles.schema'
 
-const createSchema = z.object({
-  name:         z.string().min(2, 'Minimal 2 karakter').regex(/^[a-z0-9_]+$/, 'Hanya huruf kecil, angka, dan underscore'),
-  display_name: z.string().min(1, 'Label wajib diisi'),
-  description:  z.string().optional(),
-})
-
-const editSchema = z.object({
-  display_name: z.string().min(1, 'Label wajib diisi'),
-  description:  z.string().optional(),
-})
-
-type CreateForm = z.infer<typeof createSchema>
-type EditForm = z.infer<typeof editSchema>
+const createDefaults: CreateRoleFormValues = { name: '', display_name: '', description: '' }
+const editDefaults: EditRoleFormValues = { display_name: '', description: '' }
 
 interface RoleFormModalProps {
   open: boolean
@@ -31,65 +19,54 @@ interface RoleFormModalProps {
   roleId?: number
 }
 
-function mapToEditForm(role: Role): EditForm {
-  return { display_name: role.display_name, description: role.description ?? '' }
-}
+function CreateRoleForm({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { mutate: create, isPending } = useCreateRoleMutation()
 
-const createDefaults: CreateForm = { name: '', display_name: '', description: '' }
-const editDefaults: EditForm = { display_name: '', description: '' }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateRoleFormValues>({
+    resolver: zodResolver(createRoleSchema),
+    defaultValues: createDefaults,
+  })
 
-export function RoleFormModal({ open, onOpenChange, roleId }: RoleFormModalProps) {
-  const isEdit = roleId !== undefined
+  useEffect(() => {
+    if (!open) reset(createDefaults)
+  }, [open, reset])
 
-  const { data: detail } = useRoleDetailQuery(isEdit && open ? roleId! : 0)
-  const { mutate: create, isPending: isCreating } = useCreateRoleMutation()
-  const { mutate: update, isPending: isUpdating } = useUpdateRoleMutation()
-  const isPending = isCreating || isUpdating
-
-  const createForm = useForm<CreateForm>({ resolver: zodResolver(createSchema), defaultValues: createDefaults })
-  const editForm   = useForm<EditForm>({ resolver: zodResolver(editSchema), defaultValues: editDefaults })
-
-  const activeForm = isEdit ? editForm : createForm
-  const { handleSubmit, reset, formState: { errors } } = activeForm
-  const register = activeForm.register as UseFormRegister<{ display_name: string; description?: string }>
-
-  useEffect(() => { if (!open) reset(isEdit ? editDefaults : createDefaults) }, [open, reset, isEdit])
-  useEffect(() => { if (isEdit && detail) reset(mapToEditForm(detail)) }, [detail, isEdit, reset])
-
-  const onSubmit = (values: CreateForm | EditForm) => {
-    const cb = { onSuccess: () => onOpenChange(false) }
-    if (isEdit) {
-      update({ id: roleId!, ...(values as EditForm) }, cb)
-    } else {
-      create(values as CreateForm, cb)
-    }
+  const onSubmit = (values: CreateRoleFormValues) => {
+    create(values, { onSuccess: () => onOpenChange(false) })
   }
 
   return (
     <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      title={isEdit ? 'Edit Role' : 'Tambah Role'}
+      title="Tambah Role"
       size="sm"
       isLoading={isPending}
       onSubmit={handleSubmit(onSubmit)}
-      submitLabel={isEdit ? 'Simpan' : 'Tambah'}
+      submitLabel="Tambah"
     >
       <div className="space-y-3">
-        {!isEdit && (
-          <div className="space-y-1.5">
-            <Label>Nama Role (slug) <span className="text-red-500">*</span></Label>
-            <Input
-              {...(createForm.register('name'))}
-              placeholder="contoh: supervisor"
-              className={'name' in errors && errors.name ? 'border-red-500' : ''}
-            />
-            {'name' in errors && errors.name && (
-              <p className="text-xs text-red-500">{errors.name.message}</p>
-            )}
-            <p className="text-xs text-gray-400">Hanya huruf kecil, angka, dan underscore. Tidak bisa diubah setelah dibuat.</p>
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <Label>Nama Role (slug) <span className="text-red-500">*</span></Label>
+          <Input
+            {...register('name')}
+            placeholder="contoh: supervisor"
+            className={errors.name ? 'border-red-500' : ''}
+          />
+          {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+          <p className="text-xs text-gray-400">Hanya huruf kecil, angka, dan underscore. Tidak bisa diubah setelah dibuat.</p>
+        </div>
 
         <div className="space-y-1.5">
           <Label>Label Tampil <span className="text-red-500">*</span></Label>
@@ -98,20 +75,89 @@ export function RoleFormModal({ open, onOpenChange, roleId }: RoleFormModalProps
             placeholder="contoh: Supervisor Gudang"
             className={errors.display_name ? 'border-red-500' : ''}
           />
-          {errors.display_name && (
-            <p className="text-xs text-red-500">{errors.display_name.message}</p>
-          )}
+          {errors.display_name && <p className="text-xs text-red-500">{errors.display_name.message}</p>}
         </div>
 
         <div className="space-y-1.5">
           <Label>Deskripsi</Label>
-          <Textarea
-            {...register('description')}
-            placeholder="Deskripsi role ini..."
-            rows={3}
-          />
+          <Textarea {...register('description')} placeholder="Deskripsi role ini..." rows={3} />
         </div>
       </div>
     </FormModal>
   )
+}
+
+function EditRoleForm({
+  open,
+  onOpenChange,
+  roleId,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  roleId: number
+}) {
+  const { data: detail } = useRoleDetailQuery(open ? roleId : 0)
+  const { mutate: update, isPending } = useUpdateRoleMutation()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<EditRoleFormValues>({
+    resolver: zodResolver(editRoleSchema),
+    defaultValues: editDefaults,
+  })
+
+  useEffect(() => {
+    if (!open) {
+      reset(editDefaults)
+    }
+  }, [open, reset])
+
+  useEffect(() => {
+    if (detail) {
+      reset({ display_name: detail.display_name, description: detail.description ?? '' })
+    }
+  }, [detail, reset])
+
+  const onSubmit = (values: EditRoleFormValues) => {
+    update({ id: roleId, ...values }, { onSuccess: () => onOpenChange(false) })
+  }
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit Role"
+      size="sm"
+      isLoading={isPending}
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Simpan"
+    >
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label>Label Tampil <span className="text-red-500">*</span></Label>
+          <Input
+            {...register('display_name')}
+            placeholder="contoh: Supervisor Gudang"
+            className={errors.display_name ? 'border-red-500' : ''}
+          />
+          {errors.display_name && <p className="text-xs text-red-500">{errors.display_name.message}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Deskripsi</Label>
+          <Textarea {...register('description')} placeholder="Deskripsi role ini..." rows={3} />
+        </div>
+      </div>
+    </FormModal>
+  )
+}
+
+export function RoleFormModal({ open, onOpenChange, roleId }: RoleFormModalProps) {
+  if (roleId !== undefined) {
+    return <EditRoleForm open={open} onOpenChange={onOpenChange} roleId={roleId} />
+  }
+  return <CreateRoleForm open={open} onOpenChange={onOpenChange} />
 }

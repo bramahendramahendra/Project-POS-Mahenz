@@ -8,10 +8,11 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Switch } from '@/shared/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { Input } from '@/shared/components/ui/input'
-import { useDebounce } from '@/shared/hooks'
+import { useDebounce, useDisclosure } from '@/shared/hooks'
+import { ROUTES } from '@/shared/constants/routes'
 
 import { useDeleteRoleMutation, useRoleListQuery, useToggleRoleStatusMutation } from './roles.api'
-import { useRolesStore } from './roles.store'
+import type { Role } from './roles.types'
 import { RoleFormModal } from './components/RoleFormModal'
 
 export function RolesPage() {
@@ -19,10 +20,11 @@ export function RolesPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
-  const {
-    roleModalOpen, editingRoleId, openRoleModal, closeRoleModal,
-    deleteConfirmOpen, deleteTarget, openDeleteConfirm, closeDeleteConfirm,
-  } = useRolesStore()
+  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+
+  const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null)
 
   const { data: roles = [], isLoading } = useRoleListQuery(
     debouncedSearch ? { search: debouncedSearch } : undefined
@@ -30,9 +32,34 @@ export function RolesPage() {
   const { mutate: deleteRole, isPending: isDeleting } = useDeleteRoleMutation()
   const { mutate: toggleStatus } = useToggleRoleStatusMutation()
 
-  const handleDelete = () => {
-    if (!deleteTarget) return
-    deleteRole(deleteTarget.id, { onSuccess: () => closeDeleteConfirm() })
+  const handleOpenAdd = () => {
+    setEditingRole(null)
+    openForm()
+  }
+
+  const handleOpenEdit = (role: Role) => {
+    setEditingRole(role)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingRole(null)
+  }
+
+  const handleOpenDelete = (role: Role) => {
+    setDeletingRole(role)
+    openDelete()
+  }
+
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingRole(null)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deletingRole) return
+    deleteRole(deletingRole.id, { onSuccess: () => handleCloseDelete() })
   }
 
   return (
@@ -41,7 +68,7 @@ export function RolesPage() {
         title="Manajemen Role"
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Manajemen Role' }]}
         actions={
-          <Button onClick={() => openRoleModal()}>
+          <Button onClick={handleOpenAdd}>
             <Shield size={14} className="mr-2" />
             Tambah Role
           </Button>
@@ -101,7 +128,7 @@ export function RolesPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={() => navigate(`/settings/roles/${role.id}/access`)}
+                          onClick={() => navigate(ROUTES.SETTINGS_ROLES_ACCESS.replace(':id', String(role.id)))}
                         >
                           <Settings size={14} />
                         </Button>
@@ -110,11 +137,7 @@ export function RolesPage() {
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => openRoleModal(role.id)}
-                        >
+                        <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(role)}>
                           <Pencil size={14} />
                         </Button>
                       </TooltipTrigger>
@@ -127,7 +150,7 @@ export function RolesPage() {
                             size="icon"
                             variant="ghost"
                             className="text-red-500 hover:text-red-600"
-                            onClick={() => openDeleteConfirm({ id: role.id, name: role.display_name })}
+                            onClick={() => handleOpenDelete(role)}
                           >
                             <Trash2 size={14} />
                           </Button>
@@ -144,20 +167,20 @@ export function RolesPage() {
       </div>
 
       <RoleFormModal
-        open={roleModalOpen}
-        onOpenChange={closeRoleModal}
-        roleId={editingRoleId ?? undefined}
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
+        roleId={editingRole?.id}
       />
 
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={(o) => { if (!o) closeDeleteConfirm() }}
+        open={deleteOpen}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Role"
-        description={`Yakin ingin menghapus role "${deleteTarget?.name}"? Semua user dengan role ini harus dipindahkan terlebih dahulu.`}
+        description={`Yakin ingin menghapus role "${deletingRole?.display_name}"? Semua user dengan role ini harus dipindahkan terlebih dahulu.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )

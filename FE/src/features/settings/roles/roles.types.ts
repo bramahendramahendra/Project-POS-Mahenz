@@ -22,10 +22,8 @@ export interface UpdateRolePayload {
 export interface RoleFilter {
   search?: string
   is_active?: boolean
-  [key: string]: unknown
 }
 
-// Untuk halaman RoleAccessPage
 export interface RoleMenuAccessItem {
   menu_id: number
   key_name: string

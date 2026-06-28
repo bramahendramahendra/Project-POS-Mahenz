@@ -68,7 +68,7 @@ export function useDeleteRoleMutation() {
 export function useRoleMenuAccessQuery(roleId: number) {
   return useQuery({
     queryKey: queryKeys.roles.menus(roleId),
-    queryFn: () => api.post<RoleMenuAccessItem[]>(`/roles/menus/${roleId}`, {}),
+    queryFn: () => api.post<RoleMenuAccessItem[]>(`/roles/${roleId}/menus/list`, {}),
     enabled: roleId > 0,
   })
 }
@@ -77,7 +77,7 @@ export function useSetRoleAccessMutation(roleId: number) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: SetRoleAccessPayload) =>
-      api.post(`/roles/set-access/${roleId}`, payload),
+      api.post(`/roles/${roleId}/menus/set`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.roles.menus(roleId) })
       toast.success('Akses menu role berhasil disimpan')

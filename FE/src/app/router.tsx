@@ -106,6 +106,11 @@ export const router = createBrowserRouter([
       // Operasional
       { path: ROUTES.SHIFTS, element: <LazyRoute><ShiftsPage /></LazyRoute> },
       { path: ROUTES.SYNC,   element: <LazyRoute><SyncCenterPage /></LazyRoute> },
+
+      // Pengaturan — owner & admin
+      { path: ROUTES.SETTINGS,         element: <LazyRoute><SettingsPage /></LazyRoute> },
+      { path: ROUTES.SETTINGS_STORE,   element: <LazyRoute><StoreProfilePage /></LazyRoute> },
+      { path: ROUTES.SETTINGS_PRINTER, element: <LazyRoute><PrinterSettingsPage /></LazyRoute> },
     ],
   },
 
@@ -113,10 +118,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute allowedRoles={[...OWNER_ONLY]} />,
     children: [
-      { path: ROUTES.SETTINGS,               element: <LazyRoute><SettingsPage /></LazyRoute> },
-      { path: ROUTES.SETTINGS_STORE,         element: <LazyRoute><StoreProfilePage /></LazyRoute> },
       { path: ROUTES.SETTINGS_USERS,         element: <LazyRoute><UserManagementPage /></LazyRoute> },
-      { path: ROUTES.SETTINGS_PRINTER,       element: <LazyRoute><PrinterSettingsPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_VERSIONS,      element: <LazyRoute><AppVersionPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_ROLES,         element: <LazyRoute><RolesPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_ROLES_ACCESS,  element: <LazyRoute><RoleAccessPage /></LazyRoute> },

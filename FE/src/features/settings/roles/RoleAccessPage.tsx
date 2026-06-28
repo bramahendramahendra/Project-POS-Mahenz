@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 
@@ -19,6 +19,53 @@ interface AccessState {
   }
 }
 
+type AccessField = keyof AccessState[number]
+
+interface CheckboxCellProps {
+  menuId: number
+  field: AccessField
+  accessState: AccessState
+  onToggle: (menuId: number, field: AccessField) => void
+}
+
+function CheckboxCell({ menuId, field, accessState, onToggle }: CheckboxCellProps) {
+  const checked = accessState[menuId]?.[field] ?? false
+  return (
+    <td className="text-center px-3 py-2.5">
+      <Checkbox
+        checked={checked}
+        onCheckedChange={() => onToggle(menuId, field)}
+        className="cursor-pointer"
+      />
+    </td>
+  )
+}
+
+interface AccessRowProps {
+  item: RoleMenuAccessItem
+  isChild?: boolean
+  accessState: AccessState
+  onToggle: (menuId: number, field: AccessField) => void
+}
+
+function AccessRow({ item, isChild = false, accessState, onToggle }: AccessRowProps) {
+  return (
+    <tr key={item.menu_id} className="border-b last:border-0 hover:bg-gray-50">
+      <td className="px-4 py-2.5">
+        <span className={`${isChild ? 'ml-6 text-gray-600' : 'font-medium'} text-sm`}>
+          {isChild && <span className="text-gray-300 mr-2">└</span>}
+          {item.label}
+          <span className="ml-2 text-xs text-gray-400 font-mono">{item.key_name}</span>
+        </span>
+      </td>
+      <CheckboxCell menuId={item.menu_id} field="can_view" accessState={accessState} onToggle={onToggle} />
+      <CheckboxCell menuId={item.menu_id} field="can_create" accessState={accessState} onToggle={onToggle} />
+      <CheckboxCell menuId={item.menu_id} field="can_edit" accessState={accessState} onToggle={onToggle} />
+      <CheckboxCell menuId={item.menu_id} field="can_delete" accessState={accessState} onToggle={onToggle} />
+    </tr>
+  )
+}
+
 export function RoleAccessPage() {
   const { id } = useParams<{ id: string }>()
   const roleId = Number(id)
@@ -30,7 +77,6 @@ export function RoleAccessPage() {
 
   const [accessState, setAccessState] = useState<AccessState>({})
 
-  // Inisialisasi state dari data server
   useEffect(() => {
     if (accessItems.length > 0) {
       const initial: AccessState = {}
@@ -46,17 +92,15 @@ export function RoleAccessPage() {
     }
   }, [accessItems])
 
-  const toggle = (menuId: number, field: keyof AccessState[number]) => {
+  const handleToggle = (menuId: number, field: AccessField) => {
     setAccessState((prev) => {
       const current = prev[menuId] ?? { can_view: false, can_create: false, can_edit: false, can_delete: false }
       const updated = { ...current, [field]: !current[field] }
-      // Jika can_view dimatikan, matikan semua
       if (field === 'can_view' && !updated.can_view) {
         updated.can_create = false
         updated.can_edit   = false
         updated.can_delete = false
       }
-      // Jika create/edit/delete diaktifkan, pastikan can_view juga aktif
       if (field !== 'can_view' && updated[field]) {
         updated.can_view = true
       }
@@ -75,38 +119,8 @@ export function RoleAccessPage() {
     saveAccess({ accesses })
   }
 
-  // Pisahkan parent dan children untuk tampilan tree
   const parents = accessItems.filter((i) => i.parent_id === null)
   const childrenOf = (parentId: number) => accessItems.filter((i) => i.parent_id === parentId)
-
-  const CheckboxCell = ({ menuId, field }: { menuId: number; field: keyof AccessState[number] }) => {
-    const checked = accessState[menuId]?.[field] ?? false
-    return (
-      <td className="text-center px-3 py-2.5">
-        <Checkbox
-          checked={checked}
-          onCheckedChange={() => toggle(menuId, field)}
-          className="cursor-pointer"
-        />
-      </td>
-    )
-  }
-
-  const renderRow = (item: RoleMenuAccessItem, isChild = false) => (
-    <tr key={item.menu_id} className="border-b last:border-0 hover:bg-gray-50">
-      <td className="px-4 py-2.5">
-        <span className={`${isChild ? 'ml-6 text-gray-600' : 'font-medium'} text-sm`}>
-          {isChild && <span className="text-gray-300 mr-2">└</span>}
-          {item.label}
-          <span className="ml-2 text-xs text-gray-400 font-mono">{item.key_name}</span>
-        </span>
-      </td>
-      <CheckboxCell menuId={item.menu_id} field="can_view" />
-      <CheckboxCell menuId={item.menu_id} field="can_create" />
-      <CheckboxCell menuId={item.menu_id} field="can_edit" />
-      <CheckboxCell menuId={item.menu_id} field="can_delete" />
-    </tr>
-  )
 
   return (
     <div className="space-y-4">
@@ -147,10 +161,12 @@ export function RoleAccessPage() {
               <tr><td colSpan={5} className="text-center py-8 text-gray-400">Memuat...</td></tr>
             )}
             {!isLoading && parents.map((parent) => (
-              <>
-                {renderRow(parent)}
-                {childrenOf(parent.menu_id).map((child) => renderRow(child, true))}
-              </>
+              <React.Fragment key={parent.menu_id}>
+                <AccessRow item={parent} accessState={accessState} onToggle={handleToggle} />
+                {childrenOf(parent.menu_id).map((child) => (
+                  <AccessRow key={child.menu_id} item={child} isChild accessState={accessState} onToggle={handleToggle} />
+                ))}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
