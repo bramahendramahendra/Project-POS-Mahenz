@@ -1,3 +1,6 @@
+import { Banknote, CreditCard, PackageX, ShoppingBag, TrendingUp } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+
 import { formatRupiah } from '@/shared/utils'
 
 import type { DashboardStats } from '../dashboard.types'
@@ -7,18 +10,18 @@ interface SummaryCardsProps {
   isLoading: boolean
 }
 
-interface CardProps {
-  icon: string
+interface StatCardProps {
+  icon: LucideIcon
   label: string
   value: string
   isLoading: boolean
 }
 
-function StatCard({ icon, label, value, isLoading }: CardProps) {
+function StatCard({ icon: Icon, label, value, isLoading }: StatCardProps) {
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm space-y-1">
+    <div className="rounded-lg border bg-white p-4 shadow-sm space-y-1">
       <div className="flex items-center gap-2 text-gray-500 text-sm">
-        <span>{icon}</span>
+        <Icon size={15} />
         <span>{label}</span>
       </div>
       {isLoading ? (
@@ -34,31 +37,31 @@ export function SummaryCards({ stats, isLoading }: SummaryCardsProps) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
       <StatCard
-        icon="🧾"
+        icon={ShoppingBag}
         label="Transaksi Hari Ini"
         value={String(stats?.today.total_transactions ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
-        icon="💰"
+        icon={Banknote}
         label="Pendapatan Hari Ini"
         value={formatRupiah(stats?.today.total_sales ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
-        icon="📈"
+        icon={TrendingUp}
         label="Laba Kotor Hari Ini"
         value={formatRupiah(stats?.today.gross_profit ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
-        icon="📦"
+        icon={PackageX}
         label="Stok Menipis"
         value={String(stats?.low_stock_count ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
-        icon="💳"
+        icon={CreditCard}
         label="Piutang Terbuka"
         value={String(stats?.open_receivables ?? 0)}
         isLoading={isLoading}

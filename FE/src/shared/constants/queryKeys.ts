@@ -69,10 +69,9 @@ export const queryKeys = {
 
   dashboard: {
     all: () => ['dashboard'] as const,
-    stats: (period: string) => ['dashboard', 'stats', period] as const,
+    stats: () => ['dashboard', 'stats'] as const,
     salesTrend: (period: string) => ['dashboard', 'salesTrend', period] as const,
     topProducts: (period: string) => ['dashboard', 'topProducts', period] as const,
-    summaryExtra: (period: string) => ['dashboard', 'summaryExtra', period] as const,
   },
 
   reports: {

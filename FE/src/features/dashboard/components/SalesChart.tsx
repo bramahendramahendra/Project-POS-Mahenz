@@ -42,7 +42,7 @@ function CustomTooltip({
 
 export function SalesChart({ data, isLoading }: SalesChartProps) {
   if (isLoading) {
-    return <div className="h-[300px] animate-pulse rounded-xl bg-gray-100" />
+    return <div className="h-[300px] animate-pulse rounded-lg bg-gray-100" />
   }
 
   return (

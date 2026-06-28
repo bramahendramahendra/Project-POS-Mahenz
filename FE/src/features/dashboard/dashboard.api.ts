@@ -8,12 +8,10 @@ import type {
   DashboardStats,
   SalesTrendItem,
   TopProductItem,
-  SummaryExtraResponse,
 } from './dashboard.types'
 
 function periodToTrendParam(period: DashboardPeriod): string {
   switch (period) {
-    case 'week':  return '7days'
     case 'month': return '30days'
     default:      return '7days'
   }
@@ -30,15 +28,17 @@ function periodToDateRange(period: DashboardPeriod): { start_date: string; end_d
   } else if (period === 'month') {
     start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   } else {
-    start = end
+    const d = new Date(now)
+    d.setDate(d.getDate() - 6)
+    start = d.toISOString().split('T')[0]
   }
   return { start_date: start, end_date: end }
 }
 
-export function useDashboardStatsQuery(period: DashboardPeriod) {
+export function useDashboardStatsQuery() {
   const today = new Date().toISOString().split('T')[0]
   return useQuery({
-    queryKey: queryKeys.dashboard.stats(period),
+    queryKey: queryKeys.dashboard.stats(),
     queryFn: () => api.get<DashboardStats>('/dashboard/stats', { date: today }),
   })
 }
@@ -56,14 +56,5 @@ export function useTopProductsQuery(period: DashboardPeriod) {
   return useQuery({
     queryKey: queryKeys.dashboard.topProducts(period),
     queryFn: () => api.get<TopProductItem[]>('/dashboard/top-products', { ...range, limit: 10 }),
-  })
-}
-
-export function useSummaryExtraQuery(period: DashboardPeriod) {
-  const paramMap: Record<DashboardPeriod, string> = { today: 'today', week: '7days', month: 'month' }
-  return useQuery({
-    queryKey: queryKeys.dashboard.summaryExtra(period),
-    queryFn: () =>
-      api.get<SummaryExtraResponse>('/dashboard/summary-extra', { period: paramMap[period] }),
   })
 }
