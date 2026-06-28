@@ -8,6 +8,7 @@ import type {
   AppVersion,
   AppUser,
   ChangePasswordPayload,
+  CreateAppVersionPayload,
   CreateUserPayload,
   PrinterSettings,
   StoreProfile,
@@ -89,7 +90,19 @@ export function useDeleteUserMutation() {
 export function useAppVersionListQuery() {
   return useQuery({
     queryKey: queryKeys.settings.appVersions(),
-    queryFn: () => api.get<AppVersion[]>('/settings/app-versions'),
+    queryFn: () => api.post<AppVersion[]>('/version/list', {}),
+  })
+}
+
+export function useCreateAppVersionMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateAppVersionPayload) => api.post('/version/android', payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.settings.appVersions() })
+      toast.success('Versi berhasil ditambahkan')
+    },
+    onError: (e: Error) => toast.error(e.message),
   })
 }
 

@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 
 import { FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -10,21 +9,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { useCreateMenuMutation, useMenuDetailQuery, useUpdateMenuMutation } from '@/features/menu/menu.api'
 import type { MenuResponse } from '@/features/menu/menu.types'
+import {
+  createMenuSchema,
+  editMenuSchema,
+  type CreateMenuFormValues,
+  type EditMenuFormValues,
+} from '../menus.schema'
 
-const schema = z.object({
-  parent_id:   z.number().nullable().optional(),
-  key_name:    z.string().min(2, 'Minimal 2 karakter').optional(),
-  label:       z.string().min(1, 'Label wajib diisi'),
-  icon:        z.string().optional(),
-  path:        z.string().optional(),
-  order_index: z.number().optional(),
-})
-
-type FormValues = z.infer<typeof schema>
-
-const defaultValues: FormValues = {
+const createDefaults: CreateMenuFormValues = {
   parent_id: null,
   key_name: '',
+  label: '',
+  icon: '',
+  path: '',
+  order_index: 0,
+}
+
+const editDefaults: EditMenuFormValues = {
+  parent_id: null,
   label: '',
   icon: '',
   path: '',
@@ -38,81 +40,83 @@ interface MenuFormModalProps {
   allMenus: MenuResponse[]
 }
 
-export function MenuFormModal({ open, onOpenChange, menuId, allMenus }: MenuFormModalProps) {
-  const isEdit = menuId !== undefined
+function ParentSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: number | null | undefined
+  onChange: (v: number | null) => void
+  options: MenuResponse[]
+}) {
+  return (
+    <Select
+      value={value?.toString() ?? 'none'}
+      onValueChange={(v) => onChange(v === 'none' ? null : Number(v))}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Tidak ada (root)" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="none">Tidak ada (root)</SelectItem>
+        {options.map((m) => (
+          <SelectItem key={m.id} value={m.id.toString()}>{m.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 
-  const { data: detail } = useMenuDetailQuery(isEdit && open ? menuId! : 0)
-  const { mutate: create, isPending: isCreating } = useCreateMenuMutation()
-  const { mutate: update, isPending: isUpdating } = useUpdateMenuMutation()
-  const isPending = isCreating || isUpdating
+function CreateMenuForm({
+  open,
+  onOpenChange,
+  allMenus,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  allMenus: MenuResponse[]
+}) {
+  const { mutate: create, isPending } = useCreateMenuMutation()
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
-    useForm<FormValues>({ resolver: zodResolver(schema), defaultValues })
+    useForm<CreateMenuFormValues>({ resolver: zodResolver(createMenuSchema), defaultValues: createDefaults })
 
-  useEffect(() => { if (!open) reset(defaultValues) }, [open, reset])
-  useEffect(() => {
-    if (isEdit && detail) {
-      reset({
-        parent_id:   detail.parent_id,
-        label:       detail.label,
-        icon:        detail.icon ?? '',
-        path:        detail.path ?? '',
-        order_index: detail.order_index,
-      })
-    }
-  }, [detail, isEdit, reset])
+  useEffect(() => { if (!open) reset(createDefaults) }, [open, reset])
 
-  const onSubmit = (values: FormValues) => {
-    const cb = { onSuccess: () => onOpenChange(false) }
-    if (isEdit) {
-      update({ id: menuId!, ...values }, cb)
-    } else {
-      create({ ...values, key_name: values.key_name ?? '' }, cb)
-    }
+  const onSubmit = (values: CreateMenuFormValues) => {
+    create(values, { onSuccess: () => onOpenChange(false) })
   }
 
-  // Filter: tidak boleh pilih dirinya sendiri sebagai parent
-  const parentOptions = allMenus.filter((m) => m.id !== menuId && m.parent_id === null)
+  const parentOptions = allMenus.filter((m) => m.parent_id === null)
 
   return (
     <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      title={isEdit ? 'Edit Menu' : 'Tambah Menu'}
+      title="Tambah Menu"
       size="sm"
       isLoading={isPending}
       onSubmit={handleSubmit(onSubmit)}
-      submitLabel={isEdit ? 'Simpan' : 'Tambah'}
+      submitLabel="Tambah"
     >
       <div className="space-y-3">
-        {!isEdit && (
-          <div className="space-y-1.5">
-            <Label>Key Name <span className="text-red-500">*</span></Label>
-            <Input
-              {...register('key_name')}
-              placeholder="contoh: inventory.warehouse"
-              className={errors.key_name ? 'border-red-500' : ''}
-            />
-            {errors.key_name && <p className="text-xs text-red-500">{errors.key_name.message}</p>}
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <Label>Key Name <span className="text-red-500">*</span></Label>
+          <Input
+            {...register('key_name')}
+            placeholder="contoh: inventory.warehouse"
+            className={errors.key_name ? 'border-red-500' : ''}
+          />
+          {errors.key_name && <p className="text-xs text-red-500">{errors.key_name.message}</p>}
+        </div>
 
         <div className="space-y-1.5">
           <Label>Parent Menu</Label>
-          <Select
-            value={watch('parent_id')?.toString() ?? 'none'}
-            onValueChange={(v) => setValue('parent_id', v === 'none' ? null : Number(v))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Tidak ada (root)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Tidak ada (root)</SelectItem>
-              {parentOptions.map((m) => (
-                <SelectItem key={m.id} value={m.id.toString()}>{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ParentSelect
+            value={watch('parent_id')}
+            onChange={(v) => setValue('parent_id', v)}
+            options={parentOptions}
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -138,12 +142,103 @@ export function MenuFormModal({ open, onOpenChange, menuId, allMenus }: MenuForm
 
         <div className="space-y-1.5">
           <Label>Urutan</Label>
-          <Input
-            type="number"
-            {...register('order_index', { valueAsNumber: true })}
-          />
+          <Input type="number" {...register('order_index', { valueAsNumber: true })} />
         </div>
       </div>
     </FormModal>
   )
+}
+
+function EditMenuForm({
+  open,
+  onOpenChange,
+  menuId,
+  allMenus,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  menuId: number
+  allMenus: MenuResponse[]
+}) {
+  const { data: detail } = useMenuDetailQuery(open ? menuId : 0)
+  const { mutate: update, isPending } = useUpdateMenuMutation()
+
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
+    useForm<EditMenuFormValues>({ resolver: zodResolver(editMenuSchema), defaultValues: editDefaults })
+
+  useEffect(() => { if (!open) reset(editDefaults) }, [open, reset])
+
+  useEffect(() => {
+    if (detail) {
+      reset({
+        parent_id:   detail.parent_id,
+        label:       detail.label,
+        icon:        detail.icon ?? '',
+        path:        detail.path ?? '',
+        order_index: detail.order_index,
+      })
+    }
+  }, [detail, reset])
+
+  const onSubmit = (values: EditMenuFormValues) => {
+    update({ id: menuId, ...values }, { onSuccess: () => onOpenChange(false) })
+  }
+
+  const parentOptions = allMenus.filter((m) => m.id !== menuId && m.parent_id === null)
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit Menu"
+      size="sm"
+      isLoading={isPending}
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Simpan"
+    >
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label>Parent Menu</Label>
+          <ParentSelect
+            value={watch('parent_id')}
+            onChange={(v) => setValue('parent_id', v)}
+            options={parentOptions}
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Label <span className="text-red-500">*</span></Label>
+          <Input
+            {...register('label')}
+            placeholder="contoh: Gudang"
+            className={errors.label ? 'border-red-500' : ''}
+          />
+          {errors.label && <p className="text-xs text-red-500">{errors.label.message}</p>}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label>Icon (Lucide)</Label>
+            <Input {...register('icon')} placeholder="contoh: Warehouse" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Path URL</Label>
+            <Input {...register('path')} placeholder="contoh: /warehouse" />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Urutan</Label>
+          <Input type="number" {...register('order_index', { valueAsNumber: true })} />
+        </div>
+      </div>
+    </FormModal>
+  )
+}
+
+export function MenuFormModal({ open, onOpenChange, menuId, allMenus }: MenuFormModalProps) {
+  if (menuId !== undefined) {
+    return <EditMenuForm open={open} onOpenChange={onOpenChange} menuId={menuId} allMenus={allMenus} />
+  }
+  return <CreateMenuForm open={open} onOpenChange={onOpenChange} allMenus={allMenus} />
 }

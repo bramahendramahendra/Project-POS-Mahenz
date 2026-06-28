@@ -20,6 +20,21 @@ func NewVersionHandler(svc service.VersionServiceInterface) *VersionHandler {
 	return &VersionHandler{service: svc}
 }
 
+// GET /api/version/list
+func (h *VersionHandler) GetAll(c *gin.Context) {
+	data, err := h.service.GetAll()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Daftar versi aplikasi",
+		Data:    data,
+	})
+}
+
 // GET /api/version/android
 func (h *VersionHandler) CheckAndroid(c *gin.Context) {
 	currentVersion := c.Query("current_version")

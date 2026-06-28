@@ -4,6 +4,7 @@ import { Printer } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
 import {
   Select,
@@ -20,44 +21,8 @@ const DEFAULT_SETTINGS: PrinterSettings = {
   paper_size: '80mm',
   receipt_header: '',
   receipt_footer: 'Terima kasih telah berbelanja!',
-  show_logo: true,
+  show_logo: false,
   auto_print: false,
-}
-
-function ToggleRow({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string
-  description?: string
-  checked: boolean
-  onChange: (val: boolean) => void
-}) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-      <div>
-        <p className="text-sm font-medium text-gray-800">{label}</p>
-        {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-          checked ? 'bg-[#2c3e50]' : 'bg-gray-200'
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-            checked ? 'translate-x-6' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  )
 }
 
 function openTestPrint(settings: PrinterSettings) {
@@ -106,7 +71,7 @@ export function PrinterSettingsTab() {
     if (data) setForm(data)
   }, [data])
 
-  function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     save(form)
   }
@@ -123,7 +88,6 @@ export function PrinterSettingsTab() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg space-y-6">
-      {/* Paper & Header */}
       <div className="rounded-lg border bg-white p-5 space-y-4">
         <h3 className="text-sm font-semibold text-gray-700">Konfigurasi Struk</h3>
 
@@ -166,26 +130,34 @@ export function PrinterSettingsTab() {
         </div>
       </div>
 
-      {/* Toggles */}
       <div className="rounded-lg border bg-white px-5 py-2">
         <h3 className="text-sm font-semibold text-gray-700 py-3 border-b border-gray-100">
           Preferensi
         </h3>
-        <ToggleRow
-          label="Tampilkan Logo"
-          description="Tampilkan logo toko di bagian atas struk"
-          checked={form.show_logo}
-          onChange={(v) => setForm((f) => ({ ...f, show_logo: v }))}
-        />
-        <ToggleRow
-          label="Auto Print"
-          description="Langsung cetak struk setelah transaksi selesai"
-          checked={form.auto_print}
-          onChange={(v) => setForm((f) => ({ ...f, auto_print: v }))}
-        />
+
+        <div className="flex items-center justify-between py-3 border-b border-gray-100">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Tampilkan Logo</p>
+            <p className="text-xs text-gray-500 mt-0.5">Tampilkan logo toko di bagian atas struk</p>
+          </div>
+          <Switch
+            checked={form.show_logo}
+            onCheckedChange={(v) => setForm((f) => ({ ...f, show_logo: v }))}
+          />
+        </div>
+
+        <div className="flex items-center justify-between py-3">
+          <div>
+            <p className="text-sm font-medium text-gray-800">Auto Print</p>
+            <p className="text-xs text-gray-500 mt-0.5">Langsung cetak struk setelah transaksi selesai</p>
+          </div>
+          <Switch
+            checked={form.auto_print}
+            onCheckedChange={(v) => setForm((f) => ({ ...f, auto_print: v }))}
+          />
+        </div>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3">
         <Button
           type="button"

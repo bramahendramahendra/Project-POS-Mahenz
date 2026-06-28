@@ -7,6 +7,7 @@ import (
 
 type (
 	VersionServiceInterface interface {
+		GetAll() ([]dto.AppVersionListItem, error)
 		CheckAndroid(currentVersion string) (*dto.VersionCheckResponse, error)
 		UpdateAndroidVersion(req *dto.UpdateVersionRequest) error
 	}

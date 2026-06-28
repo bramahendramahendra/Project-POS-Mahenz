@@ -15,5 +15,9 @@ func VersionAdminRoutes(r *gin.RouterGroup) {
 	versionService := version_service.NewVersionService(versionRepo)
 	versionHandler := version_handler.NewVersionHandler(versionService)
 
-	r.POST("/version/android", middleware.RoleMiddleware("admin"), versionHandler.UpdateAndroidVersion)
+	g := r.Group("/version")
+	{
+		g.POST("/list", middleware.RoleMiddleware("owner", "admin"), versionHandler.GetAll)
+		g.POST("/android", middleware.RoleMiddleware("owner", "admin"), versionHandler.UpdateAndroidVersion)
+	}
 }

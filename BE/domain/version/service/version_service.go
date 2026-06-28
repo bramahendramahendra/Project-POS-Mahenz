@@ -5,6 +5,27 @@ import (
 	"pos_api/errors"
 )
 
+func (s *versionService) GetAll() ([]dto.AppVersionListItem, error) {
+	versions, err := s.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	items := make([]dto.AppVersionListItem, len(versions))
+	for i, v := range versions {
+		items[i] = dto.AppVersionListItem{
+			ID:           v.ID,
+			Platform:     v.Platform,
+			Version:      v.Version,
+			DownloadURL:  v.DownloadURL,
+			ReleaseNotes: v.ReleaseNotes,
+			IsMandatory:  v.IsMandatory,
+			IsLatest:     v.IsLatest,
+			CreatedAt:    v.CreatedAt,
+		}
+	}
+	return items, nil
+}
+
 func (s *versionService) CheckAndroid(currentVersion string) (*dto.VersionCheckResponse, error) {
 	latest, err := s.repo.GetLatestAndroid()
 	if err != nil {

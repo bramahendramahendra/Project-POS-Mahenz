@@ -5,56 +5,58 @@ import { ConfirmDialog, PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Input } from '@/shared/components/ui/input'
-import { useDebounce } from '@/shared/hooks'
-import { create } from 'zustand'
+import { useDebounce, useDisclosure } from '@/shared/hooks'
 
 import { useDeleteMenuMutation, useMenuListQuery } from '@/features/menu/menu.api'
 import type { MenuResponse } from '@/features/menu/menu.types'
 
 import { MenuFormModal } from './components/MenuFormModal'
 
-interface MenusPageState {
-  editingMenuId: number | null
-  menuModalOpen: boolean
-  deleteConfirmOpen: boolean
-  deleteTarget: { id: number; label: string } | null
-  openMenuModal: (id?: number) => void
-  closeMenuModal: () => void
-  openDeleteConfirm: (target: { id: number; label: string }) => void
-  closeDeleteConfirm: () => void
-}
-
-const useMenusPageStore = create<MenusPageState>((set) => ({
-  editingMenuId: null,
-  menuModalOpen: false,
-  deleteConfirmOpen: false,
-  deleteTarget: null,
-  openMenuModal: (id) => set({ menuModalOpen: true, editingMenuId: id ?? null }),
-  closeMenuModal: () => set({ menuModalOpen: false, editingMenuId: null }),
-  openDeleteConfirm: (target) => set({ deleteConfirmOpen: true, deleteTarget: target }),
-  closeDeleteConfirm: () => set({ deleteConfirmOpen: false, deleteTarget: null }),
-}))
-
 export function MenusPage() {
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search, 300)
 
-  const {
-    menuModalOpen, editingMenuId, openMenuModal, closeMenuModal,
-    deleteConfirmOpen, deleteTarget, openDeleteConfirm, closeDeleteConfirm,
-  } = useMenusPageStore()
+  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+
+  const [editingMenu, setEditingMenu] = useState<MenuResponse | null>(null)
+  const [deletingMenu, setDeletingMenu] = useState<MenuResponse | null>(null)
 
   const { data: menus = [], isLoading } = useMenuListQuery(
     debouncedSearch ? { search: debouncedSearch } : undefined
   )
   const { mutate: deleteMenu, isPending: isDeleting } = useDeleteMenuMutation()
 
-  const handleDelete = () => {
-    if (!deleteTarget) return
-    deleteMenu(deleteTarget.id, { onSuccess: () => closeDeleteConfirm() })
+  const handleOpenAdd = () => {
+    setEditingMenu(null)
+    openForm()
   }
 
-  // Buat lookup parent label
+  const handleOpenEdit = (menu: MenuResponse) => {
+    setEditingMenu(menu)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingMenu(null)
+  }
+
+  const handleOpenDelete = (menu: MenuResponse) => {
+    setDeletingMenu(menu)
+    openDelete()
+  }
+
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingMenu(null)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deletingMenu) return
+    deleteMenu(deletingMenu.id, { onSuccess: () => handleCloseDelete() })
+  }
+
   const parentMap = menus.reduce<Record<number, string>>((acc, m) => {
     acc[m.id] = m.label
     return acc
@@ -66,7 +68,7 @@ export function MenusPage() {
         title="Manajemen Menu"
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Manajemen Menu' }]}
         actions={
-          <Button onClick={() => openMenuModal()}>
+          <Button onClick={handleOpenAdd}>
             <Plus size={14} className="mr-2" />
             Tambah Menu
           </Button>
@@ -102,7 +104,7 @@ export function MenusPage() {
             {!isLoading && menus.length === 0 && (
               <tr><td colSpan={7} className="text-center py-8 text-gray-400">Belum ada menu</td></tr>
             )}
-            {menus.map((menu: MenuResponse) => (
+            {menus.map((menu) => (
               <tr key={menu.id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono text-xs">{menu.key_name}</td>
                 <td className="px-4 py-3 font-medium">{menu.label}</td>
@@ -118,14 +120,14 @@ export function MenusPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openMenuModal(menu.id)}>
+                    <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(menu)}>
                       <Pencil size={14} />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="text-red-500 hover:text-red-600"
-                      onClick={() => openDeleteConfirm({ id: menu.id, label: menu.label })}
+                      onClick={() => handleOpenDelete(menu)}
                     >
                       <Trash2 size={14} />
                     </Button>
@@ -138,21 +140,21 @@ export function MenusPage() {
       </div>
 
       <MenuFormModal
-        open={menuModalOpen}
-        onOpenChange={closeMenuModal}
-        menuId={editingMenuId ?? undefined}
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
+        menuId={editingMenu?.id}
         allMenus={menus}
       />
 
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        onOpenChange={(o) => { if (!o) closeDeleteConfirm() }}
+        open={deleteOpen}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Menu"
-        description={`Yakin ingin menghapus menu "${deleteTarget?.label}"? Sub-menu di bawahnya akan kehilangan parent.`}
+        description={`Yakin ingin menghapus menu "${deletingMenu?.label}"? Sub-menu di bawahnya akan kehilangan parent.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
-        onConfirm={handleDelete}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   )

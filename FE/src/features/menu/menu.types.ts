@@ -15,7 +15,6 @@ export interface MenuItem {
   children: MenuItem[]
 }
 
-// MenuResponse digunakan di halaman admin manajemen menu (flat list)
 export interface MenuResponse {
   id: number
   parent_id: number | null
@@ -52,5 +51,4 @@ export interface ReorderMenuPayload {
 export interface MenuFilter {
   search?: string
   is_active?: boolean
-  [key: string]: unknown
 }

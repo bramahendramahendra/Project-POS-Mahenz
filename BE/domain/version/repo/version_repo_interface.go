@@ -8,6 +8,7 @@ import (
 
 type (
 	VersionRepoInterface interface {
+		GetAll() ([]model.AppVersion, error)
 		GetLatestAndroid() (*model.AppVersion, error)
 		SetAllNotLatest() error
 		CreateVersion(version, downloadURL, releaseNotes string, isMandatory bool) error

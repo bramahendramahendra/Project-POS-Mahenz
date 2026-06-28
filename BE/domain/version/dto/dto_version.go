@@ -15,3 +15,14 @@ type UpdateVersionRequest struct {
 	ReleaseNotes string `json:"release_notes"`
 	IsMandatory  bool   `json:"is_mandatory"`
 }
+
+type AppVersionListItem struct {
+	ID           int    `json:"id"`
+	Platform     string `json:"platform"`
+	Version      string `json:"version"`
+	DownloadURL  string `json:"download_url"`
+	ReleaseNotes string `json:"release_notes"`
+	IsMandatory  bool   `json:"is_mandatory"`
+	IsLatest     bool   `json:"is_latest"`
+	CreatedAt    string `json:"created_at"`
+}
