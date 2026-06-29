@@ -18,8 +18,8 @@ var (
 )
 
 func Initialized() *gin.Engine {
-	InitializedDB()
 	initializedLogger()
+	InitializedDB()
 
 	gin.SetMode(gin.ReleaseMode)
 	ginEngine := gin.Default()
@@ -57,5 +57,5 @@ func InitializedDB() {
 
 func initializedLogger() {
 	logger.Log = logger.New()
-	defer logger.Log.Sync()
+	go logger.StartRotationWatcher()
 }

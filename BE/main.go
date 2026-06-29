@@ -4,12 +4,10 @@ import (
 	"pos_api/config"
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
 	cash_drawer_service "pos_api/domain/cash_drawer/service"
-	"pos_api/helper"
 	error_helper "pos_api/helper/error"
-	time_helper "pos_api/helper/time"
+	log_helper "pos_api/helper/log"
 	"pos_api/pkg/database"
 	pkgdatabase "pos_api/pkg/database"
-	"pos_api/pkg/logger"
 	"pos_api/routes"
 	"pos_api/scheduler"
 	bootstrap "pos_api/server"
@@ -56,20 +54,19 @@ func main() {
 	log.Println("Shutdown Server ...")
 	cancelScheduler()
 
-	startTime := time_helper.GetTimeWithFormat()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Cfg.MaxTimeoutGracefulShutdown)*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Log.Error(fmt.Sprintf("Shutdown Error: %s", err.Error()),
-			"Internal Error", "Shutdown process", helper.GenerateUniqueId(),
-			error_helper.GetStackTrace(1), startTime, time_helper.GetEndTime(startTime), nil)
+		entry := log_helper.FromBackground("Internal Error", "Shutdown process", fmt.Sprintf("Shutdown Error: %s", err.Error()))
+		entry.Stacktrace = error_helper.GetStackTrace(1)
+		log_helper.LogError(entry)
 	}
 
 	if err := closeConnections(); err != nil {
-		logger.Log.Error(fmt.Sprintf("Failed to close all connections: %s", err.Error()),
-			"Internal Error", "Close all connections", helper.GenerateUniqueId(),
-			error_helper.GetStackTrace(1), startTime, time_helper.GetEndTime(startTime), nil)
+		entry := log_helper.FromBackground("Internal Error", "Close all connections", fmt.Sprintf("Failed to close all connections: %s", err.Error()))
+		entry.Stacktrace = error_helper.GetStackTrace(1)
+		log_helper.LogError(entry)
 	}
 
 	log.Println("Server Exiting")

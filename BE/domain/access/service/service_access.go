@@ -4,9 +4,8 @@ import (
 	"fmt"
 	dto "pos_api/domain/access/dto"
 	"pos_api/errors"
-	"pos_api/pkg/logger"
+	log_helper "pos_api/helper/log"
 	"pos_api/pkg/permcache"
-	"time"
 )
 
 func (s *accessService) GetByRoleID(roleID int) (data []*dto.RoleMenuAccessItem, err error) {
@@ -64,26 +63,24 @@ func (s *accessService) SetRoleAccess(req *dto.SetRoleAccessRequest) (err error)
 }
 
 func (s *accessService) GetPermission(roleName, menuKey string) (permcache.Permission, error) {
-	now := time.Now().Format("2006-01-02T15:04:05")
+	endpoint := fmt.Sprintf("/permission/%s/%s", roleName, menuKey)
 
 	// Cek cache dulu.
 	if perm, ok := permcache.Get(roleName, menuKey); ok {
-		logger.Log.Debug(
-			"[permcache] HIT",
-			"CACHE", fmt.Sprintf("/permission/%s/%s", roleName, menuKey),
-			"GetPermission", "permcache", "", now, now,
-			map[string]any{"role": roleName, "menu": menuKey, "perm": perm},
-		)
+		entry := log_helper.FromBackground("GetPermission", "permcache", "[permcache] HIT")
+		entry.Method = "CACHE"
+		entry.Endpoint = endpoint
+		entry.Data = map[string]any{"role": roleName, "menu": menuKey, "perm": perm}
+		log_helper.LogDebug(entry)
 		return perm, nil
 	}
 
 	// Cache miss — load semua permission role dari DB lalu populate cache.
-	logger.Log.Debug(
-		"[permcache] MISS — query DB",
-		"CACHE", fmt.Sprintf("/permission/%s/%s", roleName, menuKey),
-		"GetPermission", "permcache", "", now, now,
-		map[string]any{"role": roleName, "menu": menuKey},
-	)
+	entry := log_helper.FromBackground("GetPermission", "permcache", "[permcache] MISS — query DB")
+	entry.Method = "CACHE"
+	entry.Endpoint = endpoint
+	entry.Data = map[string]any{"role": roleName, "menu": menuKey}
+	log_helper.LogDebug(entry)
 
 	rows, err := s.repo.GetByRoleName(roleName)
 	if err != nil {
@@ -107,11 +104,9 @@ func (s *accessService) GetPermission(roleName, menuKey string) (permcache.Permi
 }
 
 func (s *accessService) logInvalidate(roleName string, menuKeys []string) {
-	now := time.Now().Format("2006-01-02T15:04:05")
-	logger.Log.Debug(
-		"[permcache] INVALIDATE",
-		"CACHE", fmt.Sprintf("/permission/%s/*", roleName),
-		"InvalidateRole", "permcache", "", now, now,
-		map[string]any{"role": roleName, "invalidated_keys": menuKeys},
-	)
+	entry := log_helper.FromBackground("InvalidateRole", "permcache", "[permcache] INVALIDATE")
+	entry.Method = "CACHE"
+	entry.Endpoint = fmt.Sprintf("/permission/%s/*", roleName)
+	entry.Data = map[string]any{"role": roleName, "invalidated_keys": menuKeys}
+	log_helper.LogDebug(entry)
 }

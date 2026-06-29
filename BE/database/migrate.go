@@ -10,10 +10,13 @@ import (
 	"strings"
 
 	"github.com/go-sql-driver/mysql"
+	log_helper "pos_api/helper/log"
 	"gorm.io/gorm"
 )
 
 func RunMigrations(db *gorm.DB) error {
+	log_helper.LogInfo(log_helper.FromBackground("Migration", "RunMigrations", "Memulai proses migrasi database"))
+
 	if err := ensureMigrationsTable(db); err != nil {
 		return fmt.Errorf("create migrations_history: %w", err)
 	}
@@ -24,6 +27,10 @@ func RunMigrations(db *gorm.DB) error {
 	db.Raw("SELECT COUNT(*) FROM migrations_history").Scan(&recordedCount)
 	db.Raw("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'").Scan(&tableCount)
 	if recordedCount > 0 && tableCount == 0 {
+		entry := log_helper.FromBackground("Migration", "RunMigrations", "Inkonsistensi terdeteksi: migrations_history tidak kosong tapi tidak ada tabel lain — reset migrations_history")
+		entry.Data = map[string]any{"recorded_count": recordedCount, "table_count": tableCount}
+		log_helper.LogWarn(entry)
+
 		if err := db.Exec("TRUNCATE TABLE migrations_history").Error; err != nil {
 			return fmt.Errorf("reset migrations_history: %w", err)
 		}
@@ -43,14 +50,19 @@ func RunMigrations(db *gorm.DB) error {
 	}
 	sort.Strings(files)
 
+	var skipped, executed int
 	for _, filename := range files {
 		already, err := isMigrated(db, filename)
 		if err != nil {
 			return fmt.Errorf("check migration %s: %w", filename, err)
 		}
 		if already {
+			skipped++
+			log_helper.LogDebug(log_helper.FromBackground("Migration", "RunMigrations", fmt.Sprintf("Skip: %s (sudah pernah dijalankan)", filename)))
 			continue
 		}
+
+		log_helper.LogInfo(log_helper.FromBackground("Migration", "RunMigrations", fmt.Sprintf("Menjalankan: %s", filename)))
 
 		raw, err := os.ReadFile(filepath.Join(migrationsDir, filename))
 		if err != nil {
@@ -66,7 +78,14 @@ func RunMigrations(db *gorm.DB) error {
 		if err := recordMigration(db, filename); err != nil {
 			return fmt.Errorf("record %s: %w", filename, err)
 		}
+
+		executed++
+		log_helper.LogInfo(log_helper.FromBackground("Migration", "RunMigrations", fmt.Sprintf("Selesai: %s", filename)))
 	}
+
+	entry := log_helper.FromBackground("Migration", "RunMigrations", "Migrasi selesai")
+	entry.Data = map[string]any{"executed": executed, "skipped": skipped, "total": len(files)}
+	log_helper.LogInfo(entry)
 
 	return nil
 }

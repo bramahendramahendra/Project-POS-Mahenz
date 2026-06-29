@@ -42,6 +42,14 @@ type RedisConfig struct {
 	MinIdleConns int
 }
 
+type LogConfig struct {
+	Path       string `json:"Path"`
+	Level      string `json:"Level"`
+	MaxSizeMB  int    `json:"MaxSizeMB"`
+	MaxBackups int    `json:"MaxBackups"`
+	MaxAgeDays int    `json:"MaxAgeDays"`
+}
+
 type Config struct {
 	Timezone                   string         `json:"Timezone"`
 	SecretKey                  string         `json:"SecretKey"`
@@ -50,8 +58,7 @@ type Config struct {
 	FormatTime                 string         `json:"FormatTime"`
 	FormatDate                 string         `json:"FormatDate"`
 	MaxTimeoutGracefulShutdown int            `json:"MaxTimeoutGracefulShutdown"`
-	LogPath                    string         `json:"LogPath"`
-	MaxLogAge                  int            `json:"MaxLogAge"`
+	Log                        LogConfig      `json:"Log"`
 	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
 }
@@ -113,9 +120,14 @@ func initConfig(releaseMode string) {
 		FormatTime:                 v.GetString("FormatTime"),
 		FormatDate:                 v.GetString("FormatDate"),
 		MaxTimeoutGracefulShutdown: v.GetInt("MaxTimeoutGracefulShutdown"),
-		LogPath:                    v.GetString("LogPath"),
-		MaxLogAge:                  v.GetInt("MaxLogAge"),
-		CorsAllowOrigins:           v.GetStringSlice("CorsAllowOrigins"),
+		Log: LogConfig{
+			Path:       v.GetString("Log.Path"),
+			Level:      v.GetString("Log.Level"),
+			MaxSizeMB:  v.GetInt("Log.MaxSizeMB"),
+			MaxBackups: v.GetInt("Log.MaxBackups"),
+			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
+		},
+		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
 	}
 
 	Db = &DatabaseConfig{

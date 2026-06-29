@@ -7,8 +7,13 @@
   "Timezone": "Asia/Jakarta",
   "MaxTimeoutGracefulShutdown": 5,
 
-  "LogPath": "logs",
-  "MaxLogAge": 30,
+  "Log": {
+    "Path": "logs",
+    "Level": "debug",
+    "MaxSizeMB": 50,
+    "MaxBackups": 30,
+    "MaxAgeDays": 30
+  },
 
   "Database": {
     "Type": "mysql",

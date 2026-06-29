@@ -2,8 +2,13 @@ package logger
 
 import (
 	"fmt"
-	time_helper "pos_api/helper/time"
+	"strings"
 	"sync"
+	"time"
+
+	"pos_api/config"
+	global_dto "pos_api/dto"
+	time_helper "pos_api/helper/time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -17,22 +22,21 @@ var (
 
 type Logger struct {
 	*zap.Logger
-	Mutex *sync.Mutex
-	Date  string
+	mu   sync.RWMutex
+	date string
 }
 
 func New() *Logger {
 	currDate := time_helper.GetTimeNow().Format(timeFormat)
+	cfg := config.Cfg.Log
+	minLevel := parseLevel(cfg.Level)
 
 	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:       "time",
-		LevelKey:      "level",
-		MessageKey:    "message",
-		CallerKey:     "caller",
-		NameKey:       "logger",
-		StacktraceKey: "",
-		// EncodeDuration: zapcore.SecondsDurationEncoder,
-		// EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		TimeKey:      "time",
+		LevelKey:     "level",
+		MessageKey:   "message",
+		CallerKey:    "caller",
+		NameKey:      "logger",
 		EncodeLevel:  zapcore.CapitalLevelEncoder,
 		EncodeTime:   zapcore.ISO8601TimeEncoder,
 		EncodeCaller: zapcore.ShortCallerEncoder,
@@ -40,10 +44,11 @@ func New() *Logger {
 	}
 
 	errorWriter := zapcore.AddSync(&lumberjack.Logger{
-		Filename: fmt.Sprintf("./logs/error/error_%s.log", currDate),
-		// MaxSize:    20,
-		// MaxBackups: 20,
-		// MaxAge:     14,
+		Filename:   fmt.Sprintf("./%s/error/error_%s.log", cfg.Path, currDate),
+		MaxSize:    cfg.MaxSizeMB,
+		MaxBackups: cfg.MaxBackups,
+		MaxAge:     cfg.MaxAgeDays,
+		Compress:   true,
 	})
 	errorCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
@@ -53,67 +58,125 @@ func New() *Logger {
 		}),
 	)
 
-	infoWriter := zapcore.AddSync(&lumberjack.Logger{
-		Filename: fmt.Sprintf("./logs/app/app_%s.log", currDate),
-		// MaxSize:    20,
-		// MaxBackups: 20,
-		// MaxAge:     14,
+	appWriter := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   fmt.Sprintf("./%s/app/app_%s.log", cfg.Path, currDate),
+		MaxSize:    cfg.MaxSizeMB,
+		MaxBackups: cfg.MaxBackups,
+		MaxAge:     cfg.MaxAgeDays,
+		Compress:   true,
 	})
-	infoCore := zapcore.NewCore(
+	appCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
-		infoWriter,
+		appWriter,
 		zap.LevelEnablerFunc(func(l zapcore.Level) bool {
-			return l < zapcore.ErrorLevel
+			return l >= minLevel && l < zapcore.ErrorLevel
 		}),
 	)
 
-	core := zapcore.NewTee(errorCore, infoCore)
-
-	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-	return &Logger{Logger: logger, Mutex: &sync.Mutex{}, Date: currDate}
+	core := zapcore.NewTee(errorCore, appCore)
+	zapLogger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	return &Logger{Logger: zapLogger, date: currDate}
 }
 
-func (l *Logger) Info(message, method, endpoint, context, scope, requestId, startTime, endTime string, data any) {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
-
-	l.CheckDate()
-
-	l.Logger.Info(message, zap.String("method", method), zap.String("endpoint", endpoint), zap.String("context", context), zap.String("scope", scope), zap.String("requestId", requestId), zap.String("startTime", startTime), zap.String("endTime", endTime), zap.Any("additional_data", data))
+// StartRotationWatcher harus dijalankan sebagai goroutine saat startup.
+// Mengecek pergantian tanggal setiap menit dan rotate file log jika perlu.
+func StartRotationWatcher() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		Log.rotateIfNeeded()
+	}
 }
 
-func (l *Logger) Error(message, context, scope, requestId, stacktrace, startTime, endTime string, data any) {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
-
-	l.CheckDate()
-
-	l.Logger.Error(message, zap.String("context", context), zap.String("scope", scope), zap.String("requestId", requestId), zap.String("startTime", startTime), zap.String("endTime", endTime), zap.Any("additional_data", data), zap.String("stacktrace", stacktrace))
-}
-
-func (l *Logger) Warn(message, method, endpoint, context, scope, requestId, stacktrace, startTime, endTime string, data any) {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
-
-	l.CheckDate()
-
-	l.Logger.Warn(message, zap.String("method", method), zap.String("endpoint", endpoint), zap.String("context", context), zap.String("scope", scope), zap.String("requestId", requestId), zap.String("startTime", startTime), zap.String("endTime", endTime), zap.Any("additional_data", data), zap.String("stacktrace", stacktrace))
-}
-
-func (l *Logger) Debug(message, method, endpoint, context, scope, requestId, startTime, endTime string, data any) {
-	l.Mutex.Lock()
-	defer l.Mutex.Unlock()
-
-	l.CheckDate()
-
-	l.Logger.Debug(message, zap.String("method", method), zap.String("endpoint", endpoint), zap.String("context", context), zap.String("scope", scope), zap.String("requestId", requestId), zap.String("startTime", startTime), zap.String("endTime", endTime), zap.Any("additional_data", data))
-}
-
-func (l *Logger) CheckDate() {
+func (l *Logger) rotateIfNeeded() {
 	currDate := time_helper.GetTimeNow().Format(timeFormat)
-	if currDate != l.Date {
-		newLogger := New()
-		l.Logger = newLogger.Logger
-		l.Date = newLogger.Date
+
+	l.mu.RLock()
+	sameDate := currDate == l.date
+	l.mu.RUnlock()
+
+	if sameDate {
+		return
+	}
+
+	newLogger := New()
+	l.mu.Lock()
+	l.Logger = newLogger.Logger
+	l.date = newLogger.date
+	l.mu.Unlock()
+}
+
+func (l *Logger) Info(entry global_dto.LogEntry) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	l.Logger.Info(entry.Message,
+		zap.String("method", entry.Method),
+		zap.String("endpoint", entry.Endpoint),
+		zap.String("context", entry.Context),
+		zap.String("scope", entry.Scope),
+		zap.String("requestId", entry.RequestId),
+		zap.String("startTime", entry.StartTime),
+		zap.String("endTime", entry.EndTime),
+		zap.Any("data", entry.Data),
+	)
+}
+
+func (l *Logger) Warn(entry global_dto.LogEntry) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	l.Logger.Warn(entry.Message,
+		zap.String("method", entry.Method),
+		zap.String("endpoint", entry.Endpoint),
+		zap.String("context", entry.Context),
+		zap.String("scope", entry.Scope),
+		zap.String("requestId", entry.RequestId),
+		zap.String("startTime", entry.StartTime),
+		zap.String("endTime", entry.EndTime),
+		zap.String("stacktrace", entry.Stacktrace),
+		zap.Any("data", entry.Data),
+	)
+}
+
+func (l *Logger) Error(entry global_dto.LogEntry) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	l.Logger.Error(entry.Message,
+		zap.String("method", entry.Method),
+		zap.String("endpoint", entry.Endpoint),
+		zap.String("context", entry.Context),
+		zap.String("scope", entry.Scope),
+		zap.String("requestId", entry.RequestId),
+		zap.String("startTime", entry.StartTime),
+		zap.String("endTime", entry.EndTime),
+		zap.String("stacktrace", entry.Stacktrace),
+		zap.Any("data", entry.Data),
+	)
+}
+
+func (l *Logger) Debug(entry global_dto.LogEntry) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	l.Logger.Debug(entry.Message,
+		zap.String("method", entry.Method),
+		zap.String("endpoint", entry.Endpoint),
+		zap.String("context", entry.Context),
+		zap.String("scope", entry.Scope),
+		zap.String("requestId", entry.RequestId),
+		zap.String("startTime", entry.StartTime),
+		zap.String("endTime", entry.EndTime),
+		zap.Any("data", entry.Data),
+	)
+}
+
+func parseLevel(level string) zapcore.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zapcore.DebugLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	default:
+		return zapcore.InfoLevel
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"pos_api/errors"
 	"pos_api/helper"
 	error_helper "pos_api/helper/error"
+	log_helper "pos_api/helper/log"
 	response_helper "pos_api/helper/response"
-	"pos_api/pkg/logger"
 	"pos_api/validation"
 	"strings"
 
@@ -59,7 +59,8 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				code = helper.StatusInternalServerError
 				httpCode = http.StatusInternalServerError
 				responseMessage = errMessage500
-				logger.Log.Error(e.Message, "Internal Error", "Service/Database Error", "", "", "", "", nil)
+				entry := log_helper.FromContext(c, "Internal Error", "Service/Database Error", e.Message)
+				log_helper.LogError(entry)
 			case *errors.ValidationError:
 				code = helper.StatusUnprocessableEntity
 				httpCode = http.StatusUnprocessableEntity
@@ -88,7 +89,17 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				responseMessage = errMessage500
 				errData := error_helper.GetErrorData(c, err.Error())
 				traceId = errData.RequestId
-				logger.Log.Error(errData.Message, errData.Context, errData.Scope, errData.RequestId, errData.Stacktrace, errData.StartTime, errData.EndTime, errData.Data)
+				entry := global_dto.LogEntry{
+					Message:    errData.Message,
+					Context:    errData.Context,
+					Scope:      errData.Scope,
+					RequestId:  errData.RequestId,
+					Stacktrace: errData.Stacktrace,
+					StartTime:  errData.StartTime,
+					EndTime:    errData.EndTime,
+					Data:       errData.Data,
+				}
+				log_helper.LogError(entry)
 			}
 
 			response_helper.WrapResponse(c, httpCode, "json", &global_dto.ResponseParams{
@@ -119,7 +130,17 @@ func panicHandler(c *gin.Context, errMessage string) {
 		}
 
 		errData := error_helper.GetErrorData(c, errObj)
-		logger.Log.Error(errData.Message, errData.Context, errData.Scope, errData.RequestId, errData.Stacktrace, errData.StartTime, errData.EndTime, errData.Data)
+		entry := global_dto.LogEntry{
+			Message:    errData.Message,
+			Context:    errData.Context,
+			Scope:      errData.Scope,
+			RequestId:  errData.RequestId,
+			Stacktrace: errData.Stacktrace,
+			StartTime:  errData.StartTime,
+			EndTime:    errData.EndTime,
+			Data:       errData.Data,
+		}
+		log_helper.LogError(entry)
 		traceId = errData.RequestId
 		response_helper.WrapResponse(c, http.StatusInternalServerError, "json", &global_dto.ResponseParams{
 			Code:    helper.StatusInternalServerError,
