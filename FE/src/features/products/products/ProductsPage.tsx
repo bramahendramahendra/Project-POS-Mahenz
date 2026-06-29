@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { Plus, Upload } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
@@ -18,7 +17,7 @@ export function ProductsPage() {
         title="Produk"
         breadcrumbs={[{ label: 'Inventori' }, { label: 'Produk' }]}
         actions={
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="produk.produk" action="can_create">
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => tableRef.current?.openImport()} className="gap-1">
                 <Upload size={16} />

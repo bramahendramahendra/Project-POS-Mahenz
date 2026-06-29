@@ -7,6 +7,20 @@ import (
 	"gorm.io/gorm"
 )
 
+const getByRoleNameQuery = `
+SELECT
+    m.key_name,
+    COALESCE(rma.can_view,   0) AS can_view,
+    COALESCE(rma.can_create, 0) AS can_create,
+    COALESCE(rma.can_edit,   0) AS can_edit,
+    COALESCE(rma.can_delete, 0) AS can_delete
+FROM menus m
+LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+    AND rma.role_id = (SELECT id FROM roles WHERE name = ? AND is_active = 1 LIMIT 1)
+WHERE m.is_active = 1
+ORDER BY m.id ASC
+`
+
 const getByRoleIDQuery = `
 SELECT
     m.id         AS menu_id,
@@ -35,6 +49,15 @@ ON DUPLICATE KEY UPDATE
 `
 
 const deleteRoleAccessQuery = `DELETE FROM role_menu_access WHERE role_id = ?`
+
+func (r *accessRepo) GetByRoleName(roleName string) ([]*model.RoleMenuPermission, error) {
+	var data []*model.RoleMenuPermission
+	err := r.db.Raw(getByRoleNameQuery, roleName).Scan(&data).Error
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
 
 func (r *accessRepo) GetByRoleID(roleID int) ([]*model.RoleMenuAccessItem, error) {
 	var dataDB []*model.RoleMenuAccessItem

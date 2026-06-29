@@ -24,6 +24,11 @@ func ProductRoutes(r *gin.RouterGroup) {
 	productPackageHandler := product_handler.NewProductPackageHandler(productService)
 	productPriceHandler := product_handler.NewProductPriceHandler(productService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "produk.produk", action)
+	}
+
 	g := r.Group("/products")
 	{
 		g.POST("/list", productHandler.GetAll)
@@ -31,24 +36,24 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/search", productHandler.Search)
 		g.POST("/detail/:id", productHandler.GetByID)
 		g.POST("/by-barcode/:barcode", productHandler.GetByBarcode)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), productHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), productHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), productHandler.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), productHandler.ToggleStatus)
+		g.POST("/create", perm("can_create"), productHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), productHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), productHandler.Delete)
+		g.POST("/toggle-status/:id", perm("can_edit"), productHandler.ToggleStatus)
 
-		g.POST("/import", middleware.RoleMiddleware("owner", "admin"), productImportHandler.Import)
-		g.POST("/import-preview", middleware.RoleMiddleware("owner", "admin"), productImportHandler.ImportPreview)
-		g.POST("/import-bulk", middleware.RoleMiddleware("owner", "admin"), productImportHandler.ImportBulk)
-		g.POST("/import-template", middleware.RoleMiddleware("owner", "admin"), productImportHandler.DownloadImportTemplate)
+		g.POST("/import", perm("can_create"), productImportHandler.Import)
+		g.POST("/import-preview", perm("can_create"), productImportHandler.ImportPreview)
+		g.POST("/import-bulk", perm("can_create"), productImportHandler.ImportBulk)
+		g.POST("/import-template", perm("can_view"), productImportHandler.DownloadImportTemplate)
 
-		g.POST("/generate-barcode", middleware.RoleMiddleware("owner", "admin"), productGenerateHandler.GenerateBarcode)
-		g.POST("/generate-sku", middleware.RoleMiddleware("owner", "admin"), productGenerateHandler.GenerateSku)
+		g.POST("/generate-barcode", perm("can_create"), productGenerateHandler.GenerateBarcode)
+		g.POST("/generate-sku", perm("can_create"), productGenerateHandler.GenerateSku)
 
 		g.POST("/:id/packages/list", productPackageHandler.GetPackagesByProduct)
-		g.POST("/:id/packages/save", middleware.RoleMiddleware("owner", "admin"), productPackageHandler.SavePackages)
-		g.POST("/:id/packages/delete/:package_id", middleware.RoleMiddleware("owner", "admin"), productPackageHandler.DeletePackage)
+		g.POST("/:id/packages/save", perm("can_edit"), productPackageHandler.SavePackages)
+		g.POST("/:id/packages/delete/:package_id", perm("can_delete"), productPackageHandler.DeletePackage)
 
 		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)
-		g.POST("/:id/prices/save", middleware.RoleMiddleware("owner", "admin"), productPriceHandler.SavePrices)
+		g.POST("/:id/prices/save", perm("can_edit"), productPriceHandler.SavePrices)
 	}
 }

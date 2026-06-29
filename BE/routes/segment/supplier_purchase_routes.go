@@ -15,15 +15,20 @@ func PurchaseRoutes(r *gin.RouterGroup) {
 	purchaseService := purchase_service.NewPurchaseService(purchaseRepo)
 	purchaseHandler := purchase_handler.NewPurchaseHandler(purchaseService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pengadaan.pembelian", action)
+	}
+
 	g := r.Group("/supplier-purchases")
 	{
 		g.POST("/generate-code", purchaseHandler.GenerateCode)
 		g.POST("/list", purchaseHandler.GetAll)
 		g.POST("/detail/:id", purchaseHandler.GetByID)
 		g.POST("/:id/payments", purchaseHandler.GetPayments)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Delete)
-		g.POST("/pay/:id", middleware.RoleMiddleware("owner", "admin"), purchaseHandler.Pay)
+		g.POST("/create", perm("can_create"), purchaseHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), purchaseHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), purchaseHandler.Delete)
+		g.POST("/pay/:id", perm("can_edit"), purchaseHandler.Pay)
 	}
 }

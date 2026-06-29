@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
@@ -66,7 +65,7 @@ export function ExpensesPage() {
         title="Pengeluaran"
         breadcrumbs={[{ label: 'Finance' }, { label: 'Pengeluaran' }]}
         actions={
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="keuangan.pengeluaran" action="can_create">
             <Button onClick={openForm} className="gap-1">
               <Plus size={16} />
               Tambah Pengeluaran

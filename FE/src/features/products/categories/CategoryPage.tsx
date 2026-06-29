@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
@@ -17,7 +16,7 @@ export function CategoryPage() {
         title="Kategori Produk"
         breadcrumbs={[{ label: 'Inventori' }, { label: 'Kategori' }]}
         actions={
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="produk.kategori" action="can_create">
             <Button onClick={() => tableRef.current?.openAdd()} className="gap-1">
               <Plus size={16} />
               Tambah Kategori

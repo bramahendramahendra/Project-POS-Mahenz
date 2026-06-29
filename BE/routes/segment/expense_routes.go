@@ -17,12 +17,17 @@ func ExpenseRoutes(r *gin.RouterGroup) {
 	expenseService := expense_service.NewExpenseService(expenseRepo, cashDrawerRepo)
 	expenseHandler := expense_handler.NewExpenseHandler(expenseService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "keuangan.pengeluaran", action)
+	}
+
 	g := r.Group("/expenses")
 	{
 		g.POST("/list", expenseHandler.GetAll)
 		g.POST("/detail/:id", expenseHandler.GetByID)
-		g.POST("/create", expenseHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), expenseHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), expenseHandler.Delete)
+		g.POST("/create", perm("can_create"), expenseHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), expenseHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), expenseHandler.Delete)
 	}
 }

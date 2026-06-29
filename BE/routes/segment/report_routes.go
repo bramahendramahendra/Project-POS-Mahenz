@@ -15,22 +15,39 @@ func ReportRoutes(r *gin.RouterGroup) {
 	reportService := report_service.NewReportService(reportRepo)
 	reportHandler := report_handler.NewReportHandler(reportService)
 
+	svc := newAccessService()
+	permSales := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.penjualan", action)
+	}
+	permPL := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.laba_rugi", action)
+	}
+	permStock := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.stok", action)
+	}
+	permCashier := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.kinerja_kasir", action)
+	}
+
 	g := r.Group("/reports")
 	{
 		g.GET("/sales", reportHandler.GetSalesReport)
 		g.GET("/sales/chart", reportHandler.GetSalesChart)
-		g.GET("/sales/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportSalesReport)
+		g.GET("/sales/export", permSales("can_view"), reportHandler.ExportSalesReport)
 		g.POST("/sales/list", reportHandler.GetSalesList)
 		g.POST("/sales/summary", reportHandler.GetSalesSummaryData)
-		g.GET("/profit-loss", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetProfitLoss)
-		g.POST("/profit-loss/data", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetProfitLossData)
-		g.GET("/profit-loss/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportProfitLoss)
+
+		g.GET("/profit-loss", permPL("can_view"), reportHandler.GetProfitLoss)
+		g.POST("/profit-loss/data", permPL("can_view"), reportHandler.GetProfitLossData)
+		g.GET("/profit-loss/export", permPL("can_view"), reportHandler.ExportProfitLoss)
+
 		g.GET("/stock", reportHandler.GetStockReport)
 		g.POST("/stock/list", reportHandler.GetStockList)
 		g.POST("/stock/summary", reportHandler.GetStockSummaryData)
-		g.GET("/stock/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportStockReport)
-		g.GET("/cashier", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetCashierReport)
-		g.POST("/cashier/list", middleware.RoleMiddleware("owner", "admin"), reportHandler.GetCashierList)
-		g.GET("/cashier/export", middleware.RoleMiddleware("owner", "admin"), reportHandler.ExportCashierReport)
+		g.GET("/stock/export", permStock("can_view"), reportHandler.ExportStockReport)
+
+		g.GET("/cashier", permCashier("can_view"), reportHandler.GetCashierReport)
+		g.POST("/cashier/list", permCashier("can_view"), reportHandler.GetCashierList)
+		g.GET("/cashier/export", permCashier("can_view"), reportHandler.ExportCashierReport)
 	}
 }

@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Printer } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
@@ -210,7 +209,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                 <Printer size={14} />
                 Cetak Ulang
               </Button>
-              <RoleGuard allowedRoles={[ROLES.OWNER]}>
+              <RoleGuard menuKey="penjualan.transaksi" action="can_delete">
                 {transaction.status === 'completed' && (
                   <Button
                     variant="destructive"

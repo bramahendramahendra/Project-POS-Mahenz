@@ -15,15 +15,20 @@ func ShiftRoutes(r *gin.RouterGroup) {
 	shiftService := shift_service.NewShiftService(shiftRepo)
 	shiftHandler := shift_handler.NewShiftHandler(shiftService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "operasional.shift", action)
+	}
+
 	g := r.Group("/shifts")
 	{
 		g.POST("/list", shiftHandler.GetAll)
 		g.POST("/active", shiftHandler.GetOptions)
-		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), shiftHandler.GetSummary)
+		g.POST("/summary", perm("can_view"), shiftHandler.GetSummary)
 		g.POST("/detail/:id", shiftHandler.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), shiftHandler.ToggleStatus)
+		g.POST("/create", perm("can_create"), shiftHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), shiftHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), shiftHandler.Delete)
+		g.POST("/toggle-status/:id", perm("can_edit"), shiftHandler.ToggleStatus)
 	}
 }

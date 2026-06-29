@@ -9,6 +9,7 @@ import (
 
 type (
 	AccessRepoInterface interface {
+		GetByRoleName(roleName string) ([]*model.RoleMenuPermission, error)
 		GetByRoleID(roleID int) ([]*model.RoleMenuAccessItem, error)
 		SetRoleAccess(roleID int, accesses []dto.SetAccessItem) error
 	}

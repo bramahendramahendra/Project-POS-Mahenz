@@ -1,6 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
@@ -89,7 +88,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
       width: '100px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="keuangan.pengeluaran" action="can_edit">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>

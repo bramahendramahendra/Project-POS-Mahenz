@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
@@ -18,7 +17,7 @@ export function PurchasesPage() {
         title="Pembelian Supplier"
         breadcrumbs={[{ label: 'Inventori' }, { label: 'Pembelian' }]}
         actions={
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="pengadaan.pembelian" action="can_create">
             <Button onClick={() => tableRef.current?.openAdd()} className="gap-1">
               <Plus size={16} />
               Tambah Pembelian

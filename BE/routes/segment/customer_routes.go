@@ -15,14 +15,19 @@ func CustomerRoutes(r *gin.RouterGroup) {
 	customerService := customer_service.NewCustomerService(customerRepo)
 	customerHandler := customer_handler.NewCustomerHandler(customerService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelanggan.pelanggan", action)
+	}
+
 	g := r.Group("/customers")
 	{
 		g.POST("/list", customerHandler.GetAll)
 		g.POST("/active", customerHandler.GetOptions)
 		g.POST("/detail/:id", customerHandler.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), customerHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), customerHandler.ToggleStatus)
+		g.POST("/create", perm("can_create"), customerHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), customerHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), customerHandler.Delete)
+		g.POST("/toggle-status/:id", perm("can_edit"), customerHandler.ToggleStatus)
 	}
 }

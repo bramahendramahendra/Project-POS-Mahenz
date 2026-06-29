@@ -1,6 +1,5 @@
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
@@ -96,7 +95,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
             </TooltipTrigger>
             <TooltipContent>Detail</TooltipContent>
           </Tooltip>
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="pengadaan.pembelian" action="can_edit">
             {row.paid_amount === 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>

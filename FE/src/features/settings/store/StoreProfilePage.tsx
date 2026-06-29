@@ -4,7 +4,6 @@ import { Check, Copy, Pencil } from 'lucide-react'
 import { PageHeader } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { RoleGuard } from '@/shared/components/RoleGuard/RoleGuard'
-import { ROLES } from '@/shared/constants/roles'
 
 import { useStoreProfileQuery } from '../settings.api'
 import { StoreProfileForm } from './components/StoreProfileForm'
@@ -60,7 +59,7 @@ export function StoreProfilePage() {
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Profil Toko' }]}
         actions={
           !isEditing && (
-            <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+            <RoleGuard menuKey="sistem.profil_toko" action="can_edit">
               <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit

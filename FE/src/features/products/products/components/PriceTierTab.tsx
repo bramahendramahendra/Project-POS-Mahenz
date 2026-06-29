@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, DataTable, FormModal, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -215,7 +214,7 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
             </TooltipTrigger>
             <TooltipContent>Edit</TooltipContent>
           </Tooltip>
-          <RoleGuard allowedRoles={[ROLES.OWNER]}>
+          <RoleGuard menuKey="produk.produk" action="can_delete">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -259,7 +258,7 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold text-gray-700">Harga Tier</h4>
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="produk.produk" action="can_create">
             <Button size="sm" variant="outline" onClick={handleOpenAddPrice} className="gap-1 h-7 text-xs">
               <Plus size={12} /> Tambah Harga
             </Button>

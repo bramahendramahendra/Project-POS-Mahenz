@@ -1,6 +1,5 @@
 import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
@@ -69,7 +68,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
       width: '120px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+          <RoleGuard menuKey="pelanggan.pelanggan" action="can_edit">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>
@@ -87,7 +86,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
               <TooltipContent>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</TooltipContent>
             </Tooltip>
           </RoleGuard>
-          <RoleGuard allowedRoles={[ROLES.OWNER]}>
+          <RoleGuard menuKey="pelanggan.pelanggan" action="can_delete">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-600" onClick={() => onDelete(row)}>

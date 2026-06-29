@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { ROLES } from '@/shared/constants'
 import { ConfirmDialog, FormModal, RoleGuard, StatusBadge } from '@/shared/components'
 import { useDisclosure } from '@/shared/hooks'
 import { Button } from '@/shared/components/ui/button'
@@ -160,7 +159,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
               </Button>
 
               {detail.status === 'pending' && (
-                <RoleGuard allowedRoles={[ROLES.OWNER, ROLES.ADMIN]}>
+                <RoleGuard menuKey="pengadaan.retur" action="can_edit">
                   {!showRejectInput ? (
                     <>
                       <Button

@@ -15,12 +15,17 @@ func SupplierReturnRoutes(r *gin.RouterGroup) {
 	supplierReturnService := supplier_return_service.NewSupplierReturnService(supplierReturnRepo)
 	supplierReturnHandler := supplier_return_handler.NewSupplierReturnHandler(supplierReturnService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pengadaan.retur", action)
+	}
+
 	g := r.Group("/supplier-returns")
 	{
 		g.POST("/list", supplierReturnHandler.GetAll)
 		g.POST("/detail/:id", supplierReturnHandler.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.Create)
-		g.POST("/update-status/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.UpdateStatus)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner", "admin"), supplierReturnHandler.Delete)
+		g.POST("/create", perm("can_create"), supplierReturnHandler.Create)
+		g.POST("/update-status/:id", perm("can_edit"), supplierReturnHandler.UpdateStatus)
+		g.POST("/delete/:id", perm("can_delete"), supplierReturnHandler.Delete)
 	}
 }

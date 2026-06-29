@@ -135,14 +135,16 @@ export function RolesPage() {
                       </TooltipTrigger>
                       <TooltipContent>Atur Akses Menu</TooltipContent>
                     </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(role)}>
-                          <Pencil size={14} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Edit</TooltipContent>
-                    </Tooltip>
+                    {!role.is_system && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(role)}>
+                            <Pencil size={14} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                    )}
                     {!role.is_system && (
                       <Tooltip>
                         <TooltipTrigger asChild>

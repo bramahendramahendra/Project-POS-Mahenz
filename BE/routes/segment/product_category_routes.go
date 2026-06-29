@@ -15,14 +15,19 @@ func ProductCategoryRoutes(r *gin.RouterGroup) {
 	categoryService := category_service.NewCategoryService(categoryRepo)
 	categoryHandler := category_handler.NewCategoryHandler(categoryService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "produk.kategori", action)
+	}
+
 	g := r.Group("/categories")
 	{
 		g.POST("/list", categoryHandler.GetAll)
 		g.POST("/options", categoryHandler.GetOptions)
 		g.POST("/detail/:id", categoryHandler.GetByID)
-		g.POST("/create", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Create)
-		g.POST("/update/:id", middleware.RoleMiddleware("owner", "admin"), categoryHandler.Update)
-		g.POST("/delete/:id", middleware.RoleMiddleware("owner"), categoryHandler.Delete)
-		g.POST("/toggle-status/:id", middleware.RoleMiddleware("owner", "admin"), categoryHandler.ToggleStatus)
+		g.POST("/create", perm("can_create"), categoryHandler.Create)
+		g.POST("/update/:id", perm("can_edit"), categoryHandler.Update)
+		g.POST("/delete/:id", perm("can_delete"), categoryHandler.Delete)
+		g.POST("/toggle-status/:id", perm("can_edit"), categoryHandler.ToggleStatus)
 	}
 }

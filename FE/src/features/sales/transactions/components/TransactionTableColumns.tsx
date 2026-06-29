@@ -1,6 +1,5 @@
 import { Ban, Eye } from 'lucide-react'
 
-import { ROLES } from '@/shared/constants'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
@@ -90,7 +89,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
             </TooltipTrigger>
             <TooltipContent>Detail</TooltipContent>
           </Tooltip>
-          <RoleGuard allowedRoles={[ROLES.OWNER]}>
+          <RoleGuard menuKey="penjualan.transaksi" action="can_delete">
             {row.status === 'completed' && (
               <Tooltip>
                 <TooltipTrigger asChild>
