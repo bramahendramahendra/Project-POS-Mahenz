@@ -3,8 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { FormModal } from '@/shared/components'
-import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
+import { PasswordInput } from '@/shared/components/ui/password-input'
 
 import { useChangePasswordMutation } from '../users.api'
 import { changePasswordSchema } from '../users.schema'
@@ -58,8 +58,8 @@ export function ChangePasswordModal({ open, onOpenChange, user }: ChangePassword
           <Label>
             Password Baru <span className="text-red-500">*</span>
           </Label>
-          <Input
-            type="password"
+          <PasswordInput
+            autoComplete="new-password"
             {...register('password')}
             className={errors.password ? 'border-red-500' : ''}
           />
@@ -69,8 +69,8 @@ export function ChangePasswordModal({ open, onOpenChange, user }: ChangePassword
           <Label>
             Konfirmasi Password <span className="text-red-500">*</span>
           </Label>
-          <Input
-            type="password"
+          <PasswordInput
+            autoComplete="new-password"
             {...register('confirm_password')}
             className={errors.confirm_password ? 'border-red-500' : ''}
           />

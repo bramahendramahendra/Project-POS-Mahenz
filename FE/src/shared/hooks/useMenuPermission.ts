@@ -9,9 +9,9 @@ export function useMenuPermission(menuKey: string) {
   const perm = getPermission(menuKey)
 
   return {
-    canView:   perm?.can_view   ?? false,
-    canCreate: perm?.can_create ?? false,
-    canEdit:   perm?.can_edit   ?? false,
-    canDelete: perm?.can_delete ?? false,
+    can_view:   perm?.can_view   ?? false,
+    can_create: perm?.can_create ?? false,
+    can_edit:   perm?.can_edit   ?? false,
+    can_delete: perm?.can_delete ?? false,
   }
 }

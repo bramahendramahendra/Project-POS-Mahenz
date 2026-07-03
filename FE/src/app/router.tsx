@@ -55,7 +55,6 @@ const MenusPage            = lazy(() => import('@/features/settings/menus/MenusP
 
 const ALL_ROLES        = [ROLES.OWNER, ROLES.ADMIN, ROLES.KASIR] as const
 const MANAGEMENT_ROLES = [ROLES.OWNER, ROLES.ADMIN] as const
-const OWNER_ONLY       = [ROLES.OWNER] as const
 
 export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
@@ -115,14 +114,7 @@ export const router = createBrowserRouter([
       { path: ROUTES.SETTINGS_ROLES_ACCESS, element: <LazyRoute><RoleAccessPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_MENUS,        element: <LazyRoute><MenusPage /></LazyRoute> },
       { path: ROUTES.SETTINGS_VERSIONS,     element: <LazyRoute><AppVersionPage /></LazyRoute> },
-    ],
-  },
-
-  // Protected — owner only
-  {
-    element: <ProtectedRoute allowedRoles={[...OWNER_ONLY]} />,
-    children: [
-      { path: ROUTES.SETTINGS_USERS, element: <LazyRoute><UserManagementPage /></LazyRoute> },
+      { path: ROUTES.SETTINGS_USERS,        element: <LazyRoute><UserManagementPage /></LazyRoute> },
     ],
   },
 

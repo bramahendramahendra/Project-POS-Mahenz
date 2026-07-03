@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { api, authApi } from '@/services'
@@ -56,21 +56,24 @@ export function useLoginMutation() {
 export function useLogoutMutation() {
   const clearSession = useAuthStore((s) => s.clearSession)
   const clearMenus = useMenuStore((s) => s.clearMenus)
+  const queryClient = useQueryClient()
+
+  const finishLogout = () => {
+    clearSession()
+    clearMenus()
+    queryClient.clear()
+  }
 
   return useMutation({
     mutationFn: () => api.post<void>('/auth/logout'),
 
     onSuccess: () => {
-      clearSession()
-      clearMenus()
+      finishLogout()
       toast.success('Logout berhasil')
-      window.location.href = ROUTES.LOGIN
     },
 
     onError: () => {
-      clearSession()
-      clearMenus()
-      window.location.href = ROUTES.LOGIN
+      finishLogout()
     },
   })
 }
