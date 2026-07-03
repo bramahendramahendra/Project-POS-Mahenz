@@ -28,17 +28,18 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetAll(&req)
+	data, total, svcErr := h.service.GetAll(&req)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Daftar user",
-		Data:    data,
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar user",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
 	})
 }
 
@@ -126,6 +127,41 @@ func (h *UserHandler) Update(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "User berhasil diperbarui",
+	})
+}
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.ChangePasswordUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(uriReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	bodyReq, err := binder.BindJSON[dto.ChangePasswordRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(bodyReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if svcErr := h.service.ChangePassword(uriReq.ID, &bodyReq); svcErr != nil {
+		c.Error(svcErr)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Password berhasil diubah",
 	})
 }
 

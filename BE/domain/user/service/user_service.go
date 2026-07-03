@@ -7,16 +7,16 @@ import (
 	"pos_api/pkg/bcrypt"
 )
 
-func (s *userService) GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, error) {
-	users, err := s.repo.GetAll(req)
+func (s *userService) GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, int64, error) {
+	users, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	result := make([]*dto.UserResponse, 0, len(users))
 	for _, u := range users {
 		result = append(result, toUserResponse(u))
 	}
-	return result, nil
+	return result, total, nil
 }
 
 func (s *userService) GetByID(id int) (*dto.UserResponse, error) {
@@ -72,18 +72,23 @@ func (s *userService) Update(id int, req *dto.UpdateRequest) error {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
 
-	if err := s.repo.Update(id, req); err != nil {
+	return s.repo.Update(id, req)
+}
+
+func (s *userService) ChangePassword(id int, req *dto.ChangePasswordRequest) error {
+	u, err := s.repo.GetByID(id)
+	if err != nil {
 		return err
 	}
-
-	if req.Password != "" {
-		hashed, err := bcrypt.HashPassword(req.Password)
-		if err != nil {
-			return err
-		}
-		return s.repo.UpdatePassword(id, hashed)
+	if u == nil {
+		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
-	return nil
+
+	hashed, err := bcrypt.HashPassword(req.Password)
+	if err != nil {
+		return err
+	}
+	return s.repo.UpdatePassword(id, hashed)
 }
 
 func (s *userService) Delete(id, currentUserID int) error {

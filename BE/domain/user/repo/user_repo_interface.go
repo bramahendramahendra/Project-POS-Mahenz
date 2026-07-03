@@ -9,7 +9,7 @@ import (
 
 type (
 	UserRepoInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*model.User, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error)
 		GetByID(id int) (*model.User, error)
 		GetByUsername(username string, excludeID int) (*model.User, error)
 		Create(user *model.User) (int64, error)

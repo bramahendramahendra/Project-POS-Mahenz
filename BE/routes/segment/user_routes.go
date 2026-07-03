@@ -21,6 +21,7 @@ func UserRoutes(r *gin.RouterGroup) {
 		g.POST("/detail/:id", userHandler.GetByID)
 		g.POST("/create", userHandler.Create)
 		g.POST("/update/:id", userHandler.Update)
+		g.POST("/change-password/:id", userHandler.ChangePassword)
 		g.POST("/delete/:id", userHandler.Delete)
 		g.POST("/toggle-status/:id", userHandler.ToggleStatus)
 	}

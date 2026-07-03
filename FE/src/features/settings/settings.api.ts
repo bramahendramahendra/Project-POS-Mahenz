@@ -6,13 +6,9 @@ import { queryKeys } from '@/shared/constants'
 
 import type {
   AppVersion,
-  AppUser,
-  ChangePasswordPayload,
   CreateAppVersionPayload,
-  CreateUserPayload,
   PrinterSettings,
   StoreProfile,
-  UpdateUserPayload,
 } from './settings.types'
 
 export function useStoreProfileQuery() {
@@ -29,59 +25,6 @@ export function useUpdateStoreProfileMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.settings.store() })
       toast.success('Profil toko berhasil disimpan')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useUserListQuery() {
-  return useQuery({
-    queryKey: queryKeys.settings.users(),
-    queryFn: () => api.post<AppUser[]>('/users/list', {}),
-  })
-}
-
-export function useCreateUserMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateUserPayload) => api.post<AppUser>('/users/create', payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.settings.users() })
-      toast.success('User berhasil ditambahkan')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useUpdateUserMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: UpdateUserPayload }) =>
-      api.post<AppUser>(`/users/update/${id}`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.settings.users() })
-      toast.success('User berhasil diperbarui')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useChangePasswordMutation() {
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: ChangePasswordPayload }) =>
-      api.post<void>(`/users/update/${id}`, payload),
-    onSuccess: () => toast.success('Password berhasil diubah'),
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useDeleteUserMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/users/delete/${id}`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.settings.users() })
-      toast.success('User berhasil dinonaktifkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })

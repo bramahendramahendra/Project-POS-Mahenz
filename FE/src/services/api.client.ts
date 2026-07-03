@@ -1,7 +1,10 @@
-import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios'
+import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
+import axios from 'axios'
 
 import { useAuthStore } from '@/features/auth/auth.store'
 import { ApiError } from '@/shared/types'
+
+import { authApi } from './authClient'
 
 // Queue untuk concurrent 401 requests
 type QueueItem = {
@@ -91,10 +94,12 @@ apiClient.interceptors.response.use(
       const { refreshToken, setSession, clearSession } = useAuthStore.getState()
 
       try {
-        const { data } = await axios.post<{
-          data: { access_token: string; refresh_token: string; expires_at: string }
-        }>(`${import.meta.env.VITE_API_URL}/auth/refresh`, { refresh_token: refreshToken })
-        const { access_token, refresh_token, expires_at } = data.data
+        const data = await authApi.post<{
+          access_token: string
+          refresh_token: string
+          expires_at: string
+        }>('/auth/refresh', { refresh_token: refreshToken })
+        const { access_token, refresh_token, expires_at } = data
         const currentUser = useAuthStore.getState().user
         if (currentUser) {
           setSession({

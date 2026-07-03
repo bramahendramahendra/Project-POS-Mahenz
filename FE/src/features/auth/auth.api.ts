@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
-import { api } from '@/services'
+import { api, authApi } from '@/services'
 import { queryKeys } from '@/shared/constants'
 import { ROUTES } from '@/shared/constants/routes'
 import { ROLES } from '@/shared/constants/roles'
@@ -16,7 +16,7 @@ export function useLoginMutation() {
   const setMenus = useMenuStore((s) => s.setMenus)
 
   return useMutation({
-    mutationFn: (payload: LoginRequest) => api.post<LoginResponse>('/auth/login', payload),
+    mutationFn: (payload: LoginRequest) => authApi.post<LoginResponse>('/auth/login', payload),
 
     onSuccess: async (data) => {
       const user: AuthUser = {

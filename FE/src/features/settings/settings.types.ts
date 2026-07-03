@@ -1,4 +1,4 @@
-import type { Platform, Role } from '@/shared/types'
+import type { Platform } from '@/shared/types'
 
 export interface StoreProfile {
   name: string
@@ -15,33 +15,6 @@ export interface PrinterSettings {
   receipt_footer: string
   show_logo: boolean
   auto_print: boolean
-}
-
-export interface AppUser {
-  id: number
-  username: string
-  full_name: string
-  role_id: number
-  role_name: Role
-  is_active: boolean
-  created_at: string
-}
-
-export interface CreateUserPayload {
-  username: string
-  password: string
-  full_name: string
-  role_id: number
-}
-
-export interface UpdateUserPayload {
-  full_name?: string
-  role_id?: number
-  is_active?: boolean
-}
-
-export interface ChangePasswordPayload {
-  new_password: string
 }
 
 export interface AppVersion {

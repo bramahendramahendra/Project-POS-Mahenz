@@ -3,11 +3,13 @@ package dto
 import "time"
 
 type GetAllRequest struct {
-	Page     int    `json:"page"`
-	Limit    int    `json:"limit"`
-	Search   string `json:"search"`
-	RoleID   *int   `json:"role_id"`
-	IsActive *bool  `json:"is_active"`
+	Page      int    `json:"page"`
+	Limit     int    `json:"limit"`
+	Search    string `json:"search" validate:"max=100"`
+	RoleID    *int   `json:"role_id"`
+	IsActive  *bool  `json:"is_active"`
+	SortBy    string `json:"sort_by"`
+	SortOrder string `json:"sort_order"`
 }
 
 type GetByIDRequest struct {
@@ -29,7 +31,6 @@ type UpdateRequest struct {
 	ID       int    `json:"-"`
 	FullName string `json:"full_name" validate:"required"`
 	RoleID   int    `json:"role_id"   validate:"required,gt=0"`
-	Password string `json:"password"  validate:"omitempty,min=6"`
 }
 
 type DeleteRequest struct {
@@ -38,6 +39,15 @@ type DeleteRequest struct {
 
 type ToggleStatusRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
+}
+
+type ChangePasswordUriRequest struct {
+	ID int `uri:"id" validate:"required,gt=0"`
+}
+
+type ChangePasswordRequest struct {
+	ID       int    `json:"-"`
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 type UserResponse struct {

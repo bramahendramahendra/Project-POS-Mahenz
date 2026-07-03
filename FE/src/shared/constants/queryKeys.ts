@@ -96,10 +96,14 @@ export const queryKeys = {
 
   settings: {
     store: () => ['settings', 'store'] as const,
-    users: () => ['settings', 'users'] as const,
     appVersions: () => ['settings', 'appVersions'] as const,
     pageSizeOptions: () => ['settings', 'pageSizeOptions'] as const,
     printer: () => ['settings', 'printer'] as const,
+  },
+
+  users: {
+    all: () => ['users'] as const,
+    list: (filter?: Filter) => ['users', 'list', filter] as const,
   },
 
   sync: {
