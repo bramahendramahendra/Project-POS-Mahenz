@@ -27,7 +27,6 @@ export function useCreateUserMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
     },
-    onError: (e: Error) => toast.error(e.message),
   })
 }
 
@@ -39,7 +38,6 @@ export function useUpdateUserMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
     },
-    onError: (e: Error) => toast.error(e.message),
   })
 }
 

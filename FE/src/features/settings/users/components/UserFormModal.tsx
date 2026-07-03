@@ -104,6 +104,10 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
         toast.success('User berhasil ditambahkan')
         handleClose()
       },
+      onError: (error) => {
+        toast.error(error.message)
+        setIsConfirming(false)
+      },
     })
   }
 
@@ -220,6 +224,10 @@ function EditUserForm({
         onSuccess: () => {
           toast.success('User berhasil diperbarui')
           handleClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
         },
       }
     )

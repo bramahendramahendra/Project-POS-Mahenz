@@ -77,7 +77,10 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
             toast.success('Shift berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -86,7 +89,10 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
           toast.success('Shift berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }

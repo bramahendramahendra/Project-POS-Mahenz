@@ -86,7 +86,10 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
             toast.success('Supplier berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -95,7 +98,10 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
           toast.success('Supplier berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }

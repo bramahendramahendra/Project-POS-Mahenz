@@ -224,6 +224,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             toast.success('Pembelian berhasil diperbarui')
             handleClose()
           },
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         },
       )
     } else {
@@ -231,6 +235,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         onSuccess: () => {
           toast.success('Pembelian berhasil ditambahkan')
           handleClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
         },
       })
     }

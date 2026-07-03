@@ -102,6 +102,10 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
             toast.success('Pengeluaran berhasil diperbarui')
             handleClose()
           },
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -109,6 +113,10 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
         onSuccess: () => {
           toast.success('Pengeluaran berhasil ditambahkan')
           handleClose()
+        },
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
         },
       })
     }

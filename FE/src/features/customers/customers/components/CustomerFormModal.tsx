@@ -89,7 +89,10 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
             toast.success('Pelanggan berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -98,7 +101,10 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
           toast.success('Pelanggan berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }

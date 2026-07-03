@@ -155,6 +155,10 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
         toast.success('Retur berhasil dibuat')
         handleClose()
       },
+      onError: (error) => {
+        toast.error(error.message)
+        setIsConfirming(false)
+      },
     })
   }
 

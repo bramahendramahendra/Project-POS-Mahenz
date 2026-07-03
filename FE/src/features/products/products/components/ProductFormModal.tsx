@@ -197,7 +197,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             toast.success('Produk berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -210,7 +213,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
           toast.success('Produk berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }

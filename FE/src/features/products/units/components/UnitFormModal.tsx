@@ -74,7 +74,10 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
             toast.success('Satuan berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -83,7 +86,10 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
           toast.success('Satuan berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }

@@ -75,7 +75,10 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
             toast.success('Kategori berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => toast.error(error.message),
+          onError: (error) => {
+            toast.error(error.message)
+            setIsConfirming(false)
+          },
         }
       )
     } else {
@@ -84,7 +87,10 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
           toast.success('Kategori berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => toast.error(error.message),
+        onError: (error) => {
+          toast.error(error.message)
+          setIsConfirming(false)
+        },
       })
     }
   }
