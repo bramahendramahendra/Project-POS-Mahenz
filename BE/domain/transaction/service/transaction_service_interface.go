@@ -2,6 +2,7 @@ package service
 
 import (
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
+	product_repo "pos_api/domain/product/repo"
 	"pos_api/domain/transaction/dto"
 	repo "pos_api/domain/transaction/repo"
 )
@@ -17,9 +18,10 @@ type (
 	transactionService struct {
 		repo           repo.TransactionRepoInterface
 		cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface
+		productRepo    product_repo.ProductRepo
 	}
 )
 
-func NewTransactionService(r repo.TransactionRepoInterface, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface) *transactionService {
-	return &transactionService{repo: r, cashDrawerRepo: cashDrawerRepo}
+func NewTransactionService(r repo.TransactionRepoInterface, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface, productRepo product_repo.ProductRepo) *transactionService {
+	return &transactionService{repo: r, cashDrawerRepo: cashDrawerRepo, productRepo: productRepo}
 }

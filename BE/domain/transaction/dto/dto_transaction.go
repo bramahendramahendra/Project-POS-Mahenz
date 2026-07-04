@@ -30,7 +30,7 @@ type (
 		Unit          string  `json:"unit" validate:"required"`
 		Price         float64 `json:"price" validate:"required,min=0"`
 		Subtotal      float64 `json:"subtotal" validate:"required,min=0"`
-		DiscountItem  float64 `json:"discount_item"`
+		DiscountItem  float64 `json:"discount_item" validate:"gte=0,ltefield=Subtotal"`
 		ConversionQty float64 `json:"conversion_qty"`
 		UnitID        *int    `json:"unit_id"`
 	}
@@ -38,8 +38,8 @@ type (
 	CreateTransactionRequest struct {
 		ShiftID       *int                           `json:"shift_id"`
 		Subtotal      float64                        `json:"subtotal" validate:"required,min=0"`
-		Discount      float64                        `json:"discount"`
-		Tax           float64                        `json:"tax"`
+		Discount      float64                        `json:"discount" validate:"gte=0,ltefield=Subtotal"`
+		Tax           float64                        `json:"tax" validate:"gte=0"`
 		TotalAmount   float64                        `json:"total_amount" validate:"required,min=0"`
 		PaymentMethod string                         `json:"payment_method" validate:"required,oneof=cash transfer qris card kredit"`
 		PaymentAmount float64                        `json:"payment_amount" validate:"required,min=0"`
