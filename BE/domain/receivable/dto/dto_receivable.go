@@ -58,11 +58,11 @@ type PaymentResponse struct {
 }
 
 type PayRequest struct {
-	ID            int     `json:"-"`
-	UserID        int     `json:"-"`
-	Amount        float64 `json:"amount" validate:"required,gt=0"`
-	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`
-	Notes         string  `json:"notes"`
+	ID          int     `json:"-"`
+	UserID      int     `json:"-"`
+	Amount      float64 `json:"amount" validate:"required,gt=0"`
+	PaymentDate string  `json:"payment_date" validate:"required,datetime=2006-01-02"`
+	Notes       string  `json:"notes"`
 }
 
 type PayResponse struct {
