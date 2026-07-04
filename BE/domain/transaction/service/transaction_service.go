@@ -52,9 +52,8 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
 
-	if req.PaymentMethod == "cash" && openCashDrawer != nil {
-		_ = s.cashDrawerRepo.UpdateSales(openCashDrawer.ID, resp.TotalAmount, resp.TotalAmount)
-	}
+	// Update total_sales/total_cash_sales cash drawer sudah dilakukan atomik di dalam
+	// transaksi DB yang sama pada repo.Create; tidak perlu dipanggil ulang di sini.
 
 	return resp, nil
 }

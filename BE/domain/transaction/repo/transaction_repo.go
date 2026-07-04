@@ -1,4 +1,4 @@
-﻿package repo
+package repo
 
 import (
 	"encoding/json"
@@ -13,19 +13,22 @@ import (
 )
 
 const (
-	getPackageByIDQuery          = `SELECT pp.conversion_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id = ? LIMIT 1`
-	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
-	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductStockQuery      = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND stock >= ?`
-	createStockMutationQuery     = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
-	restoreStockQuery            = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	createReceivableQuery        = `INSERT INTO receivables (transaction_id, customer_id, amount, status) VALUES (?, ?, ?, 'unpaid')`
-	updateReceivableVoidQuery    = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
-	getProductStockQuery         = `SELECT stock FROM products WHERE id = ? LIMIT 1`
-	getTransactionItemsQuery     = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
-	getTransactionByIDQuery = `
+	getPackageByIDQuery           = `SELECT pp.conversion_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id = ? LIMIT 1`
+	generateTransactionCodeQuery  = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
+	createTransactionQuery        = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createTransactionItemQuery    = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	updateProductStockQuery       = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND stock >= ?`
+	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	voidTransactionQuery          = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
+	restoreStockQuery             = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	createReceivableQuery         = `INSERT INTO receivables (transaction_id, customer_id, amount, status) VALUES (?, ?, ?, 'unpaid')`
+	updateReceivableVoidQuery     = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
+	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
+	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
+	getOpenCashDrawerForUserQuery = `SELECT id FROM cash_drawer WHERE user_id = ? AND status = 'open' LIMIT 1 FOR UPDATE`
+	updateCashDrawerSalesQuery    = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, expected_balance = opening_balance + (total_cash_sales + ?) - total_expenses, updated_at = NOW() WHERE id = ?`
+	getTransactionForVoidQuery    = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
+	getTransactionByIDQuery       = `
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
 		       t.shift_id, t.transaction_date,
 		       t.subtotal, t.discount, t.tax, t.total_amount, t.payment_method,
@@ -47,7 +50,6 @@ const (
 		WHERE 1=1`
 	countTransactionsBase = `SELECT COUNT(*) FROM transactions t WHERE 1=1`
 )
-
 
 func (r *transactionRepo) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error) {
 	var args, countArgs []interface{}
@@ -266,6 +268,21 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			}
 		}
 
+		// 5. Jika bayar cash â†’ kredit cash drawer yang sedang terbuka milik kasir, dalam tx yang sama.
+		if req.PaymentMethod == "cash" {
+			var drawerID int
+			if err := tx.Raw(getOpenCashDrawerForUserQuery, userID).Scan(&drawerID).Error; err != nil {
+				return err
+			}
+			if drawerID > 0 {
+				if err := tx.Exec(updateCashDrawerSalesQuery,
+					req.TotalAmount, req.TotalAmount, req.TotalAmount, drawerID,
+				).Error; err != nil {
+					return err
+				}
+			}
+		}
+
 		resp.ID = transactionID
 		resp.TransactionCode = code
 		resp.UserID = userID
@@ -308,6 +325,16 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 
 func (r *transactionRepo) Void(id, userID int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 0. Ambil data transaksi (dikunci FOR UPDATE) untuk keperluan reversal cash drawer
+		var voidData struct {
+			UserID        int
+			PaymentMethod string
+			TotalAmount   float64
+		}
+		if err := tx.Raw(getTransactionForVoidQuery, id).Scan(&voidData).Error; err != nil {
+			return err
+		}
+
 		// 1. Update status void
 		if err := tx.Exec(voidTransactionQuery, id).Error; err != nil {
 			return err
@@ -349,6 +376,22 @@ func (r *transactionRepo) Void(id, userID int) error {
 		// 4. Jika ada piutang â†’ update status void
 		if err := tx.Exec(updateReceivableVoidQuery, id).Error; err != nil {
 			return err
+		}
+
+		// 5. Jika transaksi asli dibayar cash â†’ kurangi kembali total_cash_sales cash drawer
+		// milik kasir yang membuat transaksi tersebut, dalam tx yang sama.
+		if voidData.PaymentMethod == "cash" {
+			var drawerID int
+			if err := tx.Raw(getOpenCashDrawerForUserQuery, voidData.UserID).Scan(&drawerID).Error; err != nil {
+				return err
+			}
+			if drawerID > 0 {
+				if err := tx.Exec(updateCashDrawerSalesQuery,
+					-voidData.TotalAmount, -voidData.TotalAmount, -voidData.TotalAmount, drawerID,
+				).Error; err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -523,4 +566,3 @@ func (r *transactionRepo) UpdateFromSync(id int, data map[string]interface{}) er
 	updates["updated_at"] = "NOW()"
 	return r.db.Table("transactions").Where("id = ?", id).Updates(updates).Error
 }
-
