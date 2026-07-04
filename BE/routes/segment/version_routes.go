@@ -15,9 +15,14 @@ func VersionAdminRoutes(r *gin.RouterGroup) {
 	versionService := version_service.NewVersionService(versionRepo)
 	versionHandler := version_handler.NewVersionHandler(versionService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "sistem.versi", action)
+	}
+
 	g := r.Group("/version")
 	{
-		g.POST("/list", middleware.RoleMiddleware("owner", "admin"), versionHandler.GetAll)
-		g.POST("/android", middleware.RoleMiddleware("owner", "admin"), versionHandler.UpdateAndroidVersion)
+		g.POST("/list", perm("can_view"), versionHandler.GetAll)
+		g.POST("/android", perm("can_edit"), versionHandler.UpdateAndroidVersion)
 	}
 }

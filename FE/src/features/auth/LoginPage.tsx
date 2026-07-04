@@ -1,19 +1,30 @@
 import { useEffect } from 'react'
 
 import { config } from '@/shared/constants'
-import { ROUTES } from '@/shared/constants/routes'
+import { useMyMenusQuery } from '@/features/menu/menu.api'
+import { useMenuStore } from '@/features/menu/menu.store'
+import { getDefaultRoute } from '@/features/menu/getDefaultRoute'
 
 import { useAuth } from './hooks/useAuth'
 import { LoginForm } from './components/LoginForm'
 
 export function LoginPage() {
   const { isAuthenticated } = useAuth()
+  const menus = useMenuStore((s) => s.menus)
+  const isLoaded = useMenuStore((s) => s.isLoaded)
+  const setMenus = useMenuStore((s) => s.setMenus)
+
+  const { data } = useMyMenusQuery(isAuthenticated && !isLoaded)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      window.location.href = ROUTES.DASHBOARD
+    if (data && !isLoaded) setMenus(data)
+  }, [data, isLoaded, setMenus])
+
+  useEffect(() => {
+    if (isAuthenticated && isLoaded) {
+      window.location.href = getDefaultRoute(menus)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, isLoaded, menus])
 
   if (isAuthenticated) return null
 

@@ -15,9 +15,14 @@ func StockMutationRoutes(r *gin.RouterGroup) {
 	stockMutationService := stock_mutation_service.NewStockMutationService(stockMutationRepo)
 	stockMutationHandler := stock_mutation_handler.NewStockMutationHandler(stockMutationService)
 
-	g := r.Group("/stock-mutations", middleware.RoleMiddleware("owner", "admin"))
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.stok", action)
+	}
+
+	g := r.Group("/stock-mutations")
 	{
-		g.POST("/list", stockMutationHandler.GetAll)
-		g.POST("/product/:product_id", stockMutationHandler.GetByProduct)
+		g.POST("/list", perm("can_view"), stockMutationHandler.GetAll)
+		g.POST("/product/:product_id", perm("can_view"), stockMutationHandler.GetByProduct)
 	}
 }

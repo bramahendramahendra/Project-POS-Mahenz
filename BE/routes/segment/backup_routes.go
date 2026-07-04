@@ -12,6 +12,7 @@ func BackupRoutes(r *gin.RouterGroup) {
 	backupService := backup_service.NewBackupService()
 	backupHandler := backup_handler.NewBackupHandler(backupService)
 
+	// Backup/restore tidak punya representasi menu di role_menu_access, tetap pakai RoleMiddleware.
 	g := r.Group("/backup", middleware.RoleMiddleware("owner", "admin"))
 	{
 		g.POST("", backupHandler.Create)

@@ -15,9 +15,14 @@ func FinanceRoutes(r *gin.RouterGroup) {
 	financeService := finance_service.NewFinanceService(financeRepo)
 	financeHandler := finance_handler.NewFinanceHandler(financeService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "keuangan.dashboard", action)
+	}
+
 	g := r.Group("/finance")
 	{
-		g.POST("/summary", middleware.RoleMiddleware("owner", "admin"), financeHandler.GetSummary)
-		g.POST("/cashflow", middleware.RoleMiddleware("owner", "admin"), financeHandler.GetCashflow)
+		g.POST("/summary", perm("can_view"), financeHandler.GetSummary)
+		g.POST("/cashflow", perm("can_view"), financeHandler.GetCashflow)
 	}
 }

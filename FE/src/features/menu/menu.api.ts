@@ -13,11 +13,12 @@ import type {
   UpdateMenuPayload,
 } from './menu.types'
 
-export function useMyMenusQuery() {
+export function useMyMenusQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.menus.my(),
     queryFn: () => api.post<MenuItem[]>('/menus/my', {}),
     staleTime: 10 * 60 * 1000,
+    enabled,
   })
 }
 

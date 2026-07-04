@@ -17,11 +17,13 @@ func TransactionRoutes(r *gin.RouterGroup) {
 	transactionService := transaction_service.NewTransactionService(transactionRepo, cashDrawerRepo)
 	transactionHandler := transaction_handler.NewTransactionHandler(transactionService)
 
+	svc := newAccessService()
+
 	g := r.Group("/transactions")
 	{
 		g.POST("/list", transactionHandler.GetAll)
 		g.POST("/detail/:id", transactionHandler.GetByID)
 		g.POST("/create", transactionHandler.Create)
-		g.POST("/void/:id", middleware.RoleMiddleware("owner", "admin"), transactionHandler.Void)
+		g.POST("/void/:id", middleware.PermissionMiddleware(svc, "penjualan.transaksi", "can_delete"), transactionHandler.Void)
 	}
 }

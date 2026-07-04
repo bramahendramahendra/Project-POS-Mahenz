@@ -3,9 +3,8 @@ import { toast } from 'sonner'
 
 import { api, authApi } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import { ROUTES } from '@/shared/constants/routes'
-import { ROLES } from '@/shared/constants/roles'
 import { useMenuStore } from '@/features/menu/menu.store'
+import { getDefaultRoute } from '@/features/menu/getDefaultRoute'
 
 import { useAuthStore } from './auth.store'
 import type { AuthUser, LoginRequest, LoginResponse } from './auth.types'
@@ -35,16 +34,16 @@ export function useLoginMutation() {
         user,
       })
 
-      // Fetch menu akses langsung setelah login
+      // Fetch menu akses langsung setelah login — dipakai juga untuk menentukan halaman tujuan
+      let menus: MenuItem[] = []
       try {
-        const menus = await api.post<MenuItem[]>('/menus/my', {})
+        menus = await api.post<MenuItem[]>('/menus/my', {})
         setMenus(menus)
       } catch {
         // Menu gagal diambil tidak menghentikan login
       }
 
-      const destination = data.user.role_name === ROLES.KASIR ? ROUTES.KASIR : ROUTES.DASHBOARD
-      window.location.href = destination
+      window.location.href = getDefaultRoute(menus)
     },
 
     onError: (error: Error) => {

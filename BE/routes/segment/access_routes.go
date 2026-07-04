@@ -17,9 +17,14 @@ func AccessRoutes(r *gin.RouterGroup) {
 	accessService := access_service.NewAccessService(accessRepo, roleRepo)
 	accessHandler := access_handler.NewAccessHandler(accessService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "sistem.roles", action)
+	}
+
 	g := r.Group("/roles/:id/menus")
 	{
-		g.POST("/list", middleware.RoleMiddleware("owner", "admin"), accessHandler.GetByRoleID)
-		g.POST("/set", middleware.RoleMiddleware("owner"), accessHandler.SetRoleAccess)
+		g.POST("/list", perm("can_view"), accessHandler.GetByRoleID)
+		g.POST("/set", perm("can_edit"), accessHandler.SetRoleAccess)
 	}
 }

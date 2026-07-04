@@ -19,13 +19,18 @@ func SyncRoutes(r *gin.RouterGroup) {
 	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo)
 	syncHandler := sync_handler.NewSyncHandler(syncService)
 
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "operasional.sync", action)
+	}
+
 	g := r.Group("/sync")
 	{
-		g.GET("/conflicts", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetConflicts)
-		g.GET("/conflicts/count", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetConflictCount)
-		g.POST("/conflicts/:id/resolve", middleware.RoleMiddleware("owner", "admin"), syncHandler.ResolveConflict)
-		g.GET("/queue", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetQueue)
-		g.GET("/history", middleware.RoleMiddleware("owner", "admin"), syncHandler.GetHistory)
+		g.GET("/conflicts", perm("can_view"), syncHandler.GetConflicts)
+		g.GET("/conflicts/count", perm("can_view"), syncHandler.GetConflictCount)
+		g.POST("/conflicts/:id/resolve", perm("can_edit"), syncHandler.ResolveConflict)
+		g.GET("/queue", perm("can_view"), syncHandler.GetQueue)
+		g.GET("/history", perm("can_view"), syncHandler.GetHistory)
 		g.POST("/push", syncHandler.PushSync)
 	}
 }
