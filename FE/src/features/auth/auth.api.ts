@@ -65,6 +65,10 @@ export function useLogoutMutation() {
 
   return useMutation({
     mutationFn: () => api.post<void>('/auth/logout'),
+    // Best-effort retry dulu sebelum menyerah — supaya session di BE (DeleteSessionByToken)
+    // tetap kemungkinan besar terhapus walau ada error jaringan sesaat.
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
 
     onSuccess: () => {
       finishLogout()
@@ -72,7 +76,11 @@ export function useLogoutMutation() {
     },
 
     onError: () => {
+      // Setelah retry di atas tetap gagal, sesi lokal tetap dibersihkan agar user tidak
+      // terjebak di UI (mis. benar-benar offline). Session di BE mungkin belum terhapus
+      // sampai token tersebut kedaluwarsa secara alami.
       finishLogout()
+      toast.error('Logout dari server gagal, sesi lokal tetap dibersihkan')
     },
   })
 }

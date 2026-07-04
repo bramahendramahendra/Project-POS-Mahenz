@@ -130,6 +130,13 @@ func initConfig(releaseMode string) {
 		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
 	}
 
+	// SecretKey wajib disuplai lewat environment variable SECRETKEY (viper.AutomaticEnv()
+	// membaca env var ini secara otomatis, prioritas di atas nilai di file config json).
+	// File config_prod.json sengaja tidak menyimpan secret asli agar tidak ter-commit ke repo.
+	if Cfg.SecretKey == "" {
+		panic("SecretKey belum diset. Set environment variable SECRETKEY sebelum menjalankan aplikasi.")
+	}
+
 	Db = &DatabaseConfig{
 		Type:         v.GetString("Database.Type"),
 		Host:         v.GetString("Database.Host"),

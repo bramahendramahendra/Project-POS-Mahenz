@@ -29,7 +29,7 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
 	}
 
-	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.TokenExpire))
+	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
 
 	claims := map[string]any{
 		"user_id":   user.ID,
@@ -104,7 +104,7 @@ func (s *authService) RefreshToken(refreshToken string) (*dto.RefreshResponse, e
 		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
 	}
 
-	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.TokenExpire))
+	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
 
 	claims := map[string]any{
 		"user_id":   user.ID,

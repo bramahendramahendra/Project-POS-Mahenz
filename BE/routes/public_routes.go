@@ -7,6 +7,7 @@ import (
 	version_handler "pos_api/domain/version/handler"
 	version_repo "pos_api/domain/version/repo"
 	version_service "pos_api/domain/version/service"
+	"pos_api/middleware"
 	pkgdatabase "pos_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func publicRoutes(r *gin.RouterGroup) {
 	authHand := auth_handler.NewAuthHandler(authSvc)
 
 	authGroup := r.Group("/auth")
-	authGroup.POST("/login", authHand.Login)
+	authGroup.POST("/login", middleware.LoginRateLimitMiddleware(), authHand.Login)
 	authGroup.POST("/refresh", authHand.RefreshToken)
 	authGroup.POST("/verify-token", authHand.VerifyToken)
 
