@@ -58,6 +58,9 @@ func (s *roleService) Update(req *dto.UpdateRequest) error {
 	if r == nil {
 		return &errors.NotFoundError{Message: "Role tidak ditemukan"}
 	}
+	if r.IsSystem {
+		return &errors.BadRequestError{Message: "Role sistem tidak dapat diubah"}
+	}
 	return s.repo.Update(req.ID, req)
 }
 

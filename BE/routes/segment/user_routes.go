@@ -1,6 +1,7 @@
 package segment
 
 import (
+	role_repo "pos_api/domain/role/repo"
 	user_handler "pos_api/domain/user/handler"
 	user_repo "pos_api/domain/user/repo"
 	user_service "pos_api/domain/user/service"
@@ -12,7 +13,8 @@ import (
 
 func UserRoutes(r *gin.RouterGroup) {
 	userRepo := user_repo.NewUserRepo(pkgdatabase.DB)
-	userService := user_service.NewUserService(userRepo)
+	roleRepo := role_repo.NewRoleRepo(pkgdatabase.DB)
+	userService := user_service.NewUserService(userRepo, roleRepo)
 	userHandler := user_handler.NewUserHandler(userService)
 
 	svc := newAccessService()

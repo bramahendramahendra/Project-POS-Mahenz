@@ -60,6 +60,7 @@ func (h *AccessHandler) SetRoleAccess(c *gin.Context) {
 		return
 	}
 	req.RoleID = uriReq.ID
+	req.CurrentRoleName = helper.GetUserRole(c)
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)

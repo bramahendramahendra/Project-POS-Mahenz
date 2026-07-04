@@ -18,6 +18,7 @@ type (
 		Delete(id int) error
 		ToggleStatus(id int) error
 		DeleteSessionByUserID(userID int) error
+		CountActiveAdmins(excludeID int) (int64, error)
 	}
 
 	userRepo struct {

@@ -6,16 +6,17 @@ import (
 )
 
 const (
-	countUsersQuery       = `SELECT COUNT(*) FROM users u WHERE 1=1`
-	getAllUsersQuery      = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE 1=1`
+	countUsersQuery        = `SELECT COUNT(*) FROM users u WHERE 1=1`
+	getAllUsersQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE 1=1`
 	getUserByIDQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
 	getUserByUsernameQuery = `SELECT u.id FROM users u WHERE u.username = ? AND u.id != ? LIMIT 1`
-	createUserQuery       = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
-	updateUserQuery       = `UPDATE users SET full_name = ?, role_id = ?, updated_at = NOW() WHERE id = ?`
-	updatePasswordQuery   = `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`
-	deleteUserQuery       = `DELETE FROM users WHERE id = ?`
-	toggleUserStatusQuery = `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
-	deleteSessionQuery    = `DELETE FROM sessions WHERE user_id = ?`
+	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
+	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = NOW() WHERE id = ?`
+	updatePasswordQuery    = `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`
+	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
+	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	deleteSessionQuery     = `DELETE FROM sessions WHERE user_id = ?`
+	countActiveAdminsQuery = `SELECT COUNT(*) FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE r.name IN ('owner', 'admin') AND u.is_active = 1 AND u.id != ?`
 )
 
 func (r *userRepo) GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error) {
@@ -127,4 +128,12 @@ func (r *userRepo) ToggleStatus(id int) error {
 
 func (r *userRepo) DeleteSessionByUserID(userID int) error {
 	return r.db.Exec(deleteSessionQuery, userID).Error
+}
+
+func (r *userRepo) CountActiveAdmins(excludeID int) (int64, error) {
+	var count int64
+	if err := r.db.Raw(countActiveAdminsQuery, excludeID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

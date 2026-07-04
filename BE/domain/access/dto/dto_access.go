@@ -28,6 +28,7 @@ type SetAccessItem struct {
 }
 
 type SetRoleAccessRequest struct {
-	RoleID   int             `json:"-"`
-	Accesses []SetAccessItem `json:"accesses" validate:"required,min=1,dive"`
+	RoleID          int             `json:"-"`
+	CurrentRoleName string          `json:"-"`
+	Accesses        []SetAccessItem `json:"accesses" validate:"required,min=1,dive"`
 }

@@ -118,7 +118,7 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if svcErr := h.service.Update(uriReq.ID, &bodyReq); svcErr != nil {
+	if svcErr := h.service.Update(uriReq.ID, helper.GetUserID(c), &bodyReq); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
@@ -201,7 +201,7 @@ func (h *UserHandler) ToggleStatus(c *gin.Context) {
 		return
 	}
 
-	if svcErr := h.service.ToggleStatus(req.ID); svcErr != nil {
+	if svcErr := h.service.ToggleStatus(req.ID, helper.GetUserID(c)); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}

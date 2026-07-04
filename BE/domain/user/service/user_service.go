@@ -63,13 +63,38 @@ func (s *userService) Create(req *dto.CreateRequest) (*dto.UserResponse, error) 
 	return toUserResponse(created), nil
 }
 
-func (s *userService) Update(id int, req *dto.UpdateRequest) error {
+func (s *userService) Update(id, currentUserID int, req *dto.UpdateRequest) error {
 	u, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
 	if u == nil {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
+	}
+
+	if req.RoleID != u.RoleID {
+		if id == currentUserID {
+			return &errors.BadRequestError{Message: "Tidak bisa mengubah role akun sendiri"}
+		}
+
+		if u.IsActive && isAdminRoleName(u.RoleName) {
+			newRole, err := s.roleRepo.GetByID(req.RoleID)
+			if err != nil {
+				return err
+			}
+			if newRole == nil {
+				return &errors.NotFoundError{Message: "Role tidak ditemukan"}
+			}
+			if !isAdminRoleName(newRole.Name) {
+				remaining, err := s.repo.CountActiveAdmins(id)
+				if err != nil {
+					return err
+				}
+				if remaining == 0 {
+					return &errors.BadRequestError{Message: "Tidak bisa mengubah role admin/owner aktif terakhir"}
+				}
+			}
+		}
 	}
 
 	return s.repo.Update(id, req)
@@ -104,13 +129,27 @@ func (s *userService) Delete(id, currentUserID int) error {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
 
+	if u.IsActive && isAdminRoleName(u.RoleName) {
+		remaining, err := s.repo.CountActiveAdmins(id)
+		if err != nil {
+			return err
+		}
+		if remaining == 0 {
+			return &errors.BadRequestError{Message: "Tidak bisa menghapus admin/owner aktif terakhir"}
+		}
+	}
+
 	if err := s.repo.DeleteSessionByUserID(id); err != nil {
 		return err
 	}
 	return s.repo.Delete(id)
 }
 
-func (s *userService) ToggleStatus(id int) error {
+func (s *userService) ToggleStatus(id, currentUserID int) error {
+	if id == currentUserID {
+		return &errors.BadRequestError{Message: "Tidak bisa mengubah status akun sendiri"}
+	}
+
 	u, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
@@ -118,7 +157,22 @@ func (s *userService) ToggleStatus(id int) error {
 	if u == nil {
 		return &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
+
+	if u.IsActive && isAdminRoleName(u.RoleName) {
+		remaining, err := s.repo.CountActiveAdmins(id)
+		if err != nil {
+			return err
+		}
+		if remaining == 0 {
+			return &errors.BadRequestError{Message: "Tidak bisa menonaktifkan admin/owner aktif terakhir"}
+		}
+	}
+
 	return s.repo.ToggleStatus(id)
+}
+
+func isAdminRoleName(name string) bool {
+	return name == "owner" || name == "admin"
 }
 
 func toUserResponse(u *model.User) *dto.UserResponse {

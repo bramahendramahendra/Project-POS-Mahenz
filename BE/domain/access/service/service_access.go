@@ -47,6 +47,20 @@ func (s *accessService) SetRoleAccess(req *dto.SetRoleAccessRequest) (err error)
 		return &errors.NotFoundError{Message: "Role tidak ditemukan"}
 	}
 
+	if req.CurrentRoleName != "owner" {
+		if exists.IsSystem {
+			return &errors.UnauthorizededError{Message: "Akses menu role sistem tidak dapat diubah"}
+		}
+
+		callerRole, err := s.roleRepo.GetByName(req.CurrentRoleName)
+		if err != nil {
+			return err
+		}
+		if callerRole != nil && callerRole.ID == req.RoleID {
+			return &errors.UnauthorizededError{Message: "Tidak bisa mengubah akses menu role sendiri"}
+		}
+	}
+
 	if err = s.repo.SetRoleAccess(req.RoleID, req.Accesses); err != nil {
 		return err
 	}
