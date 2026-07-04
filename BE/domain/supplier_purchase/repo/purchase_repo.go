@@ -70,10 +70,10 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 	offset := (page - 1) * limit
 
 	allowedSortFields := map[string]string{
-		"purchase_date":   "p.purchase_date",
-		"total_amount":    "p.total_amount",
-		"supplier_name":   "s.name",
-		"payment_status":  "p.payment_status",
+		"purchase_date":  "p.purchase_date",
+		"total_amount":   "p.total_amount",
+		"supplier_name":  "s.name",
+		"payment_status": "p.payment_status",
 	}
 	const defaultOrder = " ORDER BY p.purchase_date DESC, p.id DESC"
 
@@ -318,14 +318,32 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
-		var totalAmount float64
+		var subtotal float64
 		for _, item := range req.Items {
-			totalAmount += item.PurchasePrice * item.Quantity
+			subtotal += item.PurchasePrice * item.Quantity
+		}
+		totalAmount := subtotal - req.DiscountAmount
+		if totalAmount < 0 {
+			totalAmount = 0
 		}
 
+		paymentStatus := req.PaymentStatus
+		if paymentStatus == "" {
+			paymentStatus = "unpaid"
+		}
+		paidAmount := req.PaidAmount
+		switch paymentStatus {
+		case "paid":
+			paidAmount = totalAmount
+		case "unpaid":
+			paidAmount = 0
+		}
+		remainingAmount := totalAmount - paidAmount
+
 		if err := tx.Exec(
-			`UPDATE purchases SET invoice_number=?, supplier_id=?, purchase_date=?, total_amount=?, remaining_amount=total_amount-paid_amount, notes=?, updated_at=NOW() WHERE id=?`,
-			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, totalAmount, req.Notes, req.ID,
+			`UPDATE purchases SET invoice_number=?, supplier_id=?, purchase_date=?, discount_amount=?, total_amount=?, payment_status=?, paid_amount=?, payment_method=?, remaining_amount=?, notes=?, updated_at=NOW() WHERE id=?`,
+			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, req.DiscountAmount, totalAmount,
+			paymentStatus, paidAmount, req.PaymentMethod, remainingAmount, req.Notes, req.ID,
 		).Error; err != nil {
 			return err
 		}
