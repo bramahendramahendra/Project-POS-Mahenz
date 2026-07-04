@@ -44,4 +44,6 @@ export interface TransactionListFilter {
   status?: 'completed' | 'void' | ''
   page?: number
   limit?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }

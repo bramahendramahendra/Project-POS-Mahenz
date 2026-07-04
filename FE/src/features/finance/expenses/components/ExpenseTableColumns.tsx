@@ -43,6 +43,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
     {
       key: 'expense_date',
       header: 'Tanggal',
+      sortable: true,
       cell: (row) => <span className="text-gray-600 text-sm">{formatDate(row.expense_date)}</span>,
     },
     {
@@ -72,6 +73,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
       key: 'amount',
       header: 'Jumlah',
       align: 'right',
+      sortable: true,
       cell: (row) => (
         <span className="font-semibold text-red-600 text-sm">{formatRupiah(row.amount)}</span>
       ),
@@ -79,6 +81,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
     {
       key: 'user_name',
       header: 'Kasir',
+      sortable: true,
       cell: (row) => <span className="text-sm text-gray-500">{row.user_name}</span>,
     },
     {

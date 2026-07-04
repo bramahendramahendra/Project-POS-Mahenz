@@ -28,6 +28,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
     {
       key: 'transaction_date',
       header: 'Tanggal',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">{formatDateTimeShort(row.transaction_date)}</span>
       ),
@@ -35,6 +36,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
     {
       key: 'customer_name',
       header: 'Pelanggan',
+      sortable: true,
       cell: (row) =>
         row.customer_name ? (
           <span className="text-sm">{row.customer_name}</span>
@@ -45,18 +47,21 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
     {
       key: 'kasir_name',
       header: 'Kasir',
+      sortable: true,
       cell: (row) => <span className="text-sm">{row.kasir_name}</span>,
     },
     {
       key: 'total_amount',
       header: 'Total',
       align: 'right',
+      sortable: true,
       cell: (row) => <span className="font-semibold">{formatRupiah(row.total_amount)}</span>,
     },
     {
       key: 'payment_method',
       header: 'Metode',
       align: 'center',
+      sortable: true,
       cell: (row) => (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
           {PAYMENT_LABELS[row.payment_method]}
@@ -67,6 +72,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       key: 'status',
       header: 'Status',
       align: 'center',
+      sortable: true,
       cell: (row) => <StatusBadge status={row.status === 'completed' ? 'success' : 'error'} />,
     },
     {

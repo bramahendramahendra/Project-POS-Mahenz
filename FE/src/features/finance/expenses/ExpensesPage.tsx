@@ -5,6 +5,7 @@ import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { monthStart, todayStr } from '@/shared/utils'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
 import { useExpensesQuery, useDeleteExpenseMutation } from './expenses.api'
 import type { Expense, ExpenseListFilter } from './expenses.types'
@@ -22,6 +23,7 @@ export function ExpensesPage() {
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
 
@@ -46,6 +48,12 @@ export function ExpensesPage() {
 
   function handleFilterChange(newFilter: ExpenseListFilter) {
     setFilter(newFilter)
+    reset()
+  }
+
+  function handleSort(sort: SortState) {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     reset()
   }
 
@@ -79,6 +87,7 @@ export function ExpensesPage() {
         onChange={handleFilterChange}
         onReset={() => {
           setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
+          setSortState(undefined)
           reset()
         }}
       />
@@ -87,6 +96,8 @@ export function ExpensesPage() {
         data={items}
         isLoading={isLoading}
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        currentSort={sortState}
+        onSort={handleSort}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />

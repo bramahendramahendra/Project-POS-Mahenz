@@ -60,10 +60,9 @@ const (
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
 	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	getAllProductsDefaultOrder = ` ORDER BY p.name ASC`
-	countProductsBase         = `SELECT COUNT(*) FROM products p WHERE 1=1`
+	getAllProductsDefaultOrder  = ` ORDER BY p.name ASC`
+	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
 )
-
 
 func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, error) {
 	var args []any
@@ -106,6 +105,7 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 		"selling_price":  "p.selling_price",
 		"purchase_price": "p.purchase_price",
 		"stock":          "p.stock",
+		"is_active":      "p.is_active",
 	}
 	query := getAllProductsBase + conditions
 	query += request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllProductsDefaultOrder)

@@ -14,10 +14,7 @@ export interface CreateRolePayload {
   description?: string
 }
 
-export interface UpdateRolePayload {
-  display_name: string
-  description?: string
-}
+export type UpdateRolePayload = Omit<CreateRolePayload, 'name'>
 
 export interface RoleFilter {
   search?: string

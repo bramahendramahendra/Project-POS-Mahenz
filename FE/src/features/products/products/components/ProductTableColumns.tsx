@@ -135,6 +135,7 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       header: 'Status',
       align: 'center',
       width: '90px',
+      sortable: true,
       cell: (row) => (
         <StatusBadge status={row.is_active ? 'active' : 'inactive'} />
       ),

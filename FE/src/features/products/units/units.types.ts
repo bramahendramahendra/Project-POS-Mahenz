@@ -26,7 +26,4 @@ export interface CreateUnitPayload {
   abbreviation: string
 }
 
-export interface UpdateUnitPayload {
-  name: string
-  abbreviation: string
-}
+export type UpdateUnitPayload = Partial<CreateUnitPayload>

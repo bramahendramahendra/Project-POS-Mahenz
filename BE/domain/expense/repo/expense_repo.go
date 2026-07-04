@@ -3,17 +3,18 @@ package repo
 import (
 	dto "pos_api/domain/expense/dto"
 	model "pos_api/domain/expense/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
-	countExpensesBase   = `SELECT COUNT(*) FROM expenses e WHERE 1=1`
-	getAllExpensesQuery  = `SELECT e.id, e.expense_date, e.category, e.description, e.amount, e.payment_method, e.user_id, COALESCE(u.full_name, '') as user_name, e.notes FROM expenses e LEFT JOIN users u ON e.user_id = u.id WHERE 1=1`
-	getAllExpensesOrder  = ` ORDER BY e.expense_date DESC, e.id DESC`
-	getExpenseByIDQuery = `SELECT e.id, e.expense_date, e.category, e.description, e.amount, e.payment_method, e.user_id, COALESCE(u.full_name, '') as user_name, e.notes FROM expenses e LEFT JOIN users u ON e.user_id = u.id WHERE e.id = ? LIMIT 1`
-	createExpenseQuery  = `INSERT INTO expenses (expense_date, category, description, amount, payment_method, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	getLastExpenseID    = `SELECT LAST_INSERT_ID()`
-	updateExpenseQuery  = `UPDATE expenses SET expense_date=?, category=?, description=?, amount=?, payment_method=?, notes=?, updated_at=NOW() WHERE id=?`
-	deleteExpenseQuery  = `DELETE FROM expenses WHERE id = ?`
+	countExpensesBase          = `SELECT COUNT(*) FROM expenses e WHERE 1=1`
+	getAllExpensesQuery        = `SELECT e.id, e.expense_date, e.category, e.description, e.amount, e.payment_method, e.user_id, COALESCE(u.full_name, '') as user_name, e.notes FROM expenses e LEFT JOIN users u ON e.user_id = u.id WHERE 1=1`
+	getAllExpensesDefaultOrder = ` ORDER BY e.expense_date DESC, e.id DESC`
+	getExpenseByIDQuery        = `SELECT e.id, e.expense_date, e.category, e.description, e.amount, e.payment_method, e.user_id, COALESCE(u.full_name, '') as user_name, e.notes FROM expenses e LEFT JOIN users u ON e.user_id = u.id WHERE e.id = ? LIMIT 1`
+	createExpenseQuery         = `INSERT INTO expenses (expense_date, category, description, amount, payment_method, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	getLastExpenseID           = `SELECT LAST_INSERT_ID()`
+	updateExpenseQuery         = `UPDATE expenses SET expense_date=?, category=?, description=?, amount=?, payment_method=?, notes=?, updated_at=NOW() WHERE id=?`
+	deleteExpenseQuery         = `DELETE FROM expenses WHERE id = ?`
 )
 
 func (r *expenseRepo) GetAll(req *dto.GetAllRequest) ([]*model.Expense, int64, error) {
@@ -52,7 +53,14 @@ func (r *expenseRepo) GetAll(req *dto.GetAllRequest) ([]*model.Expense, int64, e
 	}
 	offset := (page - 1) * limit
 
-	query := getAllExpensesQuery + conditions + getAllExpensesOrder + " LIMIT ? OFFSET ?"
+	allowedSortFields := map[string]string{
+		"expense_date": "e.expense_date",
+		"amount":       "e.amount",
+		"user_name":    "u.full_name",
+	}
+	query := getAllExpensesQuery + conditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllExpensesDefaultOrder) +
+		" LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.Expense

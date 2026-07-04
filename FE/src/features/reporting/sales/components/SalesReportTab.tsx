@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { DataTable } from '@/shared/components'
 import { usePagination, usePageSizeOptions } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 import { monthStart, todayStr } from '@/shared/utils'
 
 import { useSalesListQuery, useSalesSummaryQuery } from '../sales.api'
@@ -15,6 +16,7 @@ export function SalesReportTab() {
     date_from: monthStart(),
     date_to: todayStr(),
   })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -36,6 +38,13 @@ export function SalesReportTab() {
 
   const handleReset = () => {
     setFilter({ date_from: monthStart(), date_to: todayStr() })
+    setSortState(undefined)
+    reset()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
     reset()
   }
 
@@ -56,6 +65,8 @@ export function SalesReportTab() {
         columns={columns}
         data={items as (SalesReport & Record<string, unknown>)[]}
         isLoading={listLoading}
+        currentSort={sortState}
+        onSort={handleSort}
         emptyMessage="Belum ada data penjualan"
         emptyDescription="Data penjualan akan muncul sesuai filter periode yang dipilih."
         pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}

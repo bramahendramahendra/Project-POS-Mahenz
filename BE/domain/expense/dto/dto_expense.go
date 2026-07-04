@@ -9,6 +9,8 @@ type (
 		EndDate   string `json:"end_date"`
 		Category  string `json:"category" validate:"max=100"`
 		UserID    *int   `json:"user_id"`
+		SortBy    string `json:"sort_by"`
+		SortOrder string `json:"sort_order"`
 	}
 
 	GetByIDRequest struct {

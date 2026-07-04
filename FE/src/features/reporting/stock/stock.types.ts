@@ -20,6 +20,8 @@ export interface StockSummary {
 export interface StockFilter {
   search?: string
   category_id?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface StockListFilter extends StockFilter {

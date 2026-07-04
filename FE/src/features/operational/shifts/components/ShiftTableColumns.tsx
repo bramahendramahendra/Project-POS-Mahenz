@@ -29,6 +29,7 @@ export function buildShiftColumns(handlers: ShiftColumnHandlers): ColumnDef<Shif
     {
       key: 'start_time',
       header: 'Jam Operasional',
+      sortable: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">{formatShiftTime(row.start_time, row.end_time)}</span>
       ),

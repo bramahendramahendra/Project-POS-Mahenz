@@ -8,6 +8,7 @@ import (
 	dto_sync "pos_api/domain/sync/dto"
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
+	request_helper "pos_api/helper/request"
 
 	"gorm.io/gorm"
 )
@@ -102,7 +103,18 @@ func (r *transactionRepo) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResp
 	}
 	offset := (page - 1) * limit
 
-	query := getAllTransactionsBase + conditions + fmt.Sprintf(" ORDER BY t.transaction_date DESC LIMIT %d OFFSET %d", limit, offset)
+	allowedSortFields := map[string]string{
+		"transaction_date": "t.transaction_date",
+		"total_amount":     "t.total_amount",
+		"customer_name":    "c.name",
+		"kasir_name":       "u.full_name",
+		"payment_method":   "t.payment_method",
+		"status":           "t.status",
+	}
+	const defaultOrder = " ORDER BY t.transaction_date DESC"
+	query := getAllTransactionsBase + conditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, defaultOrder) +
+		fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {

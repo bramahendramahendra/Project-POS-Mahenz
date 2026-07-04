@@ -5,6 +5,7 @@ import (
 	"time"
 
 	dto "pos_api/domain/report/dto"
+	request_helper "pos_api/helper/request"
 )
 
 const (
@@ -179,8 +180,20 @@ func (r *reportRepo) GetSalesItemsPaginated(req *dto.SalesListRequest) ([]dto.Sa
 	}
 	offset := (page - 1) * limit
 
+	allowedSortFields := map[string]string{
+		"transaction_date": "t.transaction_date",
+		"transaction_code": "t.transaction_code",
+		"cashier_name":     "u.full_name",
+		"customer_name":    "cu.name",
+		"total_amount":     "t.total_amount",
+		"payment_method":   "t.payment_method",
+		"status":           "t.status",
+	}
+	const salesListDefaultOrder = " ORDER BY t.transaction_date DESC"
 	listArgs := append(args, limit, offset)
-	query := salesListBase + conditions + " ORDER BY t.transaction_date DESC LIMIT ? OFFSET ?"
+	query := salesListBase + conditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, salesListDefaultOrder) +
+		" LIMIT ? OFFSET ?"
 
 	rows, err := r.db.Raw(query, listArgs...).Rows()
 	if err != nil {
@@ -362,8 +375,18 @@ func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.St
 	}
 	offset := (page - 1) * limit
 
+	allowedStockSortFields := map[string]string{
+		"product_code":  "p.sku",
+		"product_name":  "p.name",
+		"category_name": "c.name",
+		"current_stock": "p.stock",
+		"stock_value":   "(p.stock * p.purchase_price)",
+	}
+	const stockListDefaultOrder = " ORDER BY p.name ASC"
 	listArgs := append(args, limit, offset)
-	query := stockListBase + listConditions + " ORDER BY p.name ASC LIMIT ? OFFSET ?"
+	query := stockListBase + listConditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedStockSortFields, stockListDefaultOrder) +
+		" LIMIT ? OFFSET ?"
 
 	rows, err := r.db.Raw(query, listArgs...).Rows()
 	if err != nil {

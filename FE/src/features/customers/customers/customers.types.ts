@@ -34,10 +34,4 @@ export interface CreateCustomerPayload {
   notes?: string
 }
 
-export interface UpdateCustomerPayload {
-  name: string
-  phone?: string
-  address?: string
-  credit_limit?: number
-  notes?: string
-}
+export type UpdateCustomerPayload = Partial<CreateCustomerPayload>

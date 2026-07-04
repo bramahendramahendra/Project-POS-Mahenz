@@ -13,6 +13,8 @@ type (
 		DateFrom      string `json:"date_from"`
 		DateTo        string `json:"date_to"`
 		UserID        *int   `json:"user_id"`
+		SortBy        string `json:"sort_by"`
+		SortOrder     string `json:"sort_order"`
 	}
 
 	GetByIDRequest struct {

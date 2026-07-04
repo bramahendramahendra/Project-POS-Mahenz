@@ -19,6 +19,8 @@ export interface ExpenseListFilter {
   start_date?: string
   end_date?: string
   category?: ExpenseCategory
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface CreateExpensePayload {
@@ -30,11 +32,4 @@ export interface CreateExpensePayload {
   notes?: string
 }
 
-export interface UpdateExpensePayload {
-  expense_date: string
-  category: ExpenseCategory
-  description: string
-  amount: number
-  payment_method: ExpensePaymentMethod
-  notes?: string
-}
+export type UpdateExpensePayload = Partial<CreateExpensePayload>

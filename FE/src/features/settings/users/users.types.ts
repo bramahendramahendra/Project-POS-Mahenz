@@ -27,10 +27,7 @@ export interface CreateUserPayload {
   role_id: number
 }
 
-export interface UpdateUserPayload {
-  full_name: string
-  role_id: number
-}
+export type UpdateUserPayload = Omit<CreateUserPayload, 'username' | 'password'>
 
 export interface ChangePasswordPayload {
   password: string

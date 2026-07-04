@@ -15,6 +15,8 @@ type SalesListRequest struct {
 	UserID        *int   `json:"user_id"`
 	Page          int    `json:"page"`
 	Limit         int    `json:"limit"`
+	SortBy        string `json:"sort_by"`
+	SortOrder     string `json:"sort_order"`
 }
 
 type SalesItem struct {
@@ -87,6 +89,8 @@ type StockListRequest struct {
 	CategoryID *int   `json:"category_id"`
 	Page       int    `json:"page"`
 	Limit      int    `json:"limit"`
+	SortBy     string `json:"sort_by"`
+	SortOrder  string `json:"sort_order"`
 }
 
 type StockSummaryRequest struct {

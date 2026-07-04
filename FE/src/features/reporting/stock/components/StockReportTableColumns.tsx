@@ -8,16 +8,19 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
     {
       key: 'product_code',
       header: 'Kode',
+      sortable: true,
       cell: (r) => <span className="text-xs font-mono text-gray-500">{r.product_code}</span>,
     },
     {
       key: 'product_name',
       header: 'Nama Produk',
+      sortable: true,
       cell: (r) => <span className="text-sm font-medium">{r.product_name}</span>,
     },
     {
       key: 'category_name',
       header: 'Kategori',
+      sortable: true,
       cell: (r) => <span className="text-sm text-gray-500">{r.category_name}</span>,
     },
     {
@@ -29,6 +32,7 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
       key: 'current_stock',
       header: 'Stok Saat Ini',
       align: 'right',
+      sortable: true,
       cell: (r) => (
         <div className="flex items-center justify-end gap-2">
           <span className={`text-sm font-semibold ${r.current_stock < r.min_stock ? 'text-red-600' : ''}`}>
@@ -46,6 +50,7 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
       key: 'stock_value',
       header: 'Nilai Stok',
       align: 'right',
+      sortable: true,
       cell: (r) => <span className="text-sm font-medium">{formatRupiah(r.stock_value)}</span>,
     },
   ]

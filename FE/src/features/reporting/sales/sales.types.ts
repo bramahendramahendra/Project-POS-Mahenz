@@ -23,6 +23,8 @@ export interface SalesFilter {
   date_to?: string
   payment_method?: string
   user_id?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface SalesListFilter extends SalesFilter {

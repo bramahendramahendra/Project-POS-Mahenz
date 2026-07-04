@@ -65,11 +65,4 @@ export interface CreateSupplierPayload {
   notes?: string
 }
 
-export interface UpdateSupplierPayload {
-  name: string
-  address?: string
-  phone?: string
-  email?: string
-  contact_person?: string
-  notes?: string
-}
+export type UpdateSupplierPayload = Partial<CreateSupplierPayload>
