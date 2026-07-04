@@ -31,6 +31,7 @@ type PushSyncResponse struct {
 	Processed int              `json:"processed"`
 	Conflicts int              `json:"conflicts"`
 	Failed    int              `json:"failed"`
+	Pending   int              `json:"pending"`
 	Results   []SyncItemResult `json:"results"`
 }
 

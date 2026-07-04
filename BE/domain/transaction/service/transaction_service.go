@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"pos_api/domain/transaction/dto"
+	"pos_api/pkg/pricing"
 
 	"pos_api/errors"
 )
@@ -61,75 +62,29 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 // recalculateTotals menghitung ulang subtotal/diskon/pajak/total transaksi di server
 // berdasarkan harga produk asli, mengabaikan nilai price/subtotal/total_amount dari client.
 func (s *transactionService) recalculateTotals(req *dto.CreateTransactionRequest) error {
-	var computedSubtotal float64
-
+	items := make([]pricing.Item, len(req.Items))
 	for i, item := range req.Items {
-		unitPrice, err := s.resolveUnitPrice(item.ProductID, item.UnitID, item.Quantity)
-		if err != nil {
-			return err
+		items[i] = pricing.Item{
+			ProductID:    item.ProductID,
+			ProductName:  item.ProductName,
+			UnitID:       item.UnitID,
+			Quantity:     item.Quantity,
+			DiscountItem: item.DiscountItem,
 		}
-
-		lineGross := unitPrice * item.Quantity
-		if item.DiscountItem < 0 || item.DiscountItem > lineGross {
-			return &errors.BadRequestError{Message: "Diskon item tidak valid untuk " + item.ProductName}
-		}
-
-		req.Items[i].Price = unitPrice
-		req.Items[i].Subtotal = lineGross - item.DiscountItem
-		computedSubtotal += req.Items[i].Subtotal
 	}
 
-	if req.Discount < 0 || req.Discount > computedSubtotal {
-		return &errors.BadRequestError{Message: "Diskon transaksi tidak valid"}
+	totals, err := pricing.Recalculate(s.productRepo, items, req.Discount, req.Tax)
+	if err != nil {
+		return err
 	}
 
-	computedTotal := computedSubtotal - req.Discount + req.Tax
-	if computedTotal < 0 {
-		computedTotal = 0
+	for i := range req.Items {
+		req.Items[i].Price = totals.ItemPrices[i]
+		req.Items[i].Subtotal = totals.ItemSubtotals[i]
 	}
-
-	req.Subtotal = computedSubtotal
-	req.TotalAmount = computedTotal
+	req.Subtotal = totals.Subtotal
+	req.TotalAmount = totals.TotalAmount
 	return nil
-}
-
-// resolveUnitPrice mengambil harga jual asli produk dari master data, bukan dari payload client.
-func (s *transactionService) resolveUnitPrice(productID int, unitID *int, quantity float64) (float64, error) {
-	product, err := s.productRepo.GetByID(productID)
-	if err != nil {
-		return 0, &errors.InternalServerError{Message: err.Error()}
-	}
-	if product == nil {
-		return 0, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-
-	if unitID != nil && *unitID > 0 {
-		packages, err := s.productRepo.GetPackagesByProduct(productID)
-		if err != nil {
-			return 0, &errors.InternalServerError{Message: err.Error()}
-		}
-		for _, pkg := range packages {
-			if pkg.ID == *unitID {
-				return pkg.SellingPrice, nil
-			}
-		}
-		return 0, &errors.BadRequestError{Message: "Kemasan produk tidak ditemukan untuk " + product.Name}
-	}
-
-	prices, err := s.productRepo.GetPricesByProduct(productID)
-	if err != nil {
-		return 0, &errors.InternalServerError{Message: err.Error()}
-	}
-
-	price := product.SellingPrice
-	bestMinQty := -1.0
-	for _, tier := range prices {
-		if quantity >= tier.MinQty && tier.MinQty > bestMinQty {
-			price = tier.Price
-			bestMinQty = tier.MinQty
-		}
-	}
-	return price, nil
 }
 
 func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {

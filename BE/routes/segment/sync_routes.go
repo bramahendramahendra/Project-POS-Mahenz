@@ -2,6 +2,7 @@ package segment
 
 import (
 	expense_repo "pos_api/domain/expense/repo"
+	product_repo "pos_api/domain/product/repo"
 	sync_handler "pos_api/domain/sync/handler"
 	sync_repo "pos_api/domain/sync/repo"
 	sync_service "pos_api/domain/sync/service"
@@ -16,7 +17,8 @@ func SyncRoutes(r *gin.RouterGroup) {
 	syncRepo := sync_repo.NewSyncRepo(pkgdatabase.DB)
 	transactionRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
 	expenseRepo := expense_repo.NewExpenseRepo(pkgdatabase.DB)
-	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo)
+	productRepo := product_repo.NewProductRepo(pkgdatabase.DB)
+	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo, productRepo)
 	syncHandler := sync_handler.NewSyncHandler(syncService)
 
 	svc := newAccessService()
@@ -31,6 +33,6 @@ func SyncRoutes(r *gin.RouterGroup) {
 		g.POST("/conflicts/:id/resolve", perm("can_edit"), syncHandler.ResolveConflict)
 		g.GET("/queue", perm("can_view"), syncHandler.GetQueue)
 		g.GET("/history", perm("can_view"), syncHandler.GetHistory)
-		g.POST("/push", syncHandler.PushSync)
+		g.POST("/push", perm("can_create"), syncHandler.PushSync)
 	}
 }

@@ -22,10 +22,10 @@ func ShiftRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/shifts")
 	{
-		g.POST("/list", shiftHandler.GetAll)
-		g.POST("/active", shiftHandler.GetOptions)
+		g.POST("/list", perm("can_view"), shiftHandler.GetAll)
+		g.POST("/active", perm("can_view"), shiftHandler.GetOptions)
 		g.POST("/summary", perm("can_view"), shiftHandler.GetSummary)
-		g.POST("/detail/:id", shiftHandler.GetByID)
+		g.POST("/detail/:id", perm("can_view"), shiftHandler.GetByID)
 		g.POST("/create", perm("can_create"), shiftHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), shiftHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), shiftHandler.Delete)

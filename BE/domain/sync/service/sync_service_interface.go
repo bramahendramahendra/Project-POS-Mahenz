@@ -1,8 +1,9 @@
 package service
 
 import (
-	"pos_api/domain/sync/dto"
 	repo_expense "pos_api/domain/expense/repo"
+	repo_product "pos_api/domain/product/repo"
+	"pos_api/domain/sync/dto"
 	sync_repo "pos_api/domain/sync/repo"
 	repo_transaction "pos_api/domain/transaction/repo"
 )
@@ -21,6 +22,7 @@ type (
 		repo            sync_repo.SyncRepoInterface
 		transactionRepo repo_transaction.TransactionRepoInterface
 		expenseRepo     repo_expense.ExpenseRepoInterface
+		productRepo     repo_product.ProductRepo
 	}
 )
 
@@ -28,10 +30,12 @@ func NewSyncService(
 	repo sync_repo.SyncRepoInterface,
 	transactionRepo repo_transaction.TransactionRepoInterface,
 	expenseRepo repo_expense.ExpenseRepoInterface,
+	productRepo repo_product.ProductRepo,
 ) *syncService {
 	return &syncService{
 		repo:            repo,
 		transactionRepo: transactionRepo,
 		expenseRepo:     expenseRepo,
+		productRepo:     productRepo,
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"pos_api/domain/sync/dto"
 	"pos_api/domain/sync/model"
 	"pos_api/errors"
+	"pos_api/pkg/pricing"
 )
 
 func (s *syncService) detectConflict(item *dto.SyncItem) (bool, string, error) {
@@ -39,7 +40,7 @@ func (s *syncService) detectConflict(item *dto.SyncItem) (bool, string, error) {
 
 func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse, error) {
 	startedAt := time.Now()
-	processed, conflicts, failed := 0, 0, 0
+	processed, conflicts, failed, pending := 0, 0, 0, 0
 	results := make([]dto.SyncItemResult, 0, len(req.Items))
 
 	for i := range req.Items {
@@ -59,7 +60,14 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 		}
 
 		if item.EntityType == "transaction" && item.ServerID == 0 {
-			serverID, err := s.transactionRepo.ApplySyncTransaction(item.Payload, item.LocalID)
+			recalculatedPayload, err := s.recalculateSyncTransactionPayload(item.Payload)
+			if err != nil {
+				failed++
+				results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "failed", Message: err.Error()})
+				continue
+			}
+
+			serverID, err := s.transactionRepo.ApplySyncTransaction(recalculatedPayload, item.LocalID)
 			if err != nil {
 				if strings.Contains(err.Error(), "stok produk") {
 					conflictID, cerr := s.repo.CreateConflict(req.DeviceID, item, err.Error())
@@ -81,22 +89,30 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 			continue
 		}
 
-		queueID, err := s.repo.CreateQueueItem(req.DeviceID, item)
-		if err != nil {
+		if _, err := s.repo.CreateQueueItem(req.DeviceID, item); err != nil {
 			failed++
 			results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "failed"})
 			continue
 		}
 
-		_ = s.repo.UpdateQueueStatus(queueID, "synced", "")
-		processed++
-		results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: item.ServerID})
+		// Apply-logic untuk entity non-transaksi (product/customer/stock, dst) belum
+		// diimplementasikan. Item disimpan di sync_queue dengan status default 'pending'
+		// (bukan ditandai 'synced') supaya client tidak menganggap perubahan sudah
+		// diterapkan ke tabel target padahal belum ada kode yang menerapkannya.
+		pending++
+		results = append(results, dto.SyncItemResult{
+			LocalID:  item.LocalID,
+			Status:   "pending",
+			ServerID: item.ServerID,
+			Message:  "Diterima dan diantrekan, menunggu implementasi apply-logic ke tabel target",
+		})
 	}
 
 	resp := &dto.PushSyncResponse{
 		Processed: processed,
 		Conflicts: conflicts,
 		Failed:    failed,
+		Pending:   pending,
 		Results:   results,
 	}
 
@@ -105,8 +121,48 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 	return resp, nil
 }
 
+// recalculateSyncTransactionPayload menghitung ulang subtotal/total transaksi dari payload
+// sync offline menggunakan harga produk asli di master data (bukan nilai mentah dari
+// client), lalu mengembalikan payload JSON yang sudah diperbarui untuk diteruskan ke
+// ApplySyncTransaction. Reuse logic yang sama dengan checkout langsung (pkg/pricing).
+func (s *syncService) recalculateSyncTransactionPayload(payload string) (string, error) {
+	var tx dto.SyncTransactionPayload
+	if err := json.Unmarshal([]byte(payload), &tx); err != nil {
+		return "", &errors.BadRequestError{Message: "Payload transaksi tidak valid"}
+	}
+
+	items := make([]pricing.Item, len(tx.Items))
+	for i, item := range tx.Items {
+		items[i] = pricing.Item{
+			ProductID:    item.ProductID,
+			ProductName:  item.ProductName,
+			UnitID:       item.UnitID,
+			Quantity:     item.Quantity,
+			DiscountItem: item.DiscountItem,
+		}
+	}
+
+	totals, err := pricing.Recalculate(s.productRepo, items, tx.Discount, tx.Tax)
+	if err != nil {
+		return "", err
+	}
+
+	for i := range tx.Items {
+		tx.Items[i].Price = totals.ItemPrices[i]
+		tx.Items[i].Subtotal = totals.ItemSubtotals[i]
+	}
+	tx.Subtotal = totals.Subtotal
+	tx.TotalAmount = totals.TotalAmount
+
+	updated, err := json.Marshal(tx)
+	if err != nil {
+		return "", &errors.InternalServerError{Message: err.Error()}
+	}
+	return string(updated), nil
+}
+
 func (s *syncService) saveSyncHistory(deviceID, deviceType string, results []dto.SyncItemResult, startedAt time.Time) {
-	synced, conflict, failed := 0, 0, 0
+	synced, conflict, failed, pending := 0, 0, 0, 0
 	for _, r := range results {
 		switch r.Status {
 		case "synced":
@@ -115,13 +171,15 @@ func (s *syncService) saveSyncHistory(deviceID, deviceType string, results []dto
 			conflict++
 		case "failed":
 			failed++
+		case "pending":
+			pending++
 		}
 	}
 
 	status := "success"
-	if failed > 0 && synced == 0 {
+	if failed > 0 && synced == 0 && pending == 0 {
 		status = "failed"
-	} else if conflict > 0 || failed > 0 {
+	} else if conflict > 0 || failed > 0 || pending > 0 {
 		status = "partial"
 	}
 
