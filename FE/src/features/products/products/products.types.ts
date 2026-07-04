@@ -28,7 +28,6 @@ export interface Product {
   barcode?: string
   category_id?: number
   category_name?: string
-  description?: string
   purchase_price: number
   selling_price: number
   stock: number
@@ -60,7 +59,6 @@ export interface CreateProductPayload {
   sku: string
   barcode: string
   category_id: number
-  description?: string
   purchase_price: number
   selling_price: number
   stock: number

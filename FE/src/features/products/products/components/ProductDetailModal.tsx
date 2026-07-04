@@ -57,10 +57,6 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
             <DetailField label="Satuan" value={product.unit_name || '—'} />
           </div>
 
-          {product.description && (
-            <DetailField label="Deskripsi" value={product.description} />
-          )}
-
           {/* Harga */}
           <div className="rounded-md border bg-gray-50 p-3 grid grid-cols-3 gap-3">
             <DetailField label="Harga Beli" value={formatRupiah(product.purchase_price)} />

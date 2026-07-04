@@ -6,7 +6,6 @@ export const productSchema = z
     sku: z.string().min(1, 'SKU wajib digenerate'),
     barcode: z.string().min(1, 'Barcode wajib digenerate'),
     category_id: z.number({ error: 'Kategori wajib dipilih' }).min(1, 'Kategori wajib dipilih'),
-    description: z.string().max(500, 'Deskripsi maksimal 500 karakter').optional().or(z.literal('')),
     purchase_price: z.number().min(0, 'Harga beli tidak boleh negatif'),
     selling_price: z.number().min(1, 'Harga jual harus lebih dari 0'),
     stock: z.number().min(0, 'Stok tidak boleh negatif'),

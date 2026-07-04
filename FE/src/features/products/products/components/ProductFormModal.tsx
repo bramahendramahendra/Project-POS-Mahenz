@@ -45,7 +45,6 @@ function mapProductToForm(product: Product): ProductFormValues {
     sku: product.sku ?? '',
     barcode: product.barcode ?? '',
     category_id: product.category_id ?? 0,
-    description: product.description ?? '',
     purchase_price: product.purchase_price,
     selling_price: product.selling_price,
     stock: product.stock,
@@ -58,7 +57,7 @@ function mapProductToForm(product: Product): ProductFormValues {
 // ─── Main modal ───────────────────────────────────────────────────────────────
 
 const defaultValues: ProductFormValues = {
-  name: '', sku: '', barcode: '', category_id: 0, description: '',
+  name: '', sku: '', barcode: '', category_id: 0,
   purchase_price: 0, selling_price: 0, stock: 0, min_stock: 5, unit_id: 0, is_active: true,
 }
 
@@ -167,7 +166,6 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
       sku: pendingValues.sku,
       barcode: pendingValues.barcode,
       category_id: pendingValues.category_id,
-      description: pendingValues.description || undefined,
       purchase_price: pendingValues.purchase_price,
       selling_price: pendingValues.selling_price,
       stock: pendingValues.stock,
