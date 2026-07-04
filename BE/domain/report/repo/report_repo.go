@@ -1,4 +1,4 @@
-﻿package repo
+package repo
 
 import (
 	"fmt"
@@ -53,12 +53,17 @@ const (
 		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?
 		GROUP BY DATE(transaction_date) ORDER BY label`
 
+	// total_revenue diprorata dari diskon level-transaksi (header discount) supaya net dari
+	// SEMUA diskon (item + header), tapi tetap exclude pajak (pajak dititipkan ke negara,
+	// bukan pendapatan bisnis). Basis: ti.subtotal * (t.total_amount - t.tax) / t.subtotal,
+	// yang secara aljabar sama dengan ti.subtotal * (t.subtotal - t.discount) / t.subtotal
+	// karena total_amount = subtotal - discount + tax. NULLIF menghindari divide-by-zero.
 	profitLossQuery = `
 		SELECT ti.product_id, p.name as product_name,
 		       SUM(ti.quantity) as qty_sold,
 		       p.purchase_price,
 		       COALESCE(SUM(ti.quantity * p.purchase_price),0) as total_cogs,
-		       COALESCE(SUM(ti.subtotal),0) as total_revenue
+		       COALESCE(SUM(ti.subtotal * (t.total_amount - t.tax) / NULLIF(t.subtotal,0)),0) as total_revenue
 		FROM transaction_items ti
 		LEFT JOIN products p ON ti.product_id = p.id
 		LEFT JOIN transactions t ON ti.transaction_id = t.id
@@ -491,4 +496,3 @@ func (r *reportRepo) GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]
 	}
 	return items, total, nil
 }
-

@@ -31,19 +31,19 @@ func ReportRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/reports")
 	{
-		g.GET("/sales", reportHandler.GetSalesReport)
-		g.GET("/sales/chart", reportHandler.GetSalesChart)
+		g.GET("/sales", permSales("can_view"), reportHandler.GetSalesReport)
+		g.GET("/sales/chart", permSales("can_view"), reportHandler.GetSalesChart)
 		g.GET("/sales/export", permSales("can_view"), reportHandler.ExportSalesReport)
-		g.POST("/sales/list", reportHandler.GetSalesList)
-		g.POST("/sales/summary", reportHandler.GetSalesSummaryData)
+		g.POST("/sales/list", permSales("can_view"), reportHandler.GetSalesList)
+		g.POST("/sales/summary", permSales("can_view"), reportHandler.GetSalesSummaryData)
 
 		g.GET("/profit-loss", permPL("can_view"), reportHandler.GetProfitLoss)
 		g.POST("/profit-loss/data", permPL("can_view"), reportHandler.GetProfitLossData)
 		g.GET("/profit-loss/export", permPL("can_view"), reportHandler.ExportProfitLoss)
 
-		g.GET("/stock", reportHandler.GetStockReport)
-		g.POST("/stock/list", reportHandler.GetStockList)
-		g.POST("/stock/summary", reportHandler.GetStockSummaryData)
+		g.GET("/stock", permStock("can_view"), reportHandler.GetStockReport)
+		g.POST("/stock/list", permStock("can_view"), reportHandler.GetStockList)
+		g.POST("/stock/summary", permStock("can_view"), reportHandler.GetStockSummaryData)
 		g.GET("/stock/export", permStock("can_view"), reportHandler.ExportStockReport)
 
 		g.GET("/cashier", permCashier("can_view"), reportHandler.GetCashierReport)
