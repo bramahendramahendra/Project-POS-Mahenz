@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -220,26 +219,14 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       update(
         { id: initialData.id, ...payload },
         {
-          onSuccess: () => {
-            toast.success('Pembelian berhasil diperbarui')
-            handleClose()
-          },
-          onError: (error) => {
-            toast.error(error.message)
-            setIsConfirming(false)
-          },
+          onSuccess: () => handleClose(),
+          onError: () => setIsConfirming(false),
         },
       )
     } else {
       create(payload, {
-        onSuccess: () => {
-          toast.success('Pembelian berhasil ditambahkan')
-          handleClose()
-        },
-        onError: (error) => {
-          toast.error(error.message)
-          setIsConfirming(false)
-        },
+        onSuccess: () => handleClose(),
+        onError: () => setIsConfirming(false),
       })
     }
   }

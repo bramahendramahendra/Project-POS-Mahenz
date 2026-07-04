@@ -1,5 +1,4 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
@@ -119,12 +118,10 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
   const handleConfirmToggle = () => {
     if (!togglingUser) return
     const willActivate = !togglingUser.is_active
-    toggleStatus(togglingUser.id, {
-      onSuccess: () => {
-        toast.success(`User berhasil ${willActivate ? 'diaktifkan' : 'dinonaktifkan'}`)
-        handleCloseToggle()
-      },
-    })
+    toggleStatus(
+      { id: togglingUser.id, willActivate },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = filter.search || filter.is_active !== undefined

@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -75,10 +74,7 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
         notes:          values.notes || undefined,
       },
       {
-        onSuccess: () => {
-          toast.success('Pembayaran berhasil dicatat')
-          onOpenChange(false)
-        },
+        onSuccess: () => onOpenChange(false),
       },
     )
   }

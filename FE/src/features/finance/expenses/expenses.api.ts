@@ -20,6 +20,7 @@ export function useCreateExpenseMutation() {
     mutationFn: (payload: CreateExpensePayload) => api.post<Expense>('/expenses/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.expenses.all() })
+      toast.success('Pengeluaran berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -32,6 +33,7 @@ export function useUpdateExpenseMutation() {
       api.post<Expense>(`/expenses/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.expenses.all() })
+      toast.success('Pengeluaran berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

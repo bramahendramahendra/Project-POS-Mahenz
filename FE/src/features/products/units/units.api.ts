@@ -33,6 +33,7 @@ export function useCreateUnitMutation() {
     mutationFn: (payload: CreateUnitPayload) => api.post<Unit>('/units/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
+      toast.success('Satuan berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -45,6 +46,7 @@ export function useUpdateUnitMutation() {
       api.post<Unit>(`/units/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
+      toast.success('Satuan berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -65,9 +67,11 @@ export function useDeleteUnitMutation() {
 export function useToggleUnitStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/units/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; isActive: boolean }) =>
+      api.post<void>(`/units/toggle-status/${id}`, {}),
+    onSuccess: (_data, { isActive }) => {
       qc.invalidateQueries({ queryKey: queryKeys.units.all() })
+      toast.success(`Satuan berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

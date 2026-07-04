@@ -41,6 +41,7 @@ export function useCreateSupplierMutation() {
     mutationFn: (payload: CreateSupplierPayload) => api.post<Supplier>('/suppliers/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success('Supplier berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -53,6 +54,7 @@ export function useUpdateSupplierMutation() {
       api.post<Supplier>(`/suppliers/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success('Supplier berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -73,9 +75,11 @@ export function useDeleteSupplierMutation() {
 export function useToggleSupplierStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/suppliers/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; isActive: boolean }) =>
+      api.post<void>(`/suppliers/toggle-status/${id}`, {}),
+    onSuccess: (_data, { isActive }) => {
       qc.invalidateQueries({ queryKey: queryKeys.suppliers.all() })
+      toast.success(`Supplier berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

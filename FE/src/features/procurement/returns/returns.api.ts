@@ -34,6 +34,7 @@ export function useCreateSupplierReturnMutation() {
       api.post<SupplierReturn>('/supplier-returns/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierReturns.all() })
+      toast.success('Retur berhasil dibuat')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -44,8 +45,9 @@ export function useUpdateSupplierReturnStatusMutation() {
   return useMutation({
     mutationFn: ({ id, ...payload }: UpdateReturnStatusPayload & { id: number }) =>
       api.post<SupplierReturn>(`/supplier-returns/update-status/${id}`, payload),
-    onSuccess: () => {
+    onSuccess: (_data, { status }) => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierReturns.all() })
+      toast.success(status === 'approved' ? 'Retur berhasil disetujui' : 'Retur ditolak')
     },
     onError: (e: Error) => toast.error(e.message),
   })

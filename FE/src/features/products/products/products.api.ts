@@ -153,6 +153,7 @@ export function useCreateProductMutation() {
     mutationFn: (payload: CreateProductPayload) => api.post<Product>('/products/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success('Produk berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -165,6 +166,7 @@ export function useUpdateProductMutation() {
       api.post<Product>(`/products/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success('Produk berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -185,9 +187,11 @@ export function useDeleteProductMutation() {
 export function useToggleProductStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/products/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; isActive: boolean }) =>
+      api.post<void>(`/products/toggle-status/${id}`, {}),
+    onSuccess: (_data, { isActive }) => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success(`Produk berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -198,10 +202,11 @@ export function useToggleProductStatusMutation() {
 export function useBulkToggleProductStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (ids: number[]) =>
+    mutationFn: ({ ids }: { ids: number[]; label: string }) =>
       Promise.all(ids.map((id) => api.post<void>(`/products/toggle-status/${id}`, {}))),
-    onSuccess: () => {
+    onSuccess: (_data, { ids, label }) => {
       qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success(`${ids.length} produk berhasil ${label}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -254,6 +259,7 @@ export function useAddPriceTierMutation(productId: number) {
       api.post<void>(`/products/${productId}/prices/create`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+      toast.success('Harga tier berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -266,6 +272,7 @@ export function useUpdatePriceTierMutation(productId: number) {
       api.post<void>(`/products/${productId}/prices/update/${priceId}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+      toast.success('Harga tier berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -278,6 +285,7 @@ export function useDeletePriceTierMutation(productId: number) {
       api.post<void>(`/products/${productId}/prices/delete/${priceId}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
+      toast.success('Harga tier berhasil dihapus')
     },
     onError: (e: Error) => toast.error(e.message),
   })

@@ -28,6 +28,7 @@ export function useVoidTransactionMutation() {
     mutationFn: (id: number) => api.post<void>(`/transactions/void/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all() })
+      toast.success('Transaksi berhasil dibatalkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })

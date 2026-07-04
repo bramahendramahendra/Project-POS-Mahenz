@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -67,10 +66,7 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
         notes: pendingValues.notes || undefined,
       },
       {
-        onSuccess: () => {
-          toast.success('Pembayaran berhasil dicatat')
-          handleClose()
-        },
+        onSuccess: () => handleClose(),
       }
     )
   }

@@ -30,6 +30,7 @@ export function useAddPaymentMutation(receivableId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.receivables.all() })
       qc.invalidateQueries({ queryKey: queryKeys.receivables.detail(receivableId) })
+      toast.success('Pembayaran berhasil dicatat')
     },
     onError: (e: Error) => toast.error(e.message),
   })

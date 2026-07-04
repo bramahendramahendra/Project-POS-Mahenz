@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -70,26 +69,14 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
       updateUnit(
         { id: unit.id, ...pendingValues },
         {
-          onSuccess: () => {
-            toast.success('Satuan berhasil diperbarui')
-            handleClose()
-          },
-          onError: (error) => {
-            toast.error(error.message)
-            setIsConfirming(false)
-          },
+          onSuccess: () => handleClose(),
+          onError: () => setIsConfirming(false),
         }
       )
     } else {
       createUnit(pendingValues, {
-        onSuccess: () => {
-          toast.success('Satuan berhasil ditambahkan')
-          handleClose()
-        },
-        onError: (error) => {
-          toast.error(error.message)
-          setIsConfirming(false)
-        },
+        onSuccess: () => handleClose(),
+        onError: () => setIsConfirming(false),
       })
     }
   }

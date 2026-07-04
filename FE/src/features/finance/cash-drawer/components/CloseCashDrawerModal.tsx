@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -66,10 +65,7 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
         notes: pendingValues.notes || undefined,
       },
       {
-        onSuccess: () => {
-          toast.success('Kas berhasil ditutup')
-          handleClose()
-        },
+        onSuccess: () => handleClose(),
       }
     )
   }

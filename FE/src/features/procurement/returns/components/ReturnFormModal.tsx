@@ -151,14 +151,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
   function handleConfirmedSave() {
     if (!pendingPayload) return
     create(pendingPayload, {
-      onSuccess: () => {
-        toast.success('Retur berhasil dibuat')
-        handleClose()
-      },
-      onError: (error) => {
-        toast.error(error.message)
-        setIsConfirming(false)
-      },
+      onSuccess: () => handleClose(),
+      onError: () => setIsConfirming(false),
     })
   }
 

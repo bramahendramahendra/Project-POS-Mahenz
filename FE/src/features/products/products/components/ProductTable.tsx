@@ -1,5 +1,4 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions, useTableSelection } from '@/shared/hooks'
@@ -135,19 +134,11 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   function handleBulkToggleStatus() {
     const ids = selectedProducts.map((p) => p.id)
     const label = allActive ? 'dinonaktifkan' : 'diaktifkan'
-    bulkToggleStatus(ids, {
-      onSuccess: () => {
-        toast.success(`${ids.length} produk berhasil ${label}`)
-        clearSelection()
-      },
-    })
+    bulkToggleStatus({ ids, label }, { onSuccess: () => clearSelection() })
   }
 
   const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus(id, {
-      onSuccess: () =>
-        toast.success(`Produk berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
-    })
+    toggleStatus({ id, isActive })
   }
 
   const hasFilter = filter.search || filter.category_id || filter.is_active !== undefined

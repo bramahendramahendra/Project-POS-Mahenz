@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -73,26 +72,14 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
       updateShift(
         { id: shift.id, ...pendingValues },
         {
-          onSuccess: () => {
-            toast.success('Shift berhasil diperbarui')
-            handleClose()
-          },
-          onError: (error) => {
-            toast.error(error.message)
-            setIsConfirming(false)
-          },
+          onSuccess: () => handleClose(),
+          onError: () => setIsConfirming(false),
         }
       )
     } else {
       createShift(pendingValues, {
-        onSuccess: () => {
-          toast.success('Shift berhasil ditambahkan')
-          handleClose()
-        },
-        onError: (error) => {
-          toast.error(error.message)
-          setIsConfirming(false)
-        },
+        onSuccess: () => handleClose(),
+        onError: () => setIsConfirming(false),
       })
     }
   }

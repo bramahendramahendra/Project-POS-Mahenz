@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable, FormModal, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -100,22 +99,18 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
         { priceId: editingPriceId, ...values },
         {
           onSuccess: () => {
-            toast.success('Harga tier berhasil diperbarui')
             closePriceConfirm()
             setEditingPriceId(null)
             priceForm.reset({ unit_id: 0, tier_name: '', min_qty: 1, price: 0 })
           },
-          onError: (e) => toast.error(e.message),
         }
       )
     } else {
       addPriceTier(values, {
         onSuccess: () => {
-          toast.success('Harga tier berhasil ditambahkan')
           closePriceConfirm()
           priceForm.reset({ unit_id: 0, tier_name: '', min_qty: 1, price: 0 })
         },
-        onError: (e) => toast.error(e.message),
       })
     }
   }
@@ -124,11 +119,9 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
     if (deletingPriceId === null) return
     deletePriceTier(deletingPriceId, {
       onSuccess: () => {
-        toast.success('Harga tier berhasil dihapus')
         closePriceDelete()
         setDeletingPriceId(null)
       },
-      onError: (e) => toast.error(e.message),
     })
   }
 

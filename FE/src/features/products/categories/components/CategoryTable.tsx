@@ -1,5 +1,4 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
@@ -91,10 +90,7 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
   }
 
   const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus(id, {
-      onSuccess: () =>
-        toast.success(`Kategori berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
-    })
+    toggleStatus({ id, isActive })
   }
 
   const hasFilter = filter.search || filter.is_active !== undefined

@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Printer } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -69,7 +68,6 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
     if (!transactionId) return
     voidTransaction(transactionId, {
       onSuccess: () => {
-        toast.success('Transaksi berhasil dibatalkan')
         setVoidConfirmOpen(false)
         onClose()
       },

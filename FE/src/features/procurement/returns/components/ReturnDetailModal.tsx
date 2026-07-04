@@ -39,7 +39,6 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
       { id: returnId, status: 'approved' },
       {
         onSuccess: () => {
-          toast.success('Retur berhasil disetujui')
           closeApprove()
           onOpenChange(false)
         },
@@ -57,7 +56,6 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
       { id: returnId, status: 'rejected', notes: rejectNotes },
       {
         onSuccess: () => {
-          toast.success('Retur ditolak')
           setRejectNotes('')
           setShowRejectInput(false)
           onOpenChange(false)

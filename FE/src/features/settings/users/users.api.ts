@@ -26,7 +26,9 @@ export function useCreateUserMutation() {
     mutationFn: (payload: CreateUserPayload) => api.post<AppUser>('/users/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
+      toast.success('User berhasil ditambahkan')
     },
+    onError: (e: Error) => toast.error(e.message),
   })
 }
 
@@ -37,7 +39,9 @@ export function useUpdateUserMutation() {
       api.post<AppUser>(`/users/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
+      toast.success('User berhasil diperbarui')
     },
+    onError: (e: Error) => toast.error(e.message),
   })
 }
 
@@ -65,9 +69,11 @@ export function useDeleteUserMutation() {
 export function useToggleUserStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/users/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; willActivate: boolean }) =>
+      api.post<void>(`/users/toggle-status/${id}`, {}),
+    onSuccess: (_data, { willActivate }) => {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
+      toast.success(`User berhasil ${willActivate ? 'diaktifkan' : 'dinonaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

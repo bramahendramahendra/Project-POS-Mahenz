@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 import { Lock, Pencil, Plus, Trash2, Unlock } from 'lucide-react'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
@@ -194,13 +193,9 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
         {
           onSuccess: () => {
             savePackages({ productId, packages: allPackages })
-            toast.success('Produk berhasil diperbarui')
             handleClose()
           },
-          onError: (error) => {
-            toast.error(error.message)
-            setIsConfirming(false)
-          },
+          onError: () => setIsConfirming(false),
         }
       )
     } else {
@@ -210,13 +205,9 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
           if (newId) {
             savePackages({ productId: newId, packages: allPackages })
           }
-          toast.success('Produk berhasil ditambahkan')
           handleClose()
         },
-        onError: (error) => {
-          toast.error(error.message)
-          setIsConfirming(false)
-        },
+        onError: () => setIsConfirming(false),
       })
     }
   }

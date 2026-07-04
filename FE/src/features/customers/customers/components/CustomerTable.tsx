@@ -1,5 +1,4 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
@@ -67,10 +66,7 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
   }
 
   const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus(id, {
-      onSuccess: () =>
-        toast.success(`Pelanggan berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`),
-    })
+    toggleStatus({ id, isActive })
   }
 
   const handleFilterChange = (newFilter: CustomerListFilter) => {

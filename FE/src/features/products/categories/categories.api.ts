@@ -34,6 +34,7 @@ export function useCreateCategoryMutation() {
       api.post<Category>('/categories/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
+      toast.success('Kategori berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -46,6 +47,7 @@ export function useUpdateCategoryMutation() {
       api.post<Category>(`/categories/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
+      toast.success('Kategori berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -66,9 +68,11 @@ export function useDeleteCategoryMutation() {
 export function useToggleCategoryStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/categories/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; isActive: boolean }) =>
+      api.post<void>(`/categories/toggle-status/${id}`, {}),
+    onSuccess: (_data, { isActive }) => {
       qc.invalidateQueries({ queryKey: queryKeys.categories.all() })
+      toast.success(`Kategori berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

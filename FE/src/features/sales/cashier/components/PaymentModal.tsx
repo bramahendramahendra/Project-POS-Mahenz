@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Loader2 } from 'lucide-react'
@@ -175,7 +174,6 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     checkout(payload, {
       onSuccess: (data) => {
         const res = data as unknown as CheckoutResponse
-        toast.success(`Transaksi ${res.transaction_code} berhasil`)
         setReceiptSnapshot(snapshot)
         setReceiptData(res)
         closePaymentModal()

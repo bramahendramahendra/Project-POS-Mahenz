@@ -35,6 +35,7 @@ export function useCreateShiftMutation() {
     mutationFn: (payload: ShiftFormPayload) => api.post<Shift>('/shifts/create', payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
+      toast.success('Shift berhasil ditambahkan')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -47,6 +48,7 @@ export function useUpdateShiftMutation() {
       api.post<void>(`/shifts/update/${id}`, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
+      toast.success('Shift berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -67,9 +69,11 @@ export function useDeleteShiftMutation() {
 export function useToggleShiftStatusMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.post<void>(`/shifts/toggle-status/${id}`, {}),
-    onSuccess: () => {
+    mutationFn: ({ id }: { id: number; isActive: boolean }) =>
+      api.post<void>(`/shifts/toggle-status/${id}`, {}),
+    onSuccess: (_data, { isActive }) => {
       qc.invalidateQueries({ queryKey: queryKeys.shifts.all() })
+      toast.success(`Shift berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

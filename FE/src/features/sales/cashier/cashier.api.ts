@@ -44,10 +44,11 @@ export function useCheckoutMutation() {
   return useMutation({
     mutationFn: (payload: PaymentPayload) =>
       api.post<CheckoutResponse>('/transactions/create', payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all() })
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
+      toast.success(`Transaksi ${data.transaction_code} berhasil`)
     },
     onError: (e: Error) => toast.error(e.message),
   })

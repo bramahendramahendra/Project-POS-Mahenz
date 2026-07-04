@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Input } from '@/shared/components/ui/input'
@@ -100,14 +99,8 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
   const handleConfirmedSave = () => {
     if (!pendingValues) return
     createUser(pendingValues, {
-      onSuccess: () => {
-        toast.success('User berhasil ditambahkan')
-        handleClose()
-      },
-      onError: (error) => {
-        toast.error(error.message)
-        setIsConfirming(false)
-      },
+      onSuccess: () => handleClose(),
+      onError: () => setIsConfirming(false),
     })
   }
 
@@ -230,14 +223,8 @@ function EditUserForm({
     updateUser(
       { id: user.id, ...pendingValues },
       {
-        onSuccess: () => {
-          toast.success('User berhasil diperbarui')
-          handleClose()
-        },
-        onError: (error) => {
-          toast.error(error.message)
-          setIsConfirming(false)
-        },
+        onSuccess: () => handleClose(),
+        onError: () => setIsConfirming(false),
       }
     )
   }
