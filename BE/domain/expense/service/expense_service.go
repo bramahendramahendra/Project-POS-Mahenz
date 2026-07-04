@@ -3,6 +3,8 @@ package service
 import (
 	dto "pos_api/domain/expense/dto"
 	"pos_api/errors"
+
+	"gorm.io/gorm"
 )
 
 func (s *expenseService) GetAll(req *dto.GetAllRequest) (data []dto.ExpenseResponse, total int64, err error) {
@@ -53,21 +55,44 @@ func (s *expenseService) GetByID(id int) (data dto.ExpenseResponse, err error) {
 }
 
 func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.ExpenseResponse, err error) {
-	newID, err := s.repo.Create(req, userID)
-	if err != nil {
-		return data, err
-	}
+	var newID int64
 
-	if req.CashDrawerID != nil {
-		cd, _ := s.cashDrawerRepo.GetByID(*req.CashDrawerID)
-		if cd != nil && cd.Status == "open" {
-			_ = s.cashDrawerRepo.UpdateExpenses(cd.ID, req.Amount)
+	txErr := s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		expenseRepo := s.repo.WithTx(tx)
+		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
+
+		id, err := expenseRepo.Create(req, userID)
+		if err != nil {
+			return err
 		}
-	} else {
-		openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(userID)
-		if openCashDrawer != nil {
-			_ = s.cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, req.Amount)
+		newID = id
+
+		if req.CashDrawerID != nil {
+			cd, err := cashDrawerRepo.GetByID(*req.CashDrawerID)
+			if err != nil {
+				return err
+			}
+			if cd != nil && cd.Status == "open" {
+				if err := cashDrawerRepo.UpdateExpenses(cd.ID, req.Amount); err != nil {
+					return err
+				}
+			}
+		} else {
+			openCashDrawer, err := cashDrawerRepo.GetOpenCashDrawer(userID)
+			if err != nil {
+				return err
+			}
+			if openCashDrawer != nil {
+				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, req.Amount); err != nil {
+					return err
+				}
+			}
 		}
+
+		return nil
+	})
+	if txErr != nil {
+		return data, txErr
 	}
 
 	dataDB, err := s.repo.GetByID(int(newID))
@@ -93,7 +118,7 @@ func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.Ex
 	return data, nil
 }
 
-func (s *expenseService) Update(req *dto.UpdateRequest) (err error) {
+func (s *expenseService) Update(req *dto.UpdateRequest, requestingUserID int, role string) (err error) {
 	existing, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -101,23 +126,37 @@ func (s *expenseService) Update(req *dto.UpdateRequest) (err error) {
 	if existing == nil {
 		return &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
 	}
-
-	if err = s.repo.Update(req); err != nil {
-		return err
+	if role != "owner" && role != "admin" && existing.UserID != requestingUserID {
+		return &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke pengeluaran ini"}
 	}
 
 	delta := req.Amount - existing.Amount
-	if delta != 0 {
-		openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
-		if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
-			_ = s.cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, delta)
-		}
-	}
 
-	return nil
+	return s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		expenseRepo := s.repo.WithTx(tx)
+		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
+
+		if err := expenseRepo.Update(req); err != nil {
+			return err
+		}
+
+		if delta != 0 {
+			openCashDrawer, err := cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
+			if err != nil {
+				return err
+			}
+			if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
+				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, delta); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
-func (s *expenseService) Delete(req *dto.DeleteRequest) (err error) {
+func (s *expenseService) Delete(req *dto.DeleteRequest, requestingUserID int, role string) (err error) {
 	existing, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return err
@@ -125,15 +164,28 @@ func (s *expenseService) Delete(req *dto.DeleteRequest) (err error) {
 	if existing == nil {
 		return &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
 	}
-
-	if err = s.repo.Delete(req); err != nil {
-		return err
+	if role != "owner" && role != "admin" && existing.UserID != requestingUserID {
+		return &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke pengeluaran ini"}
 	}
 
-	openCashDrawer, _ := s.cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
-	if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
-		_ = s.cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, -existing.Amount)
-	}
+	return s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		expenseRepo := s.repo.WithTx(tx)
+		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
 
-	return nil
+		if err := expenseRepo.Delete(req); err != nil {
+			return err
+		}
+
+		openCashDrawer, err := cashDrawerRepo.GetOpenCashDrawer(existing.UserID)
+		if err != nil {
+			return err
+		}
+		if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
+			if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, -existing.Amount); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

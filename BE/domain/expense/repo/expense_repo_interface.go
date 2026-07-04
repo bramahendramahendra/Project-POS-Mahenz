@@ -17,6 +17,7 @@ type (
 		UpdateFromSync(id int, data map[string]interface{}) error
 
 		GetDB() *gorm.DB
+		WithTx(tx *gorm.DB) ExpenseRepoInterface
 	}
 
 	expenseRepo struct {
@@ -30,4 +31,10 @@ func NewExpenseRepo(db *gorm.DB) *expenseRepo {
 
 func (r *expenseRepo) GetDB() *gorm.DB {
 	return r.db
+}
+
+// WithTx mengembalikan repo instance baru yang terikat ke transaksi tx, supaya operasi
+// expense bisa digabung dalam satu DB transaction bersama repo lain (mis. cash_drawer).
+func (r *expenseRepo) WithTx(tx *gorm.DB) ExpenseRepoInterface {
+	return &expenseRepo{db: tx}
 }

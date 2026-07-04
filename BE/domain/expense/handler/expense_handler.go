@@ -116,7 +116,7 @@ func (h *ExpenseHandler) Update(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Update(&req); err != nil {
+	if err := h.service.Update(&req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
 		c.Error(err)
 		return
 	}
@@ -140,7 +140,7 @@ func (h *ExpenseHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(&req); err != nil {
+	if err := h.service.Delete(&req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
 		c.Error(err)
 		return
 	}

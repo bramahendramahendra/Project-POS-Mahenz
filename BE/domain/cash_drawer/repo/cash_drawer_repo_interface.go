@@ -25,6 +25,7 @@ type (
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 
 		GetDB() *gorm.DB
+		WithTx(tx *gorm.DB) CashDrawerRepoInterface
 	}
 
 	cashDrawerRepo struct {
@@ -38,4 +39,10 @@ func NewCashDrawerRepo(db *gorm.DB) *cashDrawerRepo {
 
 func (r *cashDrawerRepo) GetDB() *gorm.DB {
 	return r.db
+}
+
+// WithTx mengembalikan repo instance baru yang terikat ke transaksi tx, supaya operasi
+// cash_drawer bisa digabung dalam satu DB transaction bersama repo lain (mis. expense).
+func (r *cashDrawerRepo) WithTx(tx *gorm.DB) CashDrawerRepoInterface {
+	return &cashDrawerRepo{db: tx}
 }
