@@ -129,7 +129,11 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
             <Label>
               Username <span className="text-red-500">*</span>
             </Label>
-            <Input {...register('username')} className={errors.username ? 'border-red-500' : ''} />
+            <Input
+              {...register('username')}
+              placeholder="Masukkan username"
+              className={errors.username ? 'border-red-500' : ''}
+            />
             {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
           </div>
           <div className="space-y-1.5">
@@ -139,6 +143,7 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
             <PasswordInput
               autoComplete="new-password"
               {...register('password')}
+              placeholder="Masukkan password"
               className={errors.password ? 'border-red-500' : ''}
             />
             {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
@@ -147,7 +152,11 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
             <Label>
               Nama Lengkap <span className="text-red-500">*</span>
             </Label>
-            <Input {...register('full_name')} className={errors.full_name ? 'border-red-500' : ''} />
+            <Input
+              {...register('full_name')}
+              placeholder="Masukkan nama lengkap"
+              className={errors.full_name ? 'border-red-500' : ''}
+            />
             {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
           </div>
           <RoleSelect
@@ -251,7 +260,11 @@ function EditUserForm({
             <Label>
               Nama Lengkap <span className="text-red-500">*</span>
             </Label>
-            <Input {...register('full_name')} className={errors.full_name ? 'border-red-500' : ''} />
+            <Input
+              {...register('full_name')}
+              placeholder="Masukkan nama lengkap"
+              className={errors.full_name ? 'border-red-500' : ''}
+            />
             {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
           </div>
           <RoleSelect

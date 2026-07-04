@@ -61,6 +61,7 @@ export function ChangePasswordModal({ open, onOpenChange, user }: ChangePassword
           <PasswordInput
             autoComplete="new-password"
             {...register('password')}
+            placeholder="Masukkan password baru"
             className={errors.password ? 'border-red-500' : ''}
           />
           {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
@@ -72,6 +73,7 @@ export function ChangePasswordModal({ open, onOpenChange, user }: ChangePassword
           <PasswordInput
             autoComplete="new-password"
             {...register('confirm_password')}
+            placeholder="Ulangi password baru"
             className={errors.confirm_password ? 'border-red-500' : ''}
           />
           {errors.confirm_password && (
