@@ -58,7 +58,7 @@ export function FormModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={cn('flex flex-col gap-0 p-0', SIZE_MAP[size])}
+        className={cn('flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0', SIZE_MAP[size])}
         onInteractOutside={(e) => {
           if (isLoading) e.preventDefault()
         }}
@@ -75,7 +75,7 @@ export function FormModal({
         </DialogHeader>
 
         {/* Body — scrollable */}
-        <ScrollArea className="flex-1" style={{ maxHeight: '70vh' }}>
+        <ScrollArea className="flex-1 min-h-0">
           <div className="px-6 py-4">
             {children}
           </div>

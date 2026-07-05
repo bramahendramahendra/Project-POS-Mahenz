@@ -11,8 +11,8 @@ const (
 	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
 	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
-	checkUnitUsedQuery             = `SELECT COUNT(*) FROM product_units WHERE unit_id = ?`
-	checkActiveProductsByUnitQuery = `SELECT COUNT(*) FROM product_units pu JOIN products p ON p.id = pu.product_id WHERE pu.unit_id = ? AND p.is_active = 1`
+	checkUnitUsedQuery             = `SELECT COUNT(*) FROM products WHERE unit_id = ?`
+	checkActiveProductsByUnitQuery = `SELECT COUNT(*) FROM products WHERE unit_id = ? AND is_active = 1`
 	createUnitQuery                = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
 	getLastInsertIDQuery           = `SELECT LAST_INSERT_ID()`
 	updateUnitQuery                = `UPDATE units SET name = ?, abbreviation = ?, updated_at = NOW() WHERE id = ?`
