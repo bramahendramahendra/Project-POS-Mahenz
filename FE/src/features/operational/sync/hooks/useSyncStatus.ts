@@ -22,10 +22,7 @@ export function useSyncStatus() {
   }, [conflictCount])
 
   return {
-    status: null,
     hasConflicts: conflictCount > 0,
-    isSyncing: false,
-    pendingCount: 0,
     conflictCount,
   }
 }

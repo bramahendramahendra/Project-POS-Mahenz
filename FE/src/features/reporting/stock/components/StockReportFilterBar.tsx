@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RotateCcw, Search } from 'lucide-react'
+import { Download, RotateCcw, Search } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -14,6 +14,7 @@ import {
 import { useDebounce } from '@/shared/hooks'
 import { useCategoryOptionsQuery } from '@/features/products/categories'
 
+import { useExportStockReportMutation } from '../stock.api'
 import type { StockFilter } from '../stock.types'
 
 interface StockReportFilterBarProps {
@@ -27,6 +28,7 @@ export function StockReportFilterBar({ filter, onChange, onReset }: StockReportF
   const debouncedSearch = useDebounce(search, 300)
 
   const { data: categories = [] } = useCategoryOptionsQuery()
+  const { mutate: exportReport, isPending: isExporting } = useExportStockReportMutation()
 
   useEffect(() => {
     onChange({ ...filter, search: debouncedSearch || undefined })
@@ -73,6 +75,16 @@ export function StockReportFilterBar({ filter, onChange, onReset }: StockReportF
       <Button variant="outline" size="sm" className="h-9 gap-1" onClick={handleReset}>
         <RotateCcw size={13} />
         Reset
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 gap-1.5"
+        onClick={() => exportReport()}
+        disabled={isExporting}
+      >
+        <Download className="h-4 w-4" />
+        {isExporting ? 'Mengekspor...' : 'Export Excel'}
       </Button>
     </div>
   )

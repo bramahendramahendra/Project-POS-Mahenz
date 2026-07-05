@@ -11,8 +11,8 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
-import type { SalesFilter, SalesReport } from '../sales.types'
-import { exportSalesCSV } from '../sales.utils'
+import { useExportSalesReportMutation } from '../sales.api'
+import type { SalesFilter } from '../sales.types'
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Tunai' },
@@ -26,10 +26,10 @@ interface SalesReportFilterBarProps {
   filter: SalesFilter
   onChange: (filter: SalesFilter) => void
   onReset: () => void
-  exportData: SalesReport[]
 }
 
-export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: SalesReportFilterBarProps) {
+export function SalesReportFilterBar({ filter, onChange, onReset }: SalesReportFilterBarProps) {
+  const { mutate: exportReport, isPending: isExporting } = useExportSalesReportMutation()
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-3">
       <div className="space-y-1">
@@ -77,11 +77,11 @@ export function SalesReportFilterBar({ filter, onChange, onReset, exportData }: 
         variant="outline"
         size="sm"
         className="h-9 gap-1.5"
-        onClick={() => exportSalesCSV(exportData)}
-        disabled={exportData.length === 0}
+        onClick={() => exportReport(filter)}
+        disabled={isExporting}
       >
         <Download className="h-4 w-4" />
-        Export CSV
+        {isExporting ? 'Mengekspor...' : 'Export Excel'}
       </Button>
     </div>
   )

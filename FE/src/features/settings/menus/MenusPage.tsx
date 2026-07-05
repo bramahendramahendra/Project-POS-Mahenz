@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
-import { ConfirmDialog, PageHeader } from '@/shared/components'
+import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Input } from '@/shared/components/ui/input'
@@ -68,10 +68,12 @@ export function MenusPage() {
         title="Manajemen Menu"
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Manajemen Menu' }]}
         actions={
-          <Button onClick={handleOpenAdd}>
-            <Plus size={14} className="mr-2" />
-            Tambah Menu
-          </Button>
+          <RoleGuard menuKey="sistem.menus" action="can_create">
+            <Button onClick={handleOpenAdd}>
+              <Plus size={14} className="mr-2" />
+              Tambah Menu
+            </Button>
+          </RoleGuard>
         }
       />
 
@@ -120,17 +122,21 @@ export function MenusPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(menu)}>
-                      <Pencil size={14} />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => handleOpenDelete(menu)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+                    <RoleGuard menuKey="sistem.menus" action="can_edit">
+                      <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(menu)}>
+                        <Pencil size={14} />
+                      </Button>
+                    </RoleGuard>
+                    <RoleGuard menuKey="sistem.menus" action="can_delete">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => handleOpenDelete(menu)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </RoleGuard>
                   </div>
                 </td>
               </tr>

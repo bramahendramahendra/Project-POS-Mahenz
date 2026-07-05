@@ -221,6 +221,7 @@ export function useSaveProductPackagesBulkMutation() {
       api.post<void>(`/products/${productId}/packages/save`, { packages }),
     onSuccess: (_data, { productId }) => {
       qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
+      toast.success('Kemasan produk berhasil disimpan')
     },
     onError: (e: Error) => toast.error(e.message),
   })

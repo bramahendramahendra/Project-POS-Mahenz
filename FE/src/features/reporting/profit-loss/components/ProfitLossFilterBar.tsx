@@ -1,10 +1,11 @@
-import { RotateCcw } from 'lucide-react'
+import { Download, RotateCcw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { monthStart, todayStr, weekStart } from '@/shared/utils'
 
+import { useExportProfitLossMutation } from '../profit-loss.api'
 import type { ProfitLossDateFilter } from '../profit-loss.types'
 
 interface ProfitLossFilterBarProps {
@@ -14,6 +15,8 @@ interface ProfitLossFilterBarProps {
 }
 
 export function ProfitLossFilterBar({ filter, onChange, onReset }: ProfitLossFilterBarProps) {
+  const { mutate: exportReport, isPending: isExporting } = useExportProfitLossMutation()
+
   const applyPreset = (from: string, to: string) => {
     onChange({ date_from: from, date_to: to })
   }
@@ -51,6 +54,16 @@ export function ProfitLossFilterBar({ filter, onChange, onReset }: ProfitLossFil
         <Button variant="outline" size="sm" className="h-9 gap-1" onClick={onReset}>
           <RotateCcw size={13} />
           Reset
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => exportReport(filter)}
+          disabled={isExporting}
+        >
+          <Download className="h-4 w-4" />
+          {isExporting ? 'Mengekspor...' : 'Export Excel'}
         </Button>
       </div>
     </div>

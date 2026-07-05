@@ -56,7 +56,6 @@ export function SalesReportTab() {
         filter={filter}
         onChange={handleFilterChange}
         onReset={handleReset}
-        exportData={items}
       />
 
       <SalesReportSummaryCard summary={summary} isLoading={summaryLoading} />

@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 
+import { RoleGuard } from '@/shared/components'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { useDisclosure } from '@/shared/hooks'
@@ -31,10 +32,12 @@ export function AppVersionTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={handleOpenAdd}>
-          <Plus size={14} className="mr-2" />
-          Tambah Versi
-        </Button>
+        <RoleGuard menuKey="sistem.versi" action="can_create">
+          <Button onClick={handleOpenAdd}>
+            <Plus size={14} className="mr-2" />
+            Tambah Versi
+          </Button>
+        </RoleGuard>
       </div>
 
       {isLoading ? (

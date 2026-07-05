@@ -85,7 +85,9 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="close-balance">Saldo Akhir Tunai (Rp)</Label>
+            <Label htmlFor="close-balance">
+              Saldo Akhir Tunai (Rp) <span className="text-red-500">*</span>
+            </Label>
             <Controller
               name="closing_balance"
               control={control}

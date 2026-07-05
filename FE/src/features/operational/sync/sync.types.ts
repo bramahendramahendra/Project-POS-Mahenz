@@ -1,14 +1,5 @@
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error'
 export type ConflictType = 'product' | 'transaction' | 'customer' | 'stock'
 export type ConflictResolution = 'pending' | 'approved' | 'rejected'
-
-export interface SyncStatusData {
-  status: SyncStatus
-  last_sync_at?: string
-  pending_count: number
-  conflict_count: number
-  message?: string
-}
 
 export interface SyncHistoryItem {
   id: number

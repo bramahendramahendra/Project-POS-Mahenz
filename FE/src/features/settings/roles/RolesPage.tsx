@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Pencil, Settings, Shield, Trash2 } from 'lucide-react'
 
-import { ConfirmDialog, PageHeader } from '@/shared/components'
+import { ConfirmDialog, PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
 import { Switch } from '@/shared/components/ui/switch'
@@ -68,10 +68,12 @@ export function RolesPage() {
         title="Manajemen Role"
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Manajemen Role' }]}
         actions={
-          <Button onClick={handleOpenAdd}>
-            <Shield size={14} className="mr-2" />
-            Tambah Role
-          </Button>
+          <RoleGuard menuKey="sistem.roles" action="can_create">
+            <Button onClick={handleOpenAdd}>
+              <Shield size={14} className="mr-2" />
+              Tambah Role
+            </Button>
+          </RoleGuard>
         }
       />
 
@@ -136,29 +138,33 @@ export function RolesPage() {
                       <TooltipContent>Atur Akses Menu</TooltipContent>
                     </Tooltip>
                     {!role.is_system && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(role)}>
-                            <Pencil size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit</TooltipContent>
-                      </Tooltip>
+                      <RoleGuard menuKey="sistem.roles" action="can_edit">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" onClick={() => handleOpenEdit(role)}>
+                              <Pencil size={14} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </RoleGuard>
                     )}
                     {!role.is_system && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-500 hover:text-red-600"
-                            onClick={() => handleOpenDelete(role)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Hapus</TooltipContent>
-                      </Tooltip>
+                      <RoleGuard menuKey="sistem.roles" action="can_delete">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-500 hover:text-red-600"
+                              onClick={() => handleOpenDelete(role)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Hapus</TooltipContent>
+                        </Tooltip>
+                      </RoleGuard>
                     )}
                   </div>
                 </td>

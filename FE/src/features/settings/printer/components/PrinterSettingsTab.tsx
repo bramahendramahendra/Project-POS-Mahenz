@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Printer } from 'lucide-react'
 
+import { RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
@@ -233,9 +234,11 @@ export function PrinterSettingsTab() {
             <Printer size={15} />
             Test Print
           </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Menyimpan...' : 'Simpan'}
-          </Button>
+          <RoleGuard menuKey="sistem.printer" action="can_edit">
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </RoleGuard>
         </div>
       </form>
 

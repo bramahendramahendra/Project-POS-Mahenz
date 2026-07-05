@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
-import { api } from '@/services'
+import { api, downloadReportExport } from '@/services'
 import { queryKeys } from '@/shared/constants'
 import type { PaginatedData } from '@/shared/types'
 
@@ -17,5 +18,12 @@ export function useStockSummaryQuery(filter: StockFilter) {
   return useQuery({
     queryKey: queryKeys.reports.stockSummary(filter as Record<string, unknown>),
     queryFn: () => api.post<StockSummary>('/reports/stock/summary', filter),
+  })
+}
+
+export function useExportStockReportMutation() {
+  return useMutation({
+    mutationFn: () => downloadReportExport('/reports/stock/export', {}, 'laporan-stok.xlsx'),
+    onError: (e: Error) => toast.error(e.message),
   })
 }
