@@ -40,7 +40,7 @@ const (
 		WHERE p.barcode = ? LIMIT 1`
 
 	searchProductsQuery = `
-		SELECT p.id, p.barcode, p.name, p.selling_price, p.stock,
+		SELECT p.id, p.barcode, p.name, p.selling_price, p.stock, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id

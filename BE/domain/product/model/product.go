@@ -34,6 +34,7 @@ type ProductSearchResult struct {
 	Name         string  `gorm:"column:name"`
 	SellingPrice float64 `gorm:"column:selling_price"`
 	Stock        float64 `gorm:"column:stock"`
+	MinStock     float64 `gorm:"column:min_stock"`
 	UnitID       int     `gorm:"column:unit_id"`
 	UnitName     string  `gorm:"column:unit_name"`
 }

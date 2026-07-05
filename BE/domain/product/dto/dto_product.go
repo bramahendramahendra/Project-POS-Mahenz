@@ -82,6 +82,7 @@ type (
 		Name         string  `json:"name"`
 		SellingPrice float64 `json:"selling_price"`
 		Stock        float64 `json:"stock"`
+		MinStock     float64 `json:"min_stock"`
 		UnitID       int     `json:"unit_id"`
 		UnitName     string  `json:"unit_name"`
 	}

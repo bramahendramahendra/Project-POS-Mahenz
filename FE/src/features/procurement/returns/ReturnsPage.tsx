@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/ui/button'
 
 import { ReturnTable } from './components/ReturnTable'
 import type { ReturnTableHandle } from './components/ReturnTable'
-import { PurchasePrerequisiteGuard } from '@/features/procurement/purchases/components/PurchasePrerequisiteGuard'
+import { ReturnPrerequisiteGuard } from './components/ReturnPrerequisiteGuard'
 
 export function ReturnsPage() {
   const tableRef = useRef<ReturnTableHandle>(null)
@@ -25,9 +25,9 @@ export function ReturnsPage() {
           </RoleGuard>
         }
       />
-      <PurchasePrerequisiteGuard>
+      <ReturnPrerequisiteGuard>
         <ReturnTable ref={tableRef} />
-      </PurchasePrerequisiteGuard>
+      </ReturnPrerequisiteGuard>
     </div>
   )
 }

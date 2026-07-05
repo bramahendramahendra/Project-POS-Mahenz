@@ -4,6 +4,7 @@ export interface ProductSearchResult {
   name: string
   selling_price: number
   stock: number
+  min_stock: number
   unit_id: number
   unit_name: string
 }

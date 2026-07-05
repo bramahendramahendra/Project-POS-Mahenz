@@ -64,6 +64,7 @@ func (s *productService) Search(req *dto.SearchRequest) (data []*dto.SearchRespo
 			Name:         v.Name,
 			SellingPrice: v.SellingPrice,
 			Stock:        v.Stock,
+			MinStock:     v.MinStock,
 			UnitID:       v.UnitID,
 			UnitName:     v.UnitName,
 		})

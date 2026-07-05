@@ -170,11 +170,20 @@ export function ProductSearch() {
               const units = resolved?.product.units ?? []
               // Loading: belum ada di resolvedCards
               const isCardLoading = !resolved
+              const isOutOfStock = !isCardLoading && resolved.product.stock <= 0
+              const isLowStock =
+                !isCardLoading && !isOutOfStock && resolved.product.stock < resolved.product.min_stock
 
               return (
                 <div
                   key={item.id}
-                  className="flex flex-col rounded-lg border bg-white shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
+                  className={`flex flex-col rounded-lg border bg-white shadow-sm hover:shadow-md transition-all ${
+                    isOutOfStock
+                      ? 'border-red-200 bg-red-50/40 hover:border-red-300'
+                      : isLowStock
+                        ? 'border-amber-200 bg-amber-50/30 hover:border-amber-300'
+                        : 'hover:border-blue-300'
+                  }`}
                 >
                   {/* Info produk */}
                   <div className="flex flex-col items-center gap-1 px-3 pt-3 pb-2 text-center">
@@ -192,10 +201,17 @@ export function ProductSearch() {
 
                   {/* Unit buttons — langsung tampil di kartu */}
                   <div className="border-t px-2 py-2">
+                    {isLowStock && (
+                      <p className="text-center text-[10px] font-medium text-amber-600 mb-1">
+                        Sisa {resolved!.product.stock} — stok menipis
+                      </p>
+                    )}
                     {isCardLoading ? (
                       <div className="flex justify-center py-1">
                         <Loader2 size={14} className="animate-spin text-gray-300" />
                       </div>
+                    ) : isOutOfStock ? (
+                      <p className="text-center text-xs text-red-500 font-medium py-1.5">Stok Habis</p>
                     ) : units.length === 0 ? (
                       <p className="text-center text-xs text-gray-400 py-1">Belum ada unit</p>
                     ) : units.length === 1 ? (
