@@ -144,6 +144,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
   const [itemUnitOptions, setItemUnitOptions] = useState<Record<number, ProductPackage[]>>({})
   const [itemSelectedPackageId, setItemSelectedPackageId] = useState<Record<number, number>>({})
+  const [itemRefPurchasePrice, setItemRefPurchasePrice] = useState<Record<number, number>>({})
 
   const watchItems = watch('items')
   const watchDiscount = watch('discount_amount') ?? 0
@@ -159,6 +160,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       reset({ ...emptyValues, purchase_date: todayStr() })
       setItemUnitOptions({})
       setItemSelectedPackageId({})
+      setItemRefPurchasePrice({})
       setIsConfirming(false)
       setPendingValues(null)
       setSupplierKeyword('')
@@ -181,12 +183,14 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     const packages = await queryClient
       .fetchQuery<ProductPackage[]>({
         queryKey: queryKeys.products.productUnits(id),
-        queryFn: () => api.get<ProductPackage[]>(`/products/${id}/packages`),
+        queryFn: () => api.post<ProductPackage[]>(`/products/${id}/packages/list`, {}),
       })
       .catch(() => [] as ProductPackage[])
 
     const validPackages = Array.isArray(packages) ? packages : []
     const defaultPkg = validPackages.find((pkg) => pkg.is_default) ?? validPackages[0]
+
+    setItemRefPurchasePrice((prev) => ({ ...prev, [index]: defaultPkg?.purchase_price ?? 0 }))
 
     if (validPackages.length > 1) {
       setItemUnitOptions((prev) => ({ ...prev, [index]: validPackages }))
@@ -216,6 +220,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     const pkg = itemUnitOptions[index]?.find((p) => p.id === id)
     if (!pkg) return
     setItemSelectedPackageId((prev) => ({ ...prev, [index]: id }))
+    setItemRefPurchasePrice((prev) => ({ ...prev, [index]: pkg.purchase_price }))
     setValue(`items.${index}.unit`, pkg.unit_name)
     setValue(`items.${index}.price`, pkg.purchase_price)
     setValue(`items.${index}.conversion_qty`, pkg.conversion_qty ?? 1)
@@ -275,7 +280,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       open={open && !isConfirming}
       onOpenChange={(open) => { if (!open && !isConfirming) handleClose() }}
       title={isEditMode ? 'Edit Pembelian' : 'Tambah Pembelian'}
-      size="xl"
+      size="full"
       isLoading={isPending}
       onSubmit={handleSubmit(onSubmit)}
       submitLabel={isEditMode ? 'Simpan Perubahan' : 'Simpan Pembelian'}
@@ -358,15 +363,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             </Button>
           </div>
 
-          <div className="rounded-lg border overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-lg border overflow-x-auto">
+            <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500 w-[35%]">Produk</th>
-                  <th className="px-3 py-2 text-right font-medium text-gray-500 w-[10%]">Qty</th>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500 w-[10%]">Satuan</th>
-                  <th className="px-3 py-2 text-right font-medium text-gray-500 w-[22%]">Harga</th>
-                  <th className="px-3 py-2 text-right font-medium text-gray-500 w-[18%]">Subtotal</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 min-w-[220px] w-[28%]">Produk</th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[70px] w-[8%]">Qty</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 min-w-[110px] w-[9%]">Satuan</th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[120px] w-[14%]">Ref. Harga Beli</th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[140px] w-[19%]">Harga</th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[110px] w-[16%]">Subtotal</th>
                   <th className="px-3 py-2 w-8" />
                 </tr>
               </thead>
@@ -412,6 +418,11 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                         ) : (
                           watchItems[index]?.unit || '-'
                         )}
+                      </td>
+                      <td className="px-3 py-2 text-right text-xs text-gray-400">
+                        {itemRefPurchasePrice[index] != null
+                          ? formatRupiah(itemRefPurchasePrice[index])
+                          : '-'}
                       </td>
                       <td className="px-3 py-2">
                         <Controller
