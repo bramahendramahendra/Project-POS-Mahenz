@@ -45,6 +45,7 @@ export interface SupplierPurchase {
 }
 
 export interface SupplierPurchaseFilter {
+  search?: string
   start_date?: string
   end_date?: string
   supplier_id?: number

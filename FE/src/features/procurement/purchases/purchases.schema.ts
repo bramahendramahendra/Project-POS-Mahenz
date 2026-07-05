@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const purchaseItemSchema = z.object({
   product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
+  product_name: z.string().optional(),
   quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
   price: z.number({ error: 'Wajib diisi' }).nonnegative(),
   unit: z.string().min(1, 'Wajib diisi'),

@@ -1,21 +1,25 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 
 import { Checkbox } from '@/shared/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { Button } from '@/shared/components/ui/button'
+import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 
 import { useCustomerListQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
+import type { Customer } from '@/features/customers'
 
 export function CustomerSelector() {
   const [showCustomer, setShowCustomer] = useState(false)
+  const [keyword, setKeyword] = useState('')
   const { selectedCustomer, setCustomer } = useCashierStore()
-  const { data: customerData } = useCustomerListQuery({ page: 1, limit: 200, search: '' })
+
+  const { data: customerData, isFetching } = useCustomerListQuery({
+    page: 1,
+    limit: 20,
+    search: keyword,
+    is_active: true,
+  })
   const customers = customerData?.data ?? []
 
   return (
@@ -34,30 +38,34 @@ export function CustomerSelector() {
         )}
       </label>
       {showCustomer && (
-        <div className="mt-2">
-          <Select
-            value={selectedCustomer ? String(selectedCustomer.id) : 'none'}
-            onValueChange={(v) => {
-              if (v === 'none') {
-                setCustomer(null)
-              } else {
-                const c = customers.find((c) => String(c.id) === v)
-                if (c) setCustomer({ id: c.id, name: c.name })
-              }
+        <div className="mt-2 flex items-center gap-1.5">
+          <AsyncCombobox<Customer>
+            className="h-8 text-sm border-dashed"
+            value={selectedCustomer?.id}
+            selectedLabel={selectedCustomer?.name}
+            onSearch={setKeyword}
+            onValueChange={(_v, item) => {
+              if (item) setCustomer({ id: item.id, name: item.name })
             }}
-          >
-            <SelectTrigger className="h-8 text-sm border-dashed">
-              <SelectValue placeholder="Pilih pelanggan..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">— Tanpa Pelanggan —</SelectItem>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={String(c.id)}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            options={customers}
+            getOptionValue={(c) => c.id}
+            getOptionLabel={(c) => c.name}
+            isLoading={isFetching}
+            placeholder="Pilih pelanggan..."
+            searchPlaceholder="Cari nama pelanggan..."
+            emptyText="Pelanggan tidak ditemukan."
+          />
+          {selectedCustomer && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-gray-400 hover:text-gray-600"
+              onClick={() => setCustomer(null)}
+            >
+              <X size={14} />
+            </Button>
+          )}
         </div>
       )}
     </div>

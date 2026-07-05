@@ -93,6 +93,17 @@ export interface ProductOption {
   name: string
 }
 
+export interface ProductSearchOption {
+  id: number
+  barcode: string
+  name: string
+  selling_price: number
+  stock: number
+  min_stock: number
+  unit_id: number
+  unit_name: string
+}
+
 // ─── Import Types ─────────────────────────────────────────────────────────────
 
 export interface ImportPreviewRow {

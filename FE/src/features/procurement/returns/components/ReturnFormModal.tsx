@@ -8,18 +8,13 @@ import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { formatRupiah, todayStr } from '@/shared/utils'
 import {
   useSupplierPurchasesQuery,
   useSupplierPurchaseDetailQuery,
 } from '@/features/procurement/purchases'
+import type { SupplierPurchase } from '@/features/procurement/purchases'
 
 import { useCreateSupplierReturnMutation } from '../returns.api'
 import { returnSchema, type ReturnFormValues } from '../returns.schema'
@@ -43,8 +38,13 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
   >({})
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingPayload, setPendingPayload] = useState<CreateSupplierReturnPayload | null>(null)
+  const [purchaseKeyword, setPurchaseKeyword] = useState('')
+  const [selectedPurchaseLabel, setSelectedPurchaseLabel] = useState('')
 
-  const { data: purchasesData } = useSupplierPurchasesQuery({ limit: 200 })
+  const { data: purchasesData, isFetching: isPurchasesFetching } = useSupplierPurchasesQuery({
+    search: purchaseKeyword,
+    limit: 20,
+  })
   const purchases = purchasesData?.data ?? []
 
   const { mutate: create, isPending } = useCreateSupplierReturnMutation()
@@ -72,6 +72,8 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
       setSelectedItems({})
       setIsConfirming(false)
       setPendingPayload(null)
+      setPurchaseKeyword('')
+      setSelectedPurchaseLabel('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
@@ -188,18 +190,23 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
           <Label>
             Pembelian <span className="text-red-500">*</span>
           </Label>
-          <Select onValueChange={(v) => setValue('purchase_id', Number(v))}>
-            <SelectTrigger className={errors.purchase_id ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Pilih faktur pembelian" />
-            </SelectTrigger>
-            <SelectContent>
-              {purchases.map((p) => (
-                <SelectItem key={p.id} value={String(p.id)}>
-                  {p.invoice_number} — {p.supplier_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AsyncCombobox<SupplierPurchase>
+            className={errors.purchase_id ? 'border-red-500' : ''}
+            value={purchaseId > 0 ? purchaseId : undefined}
+            selectedLabel={selectedPurchaseLabel}
+            onSearch={setPurchaseKeyword}
+            onValueChange={(v, item) => {
+              setValue('purchase_id', Number(v ?? 0))
+              if (item) setSelectedPurchaseLabel(`${item.invoice_number} — ${item.supplier_name}`)
+            }}
+            options={purchases}
+            getOptionValue={(p) => p.id}
+            getOptionLabel={(p) => `${p.invoice_number} — ${p.supplier_name}`}
+            isLoading={isPurchasesFetching}
+            placeholder="Pilih faktur pembelian"
+            searchPlaceholder="Cari no. faktur..."
+            emptyText="Faktur pembelian tidak ditemukan."
+          />
           {errors.purchase_id && (
             <p className="text-xs text-red-500">{errors.purchase_id.message}</p>
           )}

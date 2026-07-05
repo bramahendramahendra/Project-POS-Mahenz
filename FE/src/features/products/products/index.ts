@@ -2,6 +2,7 @@ export { ProductsPage } from './ProductsPage'
 export {
   useProductListQuery,
   useProductOptionsQuery,
+  useProductSearchQuery,
   useProductDetailQuery,
   useProductBarcodeQuery,
   useCreateProductMutation,
@@ -12,6 +13,7 @@ export {
 export type {
   Product,
   ProductOption,
+  ProductSearchOption,
   ProductPackage,
   PriceTier,
   ProductListFilter,

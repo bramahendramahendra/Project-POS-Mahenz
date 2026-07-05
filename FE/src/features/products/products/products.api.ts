@@ -21,6 +21,7 @@ import type {
   ProductListFilter,
   ProductOption,
   ProductPackage,
+  ProductSearchOption,
   UpdatePriceTierPayload,
   UpdateProductPayload,
 } from './products.types'
@@ -110,6 +111,14 @@ export function useProductOptionsQuery() {
   return useQuery({
     queryKey: queryKeys.products.options(),
     queryFn: () => api.post<ProductOption[]>('/products/options', {}),
+  })
+}
+
+export function useProductSearchQuery(keyword: string, enabled = true) {
+  return useQuery({
+    queryKey: ['products', 'search', keyword],
+    queryFn: () => api.post<ProductSearchOption[]>('/products/search', { q: keyword, limit: 20 }),
+    enabled: enabled && keyword.length >= 2,
   })
 }
 

@@ -37,6 +37,11 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 	var args []interface{}
 	conditions := ""
 
+	if req.Search != "" {
+		search := "%" + req.Search + "%"
+		conditions += " AND (p.invoice_number LIKE ? OR p.purchase_code LIKE ?)"
+		args = append(args, search, search)
+	}
 	if req.StartDate != "" {
 		conditions += " AND DATE(p.purchase_date) >= ?"
 		args = append(args, req.StartDate)

@@ -18,8 +18,9 @@ import {
 import { formatRupiah, todayStr } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
-import { useSupplierListQuery } from '@/features/procurement/suppliers'
-import { useProductOptionsQuery } from '@/features/products/products'
+import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
+import { useProductSearchQuery } from '@/features/products/products'
+import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
 import {
@@ -30,7 +31,7 @@ import {
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
 import type { PaymentStatus, SupplierPurchase } from '../purchases.types'
-import type { ProductPackage } from '@/features/products/products/products.types'
+import type { ProductPackage, ProductSearchOption } from '@/features/products/products/products.types'
 import { purchaseSchema, type PurchaseFormValues } from '../purchases.schema'
 
 interface PurchaseFormModalProps {
@@ -39,11 +40,43 @@ interface PurchaseFormModalProps {
   initialData?: SupplierPurchase | null
 }
 
+function PurchaseProductCell({
+  value,
+  label,
+  onChange,
+}: {
+  value: number
+  label?: string
+  onChange: (id: number, name: string) => void
+}) {
+  const [keyword, setKeyword] = useState('')
+  const { data: results = [], isFetching } = useProductSearchQuery(keyword)
+
+  return (
+    <AsyncCombobox<ProductSearchOption>
+      className="h-8 text-xs"
+      value={value > 0 ? value : undefined}
+      selectedLabel={label}
+      onSearch={setKeyword}
+      onValueChange={(_v, item) => {
+        if (item) onChange(item.id, item.name)
+      }}
+      options={results}
+      getOptionValue={(p) => p.id}
+      getOptionLabel={(p) => p.name}
+      isLoading={isFetching}
+      placeholder="Pilih produk"
+      searchPlaceholder="Cari produk..."
+      emptyText="Produk tidak ditemukan."
+    />
+  )
+}
+
 const emptyValues: PurchaseFormValues = {
   purchase_date: todayStr(),
   invoice_number: '',
   supplier_id: 0,
-  items: [{ product_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
+  items: [{ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
   discount_amount: 0,
   notes: '',
   payment_status: 'paid',
@@ -58,6 +91,7 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
     supplier_id: data.supplier_id,
     items: data.items.map((item) => ({
       product_id: item.product_id,
+      product_name: item.product_name,
       quantity: item.quantity,
       price: item.purchase_price,
       unit: item.unit,
@@ -77,9 +111,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingValues, setPendingValues] = useState<PurchaseFormValues | null>(null)
 
-  const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const { data: productOptions = [] } = useProductOptionsQuery()
-  const suppliers = suppliersData?.data ?? []
+  const { data: supplierOptions = [] } = useSupplierOptionsQuery()
 
   const queryClient = useQueryClient()
   const { mutate: create, isPending: isCreating } = useCreateSupplierPurchaseMutation()
@@ -136,9 +168,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialData])
 
-  async function handleProductChange(index: number, productId: string) {
-    const id = Number(productId)
+  async function handleProductChange(index: number, id: number, productName: string) {
     setValue(`items.${index}.product_id`, id)
+    setValue(`items.${index}.product_name`, productName)
 
     const packages = await queryClient
       .fetchQuery<ProductPackage[]>({
@@ -291,7 +323,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                 <SelectValue placeholder="Pilih supplier" />
               </SelectTrigger>
               <SelectContent>
-                {suppliers.map((s) => (
+                {supplierOptions.map((s) => (
                   <SelectItem key={s.id} value={String(s.id)}>
                     {s.name}
                   </SelectItem>
@@ -310,7 +342,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ product_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 })}
+              onClick={() => append({ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 })}
               className="h-7 gap-1 text-xs"
             >
               <Plus className="h-3 w-3" />
@@ -338,21 +370,11 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                   return (
                     <tr key={field.id}>
                       <td className="px-3 py-2">
-                        <Select
-                          value={currentProductId ? String(currentProductId) : ''}
-                          onValueChange={(v) => handleProductChange(index, v)}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Pilih produk" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {productOptions.map((p) => (
-                              <SelectItem key={p.id} value={String(p.id)}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <PurchaseProductCell
+                          value={currentProductId ?? 0}
+                          label={watchItems[index]?.product_name}
+                          onChange={(id, name) => handleProductChange(index, id, name)}
+                        />
                       </td>
                       <td className="px-3 py-2">
                         <Input

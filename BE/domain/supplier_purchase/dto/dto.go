@@ -5,6 +5,7 @@ type (
 	GetAllRequest struct {
 		Page          int    `json:"page"`
 		Limit         int    `json:"limit"`
+		Search        string `json:"search"`
 		StartDate     string `json:"start_date"`
 		EndDate       string `json:"end_date"`
 		SupplierID    *int   `json:"supplier_id"`
