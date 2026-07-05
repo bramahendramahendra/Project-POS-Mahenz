@@ -128,6 +128,9 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 	currencyStyle, _ := f.NewStyle(&excelize.Style{
 		NumFmt: 3,
 	})
+	textStyle, _ := f.NewStyle(&excelize.Style{
+		NumFmt: 49, // "@" (Text) — cegah Excel mengubah barcode panjang jadi notasi ilmiah
+	})
 	marginHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Color: "#FFFFFF"},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#808080"}, Pattern: 1},
@@ -150,6 +153,7 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 	f.SetCellStyle(sheetProduk, "A1", "F1", headerStyle)
 	f.SetCellStyle(sheetProduk, "G1", "G1", marginHeaderStyle)
 	f.SetCellStyle(sheetProduk, "H1", "J1", headerStyle)
+	f.SetCellStyle(sheetProduk, "C2", "C1000", textStyle)
 	f.SetCellStyle(sheetProduk, "E2", "E1000", currencyStyle)
 	f.SetCellStyle(sheetProduk, "F2", "F1000", currencyStyle)
 	f.SetCellStyle(sheetProduk, "G2", "G1000", marginCellStyle)

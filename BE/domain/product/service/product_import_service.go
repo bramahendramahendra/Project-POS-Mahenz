@@ -13,6 +13,21 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// normalizeBarcode mengembalikan angka desimal biasa jika Excel menyimpan
+// barcode numerik dalam notasi ilmiah (mis. "8.991002100016E+12"), karena
+// kolom Barcode tanpa format Text akan dibaca excelize sesuai tampilannya.
+func normalizeBarcode(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" || !strings.ContainsAny(s, "eE") {
+		return s
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return s
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
+}
+
 func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error) {
 	src, openErr := file.Open()
 	if openErr != nil {
@@ -75,7 +90,7 @@ func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.Im
 		}
 
 		req := &dto.CreateRequest{
-			Barcode:      getCol(1),
+			Barcode:      normalizeBarcode(getCol(1)),
 			Name:         name,
 			SellingPrice: sellingPrice,
 		}
@@ -243,10 +258,11 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			continue
 		}
 
-		var errs, warns []string
+		errs := []string{}
+		warns := []string{}
 
 		nama := getCell(row, colNama)
-		barcode := getCell(row, colBarcode)
+		barcode := normalizeBarcode(getCell(row, colBarcode))
 		kategori := getCell(row, colKategori)
 		satuan := getCell(row, colSatuan)
 		hargaBeli := toFloat(getCell(row, colHargaBeli))
@@ -352,7 +368,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			if noProduk <= 0 {
 				continue
 			}
-			var errs []string
+			errs := []string{}
 			namaPaket := getCell(row, gColNamaPaket)
 			satuan := getCell(row, gColSatuan)
 			konversi := toFloat(getCell(row, gColKonversi))
