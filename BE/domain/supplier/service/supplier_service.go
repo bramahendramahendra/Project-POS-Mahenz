@@ -8,6 +8,7 @@ import (
 )
 
 func (s *supplierService) GetAll(req *dto.GetAllRequest) (data []dto.SupplierResponse, total int64, err error) {
+	data = []dto.SupplierResponse{}
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
@@ -31,8 +32,9 @@ func (s *supplierService) GetAll(req *dto.GetAllRequest) (data []dto.SupplierRes
 	return data, total, nil
 }
 
-func (s *supplierService) GetOptions() (data []dto.GetOptionResponse, err error) {
-	dataDB, err := s.repo.GetOptions()
+func (s *supplierService) GetOptions(search string) (data []dto.GetOptionResponse, err error) {
+	data = []dto.GetOptionResponse{}
+	dataDB, err := s.repo.GetOptions(search)
 	if err != nil {
 		return data, err
 	}

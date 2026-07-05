@@ -9,6 +9,7 @@ const (
 	countSuppliersQuery = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
 	getAllSuppliersQuery = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
 	getAllSupplierOptionsQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
+	getAllSupplierOptionsSearchQuery = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 AND name LIKE ? ORDER BY name LIMIT 20`
 	getSupplierByIDQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
 	getSupplierPurchasesQuery      = `SELECT id, purchase_code, purchase_date, total_amount, payment_status, remaining_amount FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC LIMIT 10`
 	getSupplierReturnsQuery        = `SELECT id, return_code, return_date, total_return_amount AS total_return, reason, status FROM supplier_returns WHERE supplier_id = ? ORDER BY return_date DESC LIMIT 10`
@@ -76,9 +77,15 @@ func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64,
 	return dataDB, total, nil
 }
 
-func (r *supplierRepo) GetOptions() ([]*model.SupplierOption, error) {
+func (r *supplierRepo) GetOptions(search string) ([]*model.SupplierOption, error) {
 	var dataDB []*model.SupplierOption
-	err := r.db.Raw(getAllSupplierOptionsQuery).Scan(&dataDB).Error
+	query := getAllSupplierOptionsQuery
+	var args []any
+	if search != "" {
+		query = getAllSupplierOptionsSearchQuery
+		args = append(args, "%"+search+"%")
+	}
+	err := r.db.Raw(query, args...).Scan(&dataDB).Error
 	if err != nil {
 		return nil, err
 	}

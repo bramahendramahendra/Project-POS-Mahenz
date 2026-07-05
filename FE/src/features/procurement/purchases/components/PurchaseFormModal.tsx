@@ -19,6 +19,7 @@ import { formatRupiah, todayStr } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
+import type { Supplier } from '@/features/procurement/suppliers'
 import { useProductSearchQuery } from '@/features/products/products'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,7 +51,7 @@ function PurchaseProductCell({
   onChange: (id: number, name: string) => void
 }) {
   const [keyword, setKeyword] = useState('')
-  const { data: results = [], isFetching } = useProductSearchQuery(keyword)
+  const { data: results, isFetching } = useProductSearchQuery(keyword)
 
   return (
     <AsyncCombobox<ProductSearchOption>
@@ -111,7 +112,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingValues, setPendingValues] = useState<PurchaseFormValues | null>(null)
 
-  const { data: supplierOptions = [] } = useSupplierOptionsQuery()
+  const [supplierKeyword, setSupplierKeyword] = useState('')
+  const [selectedSupplierLabel, setSelectedSupplierLabel] = useState('')
+  const { data: supplierOptions = [], isFetching: isSuppliersFetching } = useSupplierOptionsQuery(supplierKeyword)
 
   const queryClient = useQueryClient()
   const { mutate: create, isPending: isCreating } = useCreateSupplierPurchaseMutation()
@@ -158,12 +161,15 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       setItemSelectedPackageId({})
       setIsConfirming(false)
       setPendingValues(null)
+      setSupplierKeyword('')
+      setSelectedSupplierLabel('')
       return
     }
     if (isEditMode && initialData) {
       reset(buildDefaultValues(initialData))
       setItemUnitOptions({})
       setItemSelectedPackageId({})
+      setSelectedSupplierLabel(initialData.supplier_name)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialData])
@@ -315,21 +321,23 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             <Label>
               Supplier <span className="text-red-500">*</span>
             </Label>
-            <Select
-              value={watchSupplierId ? String(watchSupplierId) : ''}
-              onValueChange={(v) => setValue('supplier_id', Number(v))}
-            >
-              <SelectTrigger className={errors.supplier_id ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Pilih supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                {supplierOptions.map((s) => (
-                  <SelectItem key={s.id} value={String(s.id)}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AsyncCombobox<Supplier>
+              className={errors.supplier_id ? 'border-red-500' : ''}
+              value={watchSupplierId > 0 ? watchSupplierId : undefined}
+              selectedLabel={selectedSupplierLabel}
+              onSearch={setSupplierKeyword}
+              onValueChange={(v, item) => {
+                setValue('supplier_id', Number(v ?? 0))
+                if (item) setSelectedSupplierLabel(item.name)
+              }}
+              options={supplierOptions}
+              getOptionValue={(s) => s.id}
+              getOptionLabel={(s) => s.name}
+              isLoading={isSuppliersFetching}
+              placeholder="Pilih supplier"
+              searchPlaceholder="Cari supplier..."
+              emptyText="Supplier tidak ditemukan."
+            />
           </div>
         </div>
 

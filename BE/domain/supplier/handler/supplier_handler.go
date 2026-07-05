@@ -44,7 +44,13 @@ func (h *SupplierHandler) GetAll(c *gin.Context) {
 }
 
 func (h *SupplierHandler) GetOptions(c *gin.Context) {
-	data, err := h.service.GetOptions()
+	req, err := binder.BindJSON[dto.GetOptionsRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	data, err := h.service.GetOptions(req.Search)
 	if err != nil {
 		c.Error(err)
 		return

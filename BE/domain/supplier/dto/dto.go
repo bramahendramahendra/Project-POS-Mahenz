@@ -17,6 +17,10 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	GetOptionsRequest struct {
+		Search string `json:"search" validate:"max=100"`
+	}
+
 	CreateRequest struct {
 		Name          string `json:"name" validate:"required,min=2,max=100"`
 		Address       string `json:"address" validate:"omitempty,max=255"`

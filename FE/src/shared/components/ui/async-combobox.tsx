@@ -18,7 +18,7 @@ interface AsyncComboboxProps<T> {
   value?: string | number
   onValueChange: (value: string | number | undefined, item?: T) => void
   onSearch: (keyword: string) => void
-  options: T[]
+  options: T[] | null | undefined
   getOptionValue: (item: T) => string | number
   getOptionLabel: (item: T) => string
   selectedLabel?: string
@@ -60,7 +60,8 @@ export function AsyncCombobox<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedKeyword])
 
-  const selected = options.find((o) => String(getOptionValue(o)) === String(value))
+  const safeOptions = options ?? []
+  const selected = safeOptions.find((o) => String(getOptionValue(o)) === String(value))
   const label = selected ? getOptionLabel(selected) : selectedLabel
 
   return (
@@ -109,7 +110,7 @@ export function AsyncCombobox<T>({
               <>
                 <CommandEmpty>{emptyText}</CommandEmpty>
                 <CommandGroup>
-                  {options.map((option) => {
+                  {safeOptions.map((option) => {
                     const optValue = getOptionValue(option)
                     return (
                       <CommandItem

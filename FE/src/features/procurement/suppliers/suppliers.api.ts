@@ -20,10 +20,10 @@ export function useSupplierListQuery(filter: SupplierListFilter) {
   })
 }
 
-export function useSupplierOptionsQuery() {
+export function useSupplierOptionsQuery(search = '') {
   return useQuery({
-    queryKey: queryKeys.suppliers.options(),
-    queryFn: () => api.post<Supplier[]>('/suppliers/options', {}),
+    queryKey: [...queryKeys.suppliers.options(), search],
+    queryFn: () => api.post<Supplier[]>('/suppliers/options', { search }),
   })
 }
 

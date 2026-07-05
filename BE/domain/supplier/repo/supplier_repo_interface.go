@@ -10,7 +10,7 @@ import (
 type (
 	SupplierRepo interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error)
-		GetOptions() ([]*model.SupplierOption, error)
+		GetOptions(search string) ([]*model.SupplierOption, error)
 		GetByID(id int) (*model.Supplier, error)
 		Create(req *dto.CreateRequest, code string) (int64, error)
 		Update(req *dto.UpdateRequest) error

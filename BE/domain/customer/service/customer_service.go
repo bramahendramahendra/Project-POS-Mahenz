@@ -9,6 +9,7 @@ import (
 )
 
 func (s *customerService) GetAll(req *dto.GetAllRequest) (data []dto.CustomerResponse, total int64, err error) {
+	data = []dto.CustomerResponse{}
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err

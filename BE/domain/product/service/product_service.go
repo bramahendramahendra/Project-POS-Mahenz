@@ -52,6 +52,7 @@ func (s *productService) GetOptions() (data []*dto.GetOptionResponse, err error)
 }
 
 func (s *productService) Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error) {
+	data = []*dto.SearchResponse{}
 	dataDB, err := s.repo.Search(req)
 	if err != nil {
 		return data, err

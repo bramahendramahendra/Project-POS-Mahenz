@@ -6,6 +6,7 @@ import (
 )
 
 func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error) {
+	data = []dto.PurchaseResponse{}
 	dataDB, total, err := s.repo.GetAll(req)
 	if err != nil {
 		return data, 0, err
