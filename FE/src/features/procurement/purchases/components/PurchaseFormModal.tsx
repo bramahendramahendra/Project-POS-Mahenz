@@ -45,17 +45,19 @@ function PurchaseProductCell({
   value,
   label,
   onChange,
+  error,
 }: {
   value: number
   label?: string
   onChange: (id: number, name: string) => void
+  error?: boolean
 }) {
   const [keyword, setKeyword] = useState('')
   const { data: results, isFetching } = useProductSearchQuery(keyword)
 
   return (
     <AsyncCombobox<ProductSearchOption>
-      className="h-8 text-xs"
+      className={`h-8 text-xs ${error ? 'border-red-500' : ''}`}
       value={value > 0 ? value : undefined}
       selectedLabel={label}
       onSearch={setKeyword}
@@ -177,7 +179,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   }, [open, initialData])
 
   async function handleProductChange(index: number, id: number, productName: string) {
-    setValue(`items.${index}.product_id`, id)
+    setValue(`items.${index}.product_id`, id, { shouldValidate: true })
     setValue(`items.${index}.product_name`, productName)
 
     const packages = await queryClient
@@ -306,7 +308,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             <Label htmlFor="pur-date">
               Tanggal <span className="text-red-500">*</span>
             </Label>
-            <Input id="pur-date" type="date" {...register('purchase_date')} />
+            <Input
+              id="pur-date"
+              type="date"
+              max={todayStr()}
+              {...register('purchase_date')}
+              className={errors.purchase_date ? 'border-red-500' : ''}
+            />
+            {errors.purchase_date && (
+              <p className="text-xs text-red-500">{errors.purchase_date.message}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pur-inv">
@@ -332,7 +343,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               selectedLabel={selectedSupplierLabel}
               onSearch={setSupplierKeyword}
               onValueChange={(v, item) => {
-                setValue('supplier_id', Number(v ?? 0))
+                setValue('supplier_id', Number(v ?? 0), { shouldValidate: true })
                 if (item) setSelectedSupplierLabel(item.name)
               }}
               options={supplierOptions}
@@ -343,6 +354,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               searchPlaceholder="Cari supplier..."
               emptyText="Supplier tidak ditemukan."
             />
+            {errors.supplier_id && (
+              <p className="text-xs text-red-500">{errors.supplier_id.message}</p>
+            )}
           </div>
         </div>
 
@@ -381,6 +395,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                   const qty = watchItems[index]?.quantity || 0
                   const price = watchItems[index]?.price || 0
                   const currentProductId = watchItems[index]?.product_id
+                  const itemErrors = errors.items?.[index]
                   return (
                     <tr key={field.id}>
                       <td className="px-3 py-2">
@@ -388,15 +403,23 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                           value={currentProductId ?? 0}
                           label={watchItems[index]?.product_name}
                           onChange={(id, name) => handleProductChange(index, id, name)}
+                          error={!!itemErrors?.product_id}
                         />
+                        {itemErrors?.product_id && (
+                          <p className="text-xs text-red-500 mt-0.5">{itemErrors.product_id.message}</p>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <Input
                           type="number"
                           min={1}
+                          step={1}
                           {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                          className="h-8 text-xs text-right"
+                          className={`h-8 text-xs text-right ${itemErrors?.quantity ? 'border-red-500' : ''}`}
                         />
+                        {itemErrors?.quantity && (
+                          <p className="text-xs text-red-500 mt-0.5">{itemErrors.quantity.message}</p>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-xs text-gray-700">
                         {itemUnitOptions[index]?.length > 1 ? (
@@ -432,10 +455,13 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                             <RupiahInput
                               value={field.value}
                               onChange={field.onChange}
-                              className="h-8 text-xs"
+                              className={`h-8 text-xs ${itemErrors?.price ? 'border-red-500' : ''}`}
                             />
                           )}
                         />
+                        {itemErrors?.price && (
+                          <p className="text-xs text-red-500 mt-0.5">{itemErrors.price.message}</p>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right text-xs font-medium">
                         {formatRupiah(qty * price)}
@@ -459,6 +485,12 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               </tbody>
             </table>
           </div>
+          {errors.items?.root && (
+            <p className="text-xs text-red-500">{errors.items.root.message}</p>
+          )}
+          {errors.items?.message && (
+            <p className="text-xs text-red-500">{errors.items.message}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -471,14 +503,18 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                 min={0}
                 placeholder="0"
                 {...register('discount_amount', { valueAsNumber: true })}
+                className={errors.discount_amount ? 'border-red-500' : ''}
               />
+              {errors.discount_amount && (
+                <p className="text-xs text-red-500">{errors.discount_amount.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
               <Label>Status Pembayaran</Label>
               <Select
                 value={watchPaymentStatus}
-                onValueChange={(v) => setValue('payment_status', v as PaymentStatus)}
+                onValueChange={(v) => setValue('payment_status', v as PaymentStatus, { shouldValidate: true })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -500,9 +536,17 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                   control={control}
                   name="paid_amount"
                   render={({ field }) => (
-                    <RupiahInput id="pur-paid" value={field.value} onChange={field.onChange} />
+                    <RupiahInput
+                      id="pur-paid"
+                      value={field.value}
+                      onChange={(v) => field.onChange(v)}
+                      className={errors.paid_amount ? 'border-red-500' : ''}
+                    />
                   )}
                 />
+                {errors.paid_amount && (
+                  <p className="text-xs text-red-500">{errors.paid_amount.message}</p>
+                )}
               </div>
             )}
 
@@ -511,9 +555,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                 <Label>Metode Pembayaran</Label>
                 <Select
                   value={watchPaymentMethod ?? 'cash'}
-                  onValueChange={(v) => setValue('payment_method', v)}
+                  onValueChange={(v) => setValue('payment_method', v, { shouldValidate: true })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={errors.payment_method ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Pilih metode" />
                   </SelectTrigger>
                   <SelectContent>
@@ -524,6 +568,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.payment_method && (
+                  <p className="text-xs text-red-500">{errors.payment_method.message}</p>
+                )}
               </div>
             )}
           </div>
