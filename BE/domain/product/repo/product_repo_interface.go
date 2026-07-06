@@ -15,6 +15,7 @@ type ProductRepo interface {
 	Search(req *dto_product.SearchRequest) ([]*model_product.ProductSearchResult, error)
 	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
+	CountPurchaseItems(productID int) (int, error)
 	Create(req *dto_product.CreateRequest) (int64, error)
 	Update(req *dto_product.UpdateRequest) error
 	Delete(req *dto_product.DeleteRequest) error

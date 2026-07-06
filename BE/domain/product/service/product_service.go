@@ -256,6 +256,18 @@ func (s *productService) Delete(req *dto.DeleteRequest) (err error) {
 		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah ada di transaksi"}
 	}
 
+	purchaseCount, err := s.repo.CountPurchaseItems(req.ID)
+	if err != nil {
+		return &errors.InternalServerError{Message: "Gagal memeriksa riwayat pembelian produk"}
+	}
+	if purchaseCount > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah pernah dibeli dari supplier. Nonaktifkan produk sebagai gantinya."}
+	}
+
+	if exists.Stock > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena masih memiliki stok. Nonaktifkan produk sebagai gantinya."}
+	}
+
 	return s.repo.Delete(req)
 }
 

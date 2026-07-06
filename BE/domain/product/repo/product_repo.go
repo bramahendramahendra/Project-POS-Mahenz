@@ -54,6 +54,7 @@ const (
 
 	getProductOptionsQuery      = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
 	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
+	checkProductPurchasedQuery  = `SELECT COUNT(*) FROM purchase_items WHERE product_id = ?`
 	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getLastProductInsertIDQuery = `SELECT LAST_INSERT_ID()`
 	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
@@ -183,6 +184,15 @@ func (r *productRepo) GetLowStock() ([]*model.LowStockProduct, error) {
 func (r *productRepo) CountTransactionItems(productID int) (int, error) {
 	var count int
 	err := r.db.Raw(checkProductUsedQuery, productID).Scan(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *productRepo) CountPurchaseItems(productID int) (int, error) {
+	var count int
+	err := r.db.Raw(checkProductPurchasedQuery, productID).Scan(&count).Error
 	if err != nil {
 		return 0, err
 	}
