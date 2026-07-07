@@ -66,7 +66,6 @@ export function AsyncCombobox<T>({
 
   return (
     <Popover
-      modal
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
