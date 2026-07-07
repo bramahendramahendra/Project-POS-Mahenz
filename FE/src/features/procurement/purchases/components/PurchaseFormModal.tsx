@@ -497,13 +497,17 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="pur-discount">Diskon (Rp)</Label>
-              <Input
-                id="pur-discount"
-                type="number"
-                min={0}
-                placeholder="0"
-                {...register('discount_amount', { valueAsNumber: true })}
-                className={errors.discount_amount ? 'border-red-500' : ''}
+              <Controller
+                control={control}
+                name="discount_amount"
+                render={({ field }) => (
+                  <RupiahInput
+                    id="pur-discount"
+                    value={field.value ?? 0}
+                    onChange={field.onChange}
+                    className={errors.discount_amount ? 'border-red-500' : ''}
+                  />
+                )}
               />
               {errors.discount_amount && (
                 <p className="text-xs text-red-500">{errors.discount_amount.message}</p>

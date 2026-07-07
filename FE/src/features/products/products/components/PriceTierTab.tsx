@@ -6,6 +6,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { ConfirmDialog, DataTable, FormModal, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
+import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { Label } from '@/shared/components/ui/label'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import {
@@ -336,11 +337,10 @@ export function PriceTierTab({ productId }: PriceTierTabProps) {
               <Label htmlFor="pt-price">
                 Harga (Rp) <span className="text-red-500">*</span>
               </Label>
-              <Input
+              <RupiahInput
                 id="pt-price"
-                type="number"
-                min={0}
-                {...priceForm.register('price', { valueAsNumber: true })}
+                value={priceForm.watch('price')}
+                onChange={(v) => priceForm.setValue('price', v, { shouldValidate: true })}
                 className={priceForm.formState.errors.price ? 'border-red-500' : ''}
               />
               {priceForm.formState.errors.price && (

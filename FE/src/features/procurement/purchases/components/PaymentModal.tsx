@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Separator } from '@/shared/components/ui/separator'
 import { Input } from '@/shared/components/ui/input'
+import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 import {
@@ -39,6 +40,7 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -165,14 +167,17 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
                 Bayar Lunas
               </Button>
             </div>
-            <Input
-              id="pay-amount"
-              type="number"
-              min={1}
-              max={purchase.remaining_amount}
-              placeholder="0"
-              {...register('amount', { valueAsNumber: true })}
-              className={errors.amount ? 'border-red-500' : ''}
+            <Controller
+              control={control}
+              name="amount"
+              render={({ field }) => (
+                <RupiahInput
+                  id="pay-amount"
+                  value={field.value}
+                  onChange={field.onChange}
+                  className={errors.amount ? 'border-red-500' : ''}
+                />
+              )}
             />
             {errors.amount && <p className="text-xs text-red-500">{errors.amount.message}</p>}
             {amountValue > 0 && amountValue < purchase.remaining_amount && (
