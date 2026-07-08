@@ -1,9 +1,11 @@
-import { PageHeader } from '@/shared/components'
+import { PageHeader, PrerequisiteGuard } from '@/shared/components'
 
 import { CashDrawerTable } from './components/CashDrawerTable'
-import { ShiftPrerequisiteGuard } from './components/ShiftPrerequisiteGuard'
+import { useCashDrawerPrerequisites } from './hooks/useCashDrawerPrerequisites'
 
 export function CashDrawerPage() {
+  const { isLoading, items } = useCashDrawerPrerequisites()
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -11,9 +13,14 @@ export function CashDrawerPage() {
         breadcrumbs={[{ label: 'Keuangan' }, { label: 'Kas Harian' }]}
       />
 
-      <ShiftPrerequisiteGuard>
+      <PrerequisiteGuard
+        isLoading={isLoading}
+        title="Belum bisa membuka Kas Harian"
+        description="Sebelum menggunakan Kas Harian, pastikan data berikut sudah tersedia:"
+        items={items}
+      >
         <CashDrawerTable />
-      </ShiftPrerequisiteGuard>
+      </PrerequisiteGuard>
     </div>
   )
 }

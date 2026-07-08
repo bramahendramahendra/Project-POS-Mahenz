@@ -1,15 +1,16 @@
 import { useRef } from 'react'
 import { Plus, Upload } from 'lucide-react'
 
-import { PageHeader, RoleGuard } from '@/shared/components'
+import { PageHeader, PrerequisiteGuard, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
 import { ProductTable } from './components/ProductTable'
 import type { ProductTableHandle } from './components/ProductTable'
-import { ProductPrerequisiteGuard } from './components/ProductPrerequisiteGuard'
+import { useProductPrerequisites } from './hooks/useProductPrerequisites'
 
 export function ProductsPage() {
   const tableRef = useRef<ProductTableHandle>(null)
+  const { isLoading, items } = useProductPrerequisites()
 
   return (
     <div className="space-y-4">
@@ -31,9 +32,14 @@ export function ProductsPage() {
           </RoleGuard>
         }
       />
-      <ProductPrerequisiteGuard>
+      <PrerequisiteGuard
+        isLoading={isLoading}
+        title="Belum bisa menambah produk"
+        description="Sebelum menambah produk, pastikan data berikut sudah tersedia:"
+        items={items}
+      >
         <ProductTable ref={tableRef} />
-      </ProductPrerequisiteGuard>
+      </PrerequisiteGuard>
     </div>
   )
 }

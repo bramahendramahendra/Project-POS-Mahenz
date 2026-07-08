@@ -1,15 +1,16 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 
-import { PageHeader, RoleGuard } from '@/shared/components'
+import { PageHeader, PrerequisiteGuard, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
 import { PurchaseTable } from './components/PurchaseTable'
 import type { PurchaseTableHandle } from './components/PurchaseTable'
-import { PurchasePrerequisiteGuard } from './components/PurchasePrerequisiteGuard'
+import { usePurchasePrerequisites } from './hooks/usePurchasePrerequisites'
 
 export function PurchasesPage() {
   const tableRef = useRef<PurchaseTableHandle>(null)
+  const { isLoading, items } = usePurchasePrerequisites()
 
   return (
     <div className="space-y-4">
@@ -25,9 +26,14 @@ export function PurchasesPage() {
           </RoleGuard>
         }
       />
-      <PurchasePrerequisiteGuard>
+      <PrerequisiteGuard
+        isLoading={isLoading}
+        title="Belum bisa menambah pembelian"
+        description="Sebelum menambah pembelian, pastikan data berikut sudah tersedia:"
+        items={items}
+      >
         <PurchaseTable ref={tableRef} />
-      </PurchasePrerequisiteGuard>
+      </PrerequisiteGuard>
     </div>
   )
 }
