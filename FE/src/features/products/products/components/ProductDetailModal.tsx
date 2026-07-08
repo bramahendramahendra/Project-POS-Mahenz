@@ -94,6 +94,19 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
             <DetailField label="Stok Minimum" value={String(product.min_stock)} />
           </div>
 
+          {product.reserved_qty > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              <DetailField label="Stok Direservasi">
+                <span className="font-medium text-amber-600">{product.reserved_qty}</span>
+              </DetailField>
+              <DetailField label="Stok Tersedia">
+                <span className="font-medium text-gray-800">
+                  {product.stock - product.reserved_qty}
+                </span>
+              </DetailField>
+            </div>
+          )}
+
           {/* Grosiran */}
           {grosirUnits.length > 0 && (
             <div className="space-y-2 border-t pt-3">

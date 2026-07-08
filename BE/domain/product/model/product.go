@@ -12,6 +12,7 @@ type Product struct {
 	PurchasePrice    float64   `gorm:"column:purchase_price"`
 	SellingPrice     float64   `gorm:"column:selling_price"`
 	Stock            float64   `gorm:"column:stock"`
+	ReservedQty      float64   `gorm:"column:reserved_qty"`
 	MinStock         float64   `gorm:"column:min_stock"`
 	UnitID           int       `gorm:"column:unit_id"`
 	UnitName         string    `gorm:"column:unit_name"`

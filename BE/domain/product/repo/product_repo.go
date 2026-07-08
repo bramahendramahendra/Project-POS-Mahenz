@@ -9,7 +9,7 @@ import (
 const (
 	getAllProductsBase = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.min_stock,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
 		       p.is_active,
 		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
@@ -21,7 +21,7 @@ const (
 
 	getProductByIDQuery = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.min_stock,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
 		       p.is_active, p.created_at, p.updated_at
 		FROM products p
@@ -31,7 +31,7 @@ const (
 
 	getProductByBarcodeQuery = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.min_stock,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
 		       p.is_active, p.created_at, p.updated_at
 		FROM products p
@@ -40,17 +40,17 @@ const (
 		WHERE p.barcode = ? LIMIT 1`
 
 	searchProductsQuery = `
-		SELECT p.id, p.barcode, p.name, p.selling_price, p.stock, p.min_stock,
+		SELECT p.id, p.barcode, p.name, p.selling_price, (p.stock - p.reserved_qty) as stock, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?)`
 
 	getLowStockQuery = `
-		SELECT p.id, p.name, p.stock, p.min_stock, COALESCE(u.name, '') as unit_name
+		SELECT p.id, p.name, (p.stock - p.reserved_qty) as stock, p.min_stock, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id
-		WHERE p.stock <= p.min_stock AND p.is_active = 1`
+		WHERE (p.stock - p.reserved_qty) <= p.min_stock AND p.is_active = 1`
 
 	getProductOptionsQuery      = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
 	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
@@ -83,7 +83,7 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 		args = append(args, *req.IsActive)
 	}
 	if req.LowStock {
-		conditions += ` AND p.stock <= p.min_stock`
+		conditions += ` AND (p.stock - p.reserved_qty) <= p.min_stock`
 	}
 
 	var total int64

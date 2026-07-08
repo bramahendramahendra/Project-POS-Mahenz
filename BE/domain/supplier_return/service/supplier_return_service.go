@@ -159,7 +159,15 @@ func (s *supplierReturnService) UpdateStatus(req *dto.UpdateStatusRequest) error
 		return &errors.BadRequestError{Message: "Catatan penolakan wajib diisi"}
 	}
 
-	return s.repo.UpdateStatus(req.ID, req.Status, req.Notes)
+	if err := s.repo.UpdateStatus(req.ID, req.Status, req.Notes); err != nil {
+		return err
+	}
+
+	if req.Status == "rejected" {
+		return s.repo.ReleaseReservedStock(req.ID)
+	}
+
+	return nil
 }
 
 func (s *supplierReturnService) Delete(req *dto.GetSupplierReturnByIDRequest) error {

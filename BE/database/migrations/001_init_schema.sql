@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS products (
     purchase_price DECIMAL(15,2) DEFAULT 0,
     selling_price  DECIMAL(15,2) DEFAULT 0,
     stock          DECIMAL(15,3) DEFAULT 0,
+    reserved_qty   DECIMAL(15,3) NOT NULL DEFAULT 0,
     min_stock      DECIMAL(15,3) DEFAULT 0,
     unit_id        INT           NULL,
     is_active      TINYINT(1)    DEFAULT 1,

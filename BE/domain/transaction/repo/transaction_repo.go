@@ -18,7 +18,7 @@ const (
 	generateTransactionCodeQuery  = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
 	createTransactionQuery        = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery    = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductStockQuery       = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND stock >= ?`
+	updateProductStockQuery       = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND (stock - reserved_qty) >= ?`
 	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery          = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
 	restoreStockQuery             = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
@@ -446,7 +446,7 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 		// 1. Cek stok semua item dengan SELECT FOR UPDATE (lock baris product)
 		for _, item := range tx.Items {
 			var currentStock float64
-			if err := db.Raw(`SELECT stock FROM products WHERE id = ? FOR UPDATE`, item.ProductID).Scan(&currentStock).Error; err != nil {
+			if err := db.Raw(`SELECT (stock - reserved_qty) FROM products WHERE id = ? FOR UPDATE`, item.ProductID).Scan(&currentStock).Error; err != nil {
 				return fmt.Errorf("stok produk %d tidak ditemukan", item.ProductID)
 			}
 			if currentStock < item.Quantity {

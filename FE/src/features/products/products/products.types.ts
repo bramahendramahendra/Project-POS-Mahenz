@@ -31,6 +31,7 @@ export interface Product {
   purchase_price: number
   selling_price: number
   stock: number
+  reserved_qty: number
   min_stock: number
   unit_id: number
   unit_name: string

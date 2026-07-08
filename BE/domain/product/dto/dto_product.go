@@ -62,6 +62,7 @@ type (
 		PurchasePrice    float64 `json:"purchase_price"`
 		SellingPrice     float64 `json:"selling_price"`
 		Stock            float64 `json:"stock"`
+		ReservedQty      float64 `json:"reserved_qty"`
 		MinStock         float64 `json:"min_stock"`
 		UnitID           int     `json:"unit_id"`
 		UnitName         string  `json:"unit_name"`

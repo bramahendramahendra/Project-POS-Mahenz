@@ -22,6 +22,7 @@ func (s *productService) GetAll(req *dto.GetAllRequest) (data []dto.ProductRespo
 			PurchasePrice:    v.PurchasePrice,
 			SellingPrice:     v.SellingPrice,
 			Stock:            v.Stock,
+			ReservedQty:      v.ReservedQty,
 			MinStock:         v.MinStock,
 			UnitID:           v.UnitID,
 			UnitName:         v.UnitName,

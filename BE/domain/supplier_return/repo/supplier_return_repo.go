@@ -19,6 +19,8 @@ const (
 	createReturnItemQuery         = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	updateReturnStatusQuery       = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
 	reduceStockQuery              = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
+	reserveStockQuery             = `UPDATE products SET reserved_qty = reserved_qty + ?, updated_at = NOW() WHERE id = ?`
+	releaseReservedStockQuery     = `UPDATE products SET reserved_qty = GREATEST(reserved_qty - ?, 0), updated_at = NOW() WHERE id = ?`
 	getReturnItemsQuery           = `SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
 	checkReturnApprovedQuery      = `SELECT status FROM supplier_returns WHERE id = ?`
 	getPurchaseIDAndAmountQuery   = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
@@ -178,11 +180,15 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 			}
 
 			subtotal := item.PurchasePrice * item.Quantity
-			err := tx.Exec(createReturnItemQuery,
+			err = tx.Exec(createReturnItemQuery,
 				returnID, item.PurchaseItemID, item.ProductID, item.ProductName,
 				item.Quantity, item.Unit, item.PurchasePrice, subtotal,
 			).Error
 			if err != nil {
+				return err
+			}
+
+			if err = tx.Exec(reserveStockQuery, item.Quantity, item.ProductID).Error; err != nil {
 				return err
 			}
 		}
@@ -236,6 +242,10 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 				return err
 			}
 
+			if err = tx.Exec(releaseReservedStockQuery, item.Quantity, item.ProductID).Error; err != nil {
+				return err
+			}
+
 			stockAfter := stockBefore - item.Quantity
 			notes := fmt.Sprintf("Supplier Return #%d", id)
 			err = tx.Exec(createStockMutationQuery,
@@ -257,7 +267,27 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 	return err
 }
 
+// ReleaseReservedStock melepas reserved_qty yang dibuat saat retur ini dibuat (status pending),
+// dipanggil saat retur ditolak (rejected) atau dihapus, tanpa mengubah stock fisik.
+func (r *supplierReturnRepo) ReleaseReservedStock(id int) error {
+	items, err := r.GetItems(id)
+	if err != nil {
+		return err
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if err := tx.Exec(releaseReservedStockQuery, item.Quantity, item.ProductID).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
 func (r *supplierReturnRepo) Delete(req *dto.GetSupplierReturnByIDRequest) error {
+	if err := r.ReleaseReservedStock(req.ID); err != nil {
+		return err
+	}
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Exec(deleteReturnItemsQuery, req.ID).Error
 		if err != nil {
