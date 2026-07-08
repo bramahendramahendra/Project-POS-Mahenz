@@ -13,7 +13,7 @@ import type {
 
 export function useCashierPerformanceListQuery(filter: CashierPerformanceListFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.cashierPerformanceList(filter as Record<string, unknown>),
+    queryKey: queryKeys.reports.cashierPerformanceList(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<CashierPerformance>>('/reports/cashier/list', filter),
   })
 }

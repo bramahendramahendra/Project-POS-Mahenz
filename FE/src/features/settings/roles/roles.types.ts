@@ -16,8 +16,15 @@ export interface CreateRolePayload {
 
 export type UpdateRolePayload = Omit<CreateRolePayload, 'name'>
 
-export interface RoleFilter {
-  search?: string
+export interface RoleOption {
+  id: number
+  display_name: string
+}
+
+export interface RoleListFilter {
+  page: number
+  limit: number
+  search: string
   is_active?: boolean
 }
 

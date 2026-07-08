@@ -9,7 +9,8 @@ import (
 
 type (
 	RoleRepoInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*model.Role, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.Role, int64, error)
+		GetActiveOptions() ([]*dto.RoleOptionResponse, error)
 		GetByID(id int) (*model.Role, error)
 		GetByName(name string) (*model.Role, error)
 		Create(req *dto.CreateRequest) (int64, error)

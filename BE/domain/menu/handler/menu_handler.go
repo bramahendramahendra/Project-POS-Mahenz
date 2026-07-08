@@ -28,16 +28,32 @@ func (h *MenuHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetAll(&req)
+	data, total, svcErr := h.service.GetAll(&req)
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
 	}
 
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar menu",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *MenuHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetRootOptions()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar menu",
+		Message: "Opsi menu root",
 		Data:    data,
 	})
 }

@@ -6,16 +6,20 @@ import (
 	"pos_api/errors"
 )
 
-func (s *menuService) GetAll(req *dto.GetAllRequest) ([]*dto.MenuResponse, error) {
-	menus, err := s.repo.GetAll(req)
+func (s *menuService) GetAll(req *dto.GetAllRequest) ([]*dto.MenuResponse, int64, error) {
+	menus, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	result := make([]*dto.MenuResponse, 0, len(menus))
 	for _, m := range menus {
 		result = append(result, toMenuResponse(m))
 	}
-	return result, nil
+	return result, total, nil
+}
+
+func (s *menuService) GetRootOptions() ([]*dto.MenuOptionResponse, error) {
+	return s.repo.GetRootOptions()
 }
 
 func (s *menuService) GetByID(id int) (*dto.MenuResponse, error) {

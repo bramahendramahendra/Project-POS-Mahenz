@@ -9,7 +9,7 @@ import type { Transaction, TransactionListFilter } from './transactions.types'
 
 export function useTransactionListQuery(filter: TransactionListFilter) {
   return useQuery({
-    queryKey: queryKeys.transactions.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.transactions.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Transaction>>('/transactions/list', filter),
   })
 }

@@ -9,7 +9,8 @@ import (
 
 type (
 	MenuRepoInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*model.Menu, error)
+		GetAll(req *dto.GetAllRequest) ([]*model.Menu, int64, error)
+		GetRootOptions() ([]*dto.MenuOptionResponse, error)
 		GetByID(id int) (*model.Menu, error)
 		GetByKeyName(keyName string) (*model.Menu, error)
 		GetMyMenus(roleName string) ([]*dto.MyMenuItem, error)

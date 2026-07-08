@@ -6,16 +6,20 @@ import (
 	"pos_api/errors"
 )
 
-func (s *roleService) GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, error) {
-	roles, err := s.repo.GetAll(req)
+func (s *roleService) GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, int64, error) {
+	roles, total, err := s.repo.GetAll(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	result := make([]*dto.RoleResponse, 0, len(roles))
 	for _, r := range roles {
 		result = append(result, toRoleResponse(r))
 	}
-	return result, nil
+	return result, total, nil
+}
+
+func (s *roleService) GetActiveOptions() ([]*dto.RoleOptionResponse, error) {
+	return s.repo.GetActiveOptions()
 }
 
 func (s *roleService) GetByID(id int) (*dto.RoleResponse, error) {

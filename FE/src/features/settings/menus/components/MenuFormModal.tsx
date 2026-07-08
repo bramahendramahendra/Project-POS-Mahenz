@@ -8,7 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 
 import { useCreateMenuMutation, useMenuDetailQuery, useUpdateMenuMutation } from '@/features/menu/menu.api'
-import type { MenuResponse } from '@/features/menu/menu.types'
+import type { MenuOption } from '@/features/menu/menu.types'
 import {
   createMenuSchema,
   editMenuSchema,
@@ -37,7 +37,7 @@ interface MenuFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   menuId?: number
-  allMenus: MenuResponse[]
+  parentOptions: MenuOption[]
 }
 
 function ParentSelect({
@@ -47,7 +47,7 @@ function ParentSelect({
 }: {
   value: number | null | undefined
   onChange: (v: number | null) => void
-  options: MenuResponse[]
+  options: MenuOption[]
 }) {
   return (
     <Select
@@ -70,11 +70,11 @@ function ParentSelect({
 function CreateMenuForm({
   open,
   onOpenChange,
-  allMenus,
+  parentOptions,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  allMenus: MenuResponse[]
+  parentOptions: MenuOption[]
 }) {
   const { mutate: create, isPending } = useCreateMenuMutation()
 
@@ -86,8 +86,6 @@ function CreateMenuForm({
   const onSubmit = (values: CreateMenuFormValues) => {
     create(values, { onSuccess: () => onOpenChange(false) })
   }
-
-  const parentOptions = allMenus.filter((m) => m.parent_id === null)
 
   return (
     <FormModal
@@ -153,12 +151,12 @@ function EditMenuForm({
   open,
   onOpenChange,
   menuId,
-  allMenus,
+  parentOptions,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   menuId: number
-  allMenus: MenuResponse[]
+  parentOptions: MenuOption[]
 }) {
   const { data: detail } = useMenuDetailQuery(open ? menuId : 0)
   const { mutate: update, isPending } = useUpdateMenuMutation()
@@ -184,7 +182,7 @@ function EditMenuForm({
     update({ id: menuId, ...values }, { onSuccess: () => onOpenChange(false) })
   }
 
-  const parentOptions = allMenus.filter((m) => m.id !== menuId && m.parent_id === null)
+  const filteredParentOptions = parentOptions.filter((m) => m.id !== menuId)
 
   return (
     <FormModal
@@ -202,7 +200,7 @@ function EditMenuForm({
           <ParentSelect
             value={watch('parent_id')}
             onChange={(v) => setValue('parent_id', v)}
-            options={parentOptions}
+            options={filteredParentOptions}
           />
         </div>
 
@@ -236,9 +234,9 @@ function EditMenuForm({
   )
 }
 
-export function MenuFormModal({ open, onOpenChange, menuId, allMenus }: MenuFormModalProps) {
+export function MenuFormModal({ open, onOpenChange, menuId, parentOptions }: MenuFormModalProps) {
   if (menuId !== undefined) {
-    return <EditMenuForm open={open} onOpenChange={onOpenChange} menuId={menuId} allMenus={allMenus} />
+    return <EditMenuForm open={open} onOpenChange={onOpenChange} menuId={menuId} parentOptions={parentOptions} />
   }
-  return <CreateMenuForm open={open} onOpenChange={onOpenChange} allMenus={allMenus} />
+  return <CreateMenuForm open={open} onOpenChange={onOpenChange} parentOptions={parentOptions} />
 }

@@ -48,7 +48,14 @@ export interface ReorderMenuPayload {
   items: { id: number; order_index: number }[]
 }
 
-export interface MenuFilter {
-  search?: string
+export interface MenuOption {
+  id: number
+  label: string
+}
+
+export interface MenuListFilter {
+  page: number
+  limit: number
+  search: string
   is_active?: boolean
 }

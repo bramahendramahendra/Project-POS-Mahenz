@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useRoleListQuery } from '@/features/settings/roles/roles.api'
+import { useRoleOptionsQuery } from '@/features/settings/roles/roles.api'
 
 import { useCreateUserMutation, useUpdateUserMutation } from '../users.api'
 import { createUserSchema, updateUserSchema } from '../users.schema'
@@ -29,7 +29,7 @@ function RoleSelect({
   onChange: (v: number) => void
   error?: string
 }) {
-  const { data: roles } = useRoleListQuery({ is_active: true })
+  const { data: roles } = useRoleOptionsQuery()
   const roleList = roles ?? []
 
   return (

@@ -3,6 +3,7 @@ export { RoleAccessPage } from './RoleAccessPage'
 
 export {
   useRoleListQuery,
+  useRoleOptionsQuery,
   useRoleDetailQuery,
   useCreateRoleMutation,
   useUpdateRoleMutation,
@@ -14,7 +15,8 @@ export {
 
 export type {
   Role,
-  RoleFilter,
+  RoleListFilter,
+  RoleOption,
   CreateRolePayload,
   UpdateRolePayload,
   RoleMenuAccessItem,

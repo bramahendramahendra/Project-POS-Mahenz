@@ -3,20 +3,29 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreateRolePayload,
   Role,
-  RoleFilter,
+  RoleListFilter,
   RoleMenuAccessItem,
+  RoleOption,
   SetRoleAccessPayload,
   UpdateRolePayload,
 } from './roles.types'
 
-export function useRoleListQuery(filter?: RoleFilter) {
+export function useRoleListQuery(filter: RoleListFilter) {
   return useQuery({
-    queryKey: queryKeys.roles.list(filter),
-    queryFn: () => api.post<Role[]>('/roles/list', filter ?? {}),
+    queryKey: queryKeys.roles.list(filter as unknown as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<Role>>('/roles/list', filter),
+  })
+}
+
+export function useRoleOptionsQuery() {
+  return useQuery({
+    queryKey: queryKeys.roles.options(),
+    queryFn: () => api.post<RoleOption[]>('/roles/options', {}),
   })
 }
 

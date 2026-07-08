@@ -3,10 +3,12 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreateMenuPayload,
-  MenuFilter,
+  MenuListFilter,
+  MenuOption,
   MenuResponse,
   MenuItem,
   ReorderMenuPayload,
@@ -22,10 +24,17 @@ export function useMyMenusQuery(enabled = true) {
   })
 }
 
-export function useMenuListQuery(filter?: MenuFilter) {
+export function useMenuListQuery(filter: MenuListFilter) {
   return useQuery({
-    queryKey: queryKeys.menus.list(filter),
-    queryFn: () => api.post<MenuResponse[]>('/menus/list', filter ?? {}),
+    queryKey: queryKeys.menus.list(filter as unknown as Record<string, unknown>),
+    queryFn: () => api.post<PaginatedData<MenuResponse>>('/menus/list', filter),
+  })
+}
+
+export function useMenuOptionsQuery() {
+  return useQuery({
+    queryKey: queryKeys.menus.options(),
+    queryFn: () => api.post<MenuOption[]>('/menus/options', {}),
   })
 }
 

@@ -48,6 +48,12 @@ type ReorderRequest struct {
 	Items []ReorderItem `json:"items" validate:"required,min=1,dive"`
 }
 
+// MenuOptionResponse digunakan untuk dropdown parent menu — hanya menu root (parent_id NULL)
+type MenuOptionResponse struct {
+	ID    int    `json:"id"`
+	Label string `json:"label"`
+}
+
 type MenuResponse struct {
 	ID         int       `json:"id"`
 	ParentID   *int      `json:"parent_id"`

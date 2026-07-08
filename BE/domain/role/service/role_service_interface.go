@@ -7,7 +7,8 @@ import (
 
 type (
 	RoleServiceInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, error)
+		GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, int64, error)
+		GetActiveOptions() ([]*dto.RoleOptionResponse, error)
 		GetByID(id int) (*dto.RoleResponse, error)
 		Create(req *dto.CreateRequest) (*dto.RoleResponse, error)
 		Update(req *dto.UpdateRequest) error

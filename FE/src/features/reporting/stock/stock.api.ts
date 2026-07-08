@@ -9,14 +9,14 @@ import type { StockFilter, StockListFilter, StockReport, StockSummary } from './
 
 export function useStockListQuery(filter: StockListFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.stockList(filter as Record<string, unknown>),
+    queryKey: queryKeys.reports.stockList(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<StockReport>>('/reports/stock/list', filter),
   })
 }
 
 export function useStockSummaryQuery(filter: StockFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.stockSummary(filter as Record<string, unknown>),
+    queryKey: queryKeys.reports.stockSummary(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<StockSummary>('/reports/stock/summary', filter),
   })
 }

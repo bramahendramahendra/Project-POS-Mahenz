@@ -25,7 +25,7 @@ export function useGeneratePurchaseCodeQuery(enabled: boolean) {
 
 export function useSupplierPurchasesQuery(filter?: SupplierPurchaseFilter) {
   return useQuery({
-    queryKey: queryKeys.supplierPurchases.list(filter as Record<string, unknown>),
+    queryKey: queryKeys.supplierPurchases.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<SupplierPurchase>>('/supplier-purchases/list', filter ?? {}),
   })
 }

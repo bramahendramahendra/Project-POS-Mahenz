@@ -37,6 +37,12 @@ type ToggleStatusRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
 }
 
+// RoleOptionResponse digunakan untuk dropdown pemilihan role (hanya role aktif)
+type RoleOptionResponse struct {
+	ID          int    `json:"id"`
+	DisplayName string `json:"display_name"`
+}
+
 type RoleResponse struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`

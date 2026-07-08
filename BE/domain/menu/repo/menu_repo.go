@@ -6,12 +6,15 @@ import (
 )
 
 const (
-	getMenuByIDQuery      = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE id = ? LIMIT 1`
-	getMenuByKeyNameQuery = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE key_name = ? LIMIT 1`
-	createMenuQuery       = `INSERT INTO menus (parent_id, key_name, label, icon, path, order_index) VALUES (?, ?, ?, ?, ?, ?)`
-	updateMenuQuery       = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = NOW() WHERE id = ?`
-	deleteMenuQuery       = `DELETE FROM menus WHERE id = ?`
-	updateOrderQuery      = `UPDATE menus SET order_index = ?, updated_at = NOW() WHERE id = ?`
+	countMenusQuery         = `SELECT COUNT(*) FROM menus WHERE 1=1`
+	getAllMenusQuery        = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE 1=1`
+	getMenuRootOptionsQuery = `SELECT id, label FROM menus WHERE parent_id IS NULL AND is_active = 1 ORDER BY order_index ASC, id ASC`
+	getMenuByIDQuery        = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE id = ? LIMIT 1`
+	getMenuByKeyNameQuery   = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE key_name = ? LIMIT 1`
+	createMenuQuery         = `INSERT INTO menus (parent_id, key_name, label, icon, path, order_index) VALUES (?, ?, ?, ?, ?, ?)`
+	updateMenuQuery         = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = NOW() WHERE id = ?`
+	deleteMenuQuery         = `DELETE FROM menus WHERE id = ?`
+	updateOrderQuery        = `UPDATE menus SET order_index = ?, updated_at = NOW() WHERE id = ?`
 )
 
 const getMyMenusQuery = `
@@ -37,27 +40,53 @@ WHERE r.name = ?
 ORDER BY m.order_index ASC, m.id ASC
 `
 
-func (r *menuRepo) GetAll(req *dto.GetAllRequest) ([]*model.Menu, error) {
-	query := `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE 1=1`
-	var args []any
+func (r *menuRepo) GetAll(req *dto.GetAllRequest) ([]*model.Menu, int64, error) {
+	var args, countArgs []any
+	conditions := ""
 
 	if req.Search != "" {
 		like := "%" + req.Search + "%"
-		query += ` AND (key_name LIKE ? OR label LIKE ?)`
+		conditions += ` AND (key_name LIKE ? OR label LIKE ?)`
 		args = append(args, like, like)
+		countArgs = append(countArgs, like, like)
 	}
 	if req.IsActive != nil {
-		query += ` AND is_active = ?`
+		conditions += ` AND is_active = ?`
 		args = append(args, *req.IsActive)
+		countArgs = append(countArgs, *req.IsActive)
 	}
 
-	query += ` ORDER BY order_index ASC, id ASC`
+	var total int64
+	if err := r.db.Raw(countMenusQuery+conditions, countArgs...).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	page := req.Page
+	limit := req.Limit
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	query := getAllMenusQuery + conditions + ` ORDER BY order_index ASC, id ASC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	var dataDB []*model.Menu
 	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
+		return nil, 0, err
+	}
+	return dataDB, total, nil
+}
+
+func (r *menuRepo) GetRootOptions() ([]*dto.MenuOptionResponse, error) {
+	var options []*dto.MenuOptionResponse
+	if err := r.db.Raw(getMenuRootOptionsQuery).Scan(&options).Error; err != nil {
 		return nil, err
 	}
-	return dataDB, nil
+	return options, nil
 }
 
 func (r *menuRepo) GetByID(id int) (*model.Menu, error) {

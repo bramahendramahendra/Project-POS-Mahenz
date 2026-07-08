@@ -23,6 +23,7 @@ func RoleRoutes(r *gin.RouterGroup) {
 	g := r.Group("/roles")
 	{
 		g.POST("/list", perm("can_view"), roleHandler.GetAll)
+		g.POST("/options", roleHandler.GetOptions)
 		g.POST("/detail/:id", perm("can_view"), roleHandler.GetByID)
 		g.POST("/create", perm("can_create"), roleHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), roleHandler.Update)

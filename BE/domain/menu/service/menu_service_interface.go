@@ -7,7 +7,8 @@ import (
 
 type (
 	MenuServiceInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*dto.MenuResponse, error)
+		GetAll(req *dto.GetAllRequest) ([]*dto.MenuResponse, int64, error)
+		GetRootOptions() ([]*dto.MenuOptionResponse, error)
 		GetByID(id int) (*dto.MenuResponse, error)
 		GetMyMenus(roleName string) ([]dto.MyMenuItem, error)
 		Create(req *dto.CreateRequest) (*dto.MenuResponse, error)

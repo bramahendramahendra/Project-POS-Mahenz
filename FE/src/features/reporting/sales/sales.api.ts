@@ -9,14 +9,14 @@ import type { SalesFilter, SalesListFilter, SalesReport, SalesReportSummary } fr
 
 export function useSalesListQuery(filter: SalesListFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.salesList(filter as Record<string, unknown>),
+    queryKey: queryKeys.reports.salesList(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<SalesReport>>('/reports/sales/list', filter),
   })
 }
 
 export function useSalesSummaryQuery(filter: SalesFilter) {
   return useQuery({
-    queryKey: queryKeys.reports.salesSummary(filter as Record<string, unknown>),
+    queryKey: queryKeys.reports.salesSummary(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<SalesReportSummary>('/reports/sales/summary', filter),
   })
 }

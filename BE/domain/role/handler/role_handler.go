@@ -28,7 +28,23 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.GetAll(&req)
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar role",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *RoleHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetActiveOptions()
 	if err != nil {
 		c.Error(err)
 		return
@@ -37,7 +53,7 @@ func (h *RoleHandler) GetAll(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Daftar role",
+		Message: "Opsi role aktif",
 		Data:    data,
 	})
 }

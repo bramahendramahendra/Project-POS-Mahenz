@@ -8,7 +8,7 @@ import type { CashflowFilter, CashflowItem, FinanceDateFilter, FinanceSummary } 
 
 export function useFinanceSummaryQuery(filter?: FinanceDateFilter) {
   return useQuery({
-    queryKey: queryKeys.finance.summary(filter as Record<string, unknown>),
+    queryKey: queryKeys.finance.summary(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<FinanceSummary>('/finance/summary', filter ?? {}),
   })
 }

@@ -23,6 +23,7 @@ func MenuRoutes(r *gin.RouterGroup) {
 	g := r.Group("/menus")
 	{
 		g.POST("/my", menuHandler.GetMyMenus)
+		g.POST("/options", perm("can_view"), menuHandler.GetOptions)
 		g.POST("/list", perm("can_view"), menuHandler.GetAll)
 		g.POST("/detail/:id", perm("can_view"), menuHandler.GetByID)
 		g.POST("/create", perm("can_create"), menuHandler.Create)

@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { Check, Copy, Pencil } from 'lucide-react'
 
-import { PageHeader } from '@/shared/components'
+import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { RoleGuard } from '@/shared/components/RoleGuard/RoleGuard'
 
 import { useStoreProfileQuery } from '../settings.api'
 import { StoreProfileForm } from './components/StoreProfileForm'
