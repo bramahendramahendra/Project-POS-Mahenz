@@ -1,11 +1,9 @@
 package repo
 
 import (
-	"fmt"
-	"time"
-
 	dto "pos_api/domain/report/dto"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -230,14 +228,7 @@ func (r *reportRepo) GetSalesSummaryWithFilters(req *dto.SalesListRequest) (*dto
 }
 
 func resolveSalesDates(dateFrom, dateTo string) (string, string) {
-	today := time.Now().Format("2006-01-02")
-	if dateFrom == "" {
-		dateFrom = fmt.Sprintf("%s 00:00:00", today)
-	}
-	if dateTo == "" {
-		dateTo = fmt.Sprintf("%s 23:59:59", today)
-	}
-	return dateFrom, dateTo
+	return time_helper.NormalizeDateRange(dateFrom, dateTo)
 }
 
 func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error) {
@@ -440,15 +431,7 @@ func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem
 }
 
 func (r *reportRepo) GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error) {
-	today := time.Now().Format("2006-01-02")
-	dateFrom := req.DateFrom
-	dateTo := req.DateTo
-	if dateFrom == "" {
-		dateFrom = today + " 00:00:00"
-	}
-	if dateTo == "" {
-		dateTo = today + " 23:59:59"
-	}
+	dateFrom, dateTo := time_helper.NormalizeDateRange(req.DateFrom, req.DateTo)
 
 	var total int64
 	if err := r.db.Raw(cashierCountBase, dateFrom, dateTo).Scan(&total).Error; err != nil {

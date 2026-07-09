@@ -29,6 +29,26 @@ func ConvertToDateFormatString(value time.Time) string {
 	return value.Format(config.Cfg.FormatDate)
 }
 
+// NormalizeDateRange melengkapi date_from/date_to yang cuma berisi tanggal (YYYY-MM-DD)
+// dengan jam awal/akhir hari, supaya BETWEEN di query SQL mencakup seluruh hari tersebut.
+// Kalau kosong, keduanya default ke hari ini.
+func NormalizeDateRange(dateFrom, dateTo string) (string, string) {
+	today := GetTimeNow().Format("2006-01-02")
+	if dateFrom == "" {
+		dateFrom = today
+	}
+	if dateTo == "" {
+		dateTo = today
+	}
+	if len(dateFrom) == len("2006-01-02") {
+		dateFrom += " 00:00:00"
+	}
+	if len(dateTo) == len("2006-01-02") {
+		dateTo += " 23:59:59"
+	}
+	return dateFrom, dateTo
+}
+
 func GenerateMasaPajak() (bulanPajak, tahunPajak string) {
 	now := GetTimeNow()
 	bulanPajak = now.Format("01")

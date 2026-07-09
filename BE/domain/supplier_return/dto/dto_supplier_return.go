@@ -57,8 +57,8 @@ type SupplierReturnResponse struct {
 }
 
 type SupplierReturnListRequest struct {
-	Page       int    `json:"page"`
-	Limit      int    `json:"limit"`
+	Page       int    `json:"page" validate:"required,min=1"`
+	Limit      int    `json:"limit" validate:"required,min=1"`
 	StartDate  string `json:"start_date"`
 	EndDate    string `json:"end_date"`
 	SupplierID *int   `json:"supplier_id"`

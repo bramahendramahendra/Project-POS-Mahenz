@@ -5,8 +5,8 @@ import "time"
 type (
 	// REQUEST
 	GetAllRequest struct {
-		Page          int    `json:"page"`
-		Limit         int    `json:"limit"`
+		Page          int    `json:"page" validate:"required,min=1"`
+		Limit         int    `json:"limit" validate:"required,min=1"`
 		ProductID     *int   `json:"product_id"`
 		MutationType  string `json:"mutation_type" validate:"max=50"`
 		ReferenceType string `json:"reference_type" validate:"max=50"`

@@ -43,6 +43,11 @@ func (h *PurchaseHandler) GetAll(c *gin.Context) {
 		return
 	}
 
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)

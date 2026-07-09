@@ -3,9 +3,9 @@ package service
 import (
 	"bytes"
 	"fmt"
-	"time"
 
 	"pos_api/domain/report/dto"
+	time_helper "pos_api/helper/time"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -93,15 +93,7 @@ func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossR
 }
 
 func (s *reportService) GetProfitLossData(req *dto.ProfitLossRequest) (*dto.ProfitLossResponse, error) {
-	today := time.Now().Format("2006-01-02")
-	dateFrom := req.DateFrom
-	dateTo := req.DateTo
-	if dateFrom == "" {
-		dateFrom = today + " 00:00:00"
-	}
-	if dateTo == "" {
-		dateTo = today + " 23:59:59"
-	}
+	dateFrom, dateTo := time_helper.NormalizeDateRange(req.DateFrom, req.DateTo)
 	return s.GetProfitLoss(dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo})
 }
 

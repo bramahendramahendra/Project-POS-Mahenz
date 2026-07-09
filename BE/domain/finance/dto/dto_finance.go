@@ -11,8 +11,8 @@ type (
 		DateFrom string `json:"date_from"`
 		DateTo   string `json:"date_to"`
 		Type     string `json:"type"`
-		Page     int    `json:"page"`
-		Limit    int    `json:"limit"`
+		Page     int    `json:"page" validate:"required,min=1"`
+		Limit    int    `json:"limit" validate:"required,min=1"`
 	}
 
 	// RESPONSE

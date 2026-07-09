@@ -22,6 +22,11 @@ export function formatDate(date: string | Date): string {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
+export function formatDateShort(date: string | Date): string {
+  const d = toDate(date)
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+}
+
 export function formatDateTime(date: string | Date): string {
   const d = toDate(date)
   const hours = String(d.getHours()).padStart(2, '0')

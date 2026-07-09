@@ -28,6 +28,11 @@ func (h *TransactionHandler) GetAll(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
 	data, total, err := h.service.GetAll(&req)
 	if err != nil {
 		c.Error(err)

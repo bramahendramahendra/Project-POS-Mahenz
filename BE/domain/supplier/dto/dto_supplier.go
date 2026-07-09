@@ -5,8 +5,8 @@ import "time"
 type (
 	// REQUEST
 	GetAllRequest struct {
-		Page      int    `json:"page"`
-		Limit     int    `json:"limit"`
+		Page      int    `json:"page" validate:"required,min=1"`
+		Limit     int    `json:"limit" validate:"required,min=1"`
 		Search    string `json:"search" validate:"max=100"`
 		IsActive  *bool  `json:"is_active"`
 		SortBy    string `json:"sort_by"`

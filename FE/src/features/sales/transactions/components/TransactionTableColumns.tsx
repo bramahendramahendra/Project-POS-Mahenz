@@ -73,7 +73,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       header: 'Status',
       align: 'center',
       sortable: true,
-      cell: (row) => <StatusBadge status={row.status === 'completed' ? 'success' : 'error'} />,
+      cell: (row) => <StatusBadge status={row.status === 'completed' ? 'success' : 'void'} />,
     },
     {
       key: 'actions',

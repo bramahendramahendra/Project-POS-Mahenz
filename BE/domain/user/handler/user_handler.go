@@ -28,6 +28,11 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, total, svcErr := h.service.GetAll(&req)
 	if svcErr != nil {
 		c.Error(svcErr)

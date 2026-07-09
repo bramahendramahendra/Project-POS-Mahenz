@@ -106,7 +106,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                   <div>
                     <p className="text-xs text-gray-500">Status</p>
                     <StatusBadge
-                      status={transaction.status === 'completed' ? 'success' : 'error'}
+                      status={transaction.status === 'completed' ? 'success' : 'void'}
                     />
                   </div>
                   <div>

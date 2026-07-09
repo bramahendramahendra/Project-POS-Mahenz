@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+import { formatDateShort } from '@/shared/utils'
+
 import type { SalesTrendItem } from '../dashboard.types'
 
 interface SalesChartProps {
@@ -19,6 +21,12 @@ function formatShort(value: number): string {
   if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toFixed(1)}jt`
   if (value >= 1_000) return `Rp ${(value / 1_000).toFixed(0)}rb`
   return `Rp ${value}`
+}
+
+function formatDateLabel(label: string): string {
+  const date = new Date(label)
+  if (isNaN(date.getTime())) return label
+  return formatDateShort(date)
 }
 
 function CustomTooltip({
@@ -33,7 +41,7 @@ function CustomTooltip({
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-lg border bg-white p-3 shadow text-sm space-y-1">
-      <p className="font-semibold text-gray-700">{label}</p>
+      <p className="font-semibold text-gray-700">{formatDateLabel(label ?? '')}</p>
       <p className="text-blue-600">Pendapatan: {formatShort(payload[0]?.value ?? 0)}</p>
       <p className="text-gray-500">Transaksi: {payload[1]?.value ?? 0}</p>
     </div>
@@ -55,7 +63,7 @@ export function SalesChart({ data, isLoading }: SalesChartProps) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+        <XAxis dataKey="label" tickFormatter={formatDateLabel} tick={{ fontSize: 12 }} />
         <YAxis tickFormatter={formatShort} tick={{ fontSize: 11 }} width={70} />
         <Tooltip content={<CustomTooltip />} />
         <Area

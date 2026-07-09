@@ -24,7 +24,7 @@ const (
 		WHERE MONTH(expense_date) = MONTH(NOW()) AND YEAR(expense_date) = YEAR(NOW())`
 
 	salesTrendQuery = `
-		SELECT DATE(transaction_date) as label,
+		SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as label,
 		       COALESCE(SUM(total_amount),0) as total_sales,
 		       COUNT(*) as total_transactions
 		FROM transactions

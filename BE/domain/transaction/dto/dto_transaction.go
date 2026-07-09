@@ -5,8 +5,8 @@ import "time"
 type (
 	// REQUEST
 	GetAllRequest struct {
-		Page          int    `json:"page"`
-		Limit         int    `json:"limit"`
+		Page          int    `json:"page" validate:"required,min=1"`
+		Limit         int    `json:"limit" validate:"required,min=1"`
 		Search        string `json:"search"`
 		Status        string `json:"status"`
 		PaymentMethod string `json:"payment_method"`

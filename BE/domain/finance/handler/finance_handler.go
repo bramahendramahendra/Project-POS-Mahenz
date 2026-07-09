@@ -8,6 +8,7 @@ import (
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
 	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,6 +46,11 @@ func (h *FinanceHandler) GetCashflow(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetCashflowRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 

@@ -7,7 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SetPagination menghitung metadata pagination. Limit wajib divalidasi (>=1)
+// oleh pemanggil sebelum sampai di sini; Limit<=0 dianggap invariant yang
+// dilanggar (bug pemanggil), bukan input yang harus ditoleransi.
 func SetPagination(reqParams *global_dto.FilterRequestParams, total int64) *global_dto.Paginate {
+	if reqParams.Limit <= 0 {
+		panic("SetPagination: limit harus lebih besar dari 0")
+	}
 	return &global_dto.Paginate{
 		Page:       reqParams.Page,
 		PerPage:    reqParams.Limit,
