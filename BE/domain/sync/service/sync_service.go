@@ -8,6 +8,7 @@ import (
 	"pos_api/domain/sync/dto"
 	"pos_api/domain/sync/model"
 	"pos_api/errors"
+	request_helper "pos_api/helper/request"
 	"pos_api/pkg/pricing"
 )
 
@@ -207,13 +208,7 @@ func (s *syncService) GetConflicts(filter *dto.ConflictFilter) (*dto.ConflictLis
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal mengambil data konflik"}
 	}
-	page, limit := filter.Page, filter.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
+	page, limit, _ := request_helper.NormalizePagination(filter.Page, filter.Limit, 20, 0)
 	return &dto.ConflictListResponse{Data: data, Total: total, Page: page, Limit: limit}, nil
 }
 
@@ -283,12 +278,6 @@ func (s *syncService) GetHistory(filter *dto.HistoryFilter) (*dto.SyncHistoryLis
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal mengambil riwayat sync"}
 	}
-	page, limit := filter.Page, filter.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
+	page, limit, _ := request_helper.NormalizePagination(filter.Page, filter.Limit, 20, 0)
 	return &dto.SyncHistoryListResponse{Data: data, Total: total, Page: page, Limit: limit}, nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"pos_api/domain/sync/dto"
 	"pos_api/domain/sync/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
@@ -38,14 +39,7 @@ func (r *syncRepo) GetConflicts(filter *dto.ConflictFilter) ([]dto.ConflictRespo
 		return nil, 0, err
 	}
 
-	page, limit := filter.Page, filter.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(filter.Page, filter.Limit, 20, 0)
 
 	query := getConflictsQuery + conditions + ` ORDER BY id DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
@@ -221,14 +215,7 @@ func (r *syncRepo) GetQueue(filter *dto.QueueFilter) ([]dto.QueueResponse, int, 
 		return nil, 0, err
 	}
 
-	page, limit := filter.Page, filter.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(filter.Page, filter.Limit, 20, 0)
 
 	query := getQueueQuery + conditions + ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)
@@ -300,14 +287,7 @@ func (r *syncRepo) GetHistory(filter *dto.HistoryFilter) ([]dto.SyncHistoryRespo
 		return nil, 0, err
 	}
 
-	page, limit := filter.Page, filter.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(filter.Page, filter.Limit, 20, 0)
 
 	query := getHistoryQuery + conditions + ` ORDER BY started_at DESC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)

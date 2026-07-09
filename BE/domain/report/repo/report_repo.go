@@ -170,15 +170,7 @@ func (r *reportRepo) GetSalesItemsPaginated(req *dto.SalesListRequest) ([]dto.Sa
 	var total int64
 	r.db.Raw(salesListCountBase+conditions, args...).Scan(&total)
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedSortFields := map[string]string{
 		"transaction_date": "t.transaction_date",
@@ -365,15 +357,7 @@ func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.St
 	var total int64
 	r.db.Raw(stockListCountBase+countConditions, args...).Scan(&total)
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedStockSortFields := map[string]string{
 		"product_code":  "p.sku",
@@ -471,15 +455,7 @@ func (r *reportRepo) GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedSortColumns := map[string]string{
 		"cashier_name":        "cashier_name",

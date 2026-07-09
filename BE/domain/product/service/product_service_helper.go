@@ -1,11 +1,15 @@
 package service
 
 import (
-	"fmt"
-
 	dto "pos_api/domain/product/dto"
 	dto_category "pos_api/domain/product_category/dto"
+	codegen "pos_api/helper/codegen"
 )
+
+// categoryCodeLength harus sama dengan panjang kode yang dipakai domain product_category
+// (lihat domain/product_category/service/category_service_helper.go) supaya kategori yang
+// dibuat lewat import produk konsisten dengan yang dibuat lewat endpoint kategori langsung.
+const categoryCodeLength = 3
 
 func (s *productService) GetLowStock() (data []*dto.GetLowStockResponse, err error) {
 	dataDB, err := s.repo.GetLowStock()
@@ -49,37 +53,15 @@ func (s *productService) GetUnitInfos() (data []*dto.GetUnitInfoResponse, err er
 }
 
 func (s *productService) createCategoryWithCode(name, description string) (int64, error) {
-	base := ""
-	for _, r := range name {
-		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') {
-			if r >= 'a' {
-				r -= 32
-			}
-			base += string(r)
-		}
-	}
-	if len(base) > 3 {
-		base = base[:3]
-	}
-	for len(base) < 3 {
-		base += "X"
-	}
-
-	candidate := base
-	for i := 2; i <= 99; i++ {
-		exists, err := s.repoCategory.CheckCodeExists(candidate)
-		if err != nil {
-			return 0, err
-		}
-		if !exists {
-			break
-		}
-		candidate = fmt.Sprintf("%s%d", base, i)
+	base := codegen.BuildLetterPrefix(name, categoryCodeLength)
+	code, err := codegen.UniqueByPrefix(base, s.repoCategory.CheckCodeExists)
+	if err != nil {
+		return 0, err
 	}
 
 	return s.repoCategory.Create(&dto_category.CreateRequest{
 		Name:        name,
-		Code:        candidate,
+		Code:        code,
 		Description: description,
 	})
 }

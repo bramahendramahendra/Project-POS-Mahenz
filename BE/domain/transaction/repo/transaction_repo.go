@@ -26,8 +26,6 @@ const (
 	updateReceivableVoidQuery     = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
 	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
-	getOpenCashDrawerForUserQuery = `SELECT id FROM cash_drawer WHERE user_id = ? AND status = 'open' LIMIT 1 FOR UPDATE`
-	updateCashDrawerSalesQuery    = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, expected_balance = opening_balance + (total_cash_sales + ?) - total_expenses, updated_at = NOW() WHERE id = ?`
 	getTransactionForVoidQuery    = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
 	getTransactionByIDQuery       = `
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
@@ -93,15 +91,7 @@ func (r *transactionRepo) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResp
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 20, 0)
 
 	allowedSortFields := map[string]string{
 		"transaction_date": "t.transaction_date",
@@ -186,228 +176,188 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
 	var resp dto.CreateTransactionResponse
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. Generate transaction_code
-		prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
-		prefix, ok := prefixMap[req.DeviceSource]
-		if !ok {
-			prefix = "POS"
-		}
-		var count int
-		if err := tx.Raw(generateTransactionCodeQuery, req.DeviceSource).Scan(&count).Error; err != nil {
-			return err
-		}
-		code := fmt.Sprintf("%s-%s-%03d", prefix, time.Now().Format("20060102"), count+1)
-
-		// 2. Simpan header transaksi
-		if err := tx.Exec(createTransactionQuery,
-			code, userID, req.ShiftID, time.Now(),
-			req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
-			req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
-			req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
-		).Error; err != nil {
-			return err
-		}
-
-		var transactionID int
-		if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error; err != nil {
-			return err
-		}
-
-		// 3. Loop items
-		for _, item := range req.Items {
-			// Resolve conversion_qty dan unit_name dari product_packages
-			conversionQty := item.ConversionQty
-			unitName := item.Unit
-			if item.UnitID != nil && *item.UnitID > 0 {
-				var pkgData struct {
-					ConversionQty float64
-					UnitName      string
-				}
-				if err := tx.Raw(getPackageByIDQuery, *item.UnitID).Scan(&pkgData).Error; err == nil && pkgData.ConversionQty > 0 {
-					conversionQty = pkgData.ConversionQty
-					unitName = pkgData.UnitName
-				}
-			}
-			if conversionQty <= 0 {
-				conversionQty = 1
-			}
-
-			// Stok yang dikurangi = qty Ã— conversion_qty (konversi ke satuan dasar)
-			stockDeduct := item.Quantity * conversionQty
-
-			// Ambil stok sebelumnya
-			var stockBefore float64
-			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
-			}
-
-			// Kurangi stok (atomic dengan cek stok >= qty dalam satuan dasar)
-			result := tx.Exec(updateProductStockQuery, stockDeduct, item.ProductID, stockDeduct)
-			if result.Error != nil {
-				return result.Error
-			}
-			if result.RowsAffected == 0 {
-				return fmt.Errorf("stok_insufficient:%s", item.ProductName)
-			}
-
-			// Simpan item dengan unit_name dari master dan conversion_qty yang benar
-			if err := tx.Exec(createTransactionItemQuery,
-				transactionID, item.ProductID, item.ProductName,
-				item.Quantity, unitName, item.Price, item.Subtotal,
-				item.DiscountItem, conversionQty, item.UnitID,
-			).Error; err != nil {
-				return err
-			}
-
-			// Catat mutasi stok (dalam satuan dasar)
-			stockAfter := stockBefore - stockDeduct
-			notes := fmt.Sprintf("Transaksi %s", code)
-			if err := tx.Exec(createStockMutationQuery,
-				item.ProductID, "out", stockDeduct, stockBefore, stockAfter,
-				"transaction", transactionID, notes, userID,
-			).Error; err != nil {
-				return err
-			}
-		}
-
-		// 4. Jika kredit â†’ buat piutang
-		if req.IsCredit && req.CustomerID != nil {
-			if err := tx.Exec(createReceivableQuery,
-				transactionID, *req.CustomerID, req.TotalAmount,
-			).Error; err != nil {
-				return err
-			}
-		}
-
-		// 5. Jika bayar cash â†’ kredit cash drawer yang sedang terbuka milik kasir, dalam tx yang sama.
-		if req.PaymentMethod == "cash" {
-			var drawerID int
-			if err := tx.Raw(getOpenCashDrawerForUserQuery, userID).Scan(&drawerID).Error; err != nil {
-				return err
-			}
-			if drawerID > 0 {
-				if err := tx.Exec(updateCashDrawerSalesQuery,
-					req.TotalAmount, req.TotalAmount, req.TotalAmount, drawerID,
-				).Error; err != nil {
-					return err
-				}
-			}
-		}
-
-		resp.ID = transactionID
-		resp.TransactionCode = code
-		resp.UserID = userID
-		resp.ShiftID = req.ShiftID
-		resp.TransactionDate = time.Now()
-		resp.Subtotal = req.Subtotal
-		resp.Discount = req.Discount
-		resp.Tax = req.Tax
-		resp.TotalAmount = req.TotalAmount
-		resp.PaymentMethod = req.PaymentMethod
-		resp.PaymentAmount = req.PaymentAmount
-		resp.ChangeAmount = req.ChangeAmount
-		resp.CustomerID = req.CustomerID
-		resp.IsCredit = req.IsCredit
-		resp.Status = "completed"
-		resp.DeviceSource = req.DeviceSource
-
-		for _, item := range req.Items {
-			resp.Items = append(resp.Items, dto.TransactionItemResponse{
-				ProductID:     item.ProductID,
-				ProductName:   item.ProductName,
-				Quantity:      item.Quantity,
-				Unit:          item.Unit,
-				Price:         item.Price,
-				Subtotal:      item.Subtotal,
-				DiscountItem:  item.DiscountItem,
-				ConversionQty: item.ConversionQty,
-				UnitID:        item.UnitID,
-			})
-		}
-
-		return nil
-	})
-
-	if err != nil {
+	// 1. Generate transaction_code
+	prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
+	prefix, ok := prefixMap[req.DeviceSource]
+	if !ok {
+		prefix = "POS"
+	}
+	var count int
+	if err := r.db.Raw(generateTransactionCodeQuery, req.DeviceSource).Scan(&count).Error; err != nil {
 		return nil, err
 	}
+	code := fmt.Sprintf("%s-%s-%03d", prefix, time.Now().Format("20060102"), count+1)
+
+	// 2. Simpan header transaksi
+	if err := r.db.Exec(createTransactionQuery,
+		code, userID, req.ShiftID, time.Now(),
+		req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
+		req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
+		req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
+	).Error; err != nil {
+		return nil, err
+	}
+
+	var transactionID int
+	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error; err != nil {
+		return nil, err
+	}
+
+	// 3. Loop items
+	for _, item := range req.Items {
+		// Resolve conversion_qty dan unit_name dari product_packages
+		conversionQty := item.ConversionQty
+		unitName := item.Unit
+		if item.UnitID != nil && *item.UnitID > 0 {
+			var pkgData struct {
+				ConversionQty float64
+				UnitName      string
+			}
+			if err := r.db.Raw(getPackageByIDQuery, *item.UnitID).Scan(&pkgData).Error; err == nil && pkgData.ConversionQty > 0 {
+				conversionQty = pkgData.ConversionQty
+				unitName = pkgData.UnitName
+			}
+		}
+		if conversionQty <= 0 {
+			conversionQty = 1
+		}
+
+		// Stok yang dikurangi = qty Ã— conversion_qty (konversi ke satuan dasar)
+		stockDeduct := item.Quantity * conversionQty
+
+		// Ambil stok sebelumnya
+		var stockBefore float64
+		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
+			return nil, err
+		}
+
+		// Kurangi stok (atomic dengan cek stok >= qty dalam satuan dasar)
+		result := r.db.Exec(updateProductStockQuery, stockDeduct, item.ProductID, stockDeduct)
+		if result.Error != nil {
+			return nil, result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil, fmt.Errorf("stok_insufficient:%s", item.ProductName)
+		}
+
+		// Simpan item dengan unit_name dari master dan conversion_qty yang benar
+		if err := r.db.Exec(createTransactionItemQuery,
+			transactionID, item.ProductID, item.ProductName,
+			item.Quantity, unitName, item.Price, item.Subtotal,
+			item.DiscountItem, conversionQty, item.UnitID,
+		).Error; err != nil {
+			return nil, err
+		}
+
+		// Catat mutasi stok (dalam satuan dasar)
+		stockAfter := stockBefore - stockDeduct
+		notes := fmt.Sprintf("Transaksi %s", code)
+		if err := r.db.Exec(createStockMutationQuery,
+			item.ProductID, "out", stockDeduct, stockBefore, stockAfter,
+			"transaction", transactionID, notes, userID,
+		).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	// 4. Jika kredit â†’ buat piutang
+	if req.IsCredit && req.CustomerID != nil {
+		if err := r.db.Exec(createReceivableQuery,
+			transactionID, *req.CustomerID, req.TotalAmount,
+		).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	resp.ID = transactionID
+	resp.TransactionCode = code
+	resp.UserID = userID
+	resp.ShiftID = req.ShiftID
+	resp.TransactionDate = time.Now()
+	resp.Subtotal = req.Subtotal
+	resp.Discount = req.Discount
+	resp.Tax = req.Tax
+	resp.TotalAmount = req.TotalAmount
+	resp.PaymentMethod = req.PaymentMethod
+	resp.PaymentAmount = req.PaymentAmount
+	resp.ChangeAmount = req.ChangeAmount
+	resp.CustomerID = req.CustomerID
+	resp.IsCredit = req.IsCredit
+	resp.Status = "completed"
+	resp.DeviceSource = req.DeviceSource
+
+	for _, item := range req.Items {
+		resp.Items = append(resp.Items, dto.TransactionItemResponse{
+			ProductID:     item.ProductID,
+			ProductName:   item.ProductName,
+			Quantity:      item.Quantity,
+			Unit:          item.Unit,
+			Price:         item.Price,
+			Subtotal:      item.Subtotal,
+			DiscountItem:  item.DiscountItem,
+			ConversionQty: item.ConversionQty,
+			UnitID:        item.UnitID,
+		})
+	}
+
 	return &resp, nil
 }
 
 func (r *transactionRepo) Void(id, userID int) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 0. Ambil data transaksi (dikunci FOR UPDATE) untuk keperluan reversal cash drawer
-		var voidData struct {
-			UserID        int
-			PaymentMethod string
-			TotalAmount   float64
-		}
-		if err := tx.Raw(getTransactionForVoidQuery, id).Scan(&voidData).Error; err != nil {
+	// 0. Kunci baris transaksi (FOR UPDATE) untuk mencegah race condition saat void bersamaan.
+	var voidData struct {
+		UserID        int
+		PaymentMethod string
+		TotalAmount   float64
+	}
+	if err := r.db.Raw(getTransactionForVoidQuery, id).Scan(&voidData).Error; err != nil {
+		return err
+	}
+
+	// 1. Update status void
+	if err := r.db.Exec(voidTransactionQuery, id).Error; err != nil {
+		return err
+	}
+
+	// 2. Ambil semua items
+	items, err := r.GetItems(id)
+	if err != nil {
+		return err
+	}
+
+	// 3. Kembalikan stok & catat mutasi void
+	for _, item := range items {
+		var stockBefore float64
+		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
 			return err
 		}
 
-		// 1. Update status void
-		if err := tx.Exec(voidTransactionQuery, id).Error; err != nil {
+		convQty := item.ConversionQty
+		if convQty <= 0 {
+			convQty = 1
+		}
+		stockRestore := item.Quantity * convQty
+
+		if err := r.db.Exec(restoreStockQuery, stockRestore, item.ProductID).Error; err != nil {
 			return err
 		}
 
-		// 2. Ambil semua items
-		items, err := r.GetItems(id)
-		if err != nil {
+		stockAfter := stockBefore + stockRestore
+		notes := fmt.Sprintf("Void transaksi ID %d", id)
+		if err := r.db.Exec(createStockMutationQuery,
+			item.ProductID, "void", stockRestore, stockBefore, stockAfter,
+			"transaction", id, notes, userID,
+		).Error; err != nil {
 			return err
 		}
+	}
 
-		// 3. Kembalikan stok & catat mutasi void
-		for _, item := range items {
-			var stockBefore float64
-			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
-			}
+	// 4. Jika ada piutang â†’ update status void
+	if err := r.db.Exec(updateReceivableVoidQuery, id).Error; err != nil {
+		return err
+	}
 
-			convQty := item.ConversionQty
-			if convQty <= 0 {
-				convQty = 1
-			}
-			stockRestore := item.Quantity * convQty
-
-			if err := tx.Exec(restoreStockQuery, stockRestore, item.ProductID).Error; err != nil {
-				return err
-			}
-
-			stockAfter := stockBefore + stockRestore
-			notes := fmt.Sprintf("Void transaksi ID %d", id)
-			if err := tx.Exec(createStockMutationQuery,
-				item.ProductID, "void", stockRestore, stockBefore, stockAfter,
-				"transaction", id, notes, userID,
-			).Error; err != nil {
-				return err
-			}
-		}
-
-		// 4. Jika ada piutang â†’ update status void
-		if err := tx.Exec(updateReceivableVoidQuery, id).Error; err != nil {
-			return err
-		}
-
-		// 5. Jika transaksi asli dibayar cash â†’ kurangi kembali total_cash_sales cash drawer
-		// milik kasir yang membuat transaksi tersebut, dalam tx yang sama.
-		if voidData.PaymentMethod == "cash" {
-			var drawerID int
-			if err := tx.Raw(getOpenCashDrawerForUserQuery, voidData.UserID).Scan(&drawerID).Error; err != nil {
-				return err
-			}
-			if drawerID > 0 {
-				if err := tx.Exec(updateCashDrawerSalesQuery,
-					-voidData.TotalAmount, -voidData.TotalAmount, -voidData.TotalAmount, drawerID,
-				).Error; err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, error) {

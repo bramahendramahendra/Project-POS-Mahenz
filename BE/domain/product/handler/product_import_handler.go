@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"path/filepath"
 
 	dto "pos_api/domain/product/dto"
 	service "pos_api/domain/product/service"
@@ -22,33 +21,6 @@ type ProductImportHandler struct {
 
 func NewProductImportHandler(service service.ProductServiceInterface) *ProductImportHandler {
 	return &ProductImportHandler{service: service}
-}
-
-func (h *ProductImportHandler) Import(c *gin.Context) {
-	file, err := c.FormFile("file")
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: "File tidak ditemukan"})
-		return
-	}
-
-	ext := filepath.Ext(file.Filename)
-	if ext != ".xlsx" && ext != ".xls" && ext != ".csv" {
-		c.Error(&errors.BadRequestError{Message: "Format file harus .xlsx atau .csv"})
-		return
-	}
-
-	result, svcErr := h.service.ImportFromFile(file)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Import selesai",
-		Data:    result,
-	})
 }
 
 // POST /products/import-preview

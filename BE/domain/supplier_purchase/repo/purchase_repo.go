@@ -64,15 +64,7 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 20, 0)
 
 	allowedSortFields := map[string]string{
 		"purchase_date":  "p.purchase_date",

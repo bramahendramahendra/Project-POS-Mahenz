@@ -7,6 +7,8 @@ import (
 	"pos_api/pkg/pricing"
 
 	"pos_api/errors"
+
+	"gorm.io/gorm"
 )
 
 func (s *transactionService) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error) {
@@ -44,17 +46,37 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil, err
 	}
 
-	resp, err := s.repo.Create(req, userID)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "stok_insufficient:") {
-			name := strings.TrimPrefix(err.Error(), "stok_insufficient:")
+	var resp *dto.CreateTransactionResponse
+	txErr := s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		txnRepo := s.repo.WithTx(tx)
+		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
+
+		result, err := txnRepo.Create(req, userID)
+		if err != nil {
+			return err
+		}
+		resp = result
+
+		if req.PaymentMethod == "cash" {
+			drawer, err := cashDrawerRepo.GetOpenCashDrawer(userID)
+			if err != nil {
+				return err
+			}
+			if drawer != nil {
+				if err := cashDrawerRepo.UpdateSales(drawer.ID, req.TotalAmount, req.TotalAmount); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if txErr != nil {
+		if strings.HasPrefix(txErr.Error(), "stok_insufficient:") {
+			name := strings.TrimPrefix(txErr.Error(), "stok_insufficient:")
 			return nil, &errors.BadRequestError{Message: "Stok tidak mencukupi untuk " + name}
 		}
-		return nil, &errors.InternalServerError{Message: err.Error()}
+		return nil, &errors.InternalServerError{Message: txErr.Error()}
 	}
-
-	// Update total_sales/total_cash_sales cash drawer sudah dilakukan atomik di dalam
-	// transaksi DB yang sama pada repo.Create; tidak perlu dipanggil ulang di sini.
 
 	return resp, nil
 }
@@ -99,8 +121,29 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 		return &errors.BadRequestError{Message: "Transaksi sudah di-void"}
 	}
 
-	if err := s.repo.Void(req.ID, userID); err != nil {
-		return &errors.InternalServerError{Message: err.Error()}
+	txErr := s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		txnRepo := s.repo.WithTx(tx)
+		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
+
+		if err := txnRepo.Void(req.ID, userID); err != nil {
+			return err
+		}
+
+		if t.PaymentMethod == "cash" {
+			drawer, err := cashDrawerRepo.GetOpenCashDrawer(t.UserID)
+			if err != nil {
+				return err
+			}
+			if drawer != nil {
+				if err := cashDrawerRepo.UpdateSales(drawer.ID, -t.TotalAmount, -t.TotalAmount); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if txErr != nil {
+		return &errors.InternalServerError{Message: txErr.Error()}
 	}
 	return nil
 }

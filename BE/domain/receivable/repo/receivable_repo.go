@@ -5,6 +5,7 @@ import (
 
 	dto "pos_api/domain/receivable/dto"
 	model "pos_api/domain/receivable/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
@@ -37,15 +38,7 @@ func (r *receivableRepo) GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableRespon
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 20
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 20, 100)
 
 	query := getAllReceivablesQuery + conditions + " ORDER BY r.created_at DESC LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)

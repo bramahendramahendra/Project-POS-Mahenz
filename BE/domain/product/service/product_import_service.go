@@ -9,9 +9,38 @@ import (
 
 	dto "pos_api/domain/product/dto"
 	"pos_api/errors"
+	log_helper "pos_api/helper/log"
 
 	"github.com/xuri/excelize/v2"
 )
+
+// resolveCategoryID mencari/membuat kategori berdasarkan nama, dengan cache per-run
+// agar nama kategori yang sama di banyak baris file import tidak memicu query/insert berulang.
+func (s *productService) resolveCategoryID(cache map[string]int, name string) (*int, error) {
+	key := strings.ToLower(strings.TrimSpace(name))
+	if id, ok := cache[key]; ok {
+		return &id, nil
+	}
+
+	cat, err := s.repoCategory.GetByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	var id int
+	if cat == nil {
+		newID, createErr := s.createCategoryWithCode(name, "")
+		if createErr != nil {
+			return nil, createErr
+		}
+		id = int(newID)
+	} else {
+		id = cat.ID
+	}
+
+	cache[key] = id
+	return &id, nil
+}
 
 // normalizeBarcode mengembalikan angka desimal biasa jika Excel menyimpan
 // barcode numerik dalam notasi ilmiah (mis. "8.991002100016E+12"), karena
@@ -26,151 +55,6 @@ func normalizeBarcode(raw string) string {
 		return s
 	}
 	return strconv.FormatFloat(f, 'f', -1, 64)
-}
-
-func (s *productService) ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error) {
-	src, openErr := file.Open()
-	if openErr != nil {
-		return data, &errors.InternalServerError{Message: "Gagal membuka file"}
-	}
-	defer src.Close()
-
-	f, readErr := excelize.OpenReader(src)
-	if readErr != nil {
-		return data, &errors.BadRequestError{Message: "File tidak dapat dibaca sebagai Excel"}
-	}
-	defer f.Close()
-
-	sheets := f.GetSheetList()
-	if len(sheets) == 0 {
-		return data, &errors.BadRequestError{Message: "File tidak memiliki sheet"}
-	}
-
-	rows, rowErr := f.GetRows(sheets[0])
-	if rowErr != nil {
-		return data, &errors.InternalServerError{Message: "Gagal membaca baris file"}
-	}
-
-	data.Errors = []dto.ImportErrorDetail{}
-
-	if len(rows) <= 1 {
-		return data, nil
-	}
-
-	for i, row := range rows[1:] {
-		rowNum := i + 2
-
-		getCol := func(idx int) string {
-			if idx < len(row) {
-				return strings.TrimSpace(row[idx])
-			}
-			return ""
-		}
-
-		name := getCol(0)
-		sellingPriceStr := getCol(4)
-
-		if name == "" || sellingPriceStr == "" {
-			data.Failed++
-			data.Errors = append(data.Errors, dto.ImportErrorDetail{
-				Row:     rowNum,
-				Message: "Kolom name dan selling_price wajib diisi",
-			})
-			continue
-		}
-
-		sellingPrice, parseErr := strconv.ParseFloat(sellingPriceStr, 64)
-		if parseErr != nil {
-			data.Failed++
-			data.Errors = append(data.Errors, dto.ImportErrorDetail{
-				Row:     rowNum,
-				Message: fmt.Sprintf("selling_price tidak valid: %s", sellingPriceStr),
-			})
-			continue
-		}
-
-		req := &dto.CreateRequest{
-			Barcode:      normalizeBarcode(getCol(1)),
-			Name:         name,
-			SellingPrice: sellingPrice,
-		}
-
-		if v := getCol(3); v != "" {
-			if pp, e := strconv.ParseFloat(v, 64); e == nil {
-				req.PurchasePrice = pp
-			}
-		}
-		if v := getCol(5); v != "" {
-			if st, e := strconv.ParseFloat(v, 64); e == nil {
-				req.Stock = st
-			}
-		}
-		if v := getCol(6); v != "" {
-			if ms, e := strconv.ParseFloat(v, 64); e == nil {
-				req.MinStock = ms
-			}
-		}
-
-		if categoryName := getCol(2); categoryName != "" {
-			cat, catErr := s.repoCategory.GetByName(categoryName)
-			if catErr != nil {
-				data.Failed++
-				data.Errors = append(data.Errors, dto.ImportErrorDetail{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Gagal mencari kategori: %s", categoryName),
-				})
-				continue
-			}
-			if cat == nil {
-				newID, createErr := s.createCategoryWithCode(categoryName, "")
-				if createErr != nil {
-					data.Failed++
-					data.Errors = append(data.Errors, dto.ImportErrorDetail{
-						Row:     rowNum,
-						Message: fmt.Sprintf("Gagal membuat kategori: %s", categoryName),
-					})
-					continue
-				}
-				id := int(newID)
-				req.CategoryID = &id
-			} else {
-				req.CategoryID = &cat.ID
-			}
-		}
-
-		if req.Barcode != "" {
-			exists, checkErr := s.repo.CheckBarcodeExists(req.Barcode, 0)
-			if checkErr != nil {
-				data.Failed++
-				data.Errors = append(data.Errors, dto.ImportErrorDetail{
-					Row:     rowNum,
-					Message: "Gagal memeriksa barcode",
-				})
-				continue
-			}
-			if exists {
-				data.Failed++
-				data.Errors = append(data.Errors, dto.ImportErrorDetail{
-					Row:     rowNum,
-					Message: fmt.Sprintf("Barcode sudah digunakan: %s", req.Barcode),
-				})
-				continue
-			}
-		}
-
-		if _, createErr := s.repo.Create(req); createErr != nil {
-			data.Failed++
-			data.Errors = append(data.Errors, dto.ImportErrorDetail{
-				Row:     rowNum,
-				Message: "Gagal menyimpan produk",
-			})
-			continue
-		}
-
-		data.Success++
-	}
-
-	return data, nil
 }
 
 func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error) {
@@ -423,6 +307,7 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 
 	noToProductID := make(map[int]int)
 	defaultPackages := make(map[int]dto.PackageRequest)
+	categoryCache := make(map[string]int)
 
 	for i, row := range bulkReq.Rows {
 		rowNum := i + 2
@@ -463,22 +348,12 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 
 		kategori := strings.TrimSpace(row.Kategori)
 		if kategori != "" {
-			cat, catErr := s.repoCategory.GetByName(kategori)
+			categoryID, catErr := s.resolveCategoryID(categoryCache, kategori)
 			if catErr != nil {
-				addFailed(fmt.Sprintf("Gagal mencari kategori: %s", kategori))
+				addFailed(fmt.Sprintf("Gagal memproses kategori: %s", kategori))
 				continue
 			}
-			if cat == nil {
-				newID, createErr := s.createCategoryWithCode(kategori, "")
-				if createErr != nil {
-					addFailed(fmt.Sprintf("Gagal membuat kategori: %s", kategori))
-					continue
-				}
-				id := int(newID)
-				req.CategoryID = &id
-			} else {
-				req.CategoryID = &cat.ID
-			}
+			req.CategoryID = categoryID
 		}
 
 		if req.Barcode == "" {
@@ -549,7 +424,11 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 		if grosirPkgs, ok := grosirByProduct[productID]; ok {
 			allPkgs = append(allPkgs, grosirPkgs...)
 		}
-		_ = s.repo.SavePackages(productID, allPkgs)
+		if err := s.repo.SavePackages(productID, allPkgs); err != nil {
+			entry := log_helper.FromBackground("ImportBulk", "product_import",
+				fmt.Sprintf("Gagal menyimpan paket produk ID %d: %v", productID, err))
+			log_helper.LogError(entry)
+		}
 	}
 
 	return data, nil

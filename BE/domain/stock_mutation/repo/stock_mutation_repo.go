@@ -1,6 +1,7 @@
 package repo
 
 import (
+	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/stock_mutation/dto"
 )
 
@@ -55,15 +56,7 @@ func (r *stockMutationRepo) GetAll(req *dto.GetAllRequest) ([]*dto.StockMutation
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	query := getAllMutationsQuery + conditions + " ORDER BY sm.created_at DESC LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)

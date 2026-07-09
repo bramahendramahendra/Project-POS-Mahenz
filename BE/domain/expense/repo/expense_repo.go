@@ -43,15 +43,7 @@ func (r *expenseRepo) GetAll(req *dto.GetAllRequest) ([]*model.Expense, int64, e
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedSortFields := map[string]string{
 		"expense_date": "e.expense_date",

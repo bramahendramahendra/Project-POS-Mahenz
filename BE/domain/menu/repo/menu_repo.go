@@ -3,6 +3,7 @@ package repo
 import (
 	dto "pos_api/domain/menu/dto"
 	model "pos_api/domain/menu/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
@@ -15,30 +16,29 @@ const (
 	updateMenuQuery         = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = NOW() WHERE id = ?`
 	deleteMenuQuery         = `DELETE FROM menus WHERE id = ?`
 	updateOrderQuery        = `UPDATE menus SET order_index = ?, updated_at = NOW() WHERE id = ?`
+	getMyMenusQuery         = `
+		SELECT
+			m.id,
+			m.parent_id,
+			m.key_name,
+			m.label,
+			m.icon,
+			m.path,
+			m.order_index,
+			rma.can_view,
+			rma.can_create,
+			rma.can_edit,
+			rma.can_delete
+		FROM menus m
+		INNER JOIN role_menu_access rma ON rma.menu_id = m.id
+		INNER JOIN roles r              ON r.id = rma.role_id
+		WHERE r.name = ?
+		AND r.is_active = 1
+		AND m.is_active = 1
+		AND rma.can_view = 1
+		ORDER BY m.order_index ASC, m.id ASC
+		`
 )
-
-const getMyMenusQuery = `
-SELECT
-    m.id,
-    m.parent_id,
-    m.key_name,
-    m.label,
-    m.icon,
-    m.path,
-    m.order_index,
-    rma.can_view,
-    rma.can_create,
-    rma.can_edit,
-    rma.can_delete
-FROM menus m
-INNER JOIN role_menu_access rma ON rma.menu_id = m.id
-INNER JOIN roles r              ON r.id = rma.role_id
-WHERE r.name = ?
-  AND r.is_active = 1
-  AND m.is_active = 1
-  AND rma.can_view = 1
-ORDER BY m.order_index ASC, m.id ASC
-`
 
 func (r *menuRepo) GetAll(req *dto.GetAllRequest) ([]*model.Menu, int64, error) {
 	var args, countArgs []any
@@ -61,15 +61,7 @@ func (r *menuRepo) GetAll(req *dto.GetAllRequest) ([]*model.Menu, int64, error) 
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	query := getAllMenusQuery + conditions + ` ORDER BY order_index ASC, id ASC LIMIT ? OFFSET ?`
 	args = append(args, limit, offset)

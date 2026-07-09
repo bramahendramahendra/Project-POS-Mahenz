@@ -7,6 +7,7 @@ import (
 	global_dto "pos_api/dto"
 	"pos_api/errors"
 	"pos_api/helper"
+	request_helper "pos_api/helper/request"
 	response_helper "pos_api/helper/response"
 	binder "pos_api/pkg/binder"
 
@@ -38,14 +39,7 @@ func (h *ReportHandler) GetStockList(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 {
-		limit = 10
-	}
+	page, limit, _ := request_helper.NormalizePagination(req.Page, req.Limit, 10, 0)
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:       helper.StatusOk,
 		Status:     true,

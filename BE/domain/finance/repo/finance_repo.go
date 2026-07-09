@@ -1,6 +1,7 @@
 package repo
 
 import (
+	request_helper "pos_api/helper/request"
 	"fmt"
 
 	dto "pos_api/domain/finance/dto"
@@ -79,15 +80,7 @@ func (r *financeRepo) GetCashflow(req *dto.GetCashflowRequest) ([]dto.CashflowIt
 	dateFrom := req.DateFrom
 	dateTo := req.DateTo
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	var total int64
 	var items []dto.CashflowItemResponse

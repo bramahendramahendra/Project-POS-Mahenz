@@ -1,6 +1,7 @@
 package repo
 
 import (
+	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/cash_drawer/dto"
 	model "pos_api/domain/cash_drawer/model"
 
@@ -175,15 +176,7 @@ func (r *cashDrawerRepo) GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDraw
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedSortColumns := map[string]string{
 		"open_time":        "cd.open_time",

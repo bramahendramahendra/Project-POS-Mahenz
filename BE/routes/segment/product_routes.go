@@ -41,7 +41,6 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/delete/:id", perm("can_delete"), productHandler.Delete)
 		g.POST("/toggle-status/:id", perm("can_edit"), productHandler.ToggleStatus)
 
-		g.POST("/import", perm("can_create"), productImportHandler.Import)
 		g.POST("/import-preview", perm("can_create"), productImportHandler.ImportPreview)
 		g.POST("/import-bulk", perm("can_create"), productImportHandler.ImportBulk)
 		g.POST("/import-template", perm("can_view"), productImportHandler.DownloadImportTemplate)

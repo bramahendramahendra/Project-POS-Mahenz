@@ -1,16 +1,5 @@
 package dto
 
-type ImportResult struct {
-	Success int                 `json:"success"`
-	Failed  int                 `json:"failed"`
-	Errors  []ImportErrorDetail `json:"errors"`
-}
-
-type ImportErrorDetail struct {
-	Row     int    `json:"row"`
-	Message string `json:"message"`
-}
-
 type BulkImportRequest struct {
 	Rows   []BulkImportRow   `json:"rows"`
 	Grosir []GrosirImportRow `json:"grosir"`

@@ -1,6 +1,7 @@
 package repo
 
 import (
+	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/user/dto"
 	model "pos_api/domain/user/model"
 )
@@ -42,15 +43,7 @@ func (r *userRepo) GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error) 
 		return nil, 0, err
 	}
 
-	page := req.Page
-	limit := req.Limit
-	if page <= 0 {
-		page = 1
-	}
-	if limit <= 0 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedSortColumns := map[string]string{
 		"username":  "u.username",

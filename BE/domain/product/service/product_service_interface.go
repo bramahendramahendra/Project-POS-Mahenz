@@ -21,7 +21,6 @@ type (
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
 
-		ImportFromFile(file *multipart.FileHeader) (data dto.ImportResult, err error)
 		ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error)
 		ImportBulk(req dto.BulkImportRequest) (data dto.BulkImportResult, err error)
 
