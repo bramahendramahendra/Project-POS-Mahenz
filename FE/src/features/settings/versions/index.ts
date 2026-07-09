@@ -1,3 +1,5 @@
 export { AppVersionPage } from './AppVersionPage'
+export { useAppVersionListQuery, useCreateAppVersionMutation } from './versions.api'
+export type { AppVersion, CreateAppVersionPayload } from './versions.types'
 export { createAppVersionSchema } from './versions.schema'
 export type { CreateAppVersionFormValues } from './versions.schema'

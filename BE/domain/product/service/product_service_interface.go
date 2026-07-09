@@ -41,14 +41,14 @@ type (
 	}
 
 	productService struct {
-		repo         repo.ProductRepo
+		repo         repo.ProductRepoInterface
 		repoCategory repo_category.CategoryRepoInterface
 		repoUnit     repo_unit.UnitRepoInterface
 	}
 )
 
 func NewProductService(
-	repo repo.ProductRepo,
+	repo repo.ProductRepoInterface,
 	repoCategory repo_category.CategoryRepoInterface,
 	repoUnit repo_unit.UnitRepoInterface,
 ) *productService {

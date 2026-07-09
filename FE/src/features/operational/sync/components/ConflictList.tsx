@@ -2,13 +2,13 @@ import { useState } from 'react'
 
 import { ConfirmDialog } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { formatDateTime } from '@/shared/utils'
 
 import {
   useResolveConflictMutation,
   useSyncConflictsQuery,
 } from '../sync.api'
 import type { SyncConflict } from '../sync.types'
-import { formatDateTime } from '../sync.utils'
 
 const CONFLICT_TYPE_LABEL: Record<string, string> = {
   product: 'PRODUK',

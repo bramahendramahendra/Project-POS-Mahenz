@@ -4,7 +4,7 @@ import { Check, Copy, Pencil } from 'lucide-react'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
-import { useStoreProfileQuery } from '../settings.api'
+import { useStoreProfileQuery } from './store.api'
 import { StoreProfileForm } from './components/StoreProfileForm'
 
 function CopyField({ label, value }: { label: string; value?: string }) {

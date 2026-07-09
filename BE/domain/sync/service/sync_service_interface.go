@@ -22,7 +22,7 @@ type (
 		repo            sync_repo.SyncRepoInterface
 		transactionRepo repo_transaction.TransactionRepoInterface
 		expenseRepo     repo_expense.ExpenseRepoInterface
-		productRepo     repo_product.ProductRepo
+		productRepo     repo_product.ProductRepoInterface
 	}
 )
 
@@ -30,7 +30,7 @@ func NewSyncService(
 	repo sync_repo.SyncRepoInterface,
 	transactionRepo repo_transaction.TransactionRepoInterface,
 	expenseRepo repo_expense.ExpenseRepoInterface,
-	productRepo repo_product.ProductRepo,
+	productRepo repo_product.ProductRepoInterface,
 ) *syncService {
 	return &syncService{
 		repo:            repo,

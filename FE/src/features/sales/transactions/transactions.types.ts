@@ -42,8 +42,8 @@ export interface TransactionListFilter {
   date_to?: string
   payment_method?: PaymentMethod | ''
   status?: 'completed' | 'void' | ''
-  page?: number
-  limit?: number
+  page: number
+  limit: number
   sort_by?: string
   sort_order?: 'asc' | 'desc'
 }

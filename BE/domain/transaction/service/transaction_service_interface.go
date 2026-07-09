@@ -18,10 +18,10 @@ type (
 	transactionService struct {
 		repo           repo.TransactionRepoInterface
 		cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface
-		productRepo    product_repo.ProductRepo
+		productRepo    product_repo.ProductRepoInterface
 	}
 )
 
-func NewTransactionService(r repo.TransactionRepoInterface, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface, productRepo product_repo.ProductRepo) *transactionService {
+func NewTransactionService(r repo.TransactionRepoInterface, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface, productRepo product_repo.ProductRepoInterface) *transactionService {
 	return &transactionService{repo: r, cashDrawerRepo: cashDrawerRepo, productRepo: productRepo}
 }

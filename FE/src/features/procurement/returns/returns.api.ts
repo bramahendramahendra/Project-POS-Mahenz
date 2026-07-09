@@ -14,7 +14,7 @@ import type {
 
 export function useSupplierReturnsQuery(filter?: SupplierReturnFilter) {
   return useQuery({
-    queryKey: queryKeys.supplierReturns.list(filter),
+    queryKey: queryKeys.supplierReturns.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<SupplierReturn>>('/supplier-returns/list', filter ?? {}),
   })
 }

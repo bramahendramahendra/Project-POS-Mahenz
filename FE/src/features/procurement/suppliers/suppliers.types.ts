@@ -11,6 +11,12 @@ export interface Supplier {
   created_at: string
 }
 
+export interface SupplierOption {
+  id: number
+  supplier_code: string
+  name: string
+}
+
 export interface SupplierPurchaseItem {
   id: number
   purchase_code: string

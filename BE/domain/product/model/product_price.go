@@ -1,4 +1,4 @@
-package model_product
+package model
 
 type ProductPrice struct {
 	ID        int     `gorm:"column:id"`

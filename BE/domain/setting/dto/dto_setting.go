@@ -6,12 +6,12 @@ type SettingKeyValueResponse struct {
 }
 
 type StoreProfileRequest struct {
-	Name       string  `json:"name"`
+	Name       string  `json:"name" validate:"required"`
 	Address    string  `json:"address"`
 	Phone      string  `json:"phone"`
-	Email      string  `json:"email"`
+	Email      string  `json:"email" validate:"omitempty,email"`
 	LogoURL    string  `json:"logo_url"`
-	TaxDefault float64 `json:"tax_default"`
+	TaxDefault float64 `json:"tax_default" validate:"min=0,max=100"`
 }
 
 type StoreProfileResponse struct {
@@ -24,7 +24,7 @@ type StoreProfileResponse struct {
 }
 
 type PrinterSettingsRequest struct {
-	PaperSize     string `json:"paper_size"`
+	PaperSize     string `json:"paper_size" validate:"required,oneof=58mm 80mm"`
 	ReceiptHeader string `json:"receipt_header"`
 	ReceiptFooter string `json:"receipt_footer"`
 	ShowLogo      bool   `json:"show_logo"`

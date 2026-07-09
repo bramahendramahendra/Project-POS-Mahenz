@@ -7,7 +7,7 @@ import type { PaginatedData } from '@/shared/types'
 
 import type { CreateExpensePayload, Expense, ExpenseListFilter, UpdateExpensePayload } from './expenses.types'
 
-export function useExpensesQuery(filter?: ExpenseListFilter) {
+export function useExpenseListQuery(filter?: ExpenseListFilter) {
   return useQuery({
     queryKey: queryKeys.expenses.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<Expense>>('/expenses/list', filter ?? {}),

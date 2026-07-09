@@ -1,4 +1,4 @@
-package repo_product
+package repo
 
 import (
 	dto_product "pos_api/domain/product/dto"
@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ProductRepo interface {
+type ProductRepoInterface interface {
 	GetAll(req *dto_product.GetAllRequest) ([]*model_product.Product, int64, error)
 	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
@@ -38,6 +38,6 @@ type productRepo struct {
 	db *gorm.DB
 }
 
-func NewProductRepo(db *gorm.DB) ProductRepo {
+func NewProductRepo(db *gorm.DB) ProductRepoInterface {
 	return &productRepo{db: db}
 }

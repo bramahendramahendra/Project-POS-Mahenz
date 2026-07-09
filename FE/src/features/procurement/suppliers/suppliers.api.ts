@@ -10,6 +10,7 @@ import type {
   Supplier,
   SupplierDetail,
   SupplierListFilter,
+  SupplierOption,
   UpdateSupplierPayload,
 } from './suppliers.types'
 
@@ -23,7 +24,7 @@ export function useSupplierListQuery(filter: SupplierListFilter) {
 export function useSupplierOptionsQuery(search = '') {
   return useQuery({
     queryKey: [...queryKeys.suppliers.options(), search],
-    queryFn: () => api.post<Supplier[]>('/suppliers/options', { search }),
+    queryFn: () => api.post<SupplierOption[]>('/suppliers/options', { search }),
   })
 }
 

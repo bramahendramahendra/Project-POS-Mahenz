@@ -108,7 +108,7 @@ export const queryKeys = {
 
   sync: {
     status: () => ['sync', 'status'] as const,
-    history: () => ['sync', 'history'] as const,
+    history: (filter?: Filter) => ['sync', 'history', filter] as const,
     conflicts: () => ['sync', 'conflicts'] as const,
   },
 
@@ -142,6 +142,15 @@ export const queryKeys = {
     list: (filter?: Filter) => ['supplierPurchases', 'list', filter] as const,
     detail: (id: number) => ['supplierPurchases', 'detail', id] as const,
     payments: (id: number) => ['supplierPurchases', 'detail', id, 'payments'] as const,
+    generateCode: () => ['supplierPurchases', 'generateCode'] as const,
+  },
+
+  paymentMethods: {
+    options: () => ['paymentMethods', 'options'] as const,
+  },
+
+  paymentStatuses: {
+    options: () => ['paymentStatuses', 'options'] as const,
   },
 
   supplierReturns: {

@@ -14,9 +14,9 @@ type SyncItem struct {
 }
 
 type PushSyncRequest struct {
-	DeviceID   string     `json:"device_id" binding:"required"`
+	DeviceID   string     `json:"device_id" validate:"required"`
 	DeviceType string     `json:"device_type"`
-	Items      []SyncItem `json:"items" binding:"required"`
+	Items      []SyncItem `json:"items" validate:"required"`
 }
 
 type SyncItemResult struct {
@@ -63,7 +63,7 @@ type ConflictListResponse struct {
 }
 
 type ResolveConflictRequest struct {
-	Action string `json:"action" binding:"required,oneof=approve reject"`
+	Action string `json:"action" validate:"required,oneof=approve reject"`
 }
 
 type QueueFilter struct {

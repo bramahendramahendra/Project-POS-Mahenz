@@ -7,7 +7,7 @@ import (
 )
 
 type (
-	FinanceRepo interface {
+	FinanceRepoInterface interface {
 		GetSummary(req *dto.GetSummaryRequest) (*dto.SummaryResponse, error)
 		GetCashflow(req *dto.GetCashflowRequest) ([]dto.CashflowItemResponse, int64, error)
 

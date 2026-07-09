@@ -5,7 +5,7 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { useDisclosure } from '@/shared/hooks'
 
-import { useAppVersionListQuery } from '../../settings.api'
+import { useAppVersionListQuery } from '../versions.api'
 import { AppVersionFormModal } from './AppVersionFormModal'
 
 const PLATFORM_LABEL: Record<string, string> = {

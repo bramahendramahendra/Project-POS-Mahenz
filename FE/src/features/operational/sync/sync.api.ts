@@ -17,7 +17,7 @@ export function useSyncStatusQuery() {
 
 export function useSyncHistoryQuery(filter?: SyncFilter) {
   return useQuery({
-    queryKey: queryKeys.sync.history(),
+    queryKey: queryKeys.sync.history(filter as unknown as Record<string, unknown>),
     queryFn: () => api.get<PaginatedData<SyncHistoryItem>>('/sync/history', filter),
   })
 }

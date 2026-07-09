@@ -10,8 +10,8 @@ type VersionCheckResponse struct {
 }
 
 type UpdateVersionRequest struct {
-	Version      string `json:"version" binding:"required"`
-	DownloadURL  string `json:"download_url" binding:"required"`
+	Version      string `json:"version" validate:"required"`
+	DownloadURL  string `json:"download_url" validate:"required"`
 	ReleaseNotes string `json:"release_notes"`
 	IsMandatory  bool   `json:"is_mandatory"`
 }

@@ -4,9 +4,11 @@ import (
 	"pos_api/domain/setting/dto"
 	"pos_api/domain/setting/service"
 	global_dto "pos_api/dto"
+	"pos_api/errors"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
 	binder "pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +31,7 @@ func (h *SettingHandler) GetAll(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Daftar pengaturan",
 		Data:    data,
 	})
 }
@@ -45,16 +47,16 @@ func (h *SettingHandler) GetByKey(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Detail pengaturan",
 		Data:    dto.SettingKeyValueResponse{Key: key, Value: value},
 	})
 }
 
 // POST /api/settings
 func (h *SettingHandler) Save(c *gin.Context) {
-	var body map[string]string
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.Error(err)
+	body, err := binder.BindJSON[map[string]string](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 	if err := h.service.Save(body); err != nil {
@@ -91,7 +93,7 @@ func (h *SettingHandler) GetStoreProfile(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Profil toko",
 		Data:    data,
 	})
 }
@@ -100,7 +102,11 @@ func (h *SettingHandler) GetStoreProfile(c *gin.Context) {
 func (h *SettingHandler) UpdateStoreProfile(c *gin.Context) {
 	req, err := binder.BindJSON[dto.StoreProfileRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 	if err := h.service.UpdateStoreProfile(&req); err != nil {
@@ -124,7 +130,7 @@ func (h *SettingHandler) GetPrinterSettings(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Pengaturan printer",
 		Data:    data,
 	})
 }
@@ -133,7 +139,11 @@ func (h *SettingHandler) GetPrinterSettings(c *gin.Context) {
 func (h *SettingHandler) UpdatePrinterSettings(c *gin.Context) {
 	req, err := binder.BindJSON[dto.PrinterSettingsRequest](c)
 	if err != nil {
-		c.Error(err)
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 	if err := h.service.UpdatePrinterSettings(&req); err != nil {

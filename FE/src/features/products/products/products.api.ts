@@ -122,10 +122,22 @@ export function useProductSearchQuery(keyword: string, enabled = true) {
   })
 }
 
+export function fetchProductDetail(id: number) {
+  return api.post<Product>(`/products/detail/${id}`, {})
+}
+
+export function fetchProductPackages(productId: number) {
+  return api.post<ProductPackage[]>(`/products/${productId}/packages/list`, {})
+}
+
+export function fetchProductPrices(productId: number) {
+  return api.post<PriceTier[]>(`/products/${productId}/prices/list`, {})
+}
+
 export function useProductDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.products.detail(id),
-    queryFn: () => api.post<Product>(`/products/detail/${id}`, {}),
+    queryFn: () => fetchProductDetail(id),
     enabled: id > 0,
   })
 }
@@ -141,7 +153,7 @@ export function useProductBarcodeQuery(code: string, enabled: boolean) {
 export function useProductPackagesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.productUnits(productId),
-    queryFn: () => api.post<ProductPackage[]>(`/products/${productId}/packages/list`, {}),
+    queryFn: () => fetchProductPackages(productId),
     enabled: productId > 0,
   })
 }
@@ -149,7 +161,7 @@ export function useProductPackagesQuery(productId: number) {
 export function useProductPricesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.priceTiers(productId),
-    queryFn: () => api.post<PriceTier[]>(`/products/${productId}/prices/list`, {}),
+    queryFn: () => fetchProductPrices(productId),
     enabled: productId > 0,
   })
 }

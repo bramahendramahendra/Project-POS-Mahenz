@@ -26,5 +26,5 @@ export interface SyncConflict {
 
 export interface SyncFilter {
   page?: number
-  page_size?: number
+  limit?: number
 }

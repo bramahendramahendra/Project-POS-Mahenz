@@ -1,4 +1,4 @@
-package model_payment_method
+package model
 
 import "time"
 

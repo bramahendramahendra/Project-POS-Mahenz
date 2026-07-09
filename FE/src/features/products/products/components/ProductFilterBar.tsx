@@ -12,9 +12,9 @@ import {
 } from '@/shared/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/shared/components/ui/toggle-group'
 import { useDebounce } from '@/shared/hooks'
+import type { CategoryOption } from '@/features/products/categories'
 
 import type { ProductFilter } from '../products.types'
-import type { CategoryOption } from '@/features/products/categories'
 
 interface ProductFilterProps {
   filter: ProductFilter

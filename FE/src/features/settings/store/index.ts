@@ -1,3 +1,5 @@
 export { StoreProfilePage } from './StoreProfilePage'
+export { useStoreProfileQuery, useUpdateStoreProfileMutation } from './store.api'
+export type { StoreProfile } from './store.types'
 export { storeProfileSchema } from './store.schema'
 export type { StoreProfileFormValues } from './store.schema'

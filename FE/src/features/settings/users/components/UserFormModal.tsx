@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { useRoleOptionsQuery } from '@/features/settings/roles/roles.api'
+import { useRoleOptionsQuery } from '@/features/settings/roles'
 
 import { useCreateUserMutation, useUpdateUserMutation } from '../users.api'
 import { createUserSchema, updateUserSchema } from '../users.schema'

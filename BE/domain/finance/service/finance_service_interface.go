@@ -12,10 +12,10 @@ type (
 	}
 
 	financeService struct {
-		repo repo.FinanceRepo
+		repo repo.FinanceRepoInterface
 	}
 )
 
-func NewFinanceService(repo repo.FinanceRepo) *financeService {
+func NewFinanceService(repo repo.FinanceRepoInterface) *financeService {
 	return &financeService{repo: repo}
 }

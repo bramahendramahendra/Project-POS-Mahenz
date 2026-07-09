@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
+import { useUnitOptionsQuery } from '@/features/products/units'
+import { useCategoryOptionsQuery } from '@/features/products/categories'
 
 import {
   useCreateProductMutation,
@@ -25,8 +27,6 @@ import {
   useUpdateProductMutation,
   useSaveProductPackagesBulkMutation,
 } from '../products.api'
-import { useUnitOptionsQuery } from '@/features/products/units'
-import { useCategoryOptionsQuery } from '@/features/products/categories'
 import { calcMargin } from '../products.utils'
 import { productSchema } from '../products.schema'
 import type { ProductFormValues, GrosirFormValues } from '../products.schema'

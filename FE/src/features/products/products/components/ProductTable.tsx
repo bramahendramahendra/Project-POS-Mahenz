@@ -3,6 +3,7 @@ import { forwardRef, useImperativeHandle, useState } from 'react'
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions, useTableSelection } from '@/shared/hooks'
 import type { SortState } from '@/shared/components/DataTable/DataTable.types'
+import { useCategoryOptionsQuery } from '@/features/products/categories'
 
 import {
   useProductListQuery,
@@ -10,7 +11,6 @@ import {
   useBulkToggleProductStatusMutation,
   useToggleProductStatusMutation,
 } from '../products.api'
-import { useCategoryOptionsQuery } from '@/features/products/categories'
 import type { Product, ProductListFilter } from '../products.types'
 import { exportProductsToExcel } from '../products.utils'
 import { buildProductColumns } from './ProductTableColumns'

@@ -12,7 +12,7 @@ export function SyncHistoryTable() {
   const { page, pageSize, onPageChange, onPageSizeChange } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
 
-  const { data, isLoading } = useSyncHistoryQuery({ page, page_size: pageSize })
+  const { data, isLoading } = useSyncHistoryQuery({ page, limit: pageSize })
   const rows = data?.data ?? []
   const total = data?.total ?? 0
 

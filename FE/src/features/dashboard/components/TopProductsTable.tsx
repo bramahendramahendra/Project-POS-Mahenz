@@ -1,4 +1,6 @@
+import { DataTable } from '@/shared/components'
 import { formatRupiah } from '@/shared/utils'
+import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { TopProductItem } from '../dashboard.types'
 
@@ -8,43 +10,46 @@ interface TopProductsTableProps {
 }
 
 export function TopProductsTable({ data, isLoading }: TopProductsTableProps) {
+  const rows = data.map((item, i) => ({ ...item, rank: i + 1 }))
+
+  const columns: ColumnDef<TopProductItem & { rank: number }>[] = [
+    {
+      key: 'rank',
+      header: '#',
+      align: 'center',
+      width: '32px',
+      cell: (row) => <span className="text-gray-400 font-mono">{row.rank}</span>,
+    },
+    {
+      key: 'product_name',
+      header: 'Produk',
+      cell: (row) => <span className="font-medium text-gray-800">{row.product_name}</span>,
+    },
+    {
+      key: 'total_qty',
+      header: 'Qty',
+      align: 'right',
+      cell: (row) => <span className="text-gray-600">{row.total_qty}</span>,
+    },
+    {
+      key: 'total_value',
+      header: 'Revenue',
+      align: 'right',
+      cell: (row) => <span className="font-semibold text-blue-600">{formatRupiah(row.total_value)}</span>,
+    },
+  ]
+
   return (
     <div className="rounded-lg border bg-white overflow-hidden">
       <div className="px-4 py-3 border-b">
         <h3 className="font-semibold text-gray-700 text-sm">Top Produk Terlaris</h3>
       </div>
-      {isLoading ? (
-        <div className="space-y-3 p-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-8 animate-pulse rounded bg-gray-100" />
-          ))}
-        </div>
-      ) : data.length === 0 ? (
-        <p className="p-6 text-center text-sm text-gray-400">Belum ada data</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-3 py-2.5 text-center font-medium text-gray-600 w-8">#</th>
-              <th className="px-3 py-2.5 text-left font-medium text-gray-600">Produk</th>
-              <th className="px-3 py-2.5 text-right font-medium text-gray-600">Qty</th>
-              <th className="px-3 py-2.5 text-right font-medium text-gray-600">Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((p, i) => (
-              <tr key={p.product_id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="px-3 py-2.5 text-center text-gray-400 font-mono">{i + 1}</td>
-                <td className="px-3 py-2.5 font-medium text-gray-800">{p.product_name}</td>
-                <td className="px-3 py-2.5 text-right text-gray-600">{p.total_qty}</td>
-                <td className="px-3 py-2.5 text-right font-semibold text-blue-600">
-                  {formatRupiah(p.total_value)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <DataTable<(TopProductItem & { rank: number }) & Record<string, unknown>>
+        columns={columns}
+        data={rows as ((TopProductItem & { rank: number }) & Record<string, unknown>)[]}
+        isLoading={isLoading}
+        emptyMessage="Belum ada data"
+      />
     </div>
   )
 }

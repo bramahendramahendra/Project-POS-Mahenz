@@ -3,7 +3,7 @@ import { Eye, Trash2 } from 'lucide-react'
 import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { SupplierReturn } from '../returns.types'
@@ -12,15 +12,6 @@ export interface ReturnColumnHandlers {
   onDetail: (row: SupplierReturn) => void
   onDelete: (row: SupplierReturn) => void
 }
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
 
 export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<SupplierReturn>[] {
   const { onDetail, onDelete } = handlers

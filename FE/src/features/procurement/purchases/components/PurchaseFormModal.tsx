@@ -19,7 +19,7 @@ import { formatRupiah, todayStr } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
-import type { Supplier } from '@/features/procurement/suppliers'
+import type { SupplierOption } from '@/features/procurement/suppliers'
 import { useProductSearchQuery } from '@/features/products/products'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
@@ -337,7 +337,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             <Label>
               Supplier <span className="text-red-500">*</span>
             </Label>
-            <AsyncCombobox<Supplier>
+            <AsyncCombobox<SupplierOption>
               className={errors.supplier_id ? 'border-red-500' : ''}
               value={watchSupplierId > 0 ? watchSupplierId : undefined}
               selectedLabel={selectedSupplierLabel}

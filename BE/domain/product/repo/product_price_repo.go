@@ -1,4 +1,4 @@
-package repo_product
+package repo
 
 import (
 	dto "pos_api/domain/product/dto"

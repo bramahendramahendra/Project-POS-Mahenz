@@ -32,7 +32,7 @@ func (h *DashboardHandler) GetStats(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Statistik dashboard",
 		Data:    result,
 	})
 }
@@ -48,7 +48,7 @@ func (h *DashboardHandler) GetSalesTrend(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Tren penjualan",
 		Data:    result,
 	})
 }
@@ -79,7 +79,7 @@ func (h *DashboardHandler) GetTopProducts(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Produk terlaris",
 		Data:    result,
 	})
 }
@@ -108,7 +108,7 @@ func (h *DashboardHandler) GetTopCategories(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Kategori terlaris",
 		Data:    result,
 	})
 }
@@ -124,7 +124,7 @@ func (h *DashboardHandler) GetSummaryExtra(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Ringkasan tambahan",
 		Data:    result,
 	})
 }
@@ -148,7 +148,7 @@ func (h *DashboardHandler) GetPaymentMethods(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Success",
+		Message: "Metode pembayaran",
 		Data:    result,
 	})
 }

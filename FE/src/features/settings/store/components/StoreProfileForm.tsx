@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 
-import { useStoreProfileQuery, useUpdateStoreProfileMutation } from '../../settings.api'
+import { useStoreProfileQuery, useUpdateStoreProfileMutation } from '../store.api'
 import { storeProfileSchema, type StoreProfileFormValues } from '../store.schema'
 
 interface StoreProfileFormProps {

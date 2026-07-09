@@ -16,7 +16,7 @@ import type {
 
 export function useGeneratePurchaseCodeQuery(enabled: boolean) {
   return useQuery({
-    queryKey: ['purchaseGenerateCode'],
+    queryKey: queryKeys.supplierPurchases.generateCode(),
     queryFn: () => api.post<{ purchase_code: string }>('/supplier-purchases/generate-code', {}),
     enabled,
     staleTime: 0,

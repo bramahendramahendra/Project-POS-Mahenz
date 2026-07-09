@@ -1,4 +1,4 @@
-package repo_product
+package repo
 
 const (
 	checkBarcodeExistsQuery = `SELECT id FROM products WHERE barcode = ? AND id != ? LIMIT 1`

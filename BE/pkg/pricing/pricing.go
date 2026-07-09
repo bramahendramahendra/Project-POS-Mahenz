@@ -25,7 +25,7 @@ type Totals struct {
 
 // Recalculate menghitung ulang harga per item dari master data produk (bukan dari payload
 // client), lalu subtotal dan total keseluruhan setelah diskon/pajak.
-func Recalculate(productRepo product_repo.ProductRepo, items []Item, discount, tax float64) (*Totals, error) {
+func Recalculate(productRepo product_repo.ProductRepoInterface, items []Item, discount, tax float64) (*Totals, error) {
 	result := &Totals{
 		ItemPrices:    make([]float64, len(items)),
 		ItemSubtotals: make([]float64, len(items)),
@@ -62,7 +62,7 @@ func Recalculate(productRepo product_repo.ProductRepo, items []Item, discount, t
 }
 
 // resolveUnitPrice mengambil harga jual asli produk dari master data, bukan dari payload client.
-func resolveUnitPrice(productRepo product_repo.ProductRepo, productID int, unitID *int, quantity float64) (float64, error) {
+func resolveUnitPrice(productRepo product_repo.ProductRepoInterface, productID int, unitID *int, quantity float64) (float64, error) {
 	product, err := productRepo.GetByID(productID)
 	if err != nil {
 		return 0, &errors.InternalServerError{Message: err.Error()}

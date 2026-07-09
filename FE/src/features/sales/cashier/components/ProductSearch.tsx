@@ -6,7 +6,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Input } from '@/shared/components/ui/input'
 import { formatRupiah } from '@/shared/utils'
 import { queryKeys } from '@/shared/constants'
-import { api } from '@/services'
+import {
+  fetchProductDetail,
+  fetchProductPackages,
+  fetchProductPrices,
+} from '@/features/products/products'
 import type { Product, ProductPackage, PriceTier } from '@/features/products/products'
 
 import { useCashierStore } from '../cashier.store'
@@ -43,17 +47,17 @@ export function ProductSearch() {
     const [product, packages, prices] = await Promise.all([
       qc.fetchQuery({
         queryKey: queryKeys.products.detail(id),
-        queryFn: () => api.post<Product>(`/products/detail/${id}`, {}),
+        queryFn: () => fetchProductDetail(id),
         staleTime: 60_000,
       }) as Promise<Product>,
       qc.fetchQuery({
         queryKey: queryKeys.products.productUnits(id),
-        queryFn: () => api.post<ProductPackage[]>(`/products/${id}/packages/list`, {}),
+        queryFn: () => fetchProductPackages(id),
         staleTime: 60_000,
       }) as Promise<ProductPackage[]>,
       qc.fetchQuery({
         queryKey: queryKeys.products.priceTiers(id),
-        queryFn: () => api.post<PriceTier[]>(`/products/${id}/prices/list`, {}),
+        queryFn: () => fetchProductPrices(id),
         staleTime: 60_000,
       }) as Promise<PriceTier[]>,
     ])

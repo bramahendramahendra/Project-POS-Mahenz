@@ -30,8 +30,8 @@ export interface SupplierReturnFilter {
   status?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
-  page?: number
-  limit?: number
+  page: number
+  limit: number
 }
 
 export interface UpdateReturnStatusPayload {

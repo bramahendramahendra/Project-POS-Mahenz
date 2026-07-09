@@ -47,7 +47,8 @@ func (r *syncRepo) GetConflicts(filter *dto.ConflictFilter) ([]dto.ConflictRespo
 	}
 	offset := (page - 1) * limit
 
-	query := getConflictsQuery + conditions + fmt.Sprintf(" ORDER BY id DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getConflictsQuery + conditions + ` ORDER BY id DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
@@ -229,7 +230,8 @@ func (r *syncRepo) GetQueue(filter *dto.QueueFilter) ([]dto.QueueResponse, int, 
 	}
 	offset := (page - 1) * limit
 
-	query := getQueueQuery + conditions + fmt.Sprintf(" ORDER BY created_at DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getQueueQuery + conditions + ` ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
@@ -307,7 +309,8 @@ func (r *syncRepo) GetHistory(filter *dto.HistoryFilter) ([]dto.SyncHistoryRespo
 	}
 	offset := (page - 1) * limit
 
-	query := getHistoryQuery + conditions + fmt.Sprintf(" ORDER BY started_at DESC LIMIT %d OFFSET %d", limit, offset)
+	query := getHistoryQuery + conditions + ` ORDER BY started_at DESC LIMIT ? OFFSET ?`
+	args = append(args, limit, offset)
 
 	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {

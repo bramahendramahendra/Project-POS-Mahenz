@@ -1,4 +1,4 @@
-package model_payment_status
+package model
 
 import "time"
 

@@ -10,6 +10,7 @@ import (
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
 	"pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +26,10 @@ func NewSyncHandler(svc service.SyncServiceInterface) *SyncHandler {
 func (h *SyncHandler) PushSync(c *gin.Context) {
 	req, err := binder.BindJSON[dto.PushSyncRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -88,6 +93,10 @@ func (h *SyncHandler) ResolveConflict(c *gin.Context) {
 
 	req, err := binder.BindJSON[dto.ResolveConflictRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

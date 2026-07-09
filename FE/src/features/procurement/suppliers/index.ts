@@ -14,6 +14,7 @@ export type {
   Supplier,
   SupplierDetail,
   SupplierListFilter,
+  SupplierOption,
   SupplierPurchaseItem,
   SupplierReturnHistoryItem,
   CreateSupplierPayload,

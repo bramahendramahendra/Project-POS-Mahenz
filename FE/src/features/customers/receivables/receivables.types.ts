@@ -25,7 +25,7 @@ export interface Receivable {
 export interface ReceivableListFilter {
   page: number
   limit: number
-  search?: string
+  search: string
   status?: ReceivableStatus | ''
 }
 

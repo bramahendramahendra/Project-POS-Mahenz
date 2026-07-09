@@ -61,6 +61,10 @@ func (h *CashDrawerHandler) GetHistory(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
 
 	role := helper.GetUserRole(c)
 	requestingUserID := helper.GetUserID(c)
@@ -191,6 +195,11 @@ func (h *CashDrawerHandler) UpdateSales(c *gin.Context) {
 	}
 	req.ID = uriReq.ID
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
 	if err := h.service.UpdateSales(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
 		c.Error(err)
 		return
@@ -206,6 +215,10 @@ func (h *CashDrawerHandler) UpdateSales(c *gin.Context) {
 func (h *CashDrawerHandler) GetSummary(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetHistoryRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -244,6 +257,11 @@ func (h *CashDrawerHandler) UpdateExpenses(c *gin.Context) {
 		return
 	}
 	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
 
 	if err := h.service.UpdateExpenses(req.ID, &req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
 		c.Error(err)

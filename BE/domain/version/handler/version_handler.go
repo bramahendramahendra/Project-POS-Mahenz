@@ -8,6 +8,7 @@ import (
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
 	"pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,6 +67,10 @@ func (h *VersionHandler) CheckAndroid(c *gin.Context) {
 func (h *VersionHandler) UpdateAndroidVersion(c *gin.Context) {
 	req, err := binder.BindJSON[dto.UpdateVersionRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
 	"pos_api/pkg/binder"
+	validator "pos_api/validation"
 
 	"github.com/gin-gonic/gin"
 )
@@ -43,6 +44,10 @@ func (h *PinHandler) SetPin(c *gin.Context) {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
 
 	userID := helper.GetUserID(c)
 	if err := h.service.SetPin(userID, req.Pin); err != nil {
@@ -60,6 +65,10 @@ func (h *PinHandler) SetPin(c *gin.Context) {
 func (h *PinHandler) VerifyPin(c *gin.Context) {
 	req, err := binder.BindJSON[dto.VerifyPinRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
@@ -82,6 +91,10 @@ func (h *PinHandler) VerifyPin(c *gin.Context) {
 func (h *PinHandler) ChangePin(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ChangePinRequest](c)
 	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}

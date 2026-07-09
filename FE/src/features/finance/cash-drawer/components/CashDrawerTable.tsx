@@ -17,6 +17,8 @@ import { buildCashDrawerColumns } from './CashDrawerTableColumns'
 
 export function CashDrawerTable() {
   const [filter, setFilter] = useState<CashDrawerListFilter>({
+    page: 1,
+    limit: 10,
     start_date: monthStart(),
     end_date: todayStr(),
   })
@@ -46,7 +48,7 @@ export function CashDrawerTable() {
   }
 
   const handleReset = () => {
-    setFilter({ start_date: monthStart(), end_date: todayStr() })
+    setFilter({ page: 1, limit: 10, start_date: monthStart(), end_date: todayStr() })
     setSortState(undefined)
     resetPage()
   }

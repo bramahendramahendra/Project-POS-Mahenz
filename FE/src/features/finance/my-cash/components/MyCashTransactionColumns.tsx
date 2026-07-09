@@ -1,17 +1,7 @@
-import { formatRupiah } from '@/shared/utils'
+import { formatDateTime, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { CashDrawerTransaction } from '../my-cash.types'
-
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 export function buildMyCashTransactionColumns(): ColumnDef<CashDrawerTransaction>[] {
   return [

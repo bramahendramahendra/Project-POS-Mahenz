@@ -1,9 +1,9 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"pos_api/domain/setting/dto"
+	"pos_api/errors"
 	"strconv"
 )
 
@@ -25,7 +25,7 @@ func (s *settingService) GetByKey(key string) (string, error) {
 		return "", err
 	}
 	if setting == nil {
-		return "", errors.New("setting not found")
+		return "", &errors.NotFoundError{Message: "Setting tidak ditemukan"}
 	}
 	return setting.Value, nil
 }

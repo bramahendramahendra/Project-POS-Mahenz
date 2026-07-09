@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	SupplierRepo interface {
+	SupplierRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error)
 		GetOptions(search string) ([]*model.SupplierOption, error)
 		GetByID(id int) (*model.Supplier, error)

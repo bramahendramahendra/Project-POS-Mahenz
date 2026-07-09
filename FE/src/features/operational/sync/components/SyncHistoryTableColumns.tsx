@@ -1,8 +1,8 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible'
+import { formatDateTime } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { SyncHistoryItem } from '../sync.types'
-import { formatDateTime } from '../sync.utils'
 
 const STATUS_STYLE: Record<string, string> = {
   success: 'bg-green-100 text-green-700',

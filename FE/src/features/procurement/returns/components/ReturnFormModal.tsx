@@ -43,6 +43,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
 
   const { data: purchasesData, isFetching: isPurchasesFetching } = useSupplierPurchasesQuery({
     search: purchaseKeyword,
+    page: 1,
     limit: 20,
   })
   const purchases = purchasesData?.data ?? []

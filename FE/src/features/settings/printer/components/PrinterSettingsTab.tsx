@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Printer } from 'lucide-react'
 
 import { RoleGuard } from '@/shared/components'
@@ -15,10 +17,11 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
-import { usePrinterSettingsQuery, useUpdatePrinterSettingsMutation } from '../../settings.api'
-import type { PrinterSettings } from '../../settings.types'
+import { usePrinterSettingsQuery, useUpdatePrinterSettingsMutation } from '../printer.api'
+import type { PrinterSettings } from '../printer.types'
+import { printerSettingsSchema, type PrinterSettingsFormValues } from '../printer.schema'
 
-const DEFAULT_SETTINGS: PrinterSettings = {
+const DEFAULT_SETTINGS: PrinterSettingsFormValues = {
   paper_size: '80mm',
   receipt_header: '',
   receipt_footer: 'Terima kasih telah berbelanja!',
@@ -130,15 +133,27 @@ function ReceiptPreview({ settings }: { settings: PrinterSettings }) {
 export function PrinterSettingsTab() {
   const { data, isLoading } = usePrinterSettingsQuery()
   const { mutate: save, isPending } = useUpdatePrinterSettingsMutation()
-  const [form, setForm] = useState<PrinterSettings>(DEFAULT_SETTINGS)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    setValue,
+    watch,
+  } = useForm<PrinterSettingsFormValues>({
+    resolver: zodResolver(printerSettingsSchema),
+    defaultValues: DEFAULT_SETTINGS,
+  })
 
   useEffect(() => {
-    if (data) setForm(data)
-  }, [data])
+    if (data) reset(data)
+  }, [data, reset])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    save(form)
+  const liveSettings = useWatch({ control }) as PrinterSettings
+
+  const onSubmit = (values: PrinterSettingsFormValues) => {
+    save(values)
   }
 
   if (isLoading) {
@@ -153,15 +168,15 @@ export function PrinterSettingsTab() {
 
   return (
     <div className="flex gap-8 items-start">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6 shrink-0">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-sm space-y-6 shrink-0">
         <div className="rounded-lg border bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700">Konfigurasi Struk</h3>
 
           <div className="space-y-1.5">
             <Label>Ukuran Kertas</Label>
             <Select
-              value={form.paper_size}
-              onValueChange={(v) => setForm((f) => ({ ...f, paper_size: v as '58mm' | '80mm' }))}
+              value={watch('paper_size')}
+              onValueChange={(v) => setValue('paper_size', v as '58mm' | '80mm')}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -177,8 +192,7 @@ export function PrinterSettingsTab() {
             <Label htmlFor="pr-header">Header Struk</Label>
             <Input
               id="pr-header"
-              value={form.receipt_header}
-              onChange={(e) => setForm((f) => ({ ...f, receipt_header: e.target.value }))}
+              {...register('receipt_header')}
               placeholder="Nama toko atau teks header"
             />
           </div>
@@ -187,8 +201,7 @@ export function PrinterSettingsTab() {
             <Label htmlFor="pr-footer">Footer Struk</Label>
             <Textarea
               id="pr-footer"
-              value={form.receipt_footer}
-              onChange={(e) => setForm((f) => ({ ...f, receipt_footer: e.target.value }))}
+              {...register('receipt_footer')}
               placeholder="Teks bawah struk..."
               className="resize-none"
               rows={2}
@@ -207,8 +220,8 @@ export function PrinterSettingsTab() {
               <p className="text-xs text-gray-500 mt-0.5">Tampilkan logo toko di bagian atas struk</p>
             </div>
             <Switch
-              checked={form.show_logo}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, show_logo: v }))}
+              checked={watch('show_logo')}
+              onCheckedChange={(v) => setValue('show_logo', v)}
             />
           </div>
 
@@ -218,8 +231,8 @@ export function PrinterSettingsTab() {
               <p className="text-xs text-gray-500 mt-0.5">Langsung cetak struk setelah transaksi selesai</p>
             </div>
             <Switch
-              checked={form.auto_print}
-              onCheckedChange={(v) => setForm((f) => ({ ...f, auto_print: v }))}
+              checked={watch('auto_print')}
+              onCheckedChange={(v) => setValue('auto_print', v)}
             />
           </div>
         </div>
@@ -229,7 +242,7 @@ export function PrinterSettingsTab() {
             type="button"
             variant="outline"
             className="gap-1.5"
-            onClick={() => openTestPrint(form)}
+            onClick={() => openTestPrint(liveSettings)}
           >
             <Printer size={15} />
             Test Print
@@ -245,7 +258,7 @@ export function PrinterSettingsTab() {
       <div className="hidden lg:block shrink-0">
         <p className="text-xs font-medium text-gray-500 mb-2">Preview Struk</p>
         <div className="rounded-lg border bg-gray-50 p-4 shadow-sm">
-          <ReceiptPreview settings={form} />
+          <ReceiptPreview settings={liveSettings} />
         </div>
       </div>
     </div>

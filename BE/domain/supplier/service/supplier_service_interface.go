@@ -17,10 +17,10 @@ type (
 	}
 
 	supplierService struct {
-		repo repo.SupplierRepo
+		repo repo.SupplierRepoInterface
 	}
 )
 
-func NewSupplierService(repo repo.SupplierRepo) *supplierService {
+func NewSupplierService(repo repo.SupplierRepoInterface) *supplierService {
 	return &supplierService{repo: repo}
 }

@@ -8,7 +8,7 @@ import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
 import { Textarea } from '@/shared/components/ui/textarea'
 
-import { useCreateAppVersionMutation } from '../../settings.api'
+import { useCreateAppVersionMutation } from '../versions.api'
 import { createAppVersionSchema, type CreateAppVersionFormValues } from '../versions.schema'
 
 const defaultValues: CreateAppVersionFormValues = {

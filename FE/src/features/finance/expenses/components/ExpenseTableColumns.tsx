@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Expense } from '../expenses.types'
@@ -26,14 +26,6 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   card: 'Kartu',
   qris: 'QRIS',
   kredit: 'Kredit',
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
 }
 
 export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<Expense>[] {

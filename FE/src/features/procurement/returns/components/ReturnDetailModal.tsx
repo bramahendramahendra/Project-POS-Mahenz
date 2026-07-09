@@ -6,7 +6,7 @@ import { useDisclosure } from '@/shared/hooks'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { Label } from '@/shared/components/ui/label'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 
 import { useSupplierReturnDetailQuery, useUpdateSupplierReturnStatusMutation } from '../returns.api'
 
@@ -14,15 +14,6 @@ interface ReturnDetailModalProps {
   returnId: number | null
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
 }
 
 export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetailModalProps) {

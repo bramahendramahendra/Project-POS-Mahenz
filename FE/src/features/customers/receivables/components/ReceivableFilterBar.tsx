@@ -25,7 +25,7 @@ export function ReceivableFilterBar({ filter, onChange, onReset }: ReceivableFil
   const debouncedSearch = useDebounce(search, 400)
 
   useEffect(() => {
-    onChange({ ...filter, search: debouncedSearch || undefined })
+    onChange({ ...filter, search: debouncedSearch })
     onReset()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch])
@@ -37,7 +37,7 @@ export function ReceivableFilterBar({ filter, onChange, onReset }: ReceivableFil
 
   const handleReset = () => {
     setSearch('')
-    onChange({ ...filter, search: undefined, status: undefined })
+    onChange({ ...filter, search: '', status: undefined })
     onReset()
   }
 

@@ -25,7 +25,7 @@ export function useCashDrawerCurrentQuery() {
 
 export function useCashDrawerListQuery(filter?: CashDrawerListFilter) {
   return useQuery({
-    queryKey: queryKeys.cashDrawer.list(filter),
+    queryKey: queryKeys.cashDrawer.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<CashDrawer>>('/cash-drawer/list', filter ?? {}),
   })
 }
@@ -67,7 +67,7 @@ export function useCloseCashDrawerMutation() {
 
 export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
   return useQuery({
-    queryKey: queryKeys.cashDrawer.summary(filter),
+    queryKey: queryKeys.cashDrawer.summary(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<CashDrawerSummary>('/cash-drawer/summary', filter ?? {}),
   })
 }
