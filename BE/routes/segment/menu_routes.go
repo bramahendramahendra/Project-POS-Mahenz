@@ -4,6 +4,8 @@ import (
 	menu_handler "pos_api/domain/menu/handler"
 	menu_repo "pos_api/domain/menu/repo"
 	menu_service "pos_api/domain/menu/service"
+	route_registry_repo "pos_api/domain/route_registry/repo"
+	route_registry_service "pos_api/domain/route_registry/service"
 	middleware "pos_api/middleware"
 	pkgdatabase "pos_api/pkg/database"
 
@@ -12,7 +14,9 @@ import (
 
 func MenuRoutes(r *gin.RouterGroup) {
 	menuRepo := menu_repo.NewMenuRepo(pkgdatabase.DB)
-	menuService := menu_service.NewMenuService(menuRepo)
+	routeRegistryRepo := route_registry_repo.NewRouteRegistryRepo(pkgdatabase.DB)
+	routeRegistryService := route_registry_service.NewRouteRegistryService(routeRegistryRepo)
+	menuService := menu_service.NewMenuService(menuRepo, routeRegistryService)
 	menuHandler := menu_handler.NewMenuHandler(menuService)
 
 	svc := newAccessService()

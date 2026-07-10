@@ -128,6 +128,10 @@ export const queryKeys = {
     options: () => ['menus', 'options'] as const,
   },
 
+  routeRegistry: {
+    options: () => ['routeRegistry', 'options'] as const,
+  },
+
   cashDrawer: {
     all: () => ['cashDrawer'] as const,
     current: () => ['cashDrawer', 'current'] as const,

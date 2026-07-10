@@ -38,7 +38,7 @@ func (s *menuService) GetMyMenus(roleName string) ([]dto.MyMenuItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return buildTree(flat), nil
+	return pruneTree(buildTree(flat)), nil
 }
 
 func (s *menuService) Create(req *dto.CreateRequest) (*dto.MenuResponse, error) {
@@ -57,6 +57,16 @@ func (s *menuService) Create(req *dto.CreateRequest) (*dto.MenuResponse, error) 
 		}
 		if parent == nil {
 			return nil, &errors.BadRequestError{Message: "Parent menu tidak ditemukan"}
+		}
+	}
+
+	if req.Path != "" {
+		valid, err := s.routeRegistry.IsValidPath(req.Path)
+		if err != nil {
+			return nil, err
+		}
+		if !valid {
+			return nil, &errors.BadRequestError{Message: "Path tidak terdaftar sebagai route yang valid di aplikasi"}
 		}
 	}
 
@@ -92,6 +102,16 @@ func (s *menuService) Update(id int, req *dto.UpdateRequest) error {
 		}
 		if parent == nil {
 			return &errors.BadRequestError{Message: "Parent menu tidak ditemukan"}
+		}
+	}
+
+	if req.Path != "" {
+		valid, err := s.routeRegistry.IsValidPath(req.Path)
+		if err != nil {
+			return err
+		}
+		if !valid {
+			return &errors.BadRequestError{Message: "Path tidak terdaftar sebagai route yang valid di aplikasi"}
 		}
 	}
 
@@ -140,6 +160,21 @@ func buildTree(flat []*dto.MyMenuItem) []dto.MyMenuItem {
 	}
 
 	return attachChildren(roots)
+}
+
+// pruneTree membuang node yang tidak boleh dilihat (can_view=false) DAN tidak punya
+// keturunan yang boleh dilihat — dipanggil setelah buildTree, yang kini menyertakan
+// semua menu (termasuk kategori induk tanpa izin langsung) supaya anak dengan akses
+// tetap punya jalur parent yang utuh.
+func pruneTree(items []dto.MyMenuItem) []dto.MyMenuItem {
+	result := make([]dto.MyMenuItem, 0, len(items))
+	for _, item := range items {
+		item.Children = pruneTree(item.Children)
+		if item.Permission.CanView || len(item.Children) > 0 {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func lastDot(s string) int {

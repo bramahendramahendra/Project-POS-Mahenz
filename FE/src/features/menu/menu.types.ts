@@ -53,6 +53,11 @@ export interface MenuOption {
   label: string
 }
 
+export interface RouteOption {
+  path: string
+  label: string
+}
+
 export interface MenuListFilter {
   page: number
   limit: number

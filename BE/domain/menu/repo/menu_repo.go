@@ -16,7 +16,10 @@ const (
 	updateMenuQuery         = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = NOW() WHERE id = ?`
 	deleteMenuQuery         = `DELETE FROM menus WHERE id = ?`
 	updateOrderQuery        = `UPDATE menus SET order_index = ?, updated_at = NOW() WHERE id = ?`
-	getMyMenusQuery         = `
+	// LEFT JOIN dengan semua menu aktif (bukan hanya yang punya can_view=1) supaya kategori induk
+	// tanpa izin langsung tetap ikut terbawa sebagai node struktural saat ada anak yang punya akses.
+	// Filtering item yang benar-benar tidak boleh dilihat dilakukan belakangan oleh pruneTree().
+	getMyMenusQuery = `
 		SELECT
 			m.id,
 			m.parent_id,
@@ -25,17 +28,14 @@ const (
 			m.icon,
 			m.path,
 			m.order_index,
-			rma.can_view,
-			rma.can_create,
-			rma.can_edit,
-			rma.can_delete
+			COALESCE(rma.can_view,   0),
+			COALESCE(rma.can_create, 0),
+			COALESCE(rma.can_edit,   0),
+			COALESCE(rma.can_delete, 0)
 		FROM menus m
-		INNER JOIN role_menu_access rma ON rma.menu_id = m.id
-		INNER JOIN roles r              ON r.id = rma.role_id
-		WHERE r.name = ?
-		AND r.is_active = 1
-		AND m.is_active = 1
-		AND rma.can_view = 1
+		LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+			AND rma.role_id = (SELECT id FROM roles WHERE name = ? AND is_active = 1 LIMIT 1)
+		WHERE m.is_active = 1
 		ORDER BY m.order_index ASC, m.id ASC
 		`
 )

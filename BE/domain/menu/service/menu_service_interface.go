@@ -3,6 +3,7 @@ package service
 import (
 	dto "pos_api/domain/menu/dto"
 	repo "pos_api/domain/menu/repo"
+	route_registry_service "pos_api/domain/route_registry/service"
 )
 
 type (
@@ -18,10 +19,11 @@ type (
 	}
 
 	menuService struct {
-		repo repo.MenuRepoInterface
+		repo          repo.MenuRepoInterface
+		routeRegistry route_registry_service.RouteRegistryServiceInterface
 	}
 )
 
-func NewMenuService(repo repo.MenuRepoInterface) *menuService {
-	return &menuService{repo: repo}
+func NewMenuService(repo repo.MenuRepoInterface, routeRegistry route_registry_service.RouteRegistryServiceInterface) *menuService {
+	return &menuService{repo: repo, routeRegistry: routeRegistry}
 }

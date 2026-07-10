@@ -12,6 +12,9 @@ import {
 } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
+import { useStoreProfileQuery } from '@/features/settings/store'
+import type { StoreProfile } from '@/features/settings/store'
+
 import type {
   CartItem,
   CartSummary,
@@ -54,6 +57,7 @@ function formatDate(dateStr: string): string {
 }
 
 function buildReceiptHtml(params: {
+  storeProfile?: StoreProfile
   checkoutData: CheckoutResponse
   cart: CartItem[]
   summary: CartSummary
@@ -63,7 +67,9 @@ function buildReceiptHtml(params: {
   amountPaid: number
   customerName?: string
 }): string {
-  const { checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName } = params
+  const { storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName } = params
+  const storeName = storeProfile?.name || 'POS System'
+  const storeSub = [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')
   const change = Math.max(0, amountPaid - summary.grandTotal)
 
   const itemRows = cart.map((item) => {
@@ -142,8 +148,8 @@ function buildReceiptHtml(params: {
 </head>
 <body>
   <div class="center">
-    <div class="store-name">POS SYSTEM</div>
-    <div class="store-sub">Toko Serba Ada</div>
+    <div class="store-name">${storeName}</div>
+    ${storeSub ? `<div class="store-sub">${storeSub}</div>` : ''}
   </div>
 
   <hr class="divider" />
@@ -217,10 +223,11 @@ export function ReceiptPrint({
   customerName,
 }: ReceiptPrintProps) {
   const change = amountPaid - summary.grandTotal
+  const { data: storeProfile } = useStoreProfileQuery()
 
   const handlePrint = () => {
     const html = buildReceiptHtml({
-      checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
+      storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
     })
     const win = window.open('', '_blank', 'width=380,height=600,toolbar=0,menubar=0,scrollbars=1')
     if (!win) return
@@ -242,8 +249,14 @@ export function ReceiptPrint({
 
           {/* Toko header */}
           <div className="text-center space-y-0.5">
-            <p className="text-base font-bold text-gray-900 tracking-wide">POS SYSTEM</p>
-            <p className="text-sm text-gray-500">Toko Serba Ada</p>
+            <p className="text-base font-bold text-gray-900 tracking-wide">
+              {storeProfile?.name || 'POS System'}
+            </p>
+            {[storeProfile?.address, storeProfile?.phone].filter(Boolean).length > 0 && (
+              <p className="text-sm text-gray-500">
+                {[storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')}
+              </p>
+            )}
           </div>
 
           <hr className="border-dashed border-gray-300" />

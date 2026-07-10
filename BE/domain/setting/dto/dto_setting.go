@@ -6,9 +6,9 @@ type SettingKeyValueResponse struct {
 }
 
 type StoreProfileRequest struct {
-	Name       string  `json:"name" validate:"required"`
-	Address    string  `json:"address"`
-	Phone      string  `json:"phone"`
+	Name       string  `json:"name" validate:"required,max=100"`
+	Address    string  `json:"address" validate:"omitempty,max=255"`
+	Phone      string  `json:"phone" validate:"omitempty,max=20"`
 	Email      string  `json:"email" validate:"omitempty,email"`
 	LogoURL    string  `json:"logo_url"`
 	TaxDefault float64 `json:"tax_default" validate:"min=0,max=100"`

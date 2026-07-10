@@ -17,9 +17,9 @@ type GetByIDRequest struct {
 }
 
 type CreateRequest struct {
-	Username string `json:"username"  validate:"required,min=3,alphanum"`
+	Username string `json:"username"  validate:"required,min=3,max=50,alphanum"`
 	Password string `json:"password"  validate:"required,min=6"`
-	FullName string `json:"full_name" validate:"required"`
+	FullName string `json:"full_name" validate:"required,max=100"`
 	RoleID   int    `json:"role_id"   validate:"required,gt=0"`
 }
 
@@ -29,7 +29,7 @@ type UpdateUriRequest struct {
 
 type UpdateRequest struct {
 	ID       int    `json:"-"`
-	FullName string `json:"full_name" validate:"required"`
+	FullName string `json:"full_name" validate:"required,max=100"`
 	RoleID   int    `json:"role_id"   validate:"required,gt=0"`
 }
 

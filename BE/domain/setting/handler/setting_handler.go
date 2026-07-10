@@ -106,7 +106,7 @@ func (h *SettingHandler) UpdateStoreProfile(c *gin.Context) {
 		return
 	}
 	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 	if err := h.service.UpdateStoreProfile(&req); err != nil {
@@ -143,7 +143,7 @@ func (h *SettingHandler) UpdatePrinterSettings(c *gin.Context) {
 		return
 	}
 	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
+		c.Error(err)
 		return
 	}
 	if err := h.service.UpdatePrinterSettings(&req); err != nil {

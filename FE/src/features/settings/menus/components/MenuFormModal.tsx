@@ -8,7 +8,8 @@ import { Label } from '@/shared/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
 
 import { useCreateMenuMutation, useMenuDetailQuery, useUpdateMenuMutation } from '@/features/menu/menu.api'
-import type { MenuOption } from '@/features/menu/menu.types'
+import { useRouteRegistryOptionsQuery } from '@/features/menu/routeRegistry.api'
+import type { MenuOption, RouteOption } from '@/features/menu/menu.types'
 import {
   createMenuSchema,
   editMenuSchema,
@@ -67,6 +68,33 @@ function ParentSelect({
   )
 }
 
+// Path hanya boleh dipilih dari daftar route yang benar-benar terdaftar di FE
+// (route_registry, diisi lewat migration developer) — mencegah link menu yang
+// menunjuk ke halaman yang tidak ada.
+function PathSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string | null | undefined
+  onChange: (v: string) => void
+  options: RouteOption[]
+}) {
+  return (
+    <Select value={value || 'none'} onValueChange={(v) => onChange(v === 'none' ? '' : v)}>
+      <SelectTrigger>
+        <SelectValue placeholder="Tidak ada (kategori)" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="none">Tidak ada (kategori)</SelectItem>
+        {options.map((r) => (
+          <SelectItem key={r.path} value={r.path}>{r.label} — {r.path}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 function CreateMenuForm({
   open,
   onOpenChange,
@@ -77,6 +105,7 @@ function CreateMenuForm({
   parentOptions: MenuOption[]
 }) {
   const { mutate: create, isPending } = useCreateMenuMutation()
+  const { data: routeOptions = [] } = useRouteRegistryOptionsQuery()
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
     useForm<CreateMenuFormValues>({ resolver: zodResolver(createMenuSchema), defaultValues: createDefaults })
@@ -127,15 +156,22 @@ function CreateMenuForm({
           {errors.label && <p className="text-xs text-red-500">{errors.label.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Icon (Lucide)</Label>
-            <Input {...register('icon')} placeholder="contoh: Warehouse" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Path URL</Label>
-            <Input {...register('path')} placeholder="contoh: /warehouse" />
-          </div>
+        <div className="space-y-1.5">
+          <Label>Icon (Lucide)</Label>
+          <Input {...register('icon')} placeholder="contoh: Warehouse" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Path URL</Label>
+          <PathSelect
+            value={watch('path')}
+            onChange={(v) => setValue('path', v)}
+            options={routeOptions}
+          />
+          <p className="text-xs text-gray-400">
+            Hanya bisa memilih path yang sudah terdaftar sebagai route di aplikasi. Butuh path
+            baru? Developer perlu membuat route-nya dulu di FE.
+          </p>
         </div>
 
         <div className="space-y-1.5">
@@ -160,6 +196,7 @@ function EditMenuForm({
 }) {
   const { data: detail } = useMenuDetailQuery(open ? menuId : 0)
   const { mutate: update, isPending } = useUpdateMenuMutation()
+  const { data: routeOptions = [] } = useRouteRegistryOptionsQuery()
 
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
     useForm<EditMenuFormValues>({ resolver: zodResolver(editMenuSchema), defaultValues: editDefaults })
@@ -214,15 +251,22 @@ function EditMenuForm({
           {errors.label && <p className="text-xs text-red-500">{errors.label.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label>Icon (Lucide)</Label>
-            <Input {...register('icon')} placeholder="contoh: Warehouse" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Path URL</Label>
-            <Input {...register('path')} placeholder="contoh: /warehouse" />
-          </div>
+        <div className="space-y-1.5">
+          <Label>Icon (Lucide)</Label>
+          <Input {...register('icon')} placeholder="contoh: Warehouse" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Path URL</Label>
+          <PathSelect
+            value={watch('path')}
+            onChange={(v) => setValue('path', v)}
+            options={routeOptions}
+          />
+          <p className="text-xs text-gray-400">
+            Hanya bisa memilih path yang sudah terdaftar sebagai route di aplikasi. Butuh path
+            baru? Developer perlu membuat route-nya dulu di FE.
+          </p>
         </div>
 
         <div className="space-y-1.5">
