@@ -22,7 +22,6 @@ import type {
   ProductOption,
   ProductPackage,
   ProductSearchOption,
-  UpdatePriceTierPayload,
   UpdateProductPayload,
 } from './products.types'
 
@@ -274,41 +273,3 @@ export function useSavePriceTiersMutation(productId: number) {
   })
 }
 
-export function useAddPriceTierMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreatePriceTierPayload) =>
-      api.post<void>(`/products/${productId}/prices/create`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
-      toast.success('Harga tier berhasil ditambahkan')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useUpdatePriceTierMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ priceId, ...payload }: UpdatePriceTierPayload & { priceId: number }) =>
-      api.post<void>(`/products/${productId}/prices/update/${priceId}`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
-      toast.success('Harga tier berhasil diperbarui')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useDeletePriceTierMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (priceId: number) =>
-      api.post<void>(`/products/${productId}/prices/delete/${priceId}`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
-      toast.success('Harga tier berhasil dihapus')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}

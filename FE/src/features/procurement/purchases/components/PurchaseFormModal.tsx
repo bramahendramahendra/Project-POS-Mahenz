@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { formatRupiah, todayStr } from '@/shared/utils'
+import { formatRupiah, todayStr, toISODate } from '@/shared/utils'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
@@ -28,6 +28,7 @@ import {
   useCreateSupplierPurchaseMutation,
   useUpdateSupplierPurchaseMutation,
   useGeneratePurchaseCodeQuery,
+  useSupplierPurchaseDetailQuery,
 } from '../purchases.api'
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
@@ -89,7 +90,9 @@ const emptyValues: PurchaseFormValues = {
 
 function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
   return {
-    purchase_date: data.purchase_date,
+    // API mengembalikan datetime ISO penuh (mis. "2026-07-10T00:00:00+07:00"), tapi
+    // <input type="date"> butuh format yyyy-MM-dd persis, kalau tidak inputnya kosong.
+    purchase_date: toISODate(new Date(data.purchase_date)),
     invoice_number: data.invoice_number,
     supplier_id: data.supplier_id,
     items: data.items.map((item) => ({
@@ -125,6 +128,12 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
   const { data: codeData, isFetching: isGeneratingCode } = useGeneratePurchaseCodeQuery(
     open && !isEditMode
+  )
+  // Baris di tabel/list pembelian tidak menyertakan `items` (hanya field ringkasan),
+  // jadi saat edit kita perlu fetch detail lengkap dulu — memakai initialData langsung
+  // sebagai defaultValues akan crash karena item.items undefined.
+  const { data: fullPurchaseDetail } = useSupplierPurchaseDetailQuery(
+    open && isEditMode ? (initialData?.id ?? null) : null
   )
   const { data: paymentStatuses = [] } = usePaymentStatusesQuery()
   const { data: paymentMethods = [] } = usePaymentMethodsQuery()
@@ -169,14 +178,14 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       setSelectedSupplierLabel('')
       return
     }
-    if (isEditMode && initialData) {
-      reset(buildDefaultValues(initialData))
+    if (isEditMode && fullPurchaseDetail) {
+      reset(buildDefaultValues(fullPurchaseDetail))
       setItemUnitOptions({})
       setItemSelectedPackageId({})
-      setSelectedSupplierLabel(initialData.supplier_name)
+      setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialData])
+  }, [open, isEditMode, fullPurchaseDetail])
 
   async function handleProductChange(index: number, id: number, productName: string) {
     setValue(`items.${index}.product_id`, id, { shouldValidate: true })
@@ -287,6 +296,13 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       onSubmit={handleSubmit(onSubmit)}
       submitLabel={isEditMode ? 'Simpan Perubahan' : 'Simpan Pembelian'}
     >
+      {isEditMode && !fullPurchaseDetail ? (
+        <div className="space-y-3 py-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded-md bg-gray-100" />
+          ))}
+        </div>
+      ) : (
       <div className="space-y-5">
         <div className="grid grid-cols-4 gap-3">
           <div className="space-y-1.5">
@@ -608,6 +624,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           </div>
         </div>
       </div>
+      )}
     </FormModal>
 
     <ConfirmDialog

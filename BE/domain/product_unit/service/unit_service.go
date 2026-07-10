@@ -75,6 +75,14 @@ func (s *unitService) Create(req *dto.CreateRequest) (data dto.UnitResponse, err
 		return data, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
 	}
 
+	abbrExists, err := s.repo.CheckAbbreviationExists(req.Abbreviation, 0)
+	if err != nil {
+		return data, err
+	}
+	if abbrExists {
+		return data, &errors.BadRequestError{Message: "Singkatan satuan sudah digunakan"}
+	}
+
 	newID, err := s.repo.Create(req)
 	if err != nil {
 		return data, err
@@ -117,6 +125,14 @@ func (s *unitService) Update(req *dto.UpdateRequest) (data dto.UnitResponse, err
 	}
 	if exists {
 		return data, &errors.BadRequestError{Message: "Nama satuan sudah digunakan"}
+	}
+
+	abbrExists, err := s.repo.CheckAbbreviationExists(req.Abbreviation, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if abbrExists {
+		return data, &errors.BadRequestError{Message: "Singkatan satuan sudah digunakan"}
 	}
 
 	if err = s.repo.Update(req); err != nil {

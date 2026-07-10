@@ -18,6 +18,7 @@ type (
 		ToggleStatus(req *dto.ToggleStatusRequest) error
 
 		CheckNameExists(name string, excludeID int) (bool, error)
+		CheckAbbreviationExists(abbreviation string, excludeID int) (bool, error)
 		CountProductUnitsByUnit(unitID int) (int, error)
 		CountActiveProductsByUnit(unitID int) (int, error)
 

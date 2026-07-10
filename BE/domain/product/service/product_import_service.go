@@ -112,10 +112,19 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		}
 		return strings.TrimSpace(row[idx])
 	}
-	toFloat := func(s string) float64 {
-		s = strings.ReplaceAll(s, ",", "")
-		v, _ := strconv.ParseFloat(s, 64)
-		return v
+	// toParsedFloat membedakan cell kosong (default 0, sah) dari cell berisi teks yang
+	// bukan angka (mis. "abc") — sebelumnya keduanya sama-sama jadi 0 tanpa error,
+	// sehingga typo di kolom harga bisa lolos sebagai baris valid dengan nilai 0.
+	toParsedFloat := func(s string) (float64, bool) {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return 0, true
+		}
+		v, err := strconv.ParseFloat(strings.ReplaceAll(s, ",", ""), 64)
+		if err != nil {
+			return 0, false
+		}
+		return v, true
 	}
 	toInt := func(s string) int {
 		v, _ := strconv.Atoi(s)
@@ -149,10 +158,10 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		barcode := normalizeBarcode(getCell(row, colBarcode))
 		kategori := getCell(row, colKategori)
 		satuan := getCell(row, colSatuan)
-		hargaBeli := toFloat(getCell(row, colHargaBeli))
-		hargaJual := toFloat(getCell(row, colHargaJual))
-		stok := toFloat(getCell(row, colStok))
-		stokMin := toFloat(getCell(row, colStokMin))
+		hargaBeli, hargaBeliOk := toParsedFloat(getCell(row, colHargaBeli))
+		hargaJual, hargaJualOk := toParsedFloat(getCell(row, colHargaJual))
+		stok, stokOk := toParsedFloat(getCell(row, colStok))
+		stokMin, stokMinOk := toParsedFloat(getCell(row, colStokMin))
 
 		if nama == "" {
 			errs = append(errs, "Nama produk wajib diisi")
@@ -163,16 +172,25 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		} else if satuanID == 0 {
 			errs = append(errs, fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", satuan))
 		}
-		if hargaJual <= 0 {
+		if !hargaBeliOk {
+			errs = append(errs, "Harga Beli bukan angka yang valid")
+		}
+		if !hargaJualOk {
+			errs = append(errs, "Harga Jual bukan angka yang valid")
+		} else if hargaJual <= 0 {
 			errs = append(errs, "Harga jual harus lebih dari 0")
 		}
-		if hargaJual > 0 && hargaBeli > 0 && hargaJual < hargaBeli {
+		if hargaBeliOk && hargaJualOk && hargaJual > 0 && hargaBeli > 0 && hargaJual < hargaBeli {
 			errs = append(errs, "Harga jual tidak boleh lebih rendah dari harga beli")
 		}
-		if stok < 0 {
+		if !stokOk {
+			errs = append(errs, "Stok bukan angka yang valid")
+		} else if stok < 0 {
 			errs = append(errs, "Stok tidak boleh negatif")
 		}
-		if stokMin < 0 {
+		if !stokMinOk {
+			errs = append(errs, "Stok Minimum bukan angka yang valid")
+		} else if stokMin < 0 {
 			errs = append(errs, "Stok minimum tidak boleh negatif")
 		}
 
@@ -255,9 +273,9 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			errs := []string{}
 			namaPaket := getCell(row, gColNamaPaket)
 			satuan := getCell(row, gColSatuan)
-			konversi := toFloat(getCell(row, gColKonversi))
-			hargaBeli := toFloat(getCell(row, gColHargaBeli))
-			hargaJual := toFloat(getCell(row, gColHargaJual))
+			konversi, konversiOk := toParsedFloat(getCell(row, gColKonversi))
+			hargaBeli, hargaBeliOk := toParsedFloat(getCell(row, gColHargaBeli))
+			hargaJual, hargaJualOk := toParsedFloat(getCell(row, gColHargaJual))
 
 			if !validNos[noProduk] {
 				errs = append(errs, fmt.Sprintf("No produk %d tidak ditemukan atau tidak valid di sheet Produk", noProduk))
@@ -268,10 +286,17 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			} else if satuanID == 0 {
 				errs = append(errs, fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", satuan))
 			}
-			if konversi <= 0 {
+			if !konversiOk {
+				errs = append(errs, "Konversi bukan angka yang valid")
+			} else if konversi <= 0 {
 				errs = append(errs, "Konversi harus lebih dari 0")
 			}
-			if hargaJual <= 0 {
+			if !hargaBeliOk {
+				errs = append(errs, "Harga Beli bukan angka yang valid")
+			}
+			if !hargaJualOk {
+				errs = append(errs, "Harga Jual bukan angka yang valid")
+			} else if hargaJual <= 0 {
 				errs = append(errs, "Harga jual harus lebih dari 0")
 			}
 

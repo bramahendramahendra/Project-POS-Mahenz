@@ -23,7 +23,9 @@ const (
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
 		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
-		       p.is_active, p.created_at, p.updated_at
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN units u ON u.id = p.unit_id
@@ -33,7 +35,9 @@ const (
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
 		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
-		       p.is_active, p.created_at, p.updated_at
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN units u ON u.id = p.unit_id

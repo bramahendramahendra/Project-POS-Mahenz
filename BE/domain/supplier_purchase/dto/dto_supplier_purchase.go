@@ -42,7 +42,7 @@ type (
 		ID             int               `json:"-"`
 		UserID         int               `json:"-"`
 		InvoiceNumber  string            `json:"invoice_number" validate:"required"`
-		SupplierID     *int              `json:"supplier_id"`
+		SupplierID     *int              `json:"supplier_id" validate:"required,gt=0"`
 		PurchaseDate   string            `json:"purchase_date" validate:"required"`
 		DiscountAmount float64           `json:"discount_amount"`
 		PaymentStatus  string            `json:"payment_status"`
@@ -56,7 +56,7 @@ type (
 		ID             int               `json:"-"`
 		UserID         int               `json:"-"`
 		InvoiceNumber  string            `json:"invoice_number" validate:"required"`
-		SupplierID     *int              `json:"supplier_id"`
+		SupplierID     *int              `json:"supplier_id" validate:"required,gt=0"`
 		PurchaseDate   string            `json:"purchase_date" validate:"required"`
 		DiscountAmount float64           `json:"discount_amount"`
 		PaymentStatus  string            `json:"payment_status"`

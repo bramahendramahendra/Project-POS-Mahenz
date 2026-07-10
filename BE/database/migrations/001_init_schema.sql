@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_active  TINYINT(1)    DEFAULT 1,
     created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- user_role disimpan sebagai VARCHAR agar token tidak perlu decode untuk cek role
 CREATE TABLE IF NOT EXISTS sessions (
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     expires_at    DATETIME     NOT NULL,
     UNIQUE KEY unique_user (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- RBAC — Roles, Menus, Role Menu Access
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS roles (
     is_active    TINYINT(1)   DEFAULT 1,
     created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS menus (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,7 +63,24 @@ CREATE TABLE IF NOT EXISTS menus (
     created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES menus(id) ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Daftar path FE yang benar-benar terdaftar sebagai route (lihat
+-- FE/src/shared/constants/routes.ts dan FE/src/app/router.tsx). Tabel `menus`
+-- hanya boleh menunjuk ke path yang ada di sini, supaya field "Path" di
+-- Manajemen Menu tidak bisa diisi sembarangan dan merusak navigasi.
+-- WAJIB bagi developer: setiap kali menambah route baru di FE, tambahkan
+-- migration baru yang meng-INSERT baris path itu ke sini SEBELUM path
+-- tersebut bisa dipilih di Manajemen Menu. Tabel ini read-only dari sisi
+-- aplikasi (tidak ada CRUD di UI), sengaja hanya bisa diisi lewat migration.
+CREATE TABLE IF NOT EXISTS route_registry (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    path       VARCHAR(150)  UNIQUE NOT NULL,
+    label      VARCHAR(100)  NOT NULL,
+    is_active  TINYINT(1)    DEFAULT 1,
+    created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS role_menu_access (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -78,7 +95,7 @@ CREATE TABLE IF NOT EXISTS role_menu_access (
     UNIQUE KEY unique_role_menu (role_id, menu_id),
     FOREIGN KEY (role_id) REFERENCES roles(id)  ON DELETE CASCADE,
     FOREIGN KEY (menu_id) REFERENCES menus(id)  ON DELETE CASCADE
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- FK users.role_id → roles
 ALTER TABLE users ADD CONSTRAINT fk_users_role_id FOREIGN KEY (role_id) REFERENCES roles(id);
@@ -95,7 +112,7 @@ CREATE TABLE IF NOT EXISTS categories (
     is_active   TINYINT(1)   NOT NULL DEFAULT 1,
     created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS units (
     id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,7 +121,7 @@ CREATE TABLE IF NOT EXISTS units (
     is_active    TINYINT(1)  DEFAULT 1,
     created_at   DATETIME    DEFAULT CURRENT_TIMESTAMP,
     updated_at   DATETIME    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS settings (
     id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -112,7 +129,7 @@ CREATE TABLE IF NOT EXISTS settings (
     setting_value TEXT         NULL,
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Produk
@@ -135,7 +152,7 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (unit_id)     REFERENCES units(id)      ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- product_packages: varian satuan jual produk (grosir, konversi, dll)
 -- unit_id       : FK ke master units (wajib, NOT NULL)
@@ -155,7 +172,7 @@ CREATE TABLE IF NOT EXISTS product_packages (
     updated_at     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (unit_id)    REFERENCES units(id)    ON DELETE RESTRICT
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS product_prices (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -166,7 +183,7 @@ CREATE TABLE IF NOT EXISTS product_prices (
     created_at DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Supplier & Pengadaan
@@ -184,7 +201,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
     is_active      TINYINT(1)   DEFAULT 1,
     created_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS payment_statuses (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -194,7 +211,7 @@ CREATE TABLE IF NOT EXISTS payment_statuses (
     sort_order INT          NOT NULL DEFAULT 0,
     created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS payment_methods (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -204,7 +221,7 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     sort_order INT          NOT NULL DEFAULT 0,
     created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS purchases (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -216,6 +233,7 @@ CREATE TABLE IF NOT EXISTS purchases (
     total_amount     DECIMAL(15,2) DEFAULT 0,
     payment_status   VARCHAR(20)   NOT NULL DEFAULT 'unpaid',
     paid_amount      DECIMAL(15,2) DEFAULT 0,
+    payment_method   VARCHAR(30)   NOT NULL DEFAULT 'cash',
     remaining_amount DECIMAL(15,2) DEFAULT 0,
     user_id          INT           NULL,
     notes            TEXT          NULL,
@@ -223,8 +241,9 @@ CREATE TABLE IF NOT EXISTS purchases (
     updated_at       DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (supplier_id)    REFERENCES suppliers(id)         ON DELETE SET NULL,
     FOREIGN KEY (user_id)        REFERENCES users(id)             ON DELETE SET NULL,
-    FOREIGN KEY (payment_status) REFERENCES payment_statuses(code)
-) DEFAULT CHARSET=utf8mb4;
+    FOREIGN KEY (payment_status) REFERENCES payment_statuses(code),
+    FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS purchase_items (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -238,7 +257,7 @@ CREATE TABLE IF NOT EXISTS purchase_items (
     created_at     DATETIME      DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id)  REFERENCES products(id)  ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS purchase_payments (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -252,7 +271,7 @@ CREATE TABLE IF NOT EXISTS purchase_payments (
     FOREIGN KEY (purchase_id)    REFERENCES purchases(id)        ON DELETE CASCADE,
     FOREIGN KEY (user_id)        REFERENCES users(id)            ON DELETE SET NULL,
     FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS supplier_returns (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
@@ -271,7 +290,7 @@ CREATE TABLE IF NOT EXISTS supplier_returns (
     FOREIGN KEY (purchase_id) REFERENCES purchases(id)  ON DELETE RESTRICT,
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id)  ON DELETE SET NULL,
     FOREIGN KEY (user_id)     REFERENCES users(id)      ON DELETE RESTRICT
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS supplier_return_items (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -286,7 +305,7 @@ CREATE TABLE IF NOT EXISTS supplier_return_items (
     created_at       DATETIME      DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (return_id)  REFERENCES supplier_returns(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id)         ON DELETE RESTRICT
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Pelanggan & Piutang
@@ -303,7 +322,7 @@ CREATE TABLE IF NOT EXISTS customers (
     notes         TEXT          NULL,
     created_at    DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Penjualan
@@ -317,7 +336,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     is_active  TINYINT(1)   DEFAULT 1,
     created_at DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS transactions (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -342,7 +361,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     FOREIGN KEY (customer_id)    REFERENCES customers(id)        ON DELETE SET NULL,
     FOREIGN KEY (shift_id)       REFERENCES shifts(id)           ON DELETE SET NULL,
     FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- unit        : snapshot nama satuan saat transaksi (tidak berubah meski master unit diedit)
 -- unit_id     : FK ke product_packages.id untuk traceability
@@ -362,7 +381,7 @@ CREATE TABLE IF NOT EXISTS transaction_items (
     created_at     DATETIME      DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id)     REFERENCES products(id)     ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS receivables (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -378,7 +397,7 @@ CREATE TABLE IF NOT EXISTS receivables (
     updated_at       DATETIME                        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL,
     FOREIGN KEY (customer_id)    REFERENCES customers(id)    ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS receivable_payments (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -392,7 +411,7 @@ CREATE TABLE IF NOT EXISTS receivable_payments (
     FOREIGN KEY (receivable_id)  REFERENCES receivables(id)      ON DELETE CASCADE,
     FOREIGN KEY (user_id)        REFERENCES users(id)             ON DELETE SET NULL,
     FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Keuangan
@@ -419,7 +438,7 @@ CREATE TABLE IF NOT EXISTS cash_drawer (
     updated_at       DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)  REFERENCES users(id)  ON DELETE SET NULL,
     FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS expenses (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -434,7 +453,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     updated_at     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)        REFERENCES users(id)             ON DELETE RESTRICT,
     FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Stok
@@ -454,7 +473,7 @@ CREATE TABLE IF NOT EXISTS stock_mutations (
     created_at     DATETIME                             DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
     FOREIGN KEY (user_id)    REFERENCES users(id)    ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Sistem & Versi
@@ -469,7 +488,7 @@ CREATE TABLE IF NOT EXISTS app_versions (
     is_latest     TINYINT(1)                DEFAULT 1,
     is_mandatory  TINYINT(1)                NOT NULL DEFAULT 0,
     created_at    DATETIME                  DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Sinkronisasi
@@ -492,7 +511,7 @@ CREATE TABLE IF NOT EXISTS sync_conflicts (
     resolved_at     DATETIME                   NULL,
     created_at      DATETIME                   DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS sync_queue (
     id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -506,7 +525,7 @@ CREATE TABLE IF NOT EXISTS sync_queue (
     error_message TEXT                                        NULL,
     created_at    DATETIME                                    DEFAULT CURRENT_TIMESTAMP,
     synced_at     DATETIME                                    NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS sync_history (
     id             BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -520,7 +539,7 @@ CREATE TABLE IF NOT EXISTS sync_history (
     status         ENUM('success','partial','failed') DEFAULT 'success',
     started_at     DATETIME                           NOT NULL,
     finished_at    DATETIME                           NULL
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
 -- Logging
@@ -533,7 +552,7 @@ CREATE TABLE IF NOT EXISTS log_schedulers (
     message        TEXT                     NULL,
     duration_ms    INT                      NULL,
     executed_at    DATETIME                 NOT NULL DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS log_requests (
     id            VARCHAR(36)  NOT NULL PRIMARY KEY,
@@ -547,7 +566,7 @@ CREATE TABLE IF NOT EXISTS log_requests (
     ip_address    VARCHAR(45)  NULL,
     error_message TEXT         NULL,
     created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =============================================================
 -- Indexes

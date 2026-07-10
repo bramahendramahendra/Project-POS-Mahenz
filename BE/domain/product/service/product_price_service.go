@@ -19,6 +19,7 @@ func (s *productService) GetPricesByProduct(productID int) (data []*dto.PriceRes
 		return data, err
 	}
 
+	data = make([]*dto.PriceResponse, 0, len(dataDB))
 	for _, v := range dataDB {
 		data = append(data, &dto.PriceResponse{
 			ID:        v.ID,

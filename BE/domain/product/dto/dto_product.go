@@ -32,9 +32,9 @@ type (
 
 	UpdateRequest struct {
 		ID            int     `json:"-"`
-		Barcode       string  `json:"barcode" validate:"required"`
-		SKU           string  `json:"sku" validate:"required"`
-		Name          string  `json:"name" validate:"required"`
+		Barcode       string  `json:"barcode" validate:"required,max=100"`
+		SKU           string  `json:"sku" validate:"required,max=50"`
+		Name          string  `json:"name" validate:"required,max=200"`
 		CategoryID    *int    `json:"category_id" validate:"required"`
 		PurchasePrice float64 `json:"purchase_price" validate:"min=0"`
 		SellingPrice  float64 `json:"selling_price" validate:"required,min=0"`

@@ -19,6 +19,7 @@ func (s *productService) GetPackagesByProduct(productID int) (data []*dto.Packag
 		return data, err
 	}
 
+	data = make([]*dto.PackageResponse, 0, len(dataDB))
 	for _, v := range dataDB {
 		data = append(data, &dto.PackageResponse{
 			ID:            v.ID,

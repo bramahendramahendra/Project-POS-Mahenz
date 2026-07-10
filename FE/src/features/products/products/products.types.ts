@@ -85,8 +85,6 @@ export interface CreatePriceTierPayload {
   price: number
 }
 
-export type UpdatePriceTierPayload = Partial<CreatePriceTierPayload>
-
 export type ProductFilter = ProductListFilter
 
 export interface ProductOption {

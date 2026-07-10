@@ -99,7 +99,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   const margin = calcMargin(purchasePriceValue, sellingPriceValue)
 
   const { data: barcodeData, isFetching: isFetchingBarcode, refetch: refetchBarcode } = useGenerateBarcodeQuery()
-  const { data: skuData, isFetching: isFetchingSku } = useGenerateSkuQuery(
+  const { data: skuData, isFetching: isFetchingSku, refetch: refetchSku } = useGenerateSkuQuery(
     categoryIdValue ?? 0,
     !isEdit && generateSkuEnabled
   )
@@ -365,8 +365,14 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                   {!isEdit && (
                     <button
                       type="button"
-                      disabled={!categoryIdValue || generateSkuEnabled || isFetchingSku}
-                      onClick={() => setGenerateSkuEnabled(true)}
+                      disabled={!categoryIdValue || isFetchingSku}
+                      onClick={() => {
+                        if (generateSkuEnabled) {
+                          refetchSku()
+                        } else {
+                          setGenerateSkuEnabled(true)
+                        }
+                      }}
                       className="shrink-0 rounded-md border border-gray-300 px-2.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isFetchingSku ? '...' : 'Generate'}
@@ -421,17 +427,24 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                 <Label>Margin</Label>
                 <div
                   className={`flex h-9 items-center rounded-md border px-3 text-sm font-medium ${
-                    margin >= 30
-                      ? 'border-green-200 bg-green-50 text-green-700'
-                      : margin >= 15
-                        ? 'border-amber-200 bg-amber-50 text-amber-700'
-                        : margin > 0
-                          ? 'border-red-200 bg-red-50 text-red-600'
-                          : 'border-gray-200 bg-gray-50 text-gray-400'
+                    margin < 0
+                      ? 'border-red-300 bg-red-100 text-red-700'
+                      : margin >= 30
+                        ? 'border-green-200 bg-green-50 text-green-700'
+                        : margin >= 15
+                          ? 'border-amber-200 bg-amber-50 text-amber-700'
+                          : margin > 0
+                            ? 'border-red-200 bg-red-50 text-red-600'
+                            : 'border-gray-200 bg-gray-50 text-gray-400'
                   }`}
                 >
                   {margin}%
                 </div>
+                {margin < 0 && (
+                  <p className="text-xs text-red-600">
+                    Harga jual lebih murah dari harga beli — produk ini akan dijual rugi.
+                  </p>
+                )}
               </div>
             </div>
 

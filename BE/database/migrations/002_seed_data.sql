@@ -207,6 +207,40 @@ SELECT m.id, 'sistem.versi', 'Versi Aplikasi', 'RefreshCw', '/settings/versions'
 FROM menus m WHERE m.key_name = 'sistem';
 
 -- -------------------------------------------------------------
+-- Route Registry — daftar path FE yang valid, dipakai dropdown "Path"
+-- di Manajemen Menu supaya tidak bisa diisi sembarangan.
+-- -------------------------------------------------------------
+
+INSERT IGNORE INTO route_registry (path, label) VALUES
+    ('/dashboard', 'Dashboard'),
+    ('/kasir', 'Kasir'),
+    ('/transactions', 'Transaksi'),
+    ('/products', 'Produk'),
+    ('/products/categories', 'Kategori Produk'),
+    ('/products/units', 'Unit Produk'),
+    ('/suppliers', 'Supplier'),
+    ('/suppliers/purchases', 'Pembelian Supplier'),
+    ('/suppliers/returns', 'Retur Supplier'),
+    ('/customers', 'Pelanggan'),
+    ('/receivables', 'Piutang'),
+    ('/finance', 'Dashboard Keuangan'),
+    ('/finance/cash-drawer', 'Kas Harian'),
+    ('/finance/expenses', 'Pengeluaran'),
+    ('/finance/my-cash', 'Kas Saya'),
+    ('/reports/sales', 'Laporan Penjualan'),
+    ('/reports/profit-loss', 'Laporan Laba Rugi'),
+    ('/reports/stock', 'Laporan Stok'),
+    ('/reports/cashier', 'Laporan Kinerja Kasir'),
+    ('/shifts', 'Shift'),
+    ('/sync', 'Sync Center'),
+    ('/settings/store', 'Profil Toko'),
+    ('/settings/users', 'Manajemen User'),
+    ('/settings/roles', 'Manajemen Role'),
+    ('/settings/menus', 'Manajemen Menu'),
+    ('/settings/printer', 'Printer'),
+    ('/settings/versions', 'Versi Aplikasi');
+
+-- -------------------------------------------------------------
 -- Role Menu Access
 -- Owner  : akses penuh semua menu
 -- Admin  : semua menu kecuali sistem.users (owner only),

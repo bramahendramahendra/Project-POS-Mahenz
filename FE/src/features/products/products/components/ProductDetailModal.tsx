@@ -17,7 +17,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
   const { data: units = [] } = useProductPackagesQuery(enabled ? (productId as number) : 0)
 
   const margin = product ? calcMargin(product.purchase_price, product.selling_price) : 0
-  const grosirUnits = units.filter((u) => !u.is_default)
+  const grosirUnits = (units ?? []).filter((u) => !u.is_default)
 
   return (
     <FormModal

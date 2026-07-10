@@ -99,6 +99,8 @@ func (s *productService) GetByID(id int) (data dto.ProductResponse, err error) {
 		UnitName:         dataDB.UnitName,
 		UnitAbbreviation: dataDB.UnitAbbreviation,
 		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
 	}
 
 	return data, nil
@@ -128,6 +130,8 @@ func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse,
 		UnitName:         dataDB.UnitName,
 		UnitAbbreviation: dataDB.UnitAbbreviation,
 		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
 	}
 
 	return data, nil
@@ -178,6 +182,8 @@ func (s *productService) Create(req *dto.CreateRequest) (data dto.ProductRespons
 		UnitName:         dataDB.UnitName,
 		UnitAbbreviation: dataDB.UnitAbbreviation,
 		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
 	}
 
 	return data, nil
@@ -235,6 +241,8 @@ func (s *productService) Update(req *dto.UpdateRequest) (data dto.ProductRespons
 		UnitName:         dataDB.UnitName,
 		UnitAbbreviation: dataDB.UnitAbbreviation,
 		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
 	}
 
 	return data, nil

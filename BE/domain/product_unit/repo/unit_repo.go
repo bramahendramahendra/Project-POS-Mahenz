@@ -12,6 +12,7 @@ const (
 	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
 	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
+	checkUnitAbbreviationQuery     = `SELECT id FROM units WHERE abbreviation = ? AND id != ? LIMIT 1`
 	checkUnitUsedQuery             = `SELECT COUNT(*) FROM products WHERE unit_id = ?`
 	checkActiveProductsByUnitQuery = `SELECT COUNT(*) FROM products WHERE unit_id = ? AND is_active = 1`
 	createUnitQuery                = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
@@ -120,6 +121,15 @@ func (r *unitRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 func (r *unitRepo) CheckNameExists(name string, excludeID int) (bool, error) {
 	var id int
 	err := r.db.Raw(checkUnitNameQuery, name, excludeID).Scan(&id).Error
+	if err != nil {
+		return false, err
+	}
+	return id > 0, nil
+}
+
+func (r *unitRepo) CheckAbbreviationExists(abbreviation string, excludeID int) (bool, error) {
+	var id int
+	err := r.db.Raw(checkUnitAbbreviationQuery, abbreviation, excludeID).Scan(&id).Error
 	if err != nil {
 		return false, err
 	}
