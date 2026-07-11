@@ -17,6 +17,22 @@ import (
 
 const backupDir = "backups"
 
+// dbConnArgs membangun argumen koneksi mysql/mysqldump. Flag -p SENGAJA dihilangkan
+// sepenuhnya saat password kosong — "-p" tanpa nilai langsung setelahnya akan dibaca
+// client mysql sebagai "prompt password secara interaktif" dan membuat proses hang
+// menunggu stdin selamanya, bukan berarti "password kosong".
+func dbConnArgs() []string {
+	args := []string{
+		"-h", config.Db.Host,
+		"-P", config.Db.Port,
+		"-u", config.Db.User,
+	}
+	if config.Db.Password != "" {
+		args = append(args, fmt.Sprintf("-p%s", config.Db.Password))
+	}
+	return append(args, config.Db.Database)
+}
+
 func (s *backupService) CreateBackup() (*dto.BackupInfo, error) {
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal membuat folder backup"}
@@ -25,25 +41,22 @@ func (s *backupService) CreateBackup() (*dto.BackupInfo, error) {
 	filename := fmt.Sprintf("backup_%s.sql", time.Now().Format("20060102_150405"))
 	backupPath := filepath.Join(backupDir, filename)
 
-	cmd := exec.Command("mysqldump",
-		"-h", config.Db.Host,
-		"-P", config.Db.Port,
-		"-u", config.Db.User,
-		fmt.Sprintf("-p%s", config.Db.Password),
-		config.Db.Database,
-	)
+	cmd := exec.Command("mysqldump", dbConnArgs()...)
 
 	outFile, err := os.Create(backupPath)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: "Gagal membuat file backup"}
 	}
-	defer outFile.Close()
 
 	cmd.Stdout = outFile
+	runErr := cmd.Run()
+	outFile.Close()
 
-	if err := cmd.Run(); err != nil {
+	if runErr != nil {
+		// File harus ditutup dulu sebelum dihapus — di Windows, os.Remove akan gagal
+		// (tanpa error yang terlihat di sini) selama file masih dalam keadaan terbuka.
 		os.Remove(backupPath)
-		return nil, &errors.InternalServerError{Message: "Gagal menjalankan mysqldump: " + err.Error()}
+		return nil, &errors.InternalServerError{Message: "Gagal menjalankan mysqldump: " + runErr.Error()}
 	}
 
 	info, err := os.Stat(backupPath)
@@ -127,13 +140,7 @@ func (s *backupService) RestoreBackup(file *multipart.FileHeader) error {
 	}
 	defer sqlFile.Close()
 
-	cmd := exec.Command("mysql",
-		"-h", config.Db.Host,
-		"-P", config.Db.Port,
-		"-u", config.Db.User,
-		fmt.Sprintf("-p%s", config.Db.Password),
-		config.Db.Database,
-	)
+	cmd := exec.Command("mysql", dbConnArgs()...)
 	cmd.Stdin = sqlFile
 
 	if err := cmd.Run(); err != nil {

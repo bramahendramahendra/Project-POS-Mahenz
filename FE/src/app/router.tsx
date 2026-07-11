@@ -51,6 +51,7 @@ const AppVersionPage       = lazy(() => import('@/features/settings/versions/App
 const RolesPage            = lazy(() => import('@/features/settings/roles/RolesPage').then(m => ({ default: m.RolesPage })))
 const RoleAccessPage       = lazy(() => import('@/features/settings/roles/RoleAccessPage').then(m => ({ default: m.RoleAccessPage })))
 const MenusPage            = lazy(() => import('@/features/settings/menus/MenusPage').then(m => ({ default: m.MenusPage })))
+const BackupPage           = lazy(() => import('@/features/settings/backup/BackupPage').then(m => ({ default: m.BackupPage })))
 
 // Setiap route dipetakan ke menu_key di tabel `menus` (lihat database/migrations/002_seed_data.sql).
 // Akses ditentukan oleh role_menu_access (permission.can_view) via ProtectedRoute — bukan role hardcode.
@@ -106,6 +107,7 @@ const PROTECTED_ROUTES: RouteDef[] = [
   { path: ROUTES.SETTINGS_ROLES, menuKey: 'sistem.roles', element: <RolesPage /> },
   { path: ROUTES.SETTINGS_ROLES_ACCESS, menuKey: 'sistem.roles', element: <RoleAccessPage /> },
   { path: ROUTES.SETTINGS_MENUS, menuKey: 'sistem.menus', element: <MenusPage /> },
+  { path: ROUTES.SETTINGS_BACKUP, menuKey: 'sistem.backup', element: <BackupPage /> },
   // Halaman pengaturan (grup) — mengikuti izin profil toko sebagai akses minimum settings
   { path: ROUTES.SETTINGS, menuKey: 'sistem.profil_toko', element: <SettingsPage /> },
 ]

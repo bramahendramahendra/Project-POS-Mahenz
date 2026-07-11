@@ -176,7 +176,9 @@ export function PrinterSettingsTab() {
             <Label>Ukuran Kertas</Label>
             <Select
               value={watch('paper_size')}
-              onValueChange={(v) => setValue('paper_size', v as '58mm' | '80mm')}
+              onValueChange={(v) => {
+                if (v) setValue('paper_size', v as '58mm' | '80mm')
+              }}
             >
               <SelectTrigger>
                 <SelectValue />

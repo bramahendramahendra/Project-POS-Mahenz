@@ -12,13 +12,19 @@ func BackupRoutes(r *gin.RouterGroup) {
 	backupService := backup_service.NewBackupService()
 	backupHandler := backup_handler.NewBackupHandler(backupService)
 
-	// Backup/restore tidak punya representasi menu di role_menu_access, tetap pakai RoleMiddleware.
-	g := r.Group("/backup", middleware.RoleMiddleware("owner", "admin"))
-	{
-		g.POST("", backupHandler.Create)
-		g.GET("/list", backupHandler.GetList)
-		g.GET("/download/:filename", backupHandler.Download)
+	svc := newAccessService()
+	perm := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "sistem.backup", action)
 	}
 
-	r.POST("/restore", middleware.RoleMiddleware("admin"), backupHandler.Restore)
+	g := r.Group("/backup")
+	{
+		g.POST("", perm("can_create"), backupHandler.Create)
+		g.GET("/list", perm("can_view"), backupHandler.GetList)
+		g.GET("/download/:filename", perm("can_view"), backupHandler.Download)
+	}
+
+	// Restore menimpa seluruh data yang ada — dipetakan ke can_delete, slot permission
+	// yang di aplikasi ini sudah jadi konvensi untuk aksi paling sensitif/destruktif.
+	r.POST("/restore", perm("can_delete"), backupHandler.Restore)
 }

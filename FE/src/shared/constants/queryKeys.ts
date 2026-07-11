@@ -101,6 +101,10 @@ export const queryKeys = {
     printer: () => ['settings', 'printer'] as const,
   },
 
+  backup: {
+    list: () => ['backup', 'list'] as const,
+  },
+
   users: {
     all: () => ['users'] as const,
     list: (filter?: Filter) => ['users', 'list', filter] as const,

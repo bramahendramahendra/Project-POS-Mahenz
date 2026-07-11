@@ -44,4 +44,5 @@ export const ROUTES = {
   SETTINGS_ROLES: '/settings/roles',
   SETTINGS_ROLES_ACCESS: '/settings/roles/:id/access',
   SETTINGS_MENUS: '/settings/menus',
+  SETTINGS_BACKUP: '/settings/backup',
 } as const

@@ -230,7 +230,7 @@ func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buf
 	sheet := "Laporan Kasir"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"No", "Kasir", "Total Transaksi", "Total Penjualan", "Total Tunai", "Total Non-Tunai", "Rata-rata Transaksi"}
+	headers := []string{"No", "Kasir", "Total Transaksi", "Total Penjualan", "Total Tunai", "Total Non-Tunai", "Rata-rata Transaksi", "Void"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -240,7 +240,7 @@ func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buf
 	for idx, item := range items {
 		row := idx + 2
 		vals := []interface{}{idx + 1, item.CashierName, item.TotalTransactions, item.TotalSales,
-			item.TotalCash, item.TotalNonCash, item.AvgPerTransaction}
+			item.TotalCash, item.TotalNonCash, item.AvgPerTransaction, item.VoidCount}
 		for col, v := range vals {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row)
 			f.SetCellValue(sheet, cell, v)
