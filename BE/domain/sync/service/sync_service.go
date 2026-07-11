@@ -2,18 +2,30 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
+	cash_drawer_dto "pos_api/domain/cash_drawer/dto"
 	"pos_api/domain/sync/dto"
 	"pos_api/domain/sync/model"
 	"pos_api/errors"
 	request_helper "pos_api/helper/request"
 	"pos_api/pkg/pricing"
+	"pos_api/pkg/syncmap"
 )
 
 func (s *syncService) detectConflict(item *dto.SyncItem) (bool, string, error) {
 	if item.ServerID == 0 {
+		return false, "", nil
+	}
+
+	// cash_drawer sengaja dilewati di sini: updated_at-nya berubah terus lewat aktivitas
+	// normal (tiap penjualan tunai memicu UpdateSales, lihat ApplySyncTransaction), jadi
+	// perbandingan timestamp generik ini akan salah-positif mendeteksi konflik untuk setiap
+	// batch offline yang berisi transaksi lalu tutup-kas. Deteksi konflik nyata untuk
+	// cash_drawer ditangani terpisah di applySyncCashDrawer berdasarkan perbandingan nilai.
+	if item.EntityType == "cash_drawer" {
 		return false, "", nil
 	}
 
@@ -68,7 +80,7 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 				continue
 			}
 
-			serverID, err := s.transactionRepo.ApplySyncTransaction(recalculatedPayload, item.LocalID)
+			serverID, err := s.transactionRepo.ApplySyncTransaction(recalculatedPayload, req.DeviceID, item.LocalID, s.cashDrawerRepo)
 			if err != nil {
 				if strings.Contains(err.Error(), "stok produk") {
 					conflictID, cerr := s.repo.CreateConflict(req.DeviceID, item, err.Error())
@@ -85,12 +97,35 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 				}
 				continue
 			}
+			// Tetap dicatat ke sync_queue untuk jejak audit (sebelumnya transaksi sama
+			// sekali tidak tercatat di sini), walau penerapannya sudah terjadi langsung
+			// di atas (bukan ditunda) — makanya statusnya langsung 'synced', bukan 'pending'.
+			_, _ = s.repo.CreateQueueItem(req.DeviceID, item, "synced")
+
 			processed++
 			results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: serverID})
 			continue
 		}
 
-		if _, err := s.repo.CreateQueueItem(req.DeviceID, item); err != nil {
+		if item.EntityType == "cash_drawer" {
+			result, err := s.applySyncCashDrawer(req.DeviceID, item)
+			if err != nil {
+				failed++
+				results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "failed", Message: err.Error()})
+				continue
+			}
+			if result.Status == "conflict" {
+				conflicts++
+				results = append(results, *result)
+				continue
+			}
+			_, _ = s.repo.CreateQueueItem(req.DeviceID, item, "synced")
+			processed++
+			results = append(results, *result)
+			continue
+		}
+
+		if _, err := s.repo.CreateQueueItem(req.DeviceID, item, "pending"); err != nil {
 			failed++
 			results = append(results, dto.SyncItemResult{LocalID: item.LocalID, Status: "failed"})
 			continue
@@ -160,6 +195,85 @@ func (s *syncService) recalculateSyncTransactionPayload(payload string) (string,
 		return "", &errors.InternalServerError{Message: err.Error()}
 	}
 	return string(updated), nil
+}
+
+// applySyncCashDrawer menerapkan item sync entity_type="cash_drawer". ShiftID di payload
+// selalu berupa ID shift master data yang sudah pasti valid (shift tidak pernah dibuat
+// offline), jadi tidak perlu resolve-ID lintas-entity — hanya dedupe/idempotency biasa
+// lewat sync_id_map (pola yang sama dengan transaksi).
+func (s *syncService) applySyncCashDrawer(deviceID string, item *dto.SyncItem) (*dto.SyncItemResult, error) {
+	var payload dto.SyncCashDrawerPayload
+	if err := json.Unmarshal([]byte(item.Payload), &payload); err != nil {
+		return nil, fmt.Errorf("payload kas harian tidak valid: %w", err)
+	}
+
+	switch item.Action {
+	case "create":
+		if existingID, found, err := syncmap.Resolve(s.cashDrawerRepo.GetDB(), deviceID, item.LocalID, "cash_drawer"); err == nil && found {
+			return &dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: existingID}, nil
+		}
+
+		resp, err := s.cashDrawerSvc.Open(payload.UserID, &cash_drawer_dto.OpenRequest{
+			ShiftID:        payload.ShiftID,
+			OpeningBalance: payload.OpeningBalance,
+			Notes:          payload.Notes,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if err := syncmap.Record(s.cashDrawerRepo.GetDB(), deviceID, item.LocalID, "cash_drawer", resp.ID); err != nil {
+			return nil, err
+		}
+		return &dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: resp.ID}, nil
+
+	case "update":
+		targetID := item.ServerID
+		if targetID == 0 {
+			resolvedID, found, err := syncmap.Resolve(s.cashDrawerRepo.GetDB(), deviceID, item.LocalID, "cash_drawer")
+			if err != nil || !found {
+				return nil, fmt.Errorf("kas harian referensi tidak ditemukan/belum tersinkron")
+			}
+			targetID = resolvedID
+		}
+
+		_, closeErr := s.cashDrawerSvc.Close(targetID, &cash_drawer_dto.CloseRequest{
+			ClosingBalance: payload.ClosingBalance,
+			Notes:          payload.Notes,
+		}, payload.UserID, "")
+		if closeErr == nil {
+			return &dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: targetID}, nil
+		}
+		if !strings.Contains(closeErr.Error(), "sudah ditutup") {
+			return nil, closeErr
+		}
+
+		// Kas sudah ditutup -- bisa jadi retry (idempotent, aman) ATAU kas yang sama
+		// ditutup device lain dengan data berbeda (konflik nyata, bukan sekadar retry).
+		// Dibedakan dengan membandingkan closing_balance yang tersimpan vs yang dikirim
+		// ulang -- BUKAN pakai timestamp (lihat alasan di sync_repo.go entityTable()).
+		current, err := s.cashDrawerRepo.GetByID(targetID)
+		if err != nil || current == nil {
+			return nil, fmt.Errorf("kas harian tidak ditemukan setelah gagal ditutup")
+		}
+		if current.ClosingBalance != nil && *current.ClosingBalance == payload.ClosingBalance {
+			return &dto.SyncItemResult{LocalID: item.LocalID, Status: "synced", ServerID: targetID}, nil
+		}
+
+		onlineData, _ := s.repo.GetRawByEntityAndID("cash_drawer", targetID)
+		conflictID, cerr := s.repo.CreateConflict(deviceID, item, onlineData)
+		if cerr != nil {
+			return nil, cerr
+		}
+		return &dto.SyncItemResult{
+			LocalID:    item.LocalID,
+			Status:     "conflict",
+			ConflictID: conflictID,
+			Message:    "Kas harian sudah ditutup dengan data berbeda",
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("action tidak dikenal untuk cash_drawer: %s", item.Action)
+	}
 }
 
 func (s *syncService) saveSyncHistory(deviceID, deviceType string, results []dto.SyncItemResult, startedAt time.Time) {

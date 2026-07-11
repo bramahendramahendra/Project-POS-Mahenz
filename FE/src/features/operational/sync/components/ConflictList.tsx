@@ -14,6 +14,7 @@ const ENTITY_TYPE_LABEL: Record<string, string> = {
   product: 'PRODUK',
   transaction: 'TRANSAKSI',
   expense: 'PENGELUARAN',
+  cash_drawer: 'KAS HARIAN',
 }
 
 function parseJsonSafe(raw: string): Record<string, unknown> {

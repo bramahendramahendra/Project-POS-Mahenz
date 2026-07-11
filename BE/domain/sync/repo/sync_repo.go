@@ -17,7 +17,7 @@ const (
 	createConflictQuery    = `INSERT INTO sync_conflicts (entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`
 	getQueueQuery          = `SELECT id, device_id, entity_type, entity_id, action, status, retry_count, created_at FROM sync_queue WHERE 1=1`
 	countQueueBase         = `SELECT COUNT(*) FROM sync_queue WHERE 1=1`
-	createQueueItemQuery   = `INSERT INTO sync_queue (device_id, entity_type, entity_id, action, payload, status) VALUES (?, ?, ?, ?, ?, 'pending')`
+	createQueueItemQuery   = `INSERT INTO sync_queue (device_id, local_id, entity_type, entity_id, action, payload, status) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	updateQueueStatusQuery = `UPDATE sync_queue SET status=?, synced_at=CASE WHEN ? = 'synced' THEN NOW() ELSE NULL END, error_message=? WHERE id=?`
 	insertHistoryQuery     = `INSERT INTO sync_history (device_id, device_type, total_items, synced_items, conflict_items, failed_items, pending_items, duration_ms, status, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getHistoryQuery        = `SELECT id, device_id, device_type, total_items, synced_items, conflict_items, failed_items, pending_items, duration_ms, status, DATE_FORMAT(started_at,'%Y-%m-%dT%H:%i:%sZ'), DATE_FORMAT(finished_at,'%Y-%m-%dT%H:%i:%sZ') FROM sync_history WHERE 1=1`
@@ -114,6 +114,14 @@ func entityTable(entityType string) string {
 		return "transactions"
 	case "expense":
 		return "expenses"
+	case "cash_drawer":
+		// Tabelnya tetap didaftarkan supaya GetRawByEntityAndID bisa mengambil snapshot data
+		// server untuk ditampilkan di UI resolve konflik. TAPI deteksi konflik generik
+		// berbasis timestamp (detectConflict di sync_service.go) SENGAJA melewati entity ini
+		// secara eksplisit — lihat komentar di detectConflict untuk alasannya (updated_at
+		// cash_drawer berubah terus lewat aktivitas normal/UpdateSales, bukan cuma saat
+		// benar-benar ada konflik).
+		return "cash_drawer"
 	}
 	return ""
 }
@@ -240,8 +248,11 @@ func (r *syncRepo) GetQueue(filter *dto.QueueFilter) ([]dto.QueueResponse, int, 
 	return items, total, nil
 }
 
-func (r *syncRepo) CreateQueueItem(deviceID string, item *dto.SyncItem) (int, error) {
-	result := r.db.Exec(createQueueItemQuery, deviceID, item.EntityType, item.EntityID, item.Action, item.Payload)
+func (r *syncRepo) CreateQueueItem(deviceID string, item *dto.SyncItem, status string) (int, error) {
+	if status == "" {
+		status = "pending"
+	}
+	result := r.db.Exec(createQueueItemQuery, deviceID, item.LocalID, item.EntityType, item.EntityID, item.Action, item.Payload, status)
 	if result.Error != nil {
 		return 0, result.Error
 	}

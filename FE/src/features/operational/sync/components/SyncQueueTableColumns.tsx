@@ -27,6 +27,7 @@ const ENTITY_TYPE_LABEL: Record<string, string> = {
   product: 'Produk',
   transaction: 'Transaksi',
   expense: 'Pengeluaran',
+  cash_drawer: 'Kas Harian',
 }
 
 export function buildSyncQueueColumns(): ColumnDef<SyncQueueItem>[] {

@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
 	dto_sync "pos_api/domain/sync/dto"
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
 	request_helper "pos_api/helper/request"
+	"pos_api/pkg/syncmap"
 
 	"gorm.io/gorm"
 )
@@ -392,10 +394,18 @@ func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, 
 
 // ApplySyncTransaction menerapkan transaksi offline secara atomik dengan SELECT FOR UPDATE.
 // Jika stok produk mana pun tidak mencukupi, seluruh transaksi di-rollback dan error dikembalikan.
-func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (int, error) {
+//
+// Idempotent berdasarkan (deviceID, localID): kalau kombinasi ini sudah pernah diterapkan
+// sebelumnya (misal push di-retry karena network flaky), fungsi ini langsung mengembalikan
+// ID transaksi yang sudah ada tanpa membuat transaksi baru atau memotong stok lagi.
+func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, localID string, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface) (int, error) {
 	var tx dto_sync.SyncTransactionPayload
 	if err := json.Unmarshal([]byte(payload), &tx); err != nil {
 		return 0, fmt.Errorf("payload transaksi tidak valid: %w", err)
+	}
+
+	if existingID, found, err := syncmap.Resolve(r.db, deviceID, localID, "transaction"); err == nil && found {
+		return existingID, nil
 	}
 
 	var serverID int
@@ -440,6 +450,10 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 			return err
 		}
 
+		if err := syncmap.Record(db, deviceID, localID, "transaction", transactionID); err != nil {
+			return err
+		}
+
 		// 4. Kurangi stok + insert item + catat mutasi SALE
 		for _, item := range tx.Items {
 			var stockBefore float64
@@ -478,6 +492,24 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 		if tx.IsCredit && tx.CustomerID != nil {
 			if err := db.Exec(createReceivableQuery, transactionID, *tx.CustomerID, tx.TotalAmount, tx.TotalAmount).Error; err != nil {
 				return err
+			}
+		}
+
+		// 6. Update total penjualan kas harian yang sedang terbuka milik kasir ini, kalau
+		// pembayarannya tunai — persis seperti yang dilakukan transaction_service.Create()
+		// di jalur checkout online. Tanpa ini, transaksi yang masuk lewat sync offline tidak
+		// pernah menambah total penjualan di kas harian manapun (bug yang sudah ada sejak
+		// sebelum sync_id_map dibuat, baru ketahuan saat merancang sync kas harian).
+		if cashDrawerRepo != nil && tx.PaymentMethod == "cash" {
+			cashDrawerTx := cashDrawerRepo.WithTx(db)
+			drawer, err := cashDrawerTx.GetOpenCashDrawer(tx.UserID)
+			if err != nil {
+				return err
+			}
+			if drawer != nil {
+				if err := cashDrawerTx.UpdateSales(drawer.ID, tx.TotalAmount, tx.TotalAmount); err != nil {
+					return err
+				}
 			}
 		}
 

@@ -20,7 +20,7 @@ type (
 		CreateConflict(deviceID string, item *dto.SyncItem, onlineData string) (int, error)
 
 		GetQueue(filter *dto.QueueFilter) ([]dto.QueueResponse, int, error)
-		CreateQueueItem(deviceID string, item *dto.SyncItem) (int, error)
+		CreateQueueItem(deviceID string, item *dto.SyncItem, status string) (int, error)
 		UpdateQueueStatus(id int, status, errMsg string) error
 
 		InsertHistory(h model.SyncHistory) error

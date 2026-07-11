@@ -1,6 +1,8 @@
 package service
 
 import (
+	repo_cash_drawer "pos_api/domain/cash_drawer/repo"
+	service_cash_drawer "pos_api/domain/cash_drawer/service"
 	repo_expense "pos_api/domain/expense/repo"
 	repo_product "pos_api/domain/product/repo"
 	"pos_api/domain/sync/dto"
@@ -23,6 +25,8 @@ type (
 		transactionRepo repo_transaction.TransactionRepoInterface
 		expenseRepo     repo_expense.ExpenseRepoInterface
 		productRepo     repo_product.ProductRepoInterface
+		cashDrawerRepo  repo_cash_drawer.CashDrawerRepoInterface
+		cashDrawerSvc   service_cash_drawer.CashDrawerServiceInterface
 	}
 )
 
@@ -31,11 +35,15 @@ func NewSyncService(
 	transactionRepo repo_transaction.TransactionRepoInterface,
 	expenseRepo repo_expense.ExpenseRepoInterface,
 	productRepo repo_product.ProductRepoInterface,
+	cashDrawerRepo repo_cash_drawer.CashDrawerRepoInterface,
+	cashDrawerSvc service_cash_drawer.CashDrawerServiceInterface,
 ) *syncService {
 	return &syncService{
 		repo:            repo,
 		transactionRepo: transactionRepo,
 		expenseRepo:     expenseRepo,
 		productRepo:     productRepo,
+		cashDrawerRepo:  cashDrawerRepo,
+		cashDrawerSvc:   cashDrawerSvc,
 	}
 }

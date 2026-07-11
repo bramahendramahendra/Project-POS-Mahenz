@@ -60,18 +60,24 @@ export function useResolveConflictMutation() {
   })
 }
 
-export function useTriggerSyncMutation() {
+// /sync/push adalah kontrak untuk CLIENT offline (desktop/Android) mem-push antrian lokalnya
+// sendiri — endpoint ini mewajibkan device_id + minimal 1 item, dan dashboard web ini tidak
+// pernah punya antrian lokal untuk dikirim. Jadi tombol di halaman ini TIDAK memanggil
+// /sync/push (dulu begitu dan selalu gagal 400); ia hanya refetch semua data sync yang
+// relevan supaya user bisa lihat status terbaru tanpa menunggu polling 30 detik.
+export function useRefreshSyncMutation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post<void>('/sync/push', {}),
+    mutationFn: async () => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.sync.status() }),
+        qc.invalidateQueries({ queryKey: queryKeys.sync.conflicts() }),
+        qc.invalidateQueries({ queryKey: ['sync', 'queue'] }),
+        qc.invalidateQueries({ queryKey: ['sync', 'history'] }),
+      ])
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.sync.status() })
-      // Query nyata selalu menyertakan filter {page, limit} di key (lihat
-      // queryKeys.sync.history di atas) — invalidate pakai prefix tanpa filter
-      // supaya cocok dengan SEMUA variasi filter yang mungkin ter-cache, bukan
-      // hanya key persis ['sync','history',undefined] yang tidak pernah ada.
-      qc.invalidateQueries({ queryKey: ['sync', 'history'] })
-      toast.success('Sinkronisasi manual dimulai')
+      toast.success('Status sinkronisasi diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

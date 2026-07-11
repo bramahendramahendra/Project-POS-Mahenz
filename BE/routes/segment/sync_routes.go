@@ -1,6 +1,8 @@
 package segment
 
 import (
+	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
+	cash_drawer_service "pos_api/domain/cash_drawer/service"
 	expense_repo "pos_api/domain/expense/repo"
 	product_repo "pos_api/domain/product/repo"
 	sync_handler "pos_api/domain/sync/handler"
@@ -18,7 +20,9 @@ func SyncRoutes(r *gin.RouterGroup) {
 	transactionRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
 	expenseRepo := expense_repo.NewExpenseRepo(pkgdatabase.DB)
 	productRepo := product_repo.NewProductRepo(pkgdatabase.DB)
-	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo, productRepo)
+	cashDrawerRepo := cash_drawer_repo.NewCashDrawerRepo(pkgdatabase.DB)
+	cashDrawerSvc := cash_drawer_service.NewCashDrawerService(cashDrawerRepo)
+	syncService := sync_service.NewSyncService(syncRepo, transactionRepo, expenseRepo, productRepo, cashDrawerRepo, cashDrawerSvc)
 	syncHandler := sync_handler.NewSyncHandler(syncService)
 
 	svc := newAccessService()

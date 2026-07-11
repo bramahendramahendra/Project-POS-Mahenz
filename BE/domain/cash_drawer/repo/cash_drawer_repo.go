@@ -8,30 +8,50 @@ import (
 	"gorm.io/gorm"
 )
 
+// liveExpectedBalanceExpr menghitung expected_balance LANGSUNG dari data sumber
+// (transaksi tunai + pengeluaran sejak kas dibuka), bukan dari kolom cd.expected_balance
+// yang di-cache dan harus di-update manual di setiap tempat yang menyentuh total kas.
+// Kolom cache itu defaultnya 0 saat kas baru dibuka dan baru terisi saat UpdateSales/
+// UpdateExpenses pertama kali dipanggil — kalau kas dibuka lalu ditutup tanpa ada
+// transaksi/pengeluaran sama sekali, kolom itu tetap 0 (bukan opening_balance), membuat
+// "difference" salah besar. Dengan dihitung langsung dari tabel sumber tiap kali dibaca,
+// nilainya TIDAK PERNAH bisa basi/lupa di-update — pola ini sudah dipakai lebih dulu oleh
+// AutoCloseYesterday() (lihat calculateExpectedBalanceQuery), di sini digeneralisasi jadi
+// ekspresi inline yang bisa dipakai di semua query baca. Hanya berlaku untuk kas yang MASIH
+// TERBUKA -- kas yang sudah ditutup tetap pakai nilai beku dari kolom (snapshot historis
+// saat penutupan, sengaja tidak boleh berubah lagi walau ada transaksi terkait di-void
+// belakangan).
+const liveExpectedBalanceExpr = `(cd.opening_balance + COALESCE((SELECT SUM(total_amount) FROM transactions WHERE user_id = cd.user_id AND payment_method = 'cash' AND status = 'completed' AND transaction_date >= cd.open_time), 0) - COALESCE((SELECT SUM(amount) FROM expenses WHERE user_id = cd.user_id AND created_at >= cd.open_time), 0))`
+
 const (
-	getCurrentCashDrawerQuery  = `SELECT cd.id, cd.user_id, u.full_name as user_name, cd.shift_id, s.name as shift_name, s.start_time as shift_start, s.end_time as shift_end, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, cd.expected_balance, cd.status, cd.open_notes FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE cd.user_id = ? AND cd.status = 'open' LIMIT 1`
-	getOpenCashDrawerQuery     = `SELECT id, user_id, shift_id, open_time, opening_balance, total_sales, total_cash_sales, total_expenses, expected_balance, status FROM cash_drawer WHERE user_id = ? AND status = 'open' LIMIT 1`
-	getCashDrawerByIDQuery     = `SELECT id, user_id, shift_id, open_time, close_time, opening_balance, closing_balance, total_sales, total_cash_sales, total_expenses, expected_balance, difference, status, notes FROM cash_drawer WHERE id = ? LIMIT 1`
+	getCurrentCashDrawerQuery = `SELECT cd.id, cd.user_id, u.full_name as user_name, cd.shift_id, s.name as shift_name, s.start_time as shift_start, s.end_time as shift_end, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status, cd.open_notes FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE cd.user_id = ? AND cd.status = 'open' LIMIT 1`
+	getOpenCashDrawerQuery     = `SELECT cd.id, cd.user_id, cd.shift_id, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status FROM cash_drawer cd WHERE cd.user_id = ? AND cd.status = 'open' LIMIT 1`
+	getCashDrawerByIDQuery     = `SELECT cd.id, cd.user_id, cd.shift_id, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, CASE WHEN cd.status = 'closed' THEN cd.expected_balance ELSE ` + liveExpectedBalanceExpr + ` END as expected_balance, cd.difference, cd.status, cd.notes FROM cash_drawer cd WHERE cd.id = ? LIMIT 1`
 	openCashDrawerQuery        = `INSERT INTO cash_drawer (user_id, shift_id, open_time, opening_balance, open_notes, status) VALUES (?, ?, NOW(), ?, ?, 'open')`
 	getLastCashDrawerInsertID  = `SELECT LAST_INSERT_ID()`
 	closeCashDrawerQuery       = `UPDATE cash_drawer SET close_time = NOW(), closing_balance = ?, expected_balance = ?, difference = ?, status = 'closed', notes = ?, updated_at = NOW() WHERE id = ?`
 	updateSalesQuery           = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, expected_balance = opening_balance + total_cash_sales - total_expenses, updated_at = NOW() WHERE id = ?`
 	updateExpensesQuery        = `UPDATE cash_drawer SET total_expenses = total_expenses + ?, expected_balance = opening_balance + total_cash_sales - total_expenses, updated_at = NOW() WHERE id = ?`
-	getCashDrawerHistoryBase   = `SELECT cd.id, u.full_name as user_name, s.name as shift_name, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, cd.expected_balance, CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference, cd.total_sales, cd.total_cash_sales, cd.total_expenses, cd.status FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE 1=1`
 	countCashDrawerHistoryBase = `SELECT COUNT(*) FROM cash_drawer cd WHERE 1=1`
 	getKasirOptionsQuery       = `SELECT DISTINCT u.id, u.full_name, u.username FROM cash_drawer cd JOIN users u ON cd.user_id = u.id ORDER BY u.full_name`
+)
 
-	getCashDrawerDetailQuery = `
-		SELECT cd.id, cd.user_id, u.full_name as cashier_name, s.name as shift_name,
-		       s.start_time as shift_start, s.end_time as shift_end,
-		       cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance,
-		       cd.expected_balance, cd.total_cash_sales, cd.total_expenses,
-		       CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference,
-		       cd.status, cd.notes, cd.open_notes
-		FROM cash_drawer cd
-		LEFT JOIN users u ON cd.user_id = u.id
-		LEFT JOIN shifts s ON cd.shift_id = s.id
-		WHERE cd.id = ? LIMIT 1`
+var getCashDrawerHistoryBase = `SELECT cd.id, u.full_name as user_name, s.name as shift_name, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, CASE WHEN cd.status = 'closed' THEN cd.expected_balance ELSE ` + liveExpectedBalanceExpr + ` END as expected_balance, CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference, cd.total_sales, cd.total_cash_sales, cd.total_expenses, cd.status FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE 1=1`
+
+var getCashDrawerDetailQuery = `
+	SELECT cd.id, cd.user_id, u.full_name as cashier_name, s.name as shift_name,
+	       s.start_time as shift_start, s.end_time as shift_end,
+	       cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance,
+	       CASE WHEN cd.status = 'closed' THEN cd.expected_balance ELSE ` + liveExpectedBalanceExpr + ` END as expected_balance,
+	       cd.total_cash_sales, cd.total_expenses,
+	       CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference,
+	       cd.status, cd.notes, cd.open_notes
+	FROM cash_drawer cd
+	LEFT JOIN users u ON cd.user_id = u.id
+	LEFT JOIN shifts s ON cd.shift_id = s.id
+	WHERE cd.id = ? LIMIT 1`
+
+const (
 
 	getCashDrawerTransactionsQuery = `
 		SELECT t.transaction_date, t.transaction_code, COALESCE(c.name, '') as customer_name, t.total_amount
@@ -100,16 +120,17 @@ const (
 
 	getCashDrawerSummaryAggregateQuery = `SELECT COALESCE(SUM(cd.opening_balance), 0) as total_opening, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.closing_balance ELSE 0 END), 0) as total_closing, COALESCE(SUM(cd.total_expenses), 0) as total_expenses, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.difference ELSE 0 END), 0) as total_difference FROM cash_drawer cd WHERE 1=1`
 
-	getMyCashQuery = `
-		SELECT cd.id, cd.user_id, s.name as shift_name,
-		       s.start_time as shift_start, s.end_time as shift_end,
-		       cd.open_time, cd.opening_balance, cd.total_cash_sales, cd.total_expenses,
-		       cd.expected_balance, cd.status, cd.open_notes
-		FROM cash_drawer cd
-		LEFT JOIN shifts s ON cd.shift_id = s.id
-		WHERE cd.user_id = ? AND DATE(cd.open_time) = CURDATE() AND cd.status = 'open'
-		LIMIT 1`
 )
+
+var getMyCashQuery = `
+	SELECT cd.id, cd.user_id, s.name as shift_name,
+	       s.start_time as shift_start, s.end_time as shift_end,
+	       cd.open_time, cd.opening_balance, cd.total_cash_sales, cd.total_expenses,
+	       ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status, cd.open_notes
+	FROM cash_drawer cd
+	LEFT JOIN shifts s ON cd.shift_id = s.id
+	WHERE cd.user_id = ? AND DATE(cd.open_time) = CURDATE() AND cd.status = 'open'
+	LIMIT 1`
 
 func (r *cashDrawerRepo) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
 	var res dto.CurrentCashDrawerResponse

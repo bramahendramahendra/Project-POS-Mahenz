@@ -118,6 +118,17 @@ type SyncTransactionPayload struct {
 	Items         []SyncTransactionItemPayload `json:"items"`
 }
 
+// SyncCashDrawerPayload dipakai untuk item entity_type="cash_drawer", action "create"
+// (buka kas) maupun "update" (tutup/setor kas). ShiftID selalu berupa ID shift master data
+// yang sudah pasti valid (shift tidak pernah dibuat offline) — tidak ada shift_local_id.
+type SyncCashDrawerPayload struct {
+	UserID         int     `json:"user_id"`
+	ShiftID        *int    `json:"shift_id"`
+	OpeningBalance float64 `json:"opening_balance"`
+	ClosingBalance float64 `json:"closing_balance"`
+	Notes          string  `json:"notes"`
+}
+
 type HistoryFilter struct {
 	DeviceID  string
 	StartDate string

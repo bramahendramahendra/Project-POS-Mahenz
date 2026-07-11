@@ -2,12 +2,12 @@ import { RefreshCw } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 
-import { useTriggerSyncMutation } from '../sync.api'
+import { useRefreshSyncMutation } from '../sync.api'
 import { useSyncStatus } from '../hooks/useSyncStatus'
 
 export function SyncStatusCard() {
   const { conflictCount } = useSyncStatus()
-  const { mutate: triggerSync, isPending } = useTriggerSyncMutation()
+  const { mutate: refresh, isPending } = useRefreshSyncMutation()
 
   const current = conflictCount > 0
     ? { icon: '⚠️', text: 'Ada Konflik', color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200' }
@@ -20,12 +20,12 @@ export function SyncStatusCard() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => triggerSync()}
+          onClick={() => refresh()}
           disabled={isPending}
           className="gap-1.5"
         >
           <RefreshCw size={14} className={isPending ? 'animate-spin' : ''} />
-          Sync Manual
+          Refresh
         </Button>
       </div>
 
