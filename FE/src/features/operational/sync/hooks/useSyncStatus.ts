@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
+import { usePermission } from '@/shared/hooks'
+
 import { useSyncStatusQuery } from '../sync.api'
 
 const CONFLICT_TOAST_KEY = 'sync_conflict_notified_count'
 
 export function useSyncStatus() {
-  const { data } = useSyncStatusQuery()
+  const { hasMenuAccess } = usePermission()
+  const { data } = useSyncStatusQuery(hasMenuAccess('operasional.sync'))
   const conflictCount = data?.count ?? 0
 
   useEffect(() => {

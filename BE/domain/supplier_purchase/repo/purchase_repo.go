@@ -16,7 +16,7 @@ const (
 	createPurchaseQuery        = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createPurchaseItemQuery    = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	addStockQuery              = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	payPurchaseQuery           = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount - ? <= 0 THEN 'paid' WHEN paid_amount + ? > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	payPurchaseQuery           = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 	getPurchaseItemsQuery      = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
 	createPaymentQuery         = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
 	getPaymentsQuery           = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
@@ -410,7 +410,7 @@ func (r *purchaseRepo) IsValidPaymentMethod(code string) (bool, error) {
 
 func (r *purchaseRepo) Pay(req *dto.PayRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec(payPurchaseQuery, req.Amount, req.Amount, req.Amount, req.Amount, req.ID).Error; err != nil {
+		if err := tx.Exec(payPurchaseQuery, req.Amount, req.Amount, req.ID).Error; err != nil {
 			return err
 		}
 

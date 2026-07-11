@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -18,13 +17,14 @@ const (
 	createReturnQuery             = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
 	createReturnItemQuery         = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	updateReturnStatusQuery       = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
+	approveReturnStatusQuery      = `UPDATE supplier_returns SET status = 'approved', updated_at = NOW() WHERE id = ?`
 	reduceStockQuery              = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
 	reserveStockQuery             = `UPDATE products SET reserved_qty = reserved_qty + ?, updated_at = NOW() WHERE id = ?`
 	releaseReservedStockQuery     = `UPDATE products SET reserved_qty = GREATEST(reserved_qty - ?, 0), updated_at = NOW() WHERE id = ?`
 	getReturnItemsQuery           = `SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
 	checkReturnApprovedQuery      = `SELECT status FROM supplier_returns WHERE id = ?`
 	getPurchaseIDAndAmountQuery   = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
-	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= ? THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	reducePurchaseDebtQuery       = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 	getReturnByIDQuery            = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
 	getAllReturnsBase  = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
 	countReturnsBase  = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
@@ -158,7 +158,7 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 		for _, item := range req.Items {
 			var purchaseQty float64
 			if err := tx.Raw(getPurchaseItemQtyQuery, item.PurchaseItemID, req.PurchaseID).Scan(&purchaseQty).Error; err != nil {
-				return errors.New("item pembelian tidak ditemukan")
+				return &custom_errors.NotFoundError{Message: "Item pembelian tidak ditemukan"}
 			}
 
 			var alreadyReturned float64
@@ -168,7 +168,9 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 
 			sisaQty := purchaseQty - alreadyReturned
 			if item.Quantity > sisaQty {
-				return fmt.Errorf("jumlah retur %s melebihi sisa yang bisa diretur (maks %.0f)", item.ProductName, sisaQty)
+				return &custom_errors.BadRequestError{
+					Message: fmt.Sprintf("Jumlah retur %s melebihi sisa yang bisa diretur (maks %.0f)", item.ProductName, sisaQty),
+				}
 			}
 
 			subtotal := item.PurchasePrice * item.Quantity
@@ -200,7 +202,7 @@ func (r *supplierReturnRepo) UpdateStatus(id int, status, notes string) error {
 
 func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Exec(updateReturnStatusQuery, "approved", "", id).Error
+		err := tx.Exec(approveReturnStatusQuery, id).Error
 		if err != nil {
 			return err
 		}
@@ -249,7 +251,7 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 			}
 		}
 
-		err = tx.Exec(reducePurchaseDebtQuery, dataReturn.TotalReturnAmount, dataReturn.TotalReturnAmount, dataReturn.PurchaseID).Error
+		err = tx.Exec(reducePurchaseDebtQuery, dataReturn.TotalReturnAmount, dataReturn.PurchaseID).Error
 		if err != nil {
 			return err
 		}

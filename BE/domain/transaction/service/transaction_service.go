@@ -46,6 +46,17 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil, err
 	}
 
+	// Transaksi kredit (piutang) boleh dibayar sebagian/tidak sama sekali di muka —
+	// sisanya tercatat sebagai piutang. Transaksi non-kredit wajib lunas saat itu juga.
+	if !req.IsCredit && req.PaymentAmount < req.TotalAmount {
+		return nil, &errors.BadRequestError{Message: "Jumlah pembayaran kurang dari total transaksi"}
+	}
+	if change := req.PaymentAmount - req.TotalAmount; change > 0 {
+		req.ChangeAmount = change
+	} else {
+		req.ChangeAmount = 0
+	}
+
 	var resp *dto.CreateTransactionResponse
 	txErr := s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
 		txnRepo := s.repo.WithTx(tx)

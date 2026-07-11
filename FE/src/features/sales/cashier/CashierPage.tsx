@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-import { useActiveShiftQuery } from './cashier.api'
+import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
+
 import { useCashierStore } from './cashier.store'
 import { CartEditableList } from './components/CartEditableList'
 import { PaymentModal } from './components/PaymentModal'
@@ -9,17 +10,17 @@ import { ProductSearch } from './components/ProductSearch'
 import { SummaryPanel } from './components/SummaryPanel'
 
 export function CashierPage() {
-  const { data: activeShift, isLoading: isLoadingShift } = useActiveShiftQuery()
+  const { data: currentDrawer, isLoading: isLoadingDrawer } = useCashDrawerCurrentQuery()
   const { paymentModalOpen, closePaymentModal } = useCashierStore()
 
   useEffect(() => {
-    if (!isLoadingShift && !activeShift) {
-      toast.warning('Belum ada shift aktif. Buka shift terlebih dahulu.', {
+    if (!isLoadingDrawer && !currentDrawer) {
+      toast.warning('Belum ada kas yang dibuka. Buka kas/shift terlebih dahulu.', {
         duration: 5000,
         id: 'no-active-shift',
       })
     }
-  }, [activeShift, isLoadingShift])
+  }, [currentDrawer, isLoadingDrawer])
 
   return (
     <div

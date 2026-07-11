@@ -141,8 +141,8 @@ func (s *supplierReturnService) UpdateStatus(req *dto.UpdateStatusRequest) error
 	if current == "" {
 		return &errors.NotFoundError{Message: "Retur supplier tidak ditemukan"}
 	}
-	if current == "approved" {
-		return &errors.BadRequestError{Message: "Retur yang sudah approved tidak bisa diubah"}
+	if current == "approved" || current == "rejected" {
+		return &errors.BadRequestError{Message: "Retur yang sudah diproses (approved/rejected) tidak bisa diubah statusnya lagi"}
 	}
 
 	if req.Status == "approved" {

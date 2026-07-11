@@ -354,6 +354,34 @@ func init() {
 		return ""
 	})
 
+	// 11. Not Blank - rejects strings that are empty after trimming whitespace
+	Validate.RegisterValidation("notblank", func(f1 validator.FieldLevel) bool {
+		value, ok := f1.Field().Interface().(string)
+		if !ok {
+			return true
+		}
+		return strings.TrimSpace(value) != ""
+	})
+
+	AddCustomErrorMessage("notblank", "{0} tidak boleh kosong atau hanya berisi spasi", func(fe validator.FieldError) string {
+		return ""
+	})
+
+	// 12. Time Format "HH:MM" or "HH:MM:SS" (24-hour) validation
+	Validate.RegisterValidation("timeformat", func(f1 validator.FieldLevel) bool {
+		timeStr := f1.Field().String()
+
+		if _, err := time.Parse("15:04:05", timeStr); err == nil {
+			return true
+		}
+		_, err := time.Parse("15:04", timeStr)
+		return err == nil
+	})
+
+	AddCustomErrorMessage("timeformat", "{0} harus dalam format jam yang valid (HH:MM atau HH:MM:SS)", func(fe validator.FieldError) string {
+		return ""
+	})
+
 }
 
 func AddCustomErrorMessage(tag string, errMessage string, cb CallbackValidationMessage) {

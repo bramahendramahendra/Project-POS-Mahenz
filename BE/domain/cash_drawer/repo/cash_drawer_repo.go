@@ -15,8 +15,8 @@ const (
 	openCashDrawerQuery        = `INSERT INTO cash_drawer (user_id, shift_id, open_time, opening_balance, open_notes, status) VALUES (?, ?, NOW(), ?, ?, 'open')`
 	getLastCashDrawerInsertID  = `SELECT LAST_INSERT_ID()`
 	closeCashDrawerQuery       = `UPDATE cash_drawer SET close_time = NOW(), closing_balance = ?, expected_balance = ?, difference = ?, status = 'closed', notes = ?, updated_at = NOW() WHERE id = ?`
-	updateSalesQuery           = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, expected_balance = opening_balance + (total_cash_sales + ?) - total_expenses, updated_at = NOW() WHERE id = ?`
-	updateExpensesQuery        = `UPDATE cash_drawer SET total_expenses = total_expenses + ?, expected_balance = opening_balance + total_cash_sales - (total_expenses + ?), updated_at = NOW() WHERE id = ?`
+	updateSalesQuery           = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, expected_balance = opening_balance + total_cash_sales - total_expenses, updated_at = NOW() WHERE id = ?`
+	updateExpensesQuery        = `UPDATE cash_drawer SET total_expenses = total_expenses + ?, expected_balance = opening_balance + total_cash_sales - total_expenses, updated_at = NOW() WHERE id = ?`
 	getCashDrawerHistoryBase   = `SELECT cd.id, u.full_name as user_name, s.name as shift_name, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, cd.expected_balance, CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference, cd.total_sales, cd.total_cash_sales, cd.total_expenses, cd.status FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE 1=1`
 	countCashDrawerHistoryBase = `SELECT COUNT(*) FROM cash_drawer cd WHERE 1=1`
 
@@ -255,11 +255,11 @@ func (r *cashDrawerRepo) Close(id int, closingBalance, expectedBalance, differen
 }
 
 func (r *cashDrawerRepo) UpdateSales(id int, totalSales, totalCashSales float64) error {
-	return r.db.Exec(updateSalesQuery, totalSales, totalCashSales, totalCashSales, id).Error
+	return r.db.Exec(updateSalesQuery, totalSales, totalCashSales, id).Error
 }
 
 func (r *cashDrawerRepo) UpdateExpenses(id int, totalExpenses float64) error {
-	return r.db.Exec(updateExpensesQuery, totalExpenses, totalExpenses, id).Error
+	return r.db.Exec(updateExpensesQuery, totalExpenses, id).Error
 }
 
 func (r *cashDrawerRepo) GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string) ([]model.CashDrawerNonCashTransactionItem, error) {

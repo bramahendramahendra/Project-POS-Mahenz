@@ -7,11 +7,12 @@ import type { PaginatedData } from '@/shared/types'
 
 import type { SyncConflict, SyncFilter, SyncHistoryItem } from './sync.types'
 
-export function useSyncStatusQuery() {
+export function useSyncStatusQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.sync.status(),
     queryFn: () => api.get<{ count: number }>('/sync/conflicts/count'),
     refetchInterval: 30_000,
+    enabled,
   })
 }
 

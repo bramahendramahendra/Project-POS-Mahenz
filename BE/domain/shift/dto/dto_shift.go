@@ -18,9 +18,9 @@ type (
 	}
 
 	CreateRequest struct {
-		Name      string `json:"name" validate:"required,min=2,max=100"`
-		StartTime string `json:"start_time" validate:"required"`
-		EndTime   string `json:"end_time" validate:"required"`
+		Name      string `json:"name" validate:"required,min=2,max=100,notblank"`
+		StartTime string `json:"start_time" validate:"required,timeformat"`
+		EndTime   string `json:"end_time" validate:"required,timeformat"`
 	}
 
 	UpdateUriRequest struct {
@@ -29,9 +29,9 @@ type (
 
 	UpdateRequest struct {
 		ID        int    `json:"-"`
-		Name      string `json:"name" validate:"required,min=2,max=100"`
-		StartTime string `json:"start_time" validate:"required"`
-		EndTime   string `json:"end_time" validate:"required"`
+		Name      string `json:"name" validate:"required,min=2,max=100,notblank"`
+		StartTime string `json:"start_time" validate:"required,timeformat"`
+		EndTime   string `json:"end_time" validate:"required,timeformat"`
 	}
 
 	DeleteRequest struct {

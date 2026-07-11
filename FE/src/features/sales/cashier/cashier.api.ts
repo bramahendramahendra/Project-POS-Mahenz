@@ -24,7 +24,6 @@ export function useProductBarcodeSearchQuery(code: string, enabled: boolean) {
 }
 
 export { useCustomerListQuery } from '@/features/customers'
-export { useShiftOptionsQuery as useActiveShiftQuery } from '@/features/operational/shifts'
 
 export function useCustomerCreditQuery(customerId: number | null) {
   return useQuery({
