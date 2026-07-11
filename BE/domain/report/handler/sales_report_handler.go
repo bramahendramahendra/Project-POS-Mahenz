@@ -27,6 +27,14 @@ func NewReportHandler(svc service.ReportServiceInterface) *ReportHandler {
 func parseFilterParams(c *gin.Context) dto.FilterParams {
 	dateFrom := c.DefaultQuery("date_from", time.Now().Format("2006-01-02")+" 00:00:00")
 	dateTo := c.DefaultQuery("date_to", time.Now().Format("2006-01-02")+" 23:59:59")
+	// Jika dikirim tanpa komponen jam (mis. dari <input type="date"> yang formatnya YYYY-MM-DD),
+	// lengkapi dengan awal/akhir hari supaya rentang tanggal mencakup seluruh hari itu.
+	if len(dateFrom) == len("2006-01-02") {
+		dateFrom += " 00:00:00"
+	}
+	if len(dateTo) == len("2006-01-02") {
+		dateTo += " 23:59:59"
+	}
 	return dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo}
 }
 

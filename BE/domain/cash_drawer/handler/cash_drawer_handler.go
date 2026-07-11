@@ -244,6 +244,21 @@ func (h *CashDrawerHandler) GetSummary(c *gin.Context) {
 	})
 }
 
+func (h *CashDrawerHandler) GetKasirOptions(c *gin.Context) {
+	data, err := h.service.GetKasirOptions()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Daftar kasir",
+		Data:    data,
+	})
+}
+
 func (h *CashDrawerHandler) UpdateExpenses(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateExpensesUriRequest](c)
 	if err != nil {

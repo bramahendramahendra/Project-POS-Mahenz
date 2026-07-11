@@ -175,4 +175,10 @@ type (
 		ClosingBalance  float64 `json:"closing_balance"`
 		Difference      float64 `json:"difference"`
 	}
+
+	KasirOptionResponse struct {
+		ID       int    `json:"id"`
+		FullName string `json:"full_name"`
+		Username string `json:"username"`
+	}
 )

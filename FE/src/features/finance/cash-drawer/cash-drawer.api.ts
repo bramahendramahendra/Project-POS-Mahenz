@@ -75,8 +75,6 @@ export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
 export function useKasirOptionsQuery() {
   return useQuery({
     queryKey: queryKeys.cashDrawer.kasirOptions(),
-    queryFn: () =>
-      api.post<{ data: KasirOption[] }>('/users/list', { page: 1, limit: 100, is_active: true }),
-    select: (res) => res?.data ?? [],
+    queryFn: () => api.post<KasirOption[]>('/cash-drawer/kasir-options', {}),
   })
 }

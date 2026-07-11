@@ -23,6 +23,7 @@ type (
 		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string) ([]model.CashDrawerNonCashTransactionItem, error)
 		AutoCloseYesterday() (int, error)
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
+		GetKasirOptions() ([]dto.KasirOptionResponse, error)
 
 		GetDB() *gorm.DB
 		WithTx(tx *gorm.DB) CashDrawerRepoInterface

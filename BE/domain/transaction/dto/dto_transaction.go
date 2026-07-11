@@ -44,7 +44,7 @@ type (
 		Tax           float64                        `json:"tax" validate:"gte=0"`
 		TotalAmount   float64                        `json:"total_amount" validate:"required,min=0"`
 		PaymentMethod string                         `json:"payment_method" validate:"required,oneof=cash transfer qris card kredit"`
-		PaymentAmount float64                        `json:"payment_amount" validate:"required,min=0"`
+		PaymentAmount float64                        `json:"payment_amount" validate:"min=0"`
 		ChangeAmount  float64                        `json:"change_amount"`
 		CustomerID    *int                           `json:"customer_id"`
 		IsCredit      bool                           `json:"is_credit"`

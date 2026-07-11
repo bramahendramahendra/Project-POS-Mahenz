@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:8080/api/cash-drawer/update-sales/11 -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"total_sales\":999999,\"total_cash_sales\":999999}')",
+      "Bash(curl -s -X POST http://localhost:8080/api/cash-drawer/update-expenses/11 -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"total_expenses\":999999}')"
+    ]
+  }
+}

@@ -235,6 +235,10 @@ func (s *cashDrawerService) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDra
 	return s.repo.GetSummary(req)
 }
 
+func (s *cashDrawerService) GetKasirOptions() ([]dto.KasirOptionResponse, error) {
+	return s.repo.GetKasirOptions()
+}
+
 func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
 	cd, err := s.repo.GetByID(id)
 	if err != nil {

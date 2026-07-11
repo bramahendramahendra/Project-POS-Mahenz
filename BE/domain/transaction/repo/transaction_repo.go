@@ -22,7 +22,7 @@ const (
 	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery          = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
 	restoreStockQuery             = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	createReceivableQuery         = `INSERT INTO receivables (transaction_id, customer_id, amount, status) VALUES (?, ?, ?, 'unpaid')`
+	createReceivableQuery         = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
 	updateReceivableVoidQuery     = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
 	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
@@ -263,7 +263,7 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 	// 4. Jika kredit â†’ buat piutang
 	if req.IsCredit && req.CustomerID != nil {
 		if err := r.db.Exec(createReceivableQuery,
-			transactionID, *req.CustomerID, req.TotalAmount,
+			transactionID, *req.CustomerID, req.TotalAmount, req.TotalAmount,
 		).Error; err != nil {
 			return nil, err
 		}
@@ -463,7 +463,7 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 
 		// 5. Jika kredit â†’ buat piutang
 		if tx.IsCredit && tx.CustomerID != nil {
-			if err := db.Exec(createReceivableQuery, transactionID, *tx.CustomerID, tx.TotalAmount).Error; err != nil {
+			if err := db.Exec(createReceivableQuery, transactionID, *tx.CustomerID, tx.TotalAmount, tx.TotalAmount).Error; err != nil {
 				return err
 			}
 		}

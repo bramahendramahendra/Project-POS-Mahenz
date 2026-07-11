@@ -18,7 +18,7 @@ type (
 	}
 
 	CreateRequest struct {
-		Name        string  `json:"name" validate:"required,min=2,max=100"`
+		Name        string  `json:"name" validate:"required,min=2,max=100,notblank"`
 		Phone       string  `json:"phone" validate:"max=20"`
 		Address     string  `json:"address" validate:"max=255"`
 		CreditLimit float64 `json:"credit_limit" validate:"min=0"`
@@ -31,7 +31,7 @@ type (
 
 	UpdateRequest struct {
 		ID          int     `json:"-"`
-		Name        string  `json:"name" validate:"required,min=2,max=100"`
+		Name        string  `json:"name" validate:"required,min=2,max=100,notblank"`
 		Phone       string  `json:"phone" validate:"max=20"`
 		Address     string  `json:"address" validate:"max=255"`
 		CreditLimit float64 `json:"credit_limit" validate:"min=0"`

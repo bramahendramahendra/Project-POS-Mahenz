@@ -127,7 +127,12 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     reset,
     formState: { errors },
   } = useForm<PaymentFormValues>({
-    resolver: zodResolver(createPaymentSchema(summary.grandTotal, false)),
+    resolver: (values, context, options) =>
+      zodResolver(createPaymentSchema(summary.grandTotal, values.payment_method === 'kredit'))(
+        values,
+        context,
+        options
+      ),
     defaultValues: { payment_method: 'cash', amount_paid: 0 },
   })
 

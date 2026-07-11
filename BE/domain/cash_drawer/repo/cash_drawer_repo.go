@@ -19,6 +19,7 @@ const (
 	updateExpensesQuery        = `UPDATE cash_drawer SET total_expenses = total_expenses + ?, expected_balance = opening_balance + total_cash_sales - total_expenses, updated_at = NOW() WHERE id = ?`
 	getCashDrawerHistoryBase   = `SELECT cd.id, u.full_name as user_name, s.name as shift_name, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, cd.expected_balance, CASE WHEN cd.status = 'closed' THEN cd.difference ELSE NULL END as difference, cd.total_sales, cd.total_cash_sales, cd.total_expenses, cd.status FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE 1=1`
 	countCashDrawerHistoryBase = `SELECT COUNT(*) FROM cash_drawer cd WHERE 1=1`
+	getKasirOptionsQuery       = `SELECT DISTINCT u.id, u.full_name, u.username FROM cash_drawer cd JOIN users u ON cd.user_id = u.id ORDER BY u.full_name`
 
 	getCashDrawerDetailQuery = `
 		SELECT cd.id, cd.user_id, u.full_name as cashier_name, s.name as shift_name,
@@ -97,7 +98,7 @@ const (
 		GROUP BY t.payment_method, pm.label
 		ORDER BY total DESC`
 
-	getCashDrawerSummaryAggregateQuery = `SELECT COALESCE(SUM(cd.opening_balance), 0) as total_opening, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.closing_balance ELSE 0 END), 0) as total_closing, COALESCE(SUM(cd.total_expenses), 0) as total_expenses FROM cash_drawer cd WHERE 1=1`
+	getCashDrawerSummaryAggregateQuery = `SELECT COALESCE(SUM(cd.opening_balance), 0) as total_opening, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.closing_balance ELSE 0 END), 0) as total_closing, COALESCE(SUM(cd.total_expenses), 0) as total_expenses, COALESCE(SUM(CASE WHEN cd.status = 'closed' THEN cd.difference ELSE 0 END), 0) as total_difference FROM cash_drawer cd WHERE 1=1`
 
 	getMyCashQuery = `
 		SELECT cd.id, cd.user_id, s.name as shift_name,
@@ -348,9 +349,10 @@ func (r *cashDrawerRepo) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawer
 	}
 
 	type aggregateResult struct {
-		TotalOpening  float64 `gorm:"column:total_opening"`
-		TotalClosing  float64 `gorm:"column:total_closing"`
-		TotalExpenses float64 `gorm:"column:total_expenses"`
+		TotalOpening    float64 `gorm:"column:total_opening"`
+		TotalClosing    float64 `gorm:"column:total_closing"`
+		TotalExpenses   float64 `gorm:"column:total_expenses"`
+		TotalDifference float64 `gorm:"column:total_difference"`
 	}
 	var agg aggregateResult
 	if err := r.db.Raw(getCashDrawerSummaryAggregateQuery+conditions, args...).Scan(&agg).Error; err != nil {
@@ -370,7 +372,7 @@ func (r *cashDrawerRepo) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawer
 		TotalOpening:  agg.TotalOpening,
 		TotalClosing:  agg.TotalClosing,
 		TotalExpenses: agg.TotalExpenses,
-		Net:           agg.TotalClosing - agg.TotalExpenses,
+		Net:           agg.TotalDifference,
 		Records:       records,
 	}, nil
 }
@@ -405,4 +407,15 @@ func (r *cashDrawerRepo) GetMyCash(userID int) (*model.CashDrawerDetail, []model
 	}
 
 	return &dataDB, transactions, expenses, nil
+}
+
+func (r *cashDrawerRepo) GetKasirOptions() ([]dto.KasirOptionResponse, error) {
+	var options []dto.KasirOptionResponse
+	if err := r.db.Raw(getKasirOptionsQuery).Scan(&options).Error; err != nil {
+		return nil, err
+	}
+	if options == nil {
+		options = []dto.KasirOptionResponse{}
+	}
+	return options, nil
 }
