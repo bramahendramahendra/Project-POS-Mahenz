@@ -57,17 +57,23 @@ const (
 	// bukan pendapatan bisnis). Basis: ti.subtotal * (t.total_amount - t.tax) / t.subtotal,
 	// yang secara aljabar sama dengan ti.subtotal * (t.subtotal - t.discount) / t.subtotal
 	// karena total_amount = subtotal - discount + tax. NULLIF menghindari divide-by-zero.
+	// HPP dihitung dari ti.purchase_price, yaitu snapshot harga beli produk pada SAAT
+	// transaksi terjadi (dicatat di transaction_items saat checkout), bukan harga beli
+	// produk yang berlaku sekarang. Ini membuat laporan laba rugi historis tetap akurat
+	// walaupun harga beli produk diubah setelahnya. purchase_price yang ditampilkan per
+	// baris adalah rata-rata tertimbang jika produk terjual dengan snapshot harga berbeda
+	// dalam rentang tanggal yang sama.
 	profitLossQuery = `
 		SELECT ti.product_id, p.name as product_name,
 		       SUM(ti.quantity) as qty_sold,
-		       p.purchase_price,
-		       COALESCE(SUM(ti.quantity * p.purchase_price),0) as total_cogs,
+		       COALESCE(SUM(ti.quantity * ti.purchase_price) / NULLIF(SUM(ti.quantity),0),0) as purchase_price,
+		       COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs,
 		       COALESCE(SUM(ti.subtotal * (t.total_amount - t.tax) / NULLIF(t.subtotal,0)),0) as total_revenue
 		FROM transaction_items ti
 		LEFT JOIN products p ON ti.product_id = p.id
 		LEFT JOIN transactions t ON ti.transaction_id = t.id
 		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
-		GROUP BY ti.product_id, p.name, p.purchase_price`
+		GROUP BY ti.product_id, p.name`
 
 	expenseSummaryQuery = `
 		SELECT category, COALESCE(SUM(amount),0) as total

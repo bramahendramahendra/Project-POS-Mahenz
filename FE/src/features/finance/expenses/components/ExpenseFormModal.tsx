@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
-import { todayStr } from '@/shared/utils'
+import { todayStr, toISODate } from '@/shared/utils'
 import { useCreateExpenseMutation, useUpdateExpenseMutation } from '../expenses.api'
 import type { Expense } from '../expenses.types'
 import {
@@ -65,7 +65,7 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
     if (!open) return
     if (expense) {
       reset({
-        expense_date: expense.expense_date,
+        expense_date: toISODate(new Date(expense.expense_date)),
         category: expense.category,
         description: expense.description,
         amount: expense.amount,

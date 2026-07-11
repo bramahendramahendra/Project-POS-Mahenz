@@ -7,7 +7,7 @@ import (
 
 type (
 	DashboardServiceInterface interface {
-		GetStats(date string) (*dto.StatsResponse, error)
+		GetStats(period string) (*dto.StatsResponse, error)
 		GetSalesTrend(period string) ([]dto.SalesTrendItem, error)
 		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
 		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)

@@ -374,6 +374,7 @@ CREATE TABLE IF NOT EXISTS transaction_items (
     quantity       DECIMAL(15,3) NOT NULL,
     unit           VARCHAR(50)   NOT NULL,
     price          DECIMAL(15,2) NOT NULL,
+    purchase_price DECIMAL(15,2) NOT NULL DEFAULT 0,
     subtotal       DECIMAL(15,2) NOT NULL,
     discount_item  DECIMAL(15,2) DEFAULT 0,
     conversion_qty DECIMAL(15,3) DEFAULT 1,

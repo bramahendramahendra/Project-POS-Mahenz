@@ -39,7 +39,7 @@ func (h *ReportHandler) GetStockList(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	page, limit, _ := request_helper.NormalizePagination(req.Page, req.Limit, 10, 0)
+	page, limit, _ := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:       helper.StatusOk,
 		Status:     true,

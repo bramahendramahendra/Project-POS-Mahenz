@@ -23,8 +23,8 @@ func NewDashboardHandler(svc service.DashboardServiceInterface) *DashboardHandle
 
 // GET /api/dashboard/stats
 func (h *DashboardHandler) GetStats(c *gin.Context) {
-	date := c.Query("date")
-	result, err := h.service.GetStats(date)
+	period := c.DefaultQuery("period", "today")
+	result, err := h.service.GetStats(period)
 	if err != nil {
 		c.Error(err)
 		return

@@ -35,11 +35,10 @@ function periodToDateRange(period: DashboardPeriod): { start_date: string; end_d
   return { start_date: start, end_date: end }
 }
 
-export function useDashboardStatsQuery() {
-  const today = new Date().toISOString().split('T')[0]
+export function useDashboardStatsQuery(period: DashboardPeriod) {
   return useQuery({
-    queryKey: queryKeys.dashboard.stats(),
-    queryFn: () => api.get<DashboardStats>('/dashboard/stats', { date: today }),
+    queryKey: queryKeys.dashboard.stats(period),
+    queryFn: () => api.get<DashboardStats>('/dashboard/stats', { period }),
   })
 }
 

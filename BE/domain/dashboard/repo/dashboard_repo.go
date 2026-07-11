@@ -14,6 +14,13 @@ const (
 
 	todayExpensesQuery = `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date = ?`
 
+	rangeStatsQuery = `
+		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
+		       COALESCE(SUM(discount),0) as total_discount
+		FROM transactions WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'`
+
+	rangeExpensesQuery = `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date BETWEEN ? AND ?`
+
 	monthStatsQuery = `
 		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales
 		FROM transactions WHERE MONTH(transaction_date) = MONTH(NOW())
@@ -38,7 +45,7 @@ const (
 		FROM transaction_items ti
 		LEFT JOIN products p ON ti.product_id = p.id
 		LEFT JOIN transactions t ON ti.transaction_id = t.id
-		WHERE t.transaction_date BETWEEN ? AND ? AND t.status = 'completed'
+		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
 		GROUP BY ti.product_id, p.name
 		ORDER BY total_qty DESC LIMIT ?`
 
@@ -49,7 +56,7 @@ const (
 		FROM transaction_items ti
 		LEFT JOIN products p ON ti.product_id = p.id
 		LEFT JOIN transactions t ON ti.transaction_id = t.id
-		WHERE t.transaction_date BETWEEN ? AND ? AND t.status = 'completed'
+		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
 		GROUP BY ti.product_id, p.name
 		ORDER BY total_value DESC LIMIT ?`
 
@@ -60,12 +67,12 @@ const (
 		LEFT JOIN products p ON ti.product_id = p.id
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN transactions t ON ti.transaction_id = t.id
-		WHERE t.transaction_date BETWEEN ? AND ? AND t.status = 'completed'
+		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
 		GROUP BY c.id, c.name ORDER BY total_sales DESC LIMIT ?`
 
 	paymentMethodsQuery = `
 		SELECT payment_method, COUNT(*) as count, SUM(total_amount) as total
-		FROM transactions WHERE transaction_date BETWEEN ? AND ? AND status = 'completed'
+		FROM transactions WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
 		GROUP BY payment_method`
 
 	lowStockCountQuery        = `SELECT COUNT(*) FROM products WHERE stock <= min_stock AND is_active = 1`
@@ -74,7 +81,7 @@ const (
 	highestTransactionQuery = `
 		SELECT COALESCE(MAX(total_amount),0) as total_amount, COALESCE(transaction_code,'') as transaction_code
 		FROM transactions
-		WHERE transaction_date BETWEEN ? AND ? AND status = 'completed'
+		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
 		ORDER BY total_amount DESC LIMIT 1`
 
 	peakHourQuery = `
@@ -82,7 +89,7 @@ const (
 		FROM (
 			SELECT HOUR(transaction_date) as hour, COUNT(*) as count
 			FROM transactions
-			WHERE transaction_date BETWEEN ? AND ? AND status = 'completed'
+			WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
 			GROUP BY HOUR(transaction_date)
 			ORDER BY count DESC LIMIT 1
 		) sub RIGHT JOIN (SELECT 1) dummy ON 1=1`
@@ -90,7 +97,7 @@ const (
 	avgTransactionQuery = `
 		SELECT COALESCE(AVG(total_amount),0) as avg_amount, COUNT(*) as total_count
 		FROM transactions
-		WHERE transaction_date BETWEEN ? AND ? AND status = 'completed'`
+		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'`
 )
 
 
@@ -108,6 +115,24 @@ func (r *dashboardRepo) GetTodayExpenses(date string) (float64, error) {
 	row := r.db.Raw(todayExpensesQuery, date).Row()
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("GetTodayExpenses: %w", err)
+	}
+	return total, nil
+}
+
+func (r *dashboardRepo) GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error) {
+	var result dto.TodayStats
+	row := r.db.Raw(rangeStatsQuery, startDate, endDate).Row()
+	if err := row.Scan(&result.TotalTransactions, &result.TotalSales, &result.TotalDiscount); err != nil {
+		return nil, fmt.Errorf("GetStatsByRange: %w", err)
+	}
+	return &result, nil
+}
+
+func (r *dashboardRepo) GetExpensesByRange(startDate, endDate string) (float64, error) {
+	var total float64
+	row := r.db.Raw(rangeExpensesQuery, startDate, endDate).Row()
+	if err := row.Scan(&total); err != nil {
+		return 0, fmt.Errorf("GetExpensesByRange: %w", err)
 	}
 	return total, nil
 }

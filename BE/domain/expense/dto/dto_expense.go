@@ -19,7 +19,7 @@ type (
 
 	CreateRequest struct {
 		ExpenseDate   string  `json:"expense_date" validate:"required"`
-		Category      string  `json:"category" validate:"required,max=100"`
+		Category      string  `json:"category" validate:"required,max=100,notblank"`
 		Description   string  `json:"description" validate:"max=255"`
 		Amount        float64 `json:"amount" validate:"required,gt=0"`
 		PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`
@@ -34,7 +34,7 @@ type (
 	UpdateRequest struct {
 		ID            int     `json:"-"`
 		ExpenseDate   string  `json:"expense_date" validate:"required"`
-		Category      string  `json:"category" validate:"required,max=100"`
+		Category      string  `json:"category" validate:"required,max=100,notblank"`
 		Description   string  `json:"description" validate:"max=255"`
 		Amount        float64 `json:"amount" validate:"required,gt=0"`
 		PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash transfer card qris kredit"`

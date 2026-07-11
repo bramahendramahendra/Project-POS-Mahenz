@@ -3,11 +3,18 @@ import type { LucideIcon } from 'lucide-react'
 
 import { formatRupiah } from '@/shared/utils'
 
-import type { DashboardStats } from '../dashboard.types'
+import type { DashboardPeriod, DashboardStats } from '../dashboard.types'
 
 interface SummaryCardsProps {
   stats: DashboardStats | undefined
   isLoading: boolean
+  period: DashboardPeriod
+}
+
+const PERIOD_LABEL: Record<DashboardPeriod, string> = {
+  today: 'Hari Ini',
+  week: 'Minggu Ini',
+  month: 'Bulan Ini',
 }
 
 interface StatCardProps {
@@ -33,24 +40,25 @@ function StatCard({ icon: Icon, label, value, isLoading }: StatCardProps) {
   )
 }
 
-export function SummaryCards({ stats, isLoading }: SummaryCardsProps) {
+export function SummaryCards({ stats, isLoading, period }: SummaryCardsProps) {
+  const periodLabel = PERIOD_LABEL[period]
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
       <StatCard
         icon={ShoppingBag}
-        label="Transaksi Hari Ini"
+        label={`Transaksi ${periodLabel}`}
         value={String(stats?.today.total_transactions ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
         icon={Banknote}
-        label="Pendapatan Hari Ini"
+        label={`Pendapatan ${periodLabel}`}
         value={formatRupiah(stats?.today.total_sales ?? 0)}
         isLoading={isLoading}
       />
       <StatCard
         icon={TrendingUp}
-        label="Laba Kotor Hari Ini"
+        label={`Laba Kotor ${periodLabel}`}
         value={formatRupiah(stats?.today.gross_profit ?? 0)}
         isLoading={isLoading}
       />

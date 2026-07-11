@@ -17,7 +17,7 @@ const (
 	getPackageByIDQuery           = `SELECT pp.conversion_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id = ? LIMIT 1`
 	generateTransactionCodeQuery  = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
 	createTransactionQuery        = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createTransactionItemQuery    = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createTransactionItemQuery    = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	updateProductStockQuery       = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND (stock - reserved_qty) >= ?`
 	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery          = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
@@ -25,7 +25,8 @@ const (
 	createReceivableQuery         = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
 	updateReceivableVoidQuery     = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
 	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
-	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
+	getProductPurchasePriceQuery  = `SELECT purchase_price FROM products WHERE id = ? LIMIT 1`
+	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
 	getTransactionForVoidQuery    = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
 	getTransactionByIDQuery       = `
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
@@ -231,6 +232,13 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			return nil, err
 		}
 
+		// Snapshot harga beli produk saat ini agar laporan laba rugi historis tidak berubah
+		// jika harga beli produk diedit di kemudian hari
+		var purchasePrice float64
+		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&purchasePrice).Error; err != nil {
+			return nil, err
+		}
+
 		// Kurangi stok (atomic dengan cek stok >= qty dalam satuan dasar)
 		result := r.db.Exec(updateProductStockQuery, stockDeduct, item.ProductID, stockDeduct)
 		if result.Error != nil {
@@ -243,7 +251,7 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 		// Simpan item dengan unit_name dari master dan conversion_qty yang benar
 		if err := r.db.Exec(createTransactionItemQuery,
 			transactionID, item.ProductID, item.ProductName,
-			item.Quantity, unitName, item.Price, item.Subtotal,
+			item.Quantity, unitName, item.Price, purchasePrice, item.Subtotal,
 			item.DiscountItem, conversionQty, item.UnitID,
 		).Error; err != nil {
 			return nil, err
@@ -372,7 +380,7 @@ func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, 
 		var item model.TransactionItem
 		if err := rows.Scan(
 			&item.ID, &item.TransactionID, &item.ProductID, &item.ProductName,
-			&item.Quantity, &item.Unit, &item.Price, &item.Subtotal,
+			&item.Quantity, &item.Unit, &item.Price, &item.PurchasePrice, &item.Subtotal,
 			&item.DiscountItem, &item.ConversionQty, &item.UnitID,
 		); err != nil {
 			return nil, err
@@ -439,13 +447,18 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, localID string) (
 				return err
 			}
 
+			var purchasePrice float64
+			if err := db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&purchasePrice).Error; err != nil {
+				return err
+			}
+
 			if err := db.Exec(updateProductStockQuery, item.Quantity, item.ProductID, item.Quantity).Error; err != nil {
 				return err
 			}
 
 			if err := db.Exec(createTransactionItemQuery,
 				transactionID, item.ProductID, item.ProductName,
-				item.Quantity, item.Unit, item.Price, item.Subtotal,
+				item.Quantity, item.Unit, item.Price, purchasePrice, item.Subtotal,
 				item.DiscountItem, item.ConversionQty, item.UnitID,
 			).Error; err != nil {
 				return err

@@ -5,16 +5,31 @@ import (
 	"time"
 )
 
-func (s *dashboardService) GetStats(date string) (*dto.StatsResponse, error) {
-	if date == "" {
-		date = time.Now().Format("2006-01-02")
+// periodToDateRange menerjemahkan periode dashboard ("today"/"week"/"month") menjadi
+// rentang tanggal (format YYYY-MM-DD, tanpa komponen jam — dibandingkan via DATE(...) di repo).
+func periodToDateRange(period string) (startDate, endDate string) {
+	now := time.Now()
+	end := now.Format("2006-01-02")
+	switch period {
+	case "week":
+		start := now.AddDate(0, 0, -6).Format("2006-01-02")
+		return start, end
+	case "month":
+		start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).Format("2006-01-02")
+		return start, end
+	default: // "today"
+		return end, end
 	}
+}
 
-	todayStats, err := s.repo.GetTodayStats(date)
+func (s *dashboardService) GetStats(period string) (*dto.StatsResponse, error) {
+	startDate, endDate := periodToDateRange(period)
+
+	todayStats, err := s.repo.GetStatsByRange(startDate, endDate)
 	if err != nil {
 		return nil, err
 	}
-	todayExpenses, err := s.repo.GetTodayExpenses(date)
+	todayExpenses, err := s.repo.GetExpensesByRange(startDate, endDate)
 	if err != nil {
 		return nil, err
 	}

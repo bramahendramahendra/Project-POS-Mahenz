@@ -12,7 +12,7 @@ import { TopProductsTable } from './components/TopProductsTable'
 export function DashboardPage() {
   const [period, setPeriod] = useState<DashboardPeriod>('today')
 
-  const { data: statsData, isLoading: statsLoading } = useDashboardStatsQuery()
+  const { data: statsData, isLoading: statsLoading } = useDashboardStatsQuery(period)
   const { data: trendData, isLoading: trendLoading } = useSalesTrendQuery(period)
   const { data: topData, isLoading: topLoading } = useTopProductsQuery(period)
 
@@ -26,7 +26,7 @@ export function DashboardPage() {
         <DashboardPeriodSelector period={period} onChange={setPeriod} />
       </div>
 
-      <SummaryCards stats={statsData} isLoading={statsLoading} />
+      <SummaryCards stats={statsData} isLoading={statsLoading} period={period} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-lg border bg-white p-4 shadow-sm space-y-3">

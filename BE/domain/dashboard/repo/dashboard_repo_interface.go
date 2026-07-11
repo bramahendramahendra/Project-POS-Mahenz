@@ -10,6 +10,8 @@ type (
 	DashboardRepoInterface interface {
 		GetTodayStats(date string) (*dto.TodayStats, error)
 		GetTodayExpenses(date string) (float64, error)
+		GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error)
+		GetExpensesByRange(startDate, endDate string) (float64, error)
 		GetMonthStats() (*dto.MonthStats, error)
 		GetMonthExpenses() (float64, error)
 		GetLowStockCount() (int64, error)
