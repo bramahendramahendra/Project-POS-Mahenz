@@ -1,4 +1,3 @@
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible'
 import { formatDateTime } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -7,33 +6,33 @@ import type { SyncHistoryItem } from '../sync.types'
 const STATUS_STYLE: Record<string, string> = {
   success: 'bg-green-100 text-green-700',
   partial: 'bg-yellow-100 text-yellow-700',
-  error: 'bg-red-100 text-red-700',
+  failed: 'bg-red-100 text-red-700',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   success: 'Sukses',
   partial: 'Sebagian',
-  error: 'Error',
+  failed: 'Gagal',
 }
 
-interface SyncHistoryColumnHandlers {
-  expandedId: number | null
-  onToggleExpand: (id: number) => void
-}
-
-export function buildSyncHistoryColumns({ expandedId, onToggleExpand }: SyncHistoryColumnHandlers): ColumnDef<SyncHistoryItem>[] {
+export function buildSyncHistoryColumns(): ColumnDef<SyncHistoryItem>[] {
   return [
     {
-      key: 'created_at',
+      key: 'started_at',
       header: 'Waktu Sync',
       cell: (row) => (
-        <span className="text-sm text-gray-600">{formatDateTime(row.created_at)}</span>
+        <span className="text-sm text-gray-600">{formatDateTime(row.started_at)}</span>
       ),
     },
     {
-      key: 'device_info',
+      key: 'device_id',
       header: 'Perangkat',
-      cell: (row) => <span className="font-medium text-sm">{row.device_info}</span>,
+      cell: (row) => (
+        <span className="font-medium text-sm">
+          {row.device_id}
+          <span className="ml-1.5 text-xs text-gray-400 font-normal">({row.device_type})</span>
+        </span>
+      ),
     },
     {
       key: 'status',
@@ -48,39 +47,46 @@ export function buildSyncHistoryColumns({ expandedId, onToggleExpand }: SyncHist
       ),
     },
     {
-      key: 'synced_count',
+      key: 'synced_items',
       header: 'Tersync',
       align: 'right',
-      cell: (row) => <span className="text-green-600 font-medium">{row.synced_count}</span>,
+      cell: (row) => <span className="text-green-600 font-medium">{row.synced_items}</span>,
     },
     {
-      key: 'error_count',
-      header: 'Error',
+      key: 'conflict_items',
+      header: 'Konflik',
       align: 'right',
       cell: (row) => (
-        <span className={row.error_count > 0 ? 'text-red-600 font-medium' : 'text-gray-400'}>
-          {row.error_count}
+        <span className={row.conflict_items > 0 ? 'text-orange-600 font-medium' : 'text-gray-400'}>
+          {row.conflict_items}
         </span>
       ),
     },
     {
-      key: 'message',
-      header: 'Pesan',
-      cell: (row) =>
-        row.message ? (
-          <Collapsible open={expandedId === row.id} onOpenChange={() => onToggleExpand(row.id)}>
-            <CollapsibleTrigger className="text-xs text-blue-600 hover:underline">
-              {expandedId === row.id ? 'Sembunyikan' : 'Lihat pesan'}
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <p className="mt-1 text-xs text-gray-600 bg-gray-50 rounded p-2 max-w-xs">
-                {row.message}
-              </p>
-            </CollapsibleContent>
-          </Collapsible>
-        ) : (
-          <span className="text-xs text-gray-400">—</span>
-        ),
+      key: 'failed_items',
+      header: 'Gagal',
+      align: 'right',
+      cell: (row) => (
+        <span className={row.failed_items > 0 ? 'text-red-600 font-medium' : 'text-gray-400'}>
+          {row.failed_items}
+        </span>
+      ),
+    },
+    {
+      key: 'pending_items',
+      header: 'Menunggu',
+      align: 'right',
+      cell: (row) => (
+        <span className={row.pending_items > 0 ? 'text-blue-600 font-medium' : 'text-gray-400'}>
+          {row.pending_items}
+        </span>
+      ),
+    },
+    {
+      key: 'duration_ms',
+      header: 'Durasi',
+      align: 'right',
+      cell: (row) => <span className="text-xs text-gray-500">{row.duration_ms} ms</span>,
     },
   ]
 }

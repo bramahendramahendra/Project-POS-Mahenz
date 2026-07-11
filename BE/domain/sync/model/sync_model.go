@@ -10,6 +10,7 @@ type SyncHistory struct {
 	SyncedItems   int        `gorm:"column:synced_items"`
 	ConflictItems int        `gorm:"column:conflict_items"`
 	FailedItems   int        `gorm:"column:failed_items"`
+	PendingItems  int        `gorm:"column:pending_items"`
 	DurationMs    int        `gorm:"column:duration_ms"`
 	Status        string     `gorm:"column:status"`
 	StartedAt     time.Time  `gorm:"column:started_at"`

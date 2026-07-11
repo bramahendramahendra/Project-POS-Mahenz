@@ -3,9 +3,13 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { PaginatedData } from '@/shared/types'
 
-import type { SyncConflict, SyncFilter, SyncHistoryItem } from './sync.types'
+import type {
+  ConflictListResponse,
+  QueueListResponse,
+  SyncFilter,
+  SyncHistoryListResponse,
+} from './sync.types'
 
 export function useSyncStatusQuery(enabled = true) {
   return useQuery({
@@ -19,17 +23,29 @@ export function useSyncStatusQuery(enabled = true) {
 export function useSyncHistoryQuery(filter?: SyncFilter) {
   return useQuery({
     queryKey: queryKeys.sync.history(filter as unknown as Record<string, unknown>),
-    queryFn: () => api.get<PaginatedData<SyncHistoryItem>>('/sync/history', filter),
+    queryFn: () => api.get<SyncHistoryListResponse>('/sync/history', filter),
   })
 }
 
 export function useSyncConflictsQuery() {
   return useQuery({
     queryKey: queryKeys.sync.conflicts(),
-    queryFn: () => api.get<SyncConflict[]>('/sync/conflicts'),
+    queryFn: () => api.get<ConflictListResponse>('/sync/conflicts'),
   })
 }
 
+export function useSyncQueueQuery(filter?: SyncFilter) {
+  return useQuery({
+    queryKey: queryKeys.sync.queue(filter as unknown as Record<string, unknown>),
+    queryFn: () => api.get<QueueListResponse>('/sync/queue', filter),
+  })
+}
+
+// Semantik backend (BE/domain/sync/service/sync_service.go): 'approve' = terapkan data
+// offline/lokal ke server, 'reject' = buang data offline, pertahankan data server (dan untuk
+// transaksi, kembalikan stok yang sempat dikurangi). Ini kebalikan dari istilah "approve"
+// sehari-hari, jadi mapping ke pilihan user ("terima data server" vs "pakai data lokal")
+// dibalik di sini — lihat ConflictList.tsx.
 export function useResolveConflictMutation() {
   const qc = useQueryClient()
   return useMutation({
@@ -50,7 +66,11 @@ export function useTriggerSyncMutation() {
     mutationFn: () => api.post<void>('/sync/push', {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sync.status() })
-      qc.invalidateQueries({ queryKey: queryKeys.sync.history() })
+      // Query nyata selalu menyertakan filter {page, limit} di key (lihat
+      // queryKeys.sync.history di atas) — invalidate pakai prefix tanpa filter
+      // supaya cocok dengan SEMUA variasi filter yang mungkin ter-cache, bukan
+      // hanya key persis ['sync','history',undefined] yang tidak pernah ada.
+      qc.invalidateQueries({ queryKey: ['sync', 'history'] })
       toast.success('Sinkronisasi manual dimulai')
     },
     onError: (e: Error) => toast.error(e.message),

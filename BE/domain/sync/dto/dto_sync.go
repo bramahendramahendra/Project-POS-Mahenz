@@ -134,6 +134,7 @@ type SyncHistoryResponse struct {
 	SyncedItems   int     `json:"synced_items"`
 	ConflictItems int     `json:"conflict_items"`
 	FailedItems   int     `json:"failed_items"`
+	PendingItems  int     `json:"pending_items"`
 	DurationMs    int     `json:"duration_ms"`
 	Status        string  `json:"status"`
 	StartedAt     string  `json:"started_at"`

@@ -1,27 +1,62 @@
-export type ConflictType = 'product' | 'transaction' | 'customer' | 'stock'
-export type ConflictResolution = 'pending' | 'approved' | 'rejected'
-
-export interface SyncHistoryItem {
-  id: number
-  device_info: string
-  status: 'success' | 'partial' | 'error'
-  synced_count: number
-  error_count: number
-  message?: string
-  created_at: string
-}
+export type EntityType = 'product' | 'transaction' | 'expense'
 
 export interface SyncConflict {
   id: number
-  conflict_type: ConflictType
+  entity_type: EntityType | string
   entity_id: number
-  entity_name: string
-  server_data: Record<string, unknown>
-  local_data: Record<string, unknown>
-  device_info: string
-  resolution: ConflictResolution
+  local_id: string
+  device_id: string
+  desktop_data: string
+  online_data: string
+  desktop_time: string
+  online_time: string
+  status: 'pending' | 'resolved'
   created_at: string
-  resolved_at?: string
+}
+
+export interface ConflictListResponse {
+  data: SyncConflict[]
+  total: number
+  page: number
+  limit: number
+}
+
+export interface SyncQueueItem {
+  id: number
+  device_id: string
+  entity_type: EntityType | string
+  entity_id: number
+  action: 'create' | 'update' | 'delete'
+  status: 'pending' | 'syncing' | 'synced' | 'failed'
+  retry_count: number
+  created_at: string
+}
+
+export interface QueueListResponse {
+  data: SyncQueueItem[]
+  total: number
+}
+
+export interface SyncHistoryItem {
+  id: number
+  device_id: string
+  device_type: 'desktop' | 'web' | 'android'
+  total_items: number
+  synced_items: number
+  conflict_items: number
+  failed_items: number
+  pending_items: number
+  duration_ms: number
+  status: 'success' | 'partial' | 'failed'
+  started_at: string
+  finished_at: string | null
+}
+
+export interface SyncHistoryListResponse {
+  data: SyncHistoryItem[]
+  total: number
+  page: number
+  limit: number
 }
 
 export interface SyncFilter {

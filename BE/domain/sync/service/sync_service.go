@@ -196,6 +196,7 @@ func (s *syncService) saveSyncHistory(deviceID, deviceType string, results []dto
 		SyncedItems:   synced,
 		ConflictItems: conflict,
 		FailedItems:   failed,
+		PendingItems:  pending,
 		DurationMs:    int(now.Sub(startedAt).Milliseconds()),
 		Status:        status,
 		StartedAt:     startedAt,

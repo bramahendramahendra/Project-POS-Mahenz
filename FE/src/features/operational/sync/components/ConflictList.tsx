@@ -10,11 +10,19 @@ import {
 } from '../sync.api'
 import type { SyncConflict } from '../sync.types'
 
-const CONFLICT_TYPE_LABEL: Record<string, string> = {
+const ENTITY_TYPE_LABEL: Record<string, string> = {
   product: 'PRODUK',
   transaction: 'TRANSAKSI',
-  customer: 'PELANGGAN',
-  stock: 'STOK',
+  expense: 'PENGELUARAN',
+}
+
+function parseJsonSafe(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw)
+    return typeof parsed === 'object' && parsed !== null ? parsed : {}
+  } catch {
+    return {}
+  }
 }
 
 function DataDiff({
@@ -44,7 +52,7 @@ function DataDiff({
         })}
       </div>
       <div className="space-y-1">
-        <p className="font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Data Lokal</p>
+        <p className="font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Data Lokal (Offline)</p>
         {allKeys.map((key) => {
           const isDiff = String(serverData[key]) !== String(localData[key])
           return (
@@ -63,12 +71,14 @@ function DataDiff({
 }
 
 function ConflictCard({ conflict }: { conflict: SyncConflict }) {
-  const [approveOpen, setApproveOpen] = useState(false)
-  const [rejectOpen, setRejectOpen] = useState(false)
+  const [keepServerOpen, setKeepServerOpen] = useState(false)
+  const [useLocalOpen, setUseLocalOpen] = useState(false)
 
   const { mutate: resolve, isPending: isResolving } = useResolveConflictMutation()
-  const isApproving = isResolving
-  const isRejecting = isResolving
+
+  const serverData = parseJsonSafe(conflict.online_data)
+  const localData = parseJsonSafe(conflict.desktop_data)
+  const entityLabel = ENTITY_TYPE_LABEL[conflict.entity_type] ?? conflict.entity_type.toUpperCase()
 
   return (
     <div className="rounded-xl border border-orange-200 bg-white p-4 space-y-2">
@@ -76,64 +86,65 @@ function ConflictCard({ conflict }: { conflict: SyncConflict }) {
         <div className="flex items-center gap-2">
           <span>⚠️</span>
           <span className="font-semibold text-gray-800">
-            KONFLIK {CONFLICT_TYPE_LABEL[conflict.conflict_type] ?? conflict.conflict_type} —{' '}
-            {conflict.entity_name}
+            KONFLIK {entityLabel} — #{conflict.entity_id}
           </span>
         </div>
       </div>
 
       <p className="text-xs text-gray-500">
-        Perangkat: <span className="font-medium">{conflict.device_info}</span> ·{' '}
+        Perangkat: <span className="font-medium">{conflict.device_id}</span> ·{' '}
         {formatDateTime(conflict.created_at)}
       </p>
 
-      <DataDiff serverData={conflict.server_data} localData={conflict.local_data} />
+      <DataDiff serverData={serverData} localData={localData} />
 
       <div className="flex gap-2 justify-end pt-2 border-t">
         <Button
           size="sm"
           variant="outline"
           className="text-red-600 border-red-200 hover:bg-red-50"
-          onClick={() => setRejectOpen(true)}
-          disabled={isApproving || isRejecting}
+          onClick={() => setUseLocalOpen(true)}
+          disabled={isResolving}
         >
-          ✗ Tolak
+          ✗ Pakai Data Lokal
         </Button>
         <Button
           size="sm"
-          onClick={() => setApproveOpen(true)}
-          disabled={isApproving || isRejecting}
+          onClick={() => setKeepServerOpen(true)}
+          disabled={isResolving}
         >
           ✓ Terima Server
         </Button>
       </div>
 
+      {/* Semantik BE: action='reject' = buang data offline, pertahankan data server. */}
       <ConfirmDialog
-        open={approveOpen}
-        onOpenChange={setApproveOpen}
+        open={keepServerOpen}
+        onOpenChange={setKeepServerOpen}
         title="Terima Data Server"
-        description={`Data server akan digunakan untuk "${conflict.entity_name}". Data lokal akan dibuang. Lanjutkan?`}
+        description={`Data server akan dipertahankan untuk "${entityLabel} #${conflict.entity_id}". Data lokal (offline) akan dibuang. Lanjutkan?`}
         confirmLabel="Terima Server"
-        isLoading={isApproving}
-        onConfirm={() => resolve({ id: conflict.id, action: 'approve' }, { onSuccess: () => setApproveOpen(false) })}
+        isLoading={isResolving}
+        onConfirm={() => resolve({ id: conflict.id, action: 'reject' }, { onSuccess: () => setKeepServerOpen(false) })}
       />
+      {/* Semantik BE: action='approve' = terapkan data offline ke server. */}
       <ConfirmDialog
-        open={rejectOpen}
-        onOpenChange={setRejectOpen}
-        title="Tolak Data Server"
-        description={`Data lokal akan digunakan untuk "${conflict.entity_name}". Data server akan dibuang. Lanjutkan?`}
+        open={useLocalOpen}
+        onOpenChange={setUseLocalOpen}
+        title="Pakai Data Lokal"
+        description={`Data lokal (offline) akan diterapkan untuk "${entityLabel} #${conflict.entity_id}", menimpa data server. Lanjutkan?`}
         confirmLabel="Pakai Data Lokal"
         variant="destructive"
-        isLoading={isRejecting}
-        onConfirm={() => resolve({ id: conflict.id, action: 'reject' }, { onSuccess: () => setRejectOpen(false) })}
+        isLoading={isResolving}
+        onConfirm={() => resolve({ id: conflict.id, action: 'approve' }, { onSuccess: () => setUseLocalOpen(false) })}
       />
     </div>
   )
 }
 
 export function ConflictList() {
-  const { data: conflicts, isLoading } = useSyncConflictsQuery()
-  const list = conflicts ?? []
+  const { data, isLoading } = useSyncConflictsQuery()
+  const list = data?.data ?? []
 
   if (isLoading) {
     return (

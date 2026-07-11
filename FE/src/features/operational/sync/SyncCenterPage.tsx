@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/components'
 import { useSyncStatus } from './hooks/useSyncStatus'
 import { ConflictList } from './components/ConflictList'
 import { SyncHistoryTable } from './components/SyncHistoryTable'
+import { SyncQueueTable } from './components/SyncQueueTable'
 import { SyncStatusCard } from './components/SyncStatusCard'
 
 export function SyncCenterPage() {
@@ -28,6 +29,11 @@ export function SyncCenterPage() {
           <ConflictList />
         </section>
       )}
+
+      <section className="space-y-3">
+        <h3 className="font-semibold text-gray-700">Antrian Sync</h3>
+        <SyncQueueTable />
+      </section>
 
       <section className="space-y-3">
         <h3 className="font-semibold text-gray-700">Riwayat Sinkronisasi</h3>
