@@ -60,7 +60,7 @@ Server production (disarankan Ubuntu 22.04 LTS atau sejenis) perlu:
 
 | Software | Versi Minimal | Kegunaan |
 |---|---|---|
-| Go | 1.24.5 | Compile backend (hanya dibutuhkan saat build, tidak wajib di server jika build dilakukan di tempat lain / CI) |
+| Go | Versi terbaru (≥ 1.24.5) | Compile backend (hanya dibutuhkan saat build, tidak wajib di server jika build dilakukan di tempat lain / CI) |
 | MySQL | 8.0 | Database utama |
 | Node.js | 18+ | Build frontend (hanya saat build) |
 | Nginx | 1.18+ | Web server / reverse proxy |
@@ -97,16 +97,17 @@ Disallow root login remotely? | Y
 Remove test database and access to it? | Y
 Reload privilege tables now? | Y
 
-
 # Install Git
 sudo apt install -y git
 
-# Install Go 1.24.5
-wget https://go.dev/dl/go1.24.5.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.24.5.linux-amd64.tar.gz
+# Install Go versi terbaru (ikuti panduan resmi https://go.dev/learn/)
+# Ambil nama file tarball terbaru secara otomatis dari go.dev, lalu unduh & pasang
+GO_TARBALL=$(curl -s https://go.dev/VERSION?m=text | head -n1)
+wget https://go.dev/dl/${GO_TARBALL}.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf ${GO_TARBALL}.linux-amd64.tar.gz
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
 source ~/.bashrc
-go version   # pastikan output: go1.24.5
+go version   # pastikan versi ≥ go1.24.5 (versi minimal yang diminta go.mod project ini)
 
 # Install Node.js 20 LTS (via NodeSource)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
