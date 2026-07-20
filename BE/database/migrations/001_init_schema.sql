@@ -235,6 +235,7 @@ CREATE TABLE IF NOT EXISTS purchases (
     paid_amount      DECIMAL(15,2) DEFAULT 0,
     payment_method   VARCHAR(30)   NOT NULL DEFAULT 'cash',
     remaining_amount DECIMAL(15,2) DEFAULT 0,
+    status           ENUM('active', 'void') NOT NULL DEFAULT 'active',
     user_id          INT           NULL,
     notes            TEXT          NULL,
     created_at       DATETIME      DEFAULT CURRENT_TIMESTAMP,
@@ -463,7 +464,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 CREATE TABLE IF NOT EXISTS stock_mutations (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     product_id     INT                                  NULL,
-    mutation_type  ENUM('in','out','adjustment','void') NOT NULL,
+    mutation_type  ENUM('in','out','adjustment','void','return','void_purchase') NOT NULL,
     quantity       DECIMAL(15,3)                        NOT NULL,
     stock_before   DECIMAL(15,3)                        NOT NULL,
     stock_after    DECIMAL(15,3)                        NOT NULL,
