@@ -6,6 +6,7 @@ import { queryKeys } from '@/shared/constants'
 import type { PaginatedData } from '@/shared/types'
 
 import type {
+  AddPurchaseItemsPayload,
   CreateSupplierPurchasePayload,
   PurchasePayment,
   SupplierPurchase,
@@ -79,6 +80,31 @@ export function useDeleteSupplierPurchaseMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
       toast.success('Pembelian berhasil dihapus')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useVoidSupplierPurchaseMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/supplier-purchases/void/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
+      toast.success('Pembelian berhasil di-void')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useAddPurchaseItemsMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, items }: AddPurchaseItemsPayload) =>
+      api.post<SupplierPurchase>(`/supplier-purchases/${id}/add-items`, { items }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.supplierPurchases.all() })
+      toast.success('Item berhasil ditambahkan ke pembelian')
     },
     onError: (e: Error) => toast.error(e.message),
   })

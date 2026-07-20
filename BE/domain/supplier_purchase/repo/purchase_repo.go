@@ -6,6 +6,7 @@ import (
 
 	dto "pos_api/domain/supplier_purchase/dto"
 	model "pos_api/domain/supplier_purchase/model"
+	"pos_api/errors"
 	request_helper "pos_api/helper/request"
 
 	"gorm.io/gorm"
@@ -24,14 +25,32 @@ const (
 	deleteStockMutationsQuery  = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
 	deletePurchaseItemsQuery   = `DELETE FROM purchase_items WHERE purchase_id = ?`
 	deletePurchaseQuery        = `DELETE FROM purchases WHERE id = ?`
-	getPurchaseByIDQuery       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
-	getRawPurchaseByIDQuery    = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes FROM purchases WHERE id = ?`
-	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
+	getPurchaseByIDQuery       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
+	getRawPurchaseByIDQuery    = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
+	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
 	countPurchasesBase         = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
 	createStockMutationQuery   = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getProductStockQuery       = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
+
+	getPurchaseForVoidQuery   = `SELECT status, paid_amount FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
+	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', updated_at = NOW() WHERE id = ?`
+	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
+	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
+
+// calculateTotal menghitung subtotal & total dari daftar item pembelian.
+// Diekstrak dari Create/Update supaya tidak duplikasi logic (dan dipakai juga oleh AddItems).
+func calculateTotal(items []dto.PurchaseRequest, discountAmount float64) (subtotal float64, totalAmount float64) {
+	for _, item := range items {
+		subtotal += item.PurchasePrice * item.Quantity
+	}
+	totalAmount = subtotal - discountAmount
+	if totalAmount < 0 {
+		totalAmount = 0
+	}
+	return subtotal, totalAmount
+}
 
 func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error) {
 	var args []interface{}
@@ -89,7 +108,7 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 		if err := rows.Scan(
 			&item.ID, &item.PurchaseCode, &item.InvoiceNumber, &item.SupplierID, &item.SupplierName,
 			&item.PurchaseDate, &item.DiscountAmount, &item.TotalAmount, &item.PaymentStatus,
-			&item.PaidAmount, &item.RemainingAmount, &item.UserName, &item.Notes,
+			&item.PaidAmount, &item.RemainingAmount, &item.Status, &item.UserName, &item.Notes,
 		); err != nil {
 			return nil, 0, err
 		}
@@ -116,7 +135,7 @@ func (r *purchaseRepo) GetByID(id int) (*model.PurchaseRow, error) {
 	if err := rows.Scan(
 		&item.ID, &item.PurchaseCode, &item.InvoiceNumber, &item.SupplierID, &item.SupplierName,
 		&item.PurchaseDate, &item.DiscountAmount, &item.TotalAmount, &item.PaymentStatus,
-		&item.PaidAmount, &item.RemainingAmount, &item.UserName, &item.Notes,
+		&item.PaidAmount, &item.RemainingAmount, &item.Status, &item.UserName, &item.Notes,
 	); err != nil {
 		return nil, err
 	}
@@ -205,14 +224,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 		}
 		code := fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1)
 
-		var subtotal float64
-		for _, item := range req.Items {
-			subtotal += item.PurchasePrice * item.Quantity
-		}
-		totalAmount := subtotal - req.DiscountAmount
-		if totalAmount < 0 {
-			totalAmount = 0
-		}
+		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
 
 		paymentStatus := req.PaymentStatus
 		if paymentStatus == "" {
@@ -315,14 +327,7 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
-		var subtotal float64
-		for _, item := range req.Items {
-			subtotal += item.PurchasePrice * item.Quantity
-		}
-		totalAmount := subtotal - req.DiscountAmount
-		if totalAmount < 0 {
-			totalAmount = 0
-		}
+		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
 
 		paymentStatus := req.PaymentStatus
 		if paymentStatus == "" {
@@ -337,10 +342,19 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 		}
 		remainingAmount := totalAmount - paidAmount
 
+		// payment_method punya FK constraint ke payment_methods(code) — kolom ini NOT NULL
+		// DEFAULT 'cash' di skema, tapi UPDATE eksplisit tidak otomatis jatuh ke default itu
+		// seperti INSERT yang mengosongkan kolom. Default manual di sini supaya konsisten
+		// dengan Create() dan tidak pernah kirim string kosong ke kolom ber-FK.
+		paymentMethod := req.PaymentMethod
+		if paymentMethod == "" {
+			paymentMethod = "cash"
+		}
+
 		if err := tx.Exec(
 			`UPDATE purchases SET invoice_number=?, supplier_id=?, purchase_date=?, discount_amount=?, total_amount=?, payment_status=?, paid_amount=?, payment_method=?, remaining_amount=?, notes=?, updated_at=NOW() WHERE id=?`,
 			req.InvoiceNumber, req.SupplierID, req.PurchaseDate, req.DiscountAmount, totalAmount,
-			paymentStatus, paidAmount, req.PaymentMethod, remainingAmount, req.Notes, req.ID,
+			paymentStatus, paidAmount, paymentMethod, remainingAmount, req.Notes, req.ID,
 		).Error; err != nil {
 			return err
 		}
@@ -420,4 +434,136 @@ func (r *purchaseRepo) Pay(req *dto.PayRequest) error {
 		}
 		return tx.Exec(createPaymentQuery, req.ID, paymentDate, req.Amount, req.PaymentMethod, req.Notes, req.UserID).Error
 	})
+}
+
+func (r *purchaseRepo) CountReturnsByPurchaseID(purchaseID int) (int64, error) {
+	var count int64
+	if err := r.db.Raw(countReturnsByPurchaseQry, purchaseID).Scan(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// Void mengunci baris PO (FOR UPDATE), menandai status void, lalu mengembalikan
+// stok tiap item ke produk dan mencatat mutasi stok baru (tidak menghapus histori lama),
+// meniru pola transaction_repo.go Void.
+func (r *purchaseRepo) Void(id int, userID int) error {
+	var lockData struct {
+		Status     string
+		PaidAmount float64
+	}
+	if err := r.db.Raw(getPurchaseForVoidQuery, id).Scan(&lockData).Error; err != nil {
+		return err
+	}
+
+	// Re-cek di dalam row lock supaya aman dari race condition (mis. dua klik void
+	// bersamaan): request kedua baru bisa lanjut setelah request pertama commit,
+	// dan pada titik itu status sudah 'void' sehingga ditolak di sini.
+	if lockData.Status == "void" {
+		return &errors.BadRequestError{Message: "PO sudah di-void"}
+	}
+	if lockData.PaidAmount > 0 {
+		return &errors.BadRequestError{Message: "PO tidak bisa di-void karena sudah ada pembayaran"}
+	}
+
+	if err := r.db.Exec(voidPurchaseQuery, id).Error; err != nil {
+		return err
+	}
+
+	items, err := r.GetItems(id)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range items {
+		convQty := item.ConversionQty
+		if convQty <= 0 {
+			convQty = 1
+		}
+		stockRestore := item.Quantity * convQty
+
+		var stockBefore float64
+		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
+			return err
+		}
+
+		if err := r.db.Exec(rollbackStockQuery, stockRestore, item.ProductID).Error; err != nil {
+			return err
+		}
+
+		stockAfter := stockBefore - stockRestore
+		notes := fmt.Sprintf("Void purchase order ID %d", id)
+		if err := r.db.Exec(createStockMutationQuery,
+			item.ProductID, "void_purchase", stockRestore, stockBefore, stockAfter,
+			"purchase", id, notes, userID,
+		).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddItems menambahkan item baru ke PO yang sudah ada pembayaran, tanpa mengubah
+// item lama. Total dihitung ulang (total lama + subtotal item baru) dan payment_status
+// disesuaikan otomatis (paid_amount tetap).
+func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error) {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var current struct {
+			TotalAmount float64
+			PaidAmount  float64
+		}
+		if err := tx.Raw(`SELECT total_amount, paid_amount FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`, req.ID).Scan(&current).Error; err != nil {
+			return err
+		}
+
+		_, newItemsTotal := calculateTotal(req.Items, 0)
+
+		for _, item := range req.Items {
+			subtotal := item.PurchasePrice * item.Quantity
+			conversionQty := item.ConversionQty
+			if conversionQty <= 0 {
+				conversionQty = 1
+			}
+			stockAdd := item.Quantity * conversionQty
+
+			if err := tx.Exec(createPurchaseItemQuery,
+				req.ID, item.ProductID, item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
+			).Error; err != nil {
+				return err
+			}
+
+			var stockBefore float64
+			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Exec(addStockQuery, stockAdd, item.ProductID).Error; err != nil {
+				return err
+			}
+
+			stockAfter := stockBefore + stockAdd
+			notes := fmt.Sprintf("Tambah item PO ID %d", req.ID)
+			if err := tx.Exec(createStockMutationQuery,
+				item.ProductID, "in", stockAdd, stockBefore, stockAfter,
+				"purchase", req.ID, notes, req.UserID,
+			).Error; err != nil {
+				return err
+			}
+		}
+
+		newTotal := current.TotalAmount + newItemsTotal
+		newRemaining := newTotal - current.PaidAmount
+
+		if err := tx.Exec(updatePurchaseTotalsQuery, newTotal, newRemaining, newRemaining, req.ID).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(req.ID)
 }

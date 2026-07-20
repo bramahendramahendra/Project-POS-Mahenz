@@ -153,7 +153,7 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Create(&req)
+	data, err := h.service.Create(&req, helper.GetUserRole(c))
 	if err != nil {
 		c.Error(err)
 		return
@@ -186,7 +186,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Update(&req)
+	data, err := h.service.Update(&req, helper.GetUserRole(c))
 	if err != nil {
 		c.Error(err)
 		return

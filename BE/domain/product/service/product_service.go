@@ -139,7 +139,14 @@ func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse,
 	return data, nil
 }
 
-func (s *productService) Create(req *dto.CreateRequest) (data dto.ProductResponse, err error) {
+func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error) {
+	// Stok awal hanya boleh diisi manual oleh admin — role lain selalu mulai dari 0,
+	// stok berikutnya diisi lewat pembelian atau di-edit admin. Dicek di sini (bukan
+	// cuma FE) supaya tidak bisa dibypass dengan panggil API langsung.
+	if role != "admin" {
+		req.Stock = 0
+	}
+
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
 	if err != nil {
 		return data, err
@@ -191,13 +198,19 @@ func (s *productService) Create(req *dto.CreateRequest) (data dto.ProductRespons
 	return data, nil
 }
 
-func (s *productService) Update(req *dto.UpdateRequest) (data dto.ProductResponse, err error) {
+func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.ProductResponse, err error) {
 	existsUpdate, err := s.repo.GetByID(req.ID)
 	if err != nil {
 		return data, err
 	}
 	if existsUpdate == nil {
 		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	// Non-admin tidak boleh mengubah stok lewat form produk — nilai stok yang ada
+	// di DB dipertahankan apapun yang dikirim di request.
+	if role != "admin" {
+		req.Stock = existsUpdate.Stock
 	}
 
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, req.ID)

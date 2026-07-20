@@ -50,7 +50,10 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
             <InfoField label="Supplier" value={purchase.supplier_name || '—'} />
             <InfoField label="Dicatat Oleh" value={purchase.user_name || '—'} />
             <InfoField label="Status">
-              <StatusBadge status={purchase.payment_status} />
+              <div className="flex gap-1.5">
+                <StatusBadge status={purchase.payment_status} />
+                {purchase.status === 'void' && <StatusBadge status="void" />}
+              </div>
             </InfoField>
             {purchase.notes && (
               <div className="col-span-2">

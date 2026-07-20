@@ -16,8 +16,8 @@ type (
 		Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
 		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
-		Create(req *dto.CreateRequest) (data dto.ProductResponse, err error)
-		Update(req *dto.UpdateRequest) (data dto.ProductResponse, err error)
+		Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error)
+		Update(req *dto.UpdateRequest, role string) (data dto.ProductResponse, err error)
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
 

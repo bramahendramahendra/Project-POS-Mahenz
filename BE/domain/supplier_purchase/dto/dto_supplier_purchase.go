@@ -26,6 +26,10 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	VoidUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
 	GenerateCodeResponse struct {
 		PurchaseCode string `json:"purchase_code"`
 	}
@@ -64,6 +68,16 @@ type (
 		PaymentMethod  string            `json:"payment_method"`
 		Notes          string            `json:"notes"`
 		Items          []PurchaseRequest `json:"items" validate:"required,min=1,dive"`
+	}
+
+	AddItemsUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	AddItemsRequest struct {
+		ID     int               `json:"-"`
+		UserID int               `json:"-"`
+		Items  []PurchaseRequest `json:"items" validate:"required,min=1,dive"`
 	}
 
 	PayRequest struct {
@@ -109,6 +123,7 @@ type (
 		PaymentStatus   string                 `json:"payment_status"`
 		PaidAmount      float64                `json:"paid_amount"`
 		RemainingAmount float64                `json:"remaining_amount"`
+		Status          string                 `json:"status"`
 		UserName        string                 `json:"user_name"`
 		Notes           string                 `json:"notes"`
 		Items           []PurchaseItemResponse `json:"items,omitempty"`

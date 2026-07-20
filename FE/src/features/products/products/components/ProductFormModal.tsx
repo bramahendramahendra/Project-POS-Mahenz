@@ -17,6 +17,7 @@ import {
 } from '@/shared/components/ui/select'
 import { useUnitOptionsQuery } from '@/features/products/units'
 import { useCategoryOptionsQuery } from '@/features/products/categories'
+import { useAuth } from '@/features/auth'
 
 import {
   useCreateProductMutation,
@@ -64,6 +65,7 @@ const defaultValues: ProductFormValues = {
 export function ProductFormModal({ open, onOpenChange, product }: ProductFormModalProps) {
   const isEdit = product != null
   const productId = product?.id
+  const { isAdmin } = useAuth()
 
   const [generateSkuEnabled, setGenerateSkuEnabled] = useState(false)
   const [grosirEdits, setGrosirEdits] = useState<CreateProductPackagePayload[] | null>(null)
@@ -456,9 +458,13 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                   id="stock"
                   type="number"
                   min={0}
+                  readOnly={!isAdmin}
                   {...register('stock', { valueAsNumber: true })}
-                  className={errors.stock ? 'border-red-500' : ''}
+                  className={`${!isAdmin ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''} ${errors.stock ? 'border-red-500' : ''}`}
                 />
+                {!isAdmin && (
+                  <p className="text-xs text-gray-500">Hanya Admin yang bisa mengubah stok.</p>
+                )}
                 {errors.stock && <p className="text-xs text-red-500">{errors.stock.message}</p>}
               </div>
               <div className="space-y-1.5">

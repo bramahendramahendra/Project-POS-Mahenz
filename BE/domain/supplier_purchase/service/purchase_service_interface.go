@@ -15,6 +15,8 @@ type (
 		Delete(id int) error
 		Pay(req *dto.PayRequest) error
 		GetPayments(purchaseID int) (data []*dto.PaymentResponse, err error)
+		Void(id int, userID int) error
+		AddItems(req *dto.AddItemsRequest) (data dto.PurchaseResponse, err error)
 	}
 
 	purchaseService struct {

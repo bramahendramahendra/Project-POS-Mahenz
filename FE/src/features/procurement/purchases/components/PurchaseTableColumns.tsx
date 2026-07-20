@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, PackagePlus, Pencil, Trash2, Ban } from 'lucide-react'
 
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -13,10 +13,12 @@ export interface PurchaseColumnHandlers {
   onEdit: (purchase: SupplierPurchase) => void
   onPay: (purchase: SupplierPurchase) => void
   onDelete: (purchase: SupplierPurchase) => void
+  onVoid: (purchase: SupplierPurchase) => void
+  onAddItems: (purchase: SupplierPurchase) => void
 }
 
 export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDef<SupplierPurchase>[] {
-  const { onDetail, onEdit, onPay, onDelete } = handlers
+  const { onDetail, onEdit, onPay, onDelete, onVoid, onAddItems } = handlers
 
   return [
     {
@@ -61,7 +63,9 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
       header: 'Status',
       align: 'center',
       sortable: true,
-      cell: (row) => <StatusBadge status={row.payment_status} />,
+      cell: (row) => (
+        <StatusBadge status={row.status === 'void' ? 'void' : row.payment_status} />
+      ),
     },
     {
       key: 'remaining_amount',
@@ -80,65 +84,102 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
       header: 'Aksi',
       align: 'center',
       width: '140px',
-      cell: (row) => (
-        <div className="flex items-center justify-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-gray-500 hover:text-blue-600"
-                onClick={() => onDetail(row)}
-              >
-                <Eye size={14} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Detail</TooltipContent>
-          </Tooltip>
-          <RoleGuard menuKey="pengadaan.pembelian" action="can_edit">
-            {row.paid_amount === 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
+      cell: (row) => {
+        const isVoid = row.status === 'void'
+        return (
+          <div className="flex items-center justify-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                  onClick={() => onDetail(row)}
+                >
+                  <Eye size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Detail</TooltipContent>
+            </Tooltip>
+
+            {!isVoid && (
+              <RoleGuard menuKey="pengadaan.pembelian" action="can_edit">
+                {row.paid_amount === 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-gray-500 hover:text-indigo-600"
+                        onClick={() => onEdit(row)}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
+                )}
+                {row.payment_status !== 'unpaid' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-gray-500 hover:text-teal-600"
+                        onClick={() => onAddItems(row)}
+                      >
+                        <PackagePlus size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Tambah Item</TooltipContent>
+                  </Tooltip>
+                )}
+                {row.payment_status !== 'paid' && (
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-gray-500 hover:text-indigo-600"
-                    onClick={() => onEdit(row)}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => onPay(row)}
                   >
-                    <Pencil size={14} />
+                    Bayar
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>Edit</TooltipContent>
-              </Tooltip>
+                )}
+              </RoleGuard>
             )}
-            {row.payment_status !== 'paid' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => onPay(row)}
-              >
-                Bayar
-              </Button>
+
+            {!isVoid && row.paid_amount === 0 && (
+              <RoleGuard menuKey="pengadaan.pembelian" action="can_delete">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-gray-500 hover:text-red-600"
+                      onClick={() => onDelete(row)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Hapus</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-gray-500 hover:text-orange-600"
+                      onClick={() => onVoid(row)}
+                    >
+                      <Ban size={14} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Void</TooltipContent>
+                </Tooltip>
+              </RoleGuard>
             )}
-            {row.paid_amount === 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-gray-500 hover:text-red-600"
-                    onClick={() => onDelete(row)}
-                  >
-                    <Trash2 size={14} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Hapus</TooltipContent>
-              </Tooltip>
-            )}
-          </RoleGuard>
-        </div>
-      ),
+          </div>
+        )
+      },
     },
   ]
 }

@@ -7,11 +7,16 @@ import { monthStart, todayStr } from '@/shared/utils'
 
 import { useSupplierListQuery } from '@/features/procurement/suppliers'
 
-import { useSupplierPurchasesQuery, useDeleteSupplierPurchaseMutation } from '../purchases.api'
+import {
+  useSupplierPurchasesQuery,
+  useDeleteSupplierPurchaseMutation,
+  useVoidSupplierPurchaseMutation,
+} from '../purchases.api'
 import type { SupplierPurchase, SupplierPurchaseFilter } from '../purchases.types'
 import { PurchaseFilterBar } from './PurchaseFilterBar'
 import { PurchaseFormModal } from './PurchaseFormModal'
 import { PurchaseDetailModal } from './PurchaseDetailModal'
+import { PurchaseAddItemsModal } from './PurchaseAddItemsModal'
 import { PaymentModal } from './PaymentModal'
 import { buildPurchaseColumns } from './PurchaseTableColumns'
 
@@ -30,11 +35,15 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const { isOpen: payOpen, open: openPay, close: closePay } = useDisclosure()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: voidOpen, open: openVoid, close: closeVoid } = useDisclosure()
+  const { isOpen: addItemsOpen, open: openAddItems, close: closeAddItems } = useDisclosure()
 
   const [editingPurchase, setEditingPurchase] = useState<SupplierPurchase | null>(null)
   const [payingPurchase, setPayingPurchase] = useState<SupplierPurchase | null>(null)
   const [detailPurchase, setDetailPurchase] = useState<SupplierPurchase | null>(null)
   const [deletingPurchase, setDeletingPurchase] = useState<SupplierPurchase | null>(null)
+  const [voidingPurchase, setVoidingPurchase] = useState<SupplierPurchase | null>(null)
+  const [addItemsPurchase, setAddItemsPurchase] = useState<SupplierPurchase | null>(null)
 
   const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
   const suppliers = suppliersData?.data ?? []
@@ -44,6 +53,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const total = data?.total ?? 0
 
   const { mutate: deletePurchase   , isPending: isDeleting } = useDeleteSupplierPurchaseMutation()
+  const { mutate: voidPurchase, isPending: isVoiding } = useVoidSupplierPurchaseMutation()
 
   const handleOpenAdd = () => {
     setEditingPurchase(null)
@@ -116,6 +126,33 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     })
   }
 
+  const handleOpenVoid = (purchase: SupplierPurchase) => {
+    setVoidingPurchase(purchase)
+    openVoid()
+  }
+
+  const handleCloseVoid = () => {
+    closeVoid()
+    setVoidingPurchase(null)
+  }
+
+  const handleConfirmVoid = () => {
+    if (!voidingPurchase) return
+    voidPurchase(voidingPurchase.id, {
+      onSuccess: () => handleCloseVoid(),
+    })
+  }
+
+  const handleOpenAddItems = (purchase: SupplierPurchase) => {
+    setAddItemsPurchase(purchase)
+    openAddItems()
+  }
+
+  const handleCloseAddItems = () => {
+    closeAddItems()
+    setAddItemsPurchase(null)
+  }
+
   const hasFilter = !!filter.supplier_id || !!filter.payment_status
 
   const columns = buildPurchaseColumns({
@@ -123,6 +160,8 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
     onEdit: handleOpenEdit,
     onPay: handleOpenPay,
     onDelete: handleOpenDelete,
+    onVoid: handleOpenVoid,
+    onAddItems: handleOpenAddItems,
   })
 
   return (
@@ -183,6 +222,23 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={voidOpen}
+        onOpenChange={(open) => { if (!open) handleCloseVoid() }}
+        title="Void Pembelian"
+        description={`PO "${voidingPurchase?.purchase_code}" akan dibatalkan. Stok yang sudah masuk akan dikurangi kembali. Tindakan ini tidak bisa dibatalkan. Lanjutkan?`}
+        confirmLabel="Ya, Void"
+        variant="destructive"
+        isLoading={isVoiding}
+        onConfirm={handleConfirmVoid}
+      />
+
+      <PurchaseAddItemsModal
+        open={addItemsOpen}
+        onOpenChange={(open) => { if (!open) handleCloseAddItems() }}
+        purchase={addItemsPurchase}
       />
     </div>
   )

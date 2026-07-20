@@ -3,6 +3,8 @@ package service
 import (
 	dto "pos_api/domain/supplier_purchase/dto"
 	"pos_api/errors"
+
+	"gorm.io/gorm"
 )
 
 func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error) {
@@ -25,6 +27,7 @@ func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseRes
 			PaidAmount:      v.PaidAmount,
 			RemainingAmount: v.RemainingAmount,
 			PaymentStatus:   v.PaymentStatus,
+			Status:          v.Status,
 			UserName:        v.UserName,
 			Notes:           v.Notes,
 		})
@@ -68,6 +71,7 @@ func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error)
 		PaidAmount:      dataDB.PaidAmount,
 		RemainingAmount: dataDB.RemainingAmount,
 		PaymentStatus:   dataDB.PaymentStatus,
+		Status:          dataDB.Status,
 		UserName:        dataDB.UserName,
 		Notes:           dataDB.Notes,
 		Items:           items,
@@ -129,6 +133,7 @@ func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseRespo
 		PaidAmount:      dataDB.PaidAmount,
 		RemainingAmount: dataDB.RemainingAmount,
 		PaymentStatus:   dataDB.PaymentStatus,
+		Status:          dataDB.Status,
 		UserName:        dataDB.UserName,
 		Notes:           dataDB.Notes,
 		Items:           itemsDB,
@@ -145,8 +150,21 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	if existing == nil {
 		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
+	if existing.Status == "void" {
+		return data, &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa diedit"}
+	}
 	if existing.PaidAmount > 0 {
 		return data, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
+	}
+
+	if req.PaymentMethod != "" {
+		valid, err := s.repo.IsValidPaymentMethod(req.PaymentMethod)
+		if err != nil {
+			return data, err
+		}
+		if !valid {
+			return data, &errors.BadRequestError{Message: "Metode pembayaran tidak valid"}
+		}
 	}
 
 	dataDB, err := s.repo.Update(req)
@@ -180,6 +198,7 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 		PaidAmount:      dataDB.PaidAmount,
 		RemainingAmount: dataDB.RemainingAmount,
 		PaymentStatus:   dataDB.PaymentStatus,
+		Status:          dataDB.Status,
 		UserName:        dataDB.UserName,
 		Notes:           dataDB.Notes,
 		Items:           itemsDB,
@@ -196,6 +215,9 @@ func (s *purchaseService) Delete(id int) error {
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
+	if exists.Status == "void" {
+		return &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa dihapus"}
+	}
 	if exists.PaidAmount > 0 {
 		return &errors.BadRequestError{Message: "PO tidak bisa dihapus karena sudah ada pembayaran"}
 	}
@@ -210,6 +232,9 @@ func (s *purchaseService) Pay(req *dto.PayRequest) error {
 	}
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+	}
+	if exists.Status == "void" {
+		return &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa dibayar"}
 	}
 	if exists.PaymentStatus == "paid" {
 		return &errors.BadRequestError{Message: "PO sudah lunas"}
@@ -227,6 +252,99 @@ func (s *purchaseService) Pay(req *dto.PayRequest) error {
 	}
 
 	return s.repo.Pay(req)
+}
+
+// Void membatalkan PO: hanya boleh untuk PO yang belum pernah dibayar sama sekali
+// (paid_amount = 0) dan belum punya retur supplier terkait — supplier_returns.purchase_id
+// tidak punya FK constraint di database, jadi pengecekan ini murni di level aplikasi.
+func (s *purchaseService) Void(id int, userID int) error {
+	exists, err := s.repo.GetRawByID(id)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+	}
+	if exists.Status == "void" {
+		return &errors.BadRequestError{Message: "PO sudah di-void"}
+	}
+	if exists.PaidAmount > 0 {
+		return &errors.BadRequestError{Message: "PO tidak bisa di-void karena sudah ada pembayaran"}
+	}
+
+	returnCount, err := s.repo.CountReturnsByPurchaseID(id)
+	if err != nil {
+		return err
+	}
+	if returnCount > 0 {
+		return &errors.BadRequestError{Message: "PO tidak bisa di-void karena sudah ada retur supplier terkait"}
+	}
+
+	txErr := s.repo.GetDB().Transaction(func(tx *gorm.DB) error {
+		purchaseTx := s.repo.WithTx(tx)
+		return purchaseTx.Void(id, userID)
+	})
+	if txErr != nil {
+		return &errors.InternalServerError{Message: txErr.Error()}
+	}
+	return nil
+}
+
+// AddItems menambah item baru ke PO yang sudah ada pembayaran (partial/paid), tanpa
+// mengubah item lama. Total & payment_status dihitung ulang otomatis.
+func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseResponse, err error) {
+	existing, err := s.repo.GetRawByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if existing == nil {
+		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
+	}
+	if existing.Status == "void" {
+		return data, &errors.BadRequestError{Message: "PO sudah di-void"}
+	}
+	if existing.PaymentStatus == "unpaid" {
+		return data, &errors.BadRequestError{Message: "PO belum ada pembayaran, gunakan Edit untuk menambah item"}
+	}
+
+	dataDB, err := s.repo.AddItems(req)
+	if err != nil {
+		return data, err
+	}
+
+	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
+	for _, v := range dataDB.Items {
+		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
+			ID:            v.ID,
+			ProductID:     v.ProductID,
+			ProductName:   v.ProductName,
+			Quantity:      v.Quantity,
+			Unit:          v.Unit,
+			ConversionQty: v.ConversionQty,
+			PurchasePrice: v.PurchasePrice,
+			Subtotal:      v.Subtotal,
+		})
+	}
+
+	data = dto.PurchaseResponse{
+		ID:              dataDB.ID,
+		PurchaseCode:    dataDB.PurchaseCode,
+		InvoiceNumber:   dataDB.InvoiceNumber,
+		SupplierID:      dataDB.SupplierID,
+		SupplierName:    dataDB.SupplierName,
+		PurchaseDate:    dataDB.PurchaseDate,
+		DiscountAmount:  dataDB.DiscountAmount,
+		TotalAmount:     dataDB.TotalAmount,
+		PaidAmount:      dataDB.PaidAmount,
+		RemainingAmount: dataDB.RemainingAmount,
+		PaymentStatus:   dataDB.PaymentStatus,
+		Status:          dataDB.Status,
+		UserName:        dataDB.UserName,
+		Notes:           dataDB.Notes,
+		Items:           itemsDB,
+	}
+
+	return data, nil
 }
 
 func (s *purchaseService) GetPayments(purchaseID int) (data []*dto.PaymentResponse, err error) {

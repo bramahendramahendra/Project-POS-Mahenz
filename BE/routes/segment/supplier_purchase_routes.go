@@ -30,5 +30,7 @@ func PurchaseRoutes(r *gin.RouterGroup) {
 		g.POST("/update/:id", perm("can_edit"), purchaseHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), purchaseHandler.Delete)
 		g.POST("/pay/:id", perm("can_edit"), purchaseHandler.Pay)
+		g.POST("/void/:id", perm("can_delete"), purchaseHandler.Void)
+		g.POST("/:id/add-items", perm("can_edit"), purchaseHandler.AddItems)
 	}
 }

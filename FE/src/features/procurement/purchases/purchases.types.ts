@@ -6,6 +6,10 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   partial: 'Bayar Sebagian',
 }
 
+// Status keberlakuan PO — terpisah dari PaymentStatus (status bayar).
+// 'void' berarti PO dibatalkan; tidak bisa lagi di-edit/dihapus/dibayar/ditambah item.
+export type PurchaseStatus = 'active' | 'void'
+
 export interface SupplierPurchaseItem {
   id: number
   product_id: number
@@ -39,6 +43,7 @@ export interface SupplierPurchase {
   paid_amount: number
   remaining_amount: number
   payment_status: PaymentStatus
+  status: PurchaseStatus
   user_name: string
   notes?: string
   items: SupplierPurchaseItem[]
@@ -84,3 +89,8 @@ export interface CreateSupplierPurchasePayload {
 }
 
 export type UpdateSupplierPurchasePayload = CreateSupplierPurchasePayload & { id: number }
+
+export interface AddPurchaseItemsPayload {
+  id: number
+  items: CreatePurchaseItemPayload[]
+}

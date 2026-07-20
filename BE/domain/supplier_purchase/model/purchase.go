@@ -13,6 +13,7 @@ type Purchase struct {
 	PaymentStatus   string     `db:"payment_status"`
 	PaidAmount      float64    `db:"paid_amount"`
 	RemainingAmount float64    `db:"remaining_amount"`
+	Status          string     `db:"status"`
 	UserID          int        `db:"user_id"`
 	Notes           string     `db:"notes"`
 	CreatedAt       time.Time  `db:"created_at"`
@@ -32,6 +33,7 @@ type PurchaseRow struct {
 	PaymentStatus   string
 	PaidAmount      float64
 	RemainingAmount float64
+	Status          string
 	UserName        string
 	Notes           string
 	Items           []PurchaseItem

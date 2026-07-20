@@ -19,8 +19,12 @@ type (
 		Pay(req *dto.PayRequest) error
 		GetRawByID(id int) (*model.Purchase, error)
 		IsValidPaymentMethod(code string) (bool, error)
+		Void(id int, userID int) error
+		CountReturnsByPurchaseID(purchaseID int) (int64, error)
+		AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error)
 
 		GetDB() *gorm.DB
+		WithTx(tx *gorm.DB) PurchaseRepoInterface
 	}
 
 	purchaseRepo struct {
@@ -34,4 +38,8 @@ func NewPurchaseRepo(db *gorm.DB) *purchaseRepo {
 
 func (r *purchaseRepo) GetDB() *gorm.DB {
 	return r.db
+}
+
+func (r *purchaseRepo) WithTx(tx *gorm.DB) PurchaseRepoInterface {
+	return &purchaseRepo{db: tx}
 }
