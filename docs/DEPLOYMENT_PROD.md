@@ -20,8 +20,9 @@ Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Front
 10. [Checklist Deploy](#10-checklist-deploy)
 11. [Update / Redeploy Selanjutnya](#11-update--redeploy-selanjutnya)
 12. [Maintenance Database](#12-maintenance-database)
-13. [Troubleshooting](#13-troubleshooting)
-14. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
+13. [Maintenance Mode (Aplikasi)](#13-maintenance-mode-aplikasi)
+14. [Troubleshooting](#14-troubleshooting)
+15. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
 
 ---
 
@@ -553,7 +554,53 @@ Kalau Anda juga ingin database dibuat ulang dari nol (bukan cuma tabel), lihat �
 
 ---
 
-## 13. Troubleshooting
+## 13. Maintenance Mode (Aplikasi)
+
+Dipakai saat butuh menutup akses ke seluruh aplikasi sementara (deploy backend, migrasi database besar, dsb) tanpa mematikan Nginx atau service lain. Mekanismenya berbasis **flag file**: Nginx mengecek keberadaan file tersebut di setiap request, kalau ada maka semua request (termasuk `/api`) langsung dibalas `503` dan diarahkan ke halaman statis `maintenance.html`.
+
+File terkait ada di `FE/maintenance/`:
+
+| File | Fungsi |
+|---|---|
+| `maintenance.html` | Halaman statis yang ditampilkan ke user saat maintenance aktif |
+| `maintenance-on.sh` | Mengaktifkan mode maintenance (`touch` flag file) |
+| `maintenance-off.sh` | Menonaktifkan mode maintenance (`rm` flag file) |
+
+### Setup awal (sekali saja di server)
+
+```bash
+sudo mkdir -p /var/www/pos-web/maintenance
+sudo cp /opt/pos-mahenz/FE/maintenance/maintenance.html /var/www/pos-web/maintenance/
+sudo cp /opt/pos-mahenz/FE/maintenance/maintenance-on.sh /opt/pos-mahenz/FE/maintenance/maintenance-off.sh /usr/local/bin/
+sudo chmod +x /usr/local/bin/maintenance-on.sh /usr/local/bin/maintenance-off.sh
+```
+
+Pastikan `nginx.conf` yang aktif di server (`/etc/nginx/sites-available/...`) sudah memuat konfigurasi cek `maintenance.flag` seperti di `FE/nginx.conf` pada repo ini (lihat [bagian 8](#8-konfigurasi-nginx-reverse-proxy--static-hosting)).
+
+### Mengaktifkan maintenance
+
+```bash
+sudo maintenance-on.sh
+```
+
+Semua request ke domain akan langsung mendapat halaman maintenance (503), tanpa perlu reload Nginx.
+
+### Menonaktifkan maintenance
+
+```bash
+sudo maintenance-off.sh
+```
+
+Aplikasi langsung kembali normal begitu flag file dihapus — tidak ada delay/cache karena Nginx mengecek keberadaan file ini di setiap request baru.
+
+**Catatan:**
+- Halaman `maintenance.html` di server (`/var/www/pos-web/maintenance/`) **terpisah** dari folder `dist/` FE — supaya tetap bisa diakses walau proses build FE sedang berjalan/gagal.
+- Kalau desain `maintenance.html` diubah di repo, perlu `cp` ulang manual ke server (tidak otomatis ikut proses redeploy FE di [bagian 11](#11-update--redeploy-selanjutnya)).
+- Mekanisme ini menutup **seluruh** aplikasi (FE + API). Untuk mengunci sebagian fitur saja tanpa menutup akses total, perlu pendekatan berbeda (middleware di level backend) — belum diimplementasikan di project ini.
+
+---
+
+## 14. Troubleshooting
 
 | Gejala | Kemungkinan Penyebab | Solusi |
 |---|---|---|
