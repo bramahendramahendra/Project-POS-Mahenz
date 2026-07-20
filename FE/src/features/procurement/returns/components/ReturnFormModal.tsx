@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 
@@ -53,35 +53,19 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors },
   } = useForm<ReturnFormValues>({ resolver: zodResolver(returnSchema), defaultValues })
 
-  const purchaseId = watch('purchase_id')
+  const purchaseId = useWatch({ control, name: 'purchase_id' })
 
   const {
     data: purchaseDetailData,
     isLoading: isPurchaseDetailLoading,
   } = useSupplierPurchaseDetailQuery(purchaseId > 0 ? purchaseId : null)
   const purchaseDetail = purchaseDetailData
-
-  useEffect(() => {
-    if (!open) {
-      reset(defaultValues)
-      setSelectedItems({})
-      setIsConfirming(false)
-      setPendingPayload(null)
-      setPurchaseKeyword('')
-      setSelectedPurchaseLabel('')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
-
-  useEffect(() => {
-    setSelectedItems({})
-  }, [purchaseId])
 
   function toggleItem(purchaseItemId: number, maxQty: number) {
     setSelectedItems((prev) => {
@@ -102,8 +86,12 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
   }
 
   const handleClose = () => {
+    reset(defaultValues)
+    setSelectedItems({})
     setIsConfirming(false)
     setPendingPayload(null)
+    setPurchaseKeyword('')
+    setSelectedPurchaseLabel('')
     onOpenChange(false)
   }
 
@@ -198,6 +186,7 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
             onSearch={setPurchaseKeyword}
             onValueChange={(v, item) => {
               setValue('purchase_id', Number(v ?? 0))
+              setSelectedItems({})
               if (item) setSelectedPurchaseLabel(`${item.invoice_number} — ${item.supplier_name}`)
             }}
             options={purchases}

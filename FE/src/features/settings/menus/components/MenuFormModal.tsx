@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { FormModal } from '@/shared/components'
@@ -107,8 +107,11 @@ function CreateMenuForm({
   const { mutate: create, isPending } = useCreateMenuMutation()
   const { data: routeOptions = [] } = useRouteRegistryOptionsQuery()
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } =
     useForm<CreateMenuFormValues>({ resolver: zodResolver(createMenuSchema), defaultValues: createDefaults })
+
+  const watchParentId = useWatch({ control, name: 'parent_id' })
+  const watchPath = useWatch({ control, name: 'path' })
 
   useEffect(() => { if (!open) reset(createDefaults) }, [open, reset])
 
@@ -140,7 +143,7 @@ function CreateMenuForm({
         <div className="space-y-1.5">
           <Label>Parent Menu</Label>
           <ParentSelect
-            value={watch('parent_id')}
+            value={watchParentId}
             onChange={(v) => setValue('parent_id', v)}
             options={parentOptions}
           />
@@ -164,7 +167,7 @@ function CreateMenuForm({
         <div className="space-y-1.5">
           <Label>Path URL</Label>
           <PathSelect
-            value={watch('path')}
+            value={watchPath}
             onChange={(v) => setValue('path', v)}
             options={routeOptions}
           />
@@ -198,8 +201,11 @@ function EditMenuForm({
   const { mutate: update, isPending } = useUpdateMenuMutation()
   const { data: routeOptions = [] } = useRouteRegistryOptionsQuery()
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } =
     useForm<EditMenuFormValues>({ resolver: zodResolver(editMenuSchema), defaultValues: editDefaults })
+
+  const watchParentId = useWatch({ control, name: 'parent_id' })
+  const watchPath = useWatch({ control, name: 'path' })
 
   useEffect(() => { if (!open) reset(editDefaults) }, [open, reset])
 
@@ -235,7 +241,7 @@ function EditMenuForm({
         <div className="space-y-1.5">
           <Label>Parent Menu</Label>
           <ParentSelect
-            value={watch('parent_id')}
+            value={watchParentId}
             onChange={(v) => setValue('parent_id', v)}
             options={filteredParentOptions}
           />
@@ -259,7 +265,7 @@ function EditMenuForm({
         <div className="space-y-1.5">
           <Label>Path URL</Label>
           <PathSelect
-            value={watch('path')}
+            value={watchPath}
             onChange={(v) => setValue('path', v)}
             options={routeOptions}
           />

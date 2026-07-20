@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
@@ -73,12 +73,14 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: createDefaults,
   })
+
+  const watchRoleId = useWatch({ control, name: 'role_id' })
 
   useEffect(() => {
     if (open) reset(createDefaults)
@@ -153,7 +155,7 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
             {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
           </div>
           <RoleSelect
-            value={watch('role_id')}
+            value={watchRoleId}
             onChange={(v) => setValue('role_id', v)}
             error={errors.role_id?.message}
           />
@@ -195,12 +197,14 @@ function EditUserForm({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<UpdateUserFormValues>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: { full_name: user.full_name, role_id: user.role_id },
   })
+
+  const watchRoleId = useWatch({ control, name: 'role_id' })
 
   useEffect(() => {
     if (open) reset({ full_name: user.full_name, role_id: user.role_id })
@@ -255,7 +259,7 @@ function EditUserForm({
             {errors.full_name && <p className="text-xs text-red-500">{errors.full_name.message}</p>}
           </div>
           <RoleSelect
-            value={watch('role_id')}
+            value={watchRoleId}
             onChange={(v) => setValue('role_id', v)}
             error={errors.role_id?.message}
           />

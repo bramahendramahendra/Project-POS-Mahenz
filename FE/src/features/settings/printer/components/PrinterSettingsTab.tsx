@@ -140,7 +140,6 @@ export function PrinterSettingsTab() {
     reset,
     control,
     setValue,
-    watch,
   } = useForm<PrinterSettingsFormValues>({
     resolver: zodResolver(printerSettingsSchema),
     defaultValues: DEFAULT_SETTINGS,
@@ -175,7 +174,7 @@ export function PrinterSettingsTab() {
           <div className="space-y-1.5">
             <Label>Ukuran Kertas</Label>
             <Select
-              value={watch('paper_size')}
+              value={liveSettings.paper_size}
               onValueChange={(v) => {
                 if (v) setValue('paper_size', v as '58mm' | '80mm')
               }}
@@ -222,7 +221,7 @@ export function PrinterSettingsTab() {
               <p className="text-xs text-gray-500 mt-0.5">Tampilkan logo toko di bagian atas struk</p>
             </div>
             <Switch
-              checked={watch('show_logo')}
+              checked={liveSettings.show_logo}
               onCheckedChange={(v) => setValue('show_logo', v)}
             />
           </div>
@@ -233,7 +232,7 @@ export function PrinterSettingsTab() {
               <p className="text-xs text-gray-500 mt-0.5">Langsung cetak struk setelah transaksi selesai</p>
             </div>
             <Switch
-              checked={watch('auto_print')}
+              checked={liveSettings.auto_print}
               onCheckedChange={(v) => setValue('auto_print', v)}
             />
           </div>

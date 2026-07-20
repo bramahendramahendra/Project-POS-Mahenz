@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -142,7 +142,6 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     reset,
     formState: { errors },
@@ -157,32 +156,32 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const [itemSelectedPackageId, setItemSelectedPackageId] = useState<Record<number, number>>({})
   const [itemRefPurchasePrice, setItemRefPurchasePrice] = useState<Record<number, number>>({})
 
-  const watchItems = watch('items')
-  const watchDiscount = watch('discount_amount') ?? 0
-  const watchPaymentStatus = watch('payment_status')
-  const watchPaymentMethod = watch('payment_method')
-  const watchSupplierId = watch('supplier_id')
+  // Menandai PO mana yang UI-state-nya (itemUnitOptions dkk) sudah disinkronkan, supaya
+  // reset di bawah hanya terjadi sekali per data baru — pola "adjust state saat render"
+  // yang direkomendasikan React untuk sinkron ke data eksternal, bukan react ke event user.
+  const [loadedDetailId, setLoadedDetailId] = useState<number | null>(null)
+
+  const watchItems = useWatch({ control, name: 'items' })
+  const watchDiscount = useWatch({ control, name: 'discount_amount' }) ?? 0
+  const watchPaymentStatus = useWatch({ control, name: 'payment_status' })
+  const watchPaymentMethod = useWatch({ control, name: 'payment_method' })
+  const watchSupplierId = useWatch({ control, name: 'supplier_id' })
 
   const subtotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
   const total = Math.max(0, subtotal - (watchDiscount || 0))
 
+  if (open && isEditMode && fullPurchaseDetail && fullPurchaseDetail.id !== loadedDetailId) {
+    setLoadedDetailId(fullPurchaseDetail.id)
+    setItemUnitOptions({})
+    setItemSelectedPackageId({})
+    setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
+  }
+
+  // reset() react-hook-form murni imperatif (bukan React state setter), jadi tetap aman
+  // dipanggil di effect — hanya dipicu sekali per kedatangan data fetch yang baru.
   useEffect(() => {
-    if (!open) {
-      reset({ ...emptyValues, purchase_date: todayStr() })
-      setItemUnitOptions({})
-      setItemSelectedPackageId({})
-      setItemRefPurchasePrice({})
-      setIsConfirming(false)
-      setPendingValues(null)
-      setSupplierKeyword('')
-      setSelectedSupplierLabel('')
-      return
-    }
-    if (isEditMode && fullPurchaseDetail) {
+    if (open && isEditMode && fullPurchaseDetail) {
       reset(buildDefaultValues(fullPurchaseDetail))
-      setItemUnitOptions({})
-      setItemSelectedPackageId({})
-      setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isEditMode, fullPurchaseDetail])
@@ -244,8 +243,15 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   }
 
   const handleClose = () => {
+    reset({ ...emptyValues, purchase_date: todayStr() })
+    setItemUnitOptions({})
+    setItemSelectedPackageId({})
+    setItemRefPurchasePrice({})
     setIsConfirming(false)
     setPendingValues(null)
+    setSupplierKeyword('')
+    setSelectedSupplierLabel('')
+    setLoadedDetailId(null)
     onOpenChange(false)
   }
 

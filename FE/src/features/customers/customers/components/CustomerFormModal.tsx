@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
@@ -41,7 +41,7 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -64,7 +64,7 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, customer])
 
-  const creditLimit = watch('credit_limit') ?? 0
+  const creditLimit = useWatch({ control, name: 'credit_limit' }) ?? 0
 
   const handleClose = () => {
     setIsConfirming(false)

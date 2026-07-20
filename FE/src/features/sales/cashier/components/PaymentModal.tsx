@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
@@ -122,7 +122,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
 
   const {
     handleSubmit,
-    watch,
+    control,
     setValue,
     reset,
     formState: { errors },
@@ -136,8 +136,8 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
     defaultValues: { payment_method: 'cash', amount_paid: 0 },
   })
 
-  const paymentMethod = watch('payment_method')
-  const amountPaid = watch('amount_paid') ?? 0
+  const paymentMethod = useWatch({ control, name: 'payment_method' })
+  const amountPaid = useWatch({ control, name: 'amount_paid' }) ?? 0
   const isKredit = paymentMethod === 'kredit'
   const change = calcChange(summary.grandTotal, amountPaid)
   const sufficient = isKredit || amountPaid >= summary.grandTotal

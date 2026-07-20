@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import { useState } from 'react'
+import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Plus, Trash2 } from 'lucide-react'
@@ -68,9 +68,17 @@ function ProductCell({
   )
 }
 
+interface ConfirmState {
+  isConfirming: boolean
+  pendingValues: AddItemsFormValues | null
+}
+
+const initialConfirmState: ConfirmState = { isConfirming: false, pendingValues: null }
+
 export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: PurchaseAddItemsModalProps) {
-  const [isConfirming, setIsConfirming] = useState(false)
-  const [pendingValues, setPendingValues] = useState<AddItemsFormValues | null>(null)
+  // isConfirming & pendingValues digabung jadi 1 state supaya efek "reset saat modal
+  // ditutup" cukup 1 kali setState, bukan berurutan (react-hooks/set-state-in-effect).
+  const [confirmState, setConfirmState] = useState<ConfirmState>(initialConfirmState)
 
   const purchaseId = purchase?.id ?? null
   const { data: detail } = useSupplierPurchaseDetailQuery(open ? purchaseId : null)
@@ -80,7 +88,6 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     control,
     handleSubmit,
     setValue,
-    watch,
     reset,
     formState: { errors },
   } = useForm<AddItemsFormValues>({
@@ -90,15 +97,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const queryClient = useQueryClient()
-  const watchItems = watch('items')
-
-  useEffect(() => {
-    if (!open) {
-      reset({ items: [emptyItem] })
-      setIsConfirming(false)
-      setPendingValues(null)
-    }
-  }, [open, reset])
+  const watchItems = useWatch({ control, name: 'items' })
 
   async function handleProductChange(index: number, id: number, productName: string) {
     setValue(`items.${index}.product_id`, id, { shouldValidate: true })
@@ -127,17 +126,17 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
   const projectedStatus = projectedRemaining <= 0 ? 'Lunas' : 'Sebagian'
 
   function handleClose() {
-    setIsConfirming(false)
-    setPendingValues(null)
+    reset({ items: [emptyItem] })
+    setConfirmState(initialConfirmState)
     onOpenChange(false)
   }
 
   function onSubmit(values: AddItemsFormValues) {
-    setPendingValues(values)
-    setIsConfirming(true)
+    setConfirmState({ isConfirming: true, pendingValues: values })
   }
 
   function handleConfirmedSave() {
+    const { pendingValues } = confirmState
     if (!pendingValues || !purchaseId) return
     addItems(
       {
@@ -152,7 +151,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
       },
       {
         onSuccess: () => handleClose(),
-        onError: () => setIsConfirming(false),
+        onError: () => setConfirmState((s) => ({ ...s, isConfirming: false })),
       },
     )
   }
@@ -160,8 +159,8 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
   return (
     <>
       <FormModal
-        open={open && !isConfirming}
-        onOpenChange={(v) => { if (!v && !isConfirming) handleClose() }}
+        open={open && !confirmState.isConfirming}
+        onOpenChange={(v) => { if (!v && !confirmState.isConfirming) handleClose() }}
         title={`Tambah Item — ${purchase?.purchase_code ?? ''}`}
         size="full"
         isLoading={isPending}
@@ -328,7 +327,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
       </FormModal>
 
       <ConfirmDialog
-        open={isConfirming}
+        open={confirmState.isConfirming}
         onOpenChange={(v) => { if (!v) handleClose() }}
         title="Tambah Item Pembelian"
         description={`Total PO akan berubah dari ${formatRupiah(currentTotal)} menjadi ${formatRupiah(projectedTotal)}. Status pembayaran akan menjadi "${projectedStatus}". Lanjutkan?`}

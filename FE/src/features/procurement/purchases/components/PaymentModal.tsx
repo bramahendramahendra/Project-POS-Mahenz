@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { FormModal } from '@/shared/components'
@@ -39,7 +39,6 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     handleSubmit,
     reset,
     setValue,
-    watch,
     control,
     formState: { errors },
   } = useForm<PaymentFormValues>({
@@ -81,8 +80,8 @@ export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps
     )
   }
 
-  const amountValue = watch('amount')
-  const paymentMethodValue = watch('payment_method')
+  const amountValue = useWatch({ control, name: 'amount' })
+  const paymentMethodValue = useWatch({ control, name: 'payment_method' })
 
   return (
     <FormModal

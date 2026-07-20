@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { FormModal } from '@/shared/components'
@@ -26,8 +26,10 @@ interface AppVersionFormModalProps {
 export function AppVersionFormModal({ open, onOpenChange }: AppVersionFormModalProps) {
   const { mutate: create, isPending } = useCreateAppVersionMutation()
 
-  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } =
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } =
     useForm<CreateAppVersionFormValues>({ resolver: zodResolver(createAppVersionSchema), defaultValues })
+
+  const watchIsMandatory = useWatch({ control, name: 'is_mandatory' })
 
   useEffect(() => { if (!open) reset(defaultValues) }, [open, reset])
 
@@ -82,7 +84,7 @@ export function AppVersionFormModal({ open, onOpenChange }: AppVersionFormModalP
             <p className="text-xs text-gray-500">Paksa pengguna memperbarui ke versi ini</p>
           </div>
           <Switch
-            checked={watch('is_mandatory')}
+            checked={watchIsMandatory}
             onCheckedChange={(v) => setValue('is_mandatory', v)}
           />
         </div>
