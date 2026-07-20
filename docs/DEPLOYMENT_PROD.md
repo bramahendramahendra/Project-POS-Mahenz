@@ -19,8 +19,9 @@ Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Front
 9. [HTTPS dengan Let's Encrypt](#9-https-dengan-lets-encrypt)
 10. [Checklist Deploy](#10-checklist-deploy)
 11. [Update / Redeploy Selanjutnya](#11-update--redeploy-selanjutnya)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
+12. [Maintenance Database](#12-maintenance-database)
+13. [Troubleshooting](#13-troubleshooting)
+14. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
 
 ---
 
@@ -400,6 +401,34 @@ sudo systemctl reload nginx
 
 Production **wajib** HTTPS — terutama karena aplikasi ini mengirim kredensial login dan JWT token.
 
+### Prasyarat: Wajib Punya Domain (Tidak Bisa Pakai IP)
+
+**Let's Encrypt tidak menerbitkan sertifikat untuk alamat IP telanjang** (misal `139.180.214.187`), hanya untuk domain (FQDN — Fully Qualified Domain Name). Certbot akan gagal kalau dicoba langsung ke IP. Alasannya: proses verifikasi kepemilikan Let's Encrypt (disebut *ACME challenge*) bekerja lewat DNS/domain — IP address tidak punya mekanisme pembuktian kepemilikan seperti itu.
+
+Jadi kalau server Anda **masih diakses via IP** (belum ada domain), HTTPS lewat Let's Encrypt **belum bisa dilakukan** — lewati dulu langkah ini, lanjut pakai HTTP untuk sementara, dan kembali ke sini setelah domain siap.
+
+### Langkah Sebelum Bisa Menjalankan Certbot
+
+1. **Beli domain** (contoh registrar: Niagahoster, Domainesia, Namecheap, Cloudflare Registrar)
+2. **Arahkan domain ke IP server** — buat **A record** di pengaturan DNS domain tersebut:
+   ```
+   Type: A
+   Name: pos (atau @ untuk root domain)
+   Value: 139.180.214.187   (IP server Anda)
+   TTL: default / 3600
+   ```
+3. **Tunggu propagasi DNS** — biasanya beberapa menit, bisa sampai 24 jam tergantung registrar
+4. **Verifikasi domain sudah resolve ke IP server** sebelum lanjut:
+   ```bash
+   ping pos.domain-anda.com
+   # pastikan IP yang muncul = IP server Anda
+   ```
+5. **Update `server_name` di Nginx** dari IP ke domain baru (lihat §8), lalu `nginx -t` dan `systemctl reload nginx`, dan pastikan situs masih bisa diakses via `http://pos.domain-anda.com` sebelum lanjut ke Certbot
+
+### Menjalankan Certbot
+
+Setelah domain terverifikasi mengarah ke server, baru jalankan:
+
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d pos.domain-anda.com -d api.domain-anda.com
@@ -407,9 +436,12 @@ sudo certbot --nginx -d pos.domain-anda.com -d api.domain-anda.com
 
 Certbot otomatis mengedit config Nginx untuk redirect HTTP→HTTPS dan mengatur renewal otomatis (cek dengan `sudo certbot renew --dry-run`).
 
-Setelah HTTPS aktif, update:
-- `FE/.env.production` → `VITE_API_URL=https://api.domain-anda.com/api`, lalu **build ulang FE**.
-- `BE/config/config_prod.json` → `CorsAllowOrigins` pakai `https://` bukan `http://`.
+### Setelah HTTPS Aktif
+
+Update konfigurasi berikut supaya konsisten pakai `https://`, lalu build ulang FE:
+
+- `FE/.env.production` → `VITE_API_URL=https://api.domain-anda.com/api` (atau tetap `/api` kalau pakai path relatif, lihat §7.1) — kalau diubah, **wajib `npm run build` ulang** karena Vite meng-inline env var saat build, bukan runtime.
+- `BE/config/config_prod.json` → `CorsAllowOrigins` pakai `https://` bukan `http://`, lalu `sudo systemctl restart pos-backend`.
 
 ---
 
@@ -468,7 +500,60 @@ Tidak perlu reload Nginx untuk update FE (Nginx hanya membaca file dari disk set
 
 ---
 
-## 12. Troubleshooting
+## 12. Maintenance Database
+
+### Drop Semua Tabel (Reset Skema, User & Database Tetap Ada)
+
+Dipakai kalau Anda ingin mengosongkan seluruh skema database (misal sebelum re-migrasi dari awal saat ada perubahan besar) **tanpa** menghapus database atau user MySQL-nya.
+
+> ⚠️ **Destruktif dan permanen.** Semua data (produk, transaksi, user, dll) hilang tanpa bisa dikembalikan kecuali ada backup. Jangan jalankan di production kecuali benar-benar sengaja reset total.
+
+```bash
+mysql -u pos_user -p pos_retail_db
+```
+
+```sql
+SET FOREIGN_KEY_CHECKS = 0;
+
+SET @tables = NULL;
+SELECT GROUP_CONCAT('`', table_name, '`') INTO @tables
+FROM information_schema.tables
+WHERE table_schema = 'pos_retail_db';
+
+SET @tables = CONCAT('DROP TABLE IF EXISTS ', @tables);
+PREPARE stmt FROM @tables;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+**Penjelasan:**
+- `SET FOREIGN_KEY_CHECKS = 0` — mematikan sementara pengecekan foreign key, supaya tabel bisa di-drop dalam urutan apa pun tanpa error "cannot drop table referenced by foreign key"
+- Query `GROUP_CONCAT` mengumpulkan semua nama tabel di database `pos_retail_db` menjadi satu string
+- `PREPARE` + `EXECUTE` menjalankan `DROP TABLE IF EXISTS tabel1, tabel2, ...` sekaligus untuk seluruh tabel yang ditemukan
+- `FOREIGN_KEY_CHECKS` dinyalakan lagi di akhir
+
+Verifikasi database benar-benar kosong:
+```sql
+SHOW TABLES;   -- harus muncul: Empty set
+EXIT;
+```
+
+Setelah tabel kosong, restart backend supaya migrasi otomatis membuat ulang semua tabel dari `database/migrations/`:
+```bash
+sudo systemctl restart pos-backend
+sudo systemctl status pos-backend
+sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan migrasi jalan sukses
+```
+
+### Alternatif: Drop & Buat Ulang Database (Kalau Ingin Reset User/Privilege Juga)
+
+Kalau Anda juga ingin database dibuat ulang dari nol (bukan cuma tabel), lihat §4 [Setup Database MySQL](#4-setup-database-mysql) — gunakan `DROP DATABASE IF EXISTS pos_retail_db;` lalu `CREATE DATABASE` lagi. Cara ini juga menghapus tabel `migrations_history`, jadi semua migrasi ikut berjalan ulang dari awal.
+
+---
+
+## 13. Troubleshooting
 
 | Gejala | Kemungkinan Penyebab | Solusi |
 |---|---|---|

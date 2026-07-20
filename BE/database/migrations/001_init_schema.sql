@@ -517,6 +517,7 @@ CREATE TABLE IF NOT EXISTS sync_conflicts (
 CREATE TABLE IF NOT EXISTS sync_queue (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     device_id     VARCHAR(100)                                NOT NULL,
+    local_id      VARCHAR(36)                                 NULL,
     entity_type   VARCHAR(50)                                 NOT NULL,
     entity_id     INT                                         NULL,
     action        ENUM('create','update','delete')            NOT NULL,
@@ -536,10 +537,25 @@ CREATE TABLE IF NOT EXISTS sync_history (
     synced_items   INT                                DEFAULT 0,
     conflict_items INT                                DEFAULT 0,
     failed_items   INT                                DEFAULT 0,
+    pending_items  INT                                DEFAULT 0,
     duration_ms    INT                                NULL,
     status         ENUM('success','partial','failed') DEFAULT 'success',
     started_at     DATETIME                           NOT NULL,
     finished_at    DATETIME                           NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Mekanisme dedupe/idempotency + resolve-ID lintas-entity generik untuk sync offline:
+-- pemetaan (device_id, local_id, entity_type) -> server_id, dipakai semua entity yang
+-- sync offline (transaksi, shift, cash_drawer) supaya entity baru tidak perlu migrasi
+-- skema lagi, dan entity lain bisa "mencari" server_id sebuah item lewat local_id-nya.
+CREATE TABLE IF NOT EXISTS sync_id_map (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    device_id   VARCHAR(100) NOT NULL,
+    local_id    VARCHAR(36)  NOT NULL,
+    entity_type VARCHAR(50)  NOT NULL,
+    server_id   INT          NOT NULL,
+    created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_sync_origin (device_id, local_id, entity_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
@@ -612,3 +628,4 @@ CREATE INDEX idx_sync_conflicts_status    ON sync_conflicts(status);
 CREATE INDEX idx_sync_conflicts_entity    ON sync_conflicts(entity_type, entity_id);
 CREATE INDEX idx_sync_history_device      ON sync_history(device_id);
 CREATE INDEX idx_sync_history_started     ON sync_history(started_at);
+CREATE INDEX idx_sync_id_map_lookup       ON sync_id_map(device_id, local_id, entity_type);
