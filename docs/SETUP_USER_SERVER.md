@@ -121,4 +121,4 @@ sudo systemctl restart sshd
 | `deploy` (baru dibuat) | Login SSH sehari-hari: git pull, build, `sudo systemctl restart ...`, copy file deploy |
 | `www-data` (sudah ada di sistem, bawaan Nginx) | User yang benar-benar menjalankan proses backend Go (via systemd) dan Nginx — didefinisikan di `pos-backend.service` pada [DEPLOYMENT_PROD.md](./DEPLOYMENT_PROD.md#6-menjalankan-backend-sebagai-service-systemd) |
 
-`deploy` tidak perlu diberi akses menjalankan aplikasi secara langsung — cukup hak untuk `sudo systemctl restart pos-backend` dan menulis ke folder deploy (`/opt/pos-backend`, `/var/www/pos-web`). Aplikasi tetap berjalan sebagai `www-data` untuk membatasi hak akses proses yang benar-benar terekspos ke internet.
+`deploy` tidak perlu diberi akses menjalankan aplikasi secara langsung — cukup hak untuk `sudo systemctl restart pos-backend` dan menulis ke folder deploy (`/opt/pos-mahenz`, `/var/www/pos-web`). Aplikasi tetap berjalan sebagai `www-data` untuk membatasi hak akses proses yang benar-benar terekspos ke internet.

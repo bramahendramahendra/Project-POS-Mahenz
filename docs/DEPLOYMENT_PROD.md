@@ -146,10 +146,10 @@ Saat backend pertama kali dijalankan, ia otomatis membaca semua file di `BE/data
 ### 5.1 Clone / upload source code
 
 ```bash
-sudo mkdir -p /opt/pos-backend
-sudo chown -R $USER:$USER /opt/pos-backend
-git clone <URL_REPO_ANDA> /opt/pos-backend
-cd /opt/pos-backend/BE
+sudo mkdir -p /opt/pos-mahenz
+sudo chown -R $USER:$USER /opt/pos-mahenz
+git clone <URL_REPO_ANDA> /opt/pos-mahenz
+cd /opt/pos-mahenz/BE
 ```
 
 ### 5.2 Siapkan file konfigurasi
@@ -221,7 +221,7 @@ openssl rand -base64 48
 ### 5.4 Install dependency & build binary
 
 ```bash
-cd /opt/pos-backend/BE
+cd /opt/pos-mahenz/BE
 go mod tidy
 go build -o pos_api main.go
 ```
@@ -257,9 +257,9 @@ After=network.target mysql.service
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/pos-backend/BE
+WorkingDirectory=/opt/pos-mahenz/BE
 Environment="SECRETKEY=ganti-dengan-string-acak-panjang-dan-rahasia"
-ExecStart=/opt/pos-backend/BE/pos_api
+ExecStart=/opt/pos-mahenz/BE/pos_api
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:/var/log/pos-backend/stdout.log
@@ -272,14 +272,14 @@ WantedBy=multi-user.target
 **Penjelasan tiap bagian:**
 - `After=network.target mysql.service` → pastikan MySQL sudah aktif dulu sebelum backend dicoba start.
 - `User=www-data` → jangan jalankan sebagai `root`; prinsip least privilege lagi.
-- `Environment="SECRETKEY=..."` → cara systemd menyuntikkan env var yang dibutuhkan langkah 5.3. (Alternatif lebih aman: gunakan `EnvironmentFile=/opt/pos-backend/BE/.env.secret` yang permission-nya dibatasi `600`, supaya secret tidak tampil di `systemctl status` atau `ps aux`.)
+- `Environment="SECRETKEY=..."` → cara systemd menyuntikkan env var yang dibutuhkan langkah 5.3. (Alternatif lebih aman: gunakan `EnvironmentFile=/opt/pos-mahenz/BE/.env.secret` yang permission-nya dibatasi `600`, supaya secret tidak tampil di `systemctl status` atau `ps aux`.)
 - `Restart=on-failure` → kalau aplikasi crash, systemd otomatis restart.
 
 Siapkan folder log & set kepemilikan:
 
 ```bash
 sudo mkdir -p /var/log/pos-backend
-sudo chown www-data:www-data /var/log/pos-backend /opt/pos-backend/BE -R
+sudo chown www-data:www-data /var/log/pos-backend /opt/pos-mahenz/BE -R
 ```
 
 Aktifkan service:
@@ -306,7 +306,7 @@ Frontend project ini bernama `web-v2`, dibangun dengan Vite + React 19 + React R
 ### 7.1 Siapkan environment variable production
 
 ```bash
-cd /opt/pos-backend/FE   # atau lokasi clone FE Anda
+cd /opt/pos-mahenz/FE   # atau lokasi clone FE Anda
 ```
 
 Edit `FE/.env.production`:
@@ -347,7 +347,7 @@ sudo chown -R www-data:www-data /var/www/pos-web
 Project sudah menyediakan template di `FE/nginx.conf`. Salin dan sesuaikan:
 
 ```bash
-sudo cp /opt/pos-backend/FE/nginx.conf /etc/nginx/sites-available/pos-web
+sudo cp /opt/pos-mahenz/FE/nginx.conf /etc/nginx/sites-available/pos-web
 sudo nano /etc/nginx/sites-available/pos-web   # ganti server_name sesuai domain
 ```
 
@@ -443,7 +443,7 @@ Setelah HTTPS aktif, update:
 **Backend** (ada perubahan kode):
 
 ```bash
-cd /opt/pos-backend/BE
+cd /opt/pos-mahenz/BE
 git pull
 go build -o pos_api main.go
 sudo systemctl restart pos-backend
@@ -455,7 +455,7 @@ Migrasi database baru (file SQL baru di `database/migrations/`) akan otomatis di
 **Frontend** (ada perubahan kode):
 
 ```bash
-cd /opt/pos-backend/FE
+cd /opt/pos-mahenz/FE
 git pull
 npm install
 npm run build

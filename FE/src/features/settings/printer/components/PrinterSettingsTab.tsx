@@ -35,7 +35,7 @@ function buildReceiptHtml(settings: PrinterSettings, forPrint = false): string {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
   const printScript = forPrint
-    ? `<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script>`
+    ? `<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}</script>`
     : ''
   return `<!DOCTYPE html>
 <html lang="id">

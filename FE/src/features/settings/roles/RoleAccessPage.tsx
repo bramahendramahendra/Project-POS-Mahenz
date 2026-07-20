@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save } from 'lucide-react'
 
@@ -76,8 +76,10 @@ export function RoleAccessPage() {
   const { mutate: saveAccess, isPending: isSaving } = useSetRoleAccessMutation(roleId)
 
   const [accessState, setAccessState] = useState<AccessState>({})
+  const [loadedAccessItems, setLoadedAccessItems] = useState(accessItems)
 
-  useEffect(() => {
+  if (accessItems !== loadedAccessItems) {
+    setLoadedAccessItems(accessItems)
     if (accessItems.length > 0) {
       const initial: AccessState = {}
       accessItems.forEach((item) => {
@@ -90,7 +92,7 @@ export function RoleAccessPage() {
       })
       setAccessState(initial)
     }
-  }, [accessItems])
+  }
 
   const handleToggle = (menuId: number, field: AccessField) => {
     setAccessState((prev) => {

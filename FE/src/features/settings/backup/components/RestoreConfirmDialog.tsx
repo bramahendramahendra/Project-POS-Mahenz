@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
 import {
@@ -34,12 +34,9 @@ export function RestoreConfirmDialog({
 }: RestoreConfirmDialogProps) {
   const [typed, setTyped] = useState('')
 
-  useEffect(() => {
-    if (!open) setTyped('')
-  }, [open])
-
   const handleOpenChange = (val: boolean) => {
     if (isLoading) return
+    if (!val) setTyped('')
     onOpenChange(val)
   }
 
