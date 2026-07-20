@@ -1,5 +1,5 @@
 {
-  "SecretKey": "",
+  "SecretKey": "Ne6lS6swIuyZ9tbFLLZoZ080c+fh0KnjWil8K4e+e6iU1GAf4Cwt8ZIJI1faqIfM",
   "TokenExpire": 28800,
   "RefreshTokenExpire": 604800,
   "FormatTime": "2006-01-02 15:04:05",
@@ -29,6 +29,6 @@
   },
 
   "CorsAllowOrigins": [
-    "https://pos.example.com"
+    "http://139.180.214.187"
   ]
 }

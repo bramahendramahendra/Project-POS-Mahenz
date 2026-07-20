@@ -147,7 +147,7 @@ Saat backend pertama kali dijalankan, ia otomatis membaca semua file di `BE/data
 
 ```bash
 sudo mkdir -p /opt/pos-backend
-sudo chown $USER:$USER /opt/pos-backend
+sudo chown -R $USER:$USER /opt/pos-backend
 git clone <URL_REPO_ANDA> /opt/pos-backend
 cd /opt/pos-backend/BE
 ```
@@ -243,6 +243,10 @@ Pastikan muncul log server listening di port 8080 tanpa error, dan tabel-tabel t
 Menjalankan binary langsung di terminal (`./pos_api &`) tidak cukup untuk production — begitu SSH terputus atau server reboot, aplikasi akan mati. Solusinya: bungkus sebagai **systemd service**.
 
 Buat file `/etc/systemd/system/pos-backend.service`:
+
+```bash
+sudo nano /etc/systemd/system/pos-backend.service
+```
 
 ```ini
 [Unit]
