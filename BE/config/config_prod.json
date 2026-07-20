@@ -20,7 +20,7 @@
     "Host": "127.0.0.1",
     "Port": "3306",
     "User": "pos_user",
-    "Password": "",
+    "Password": "P@ssw0rd",
     "Database": "pos_retail_db",
     "MaxOpenConns": 50,
     "MaxIdleConns": 10,
