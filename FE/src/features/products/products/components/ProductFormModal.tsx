@@ -108,13 +108,13 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
 
   useEffect(() => {
     const barcode = barcodeData?.barcode
-    if (barcode) setValue('barcode', barcode)
+    if (barcode) setValue('barcode', barcode, { shouldValidate: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [barcodeData])
 
   useEffect(() => {
     const sku = skuData?.sku
-    if (sku && generateSkuEnabled) setValue('sku', sku)
+    if (sku && generateSkuEnabled) setValue('sku', sku, { shouldValidate: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skuData, generateSkuEnabled])
 
@@ -269,7 +269,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                 <Select
                   value={categoryIdValue !== undefined && categoryIdValue > 0 ? String(categoryIdValue) : ''}
                   onValueChange={(v) => {
-                    setValue('category_id', Number(v))
+                    setValue('category_id', Number(v), { shouldValidate: true })
                     if (!generateSkuEnabled) return
                     setGenerateSkuEnabled(false)
                     setValue('sku', '')
@@ -296,7 +296,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                 </Label>
                 <Select
                   value={unitIdValue > 0 ? String(unitIdValue) : ''}
-                  onValueChange={(v) => setValue('unit_id', Number(v))}
+                  onValueChange={(v) => setValue('unit_id', Number(v), { shouldValidate: true })}
                 >
                   <SelectTrigger className={errors.unit_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Pilih Satuan" />

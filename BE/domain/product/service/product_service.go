@@ -163,6 +163,14 @@ func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.P
 		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
 	}
 
+	nameExists, err := s.repo.CheckNameExists(req.Name, 0)
+	if err != nil {
+		return data, err
+	}
+	if nameExists {
+		return data, &errors.BadRequestError{Message: "Nama produk sudah digunakan"}
+	}
+
 	newID, err := s.repo.Create(req)
 	if err != nil {
 		return data, err
@@ -227,6 +235,14 @@ func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.P
 	}
 	if skuExists {
 		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
+	}
+
+	nameExists, err := s.repo.CheckNameExists(req.Name, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if nameExists {
+		return data, &errors.BadRequestError{Message: "Nama produk sudah digunakan"}
 	}
 
 	if err = s.repo.Update(req); err != nil {

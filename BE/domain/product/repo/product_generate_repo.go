@@ -3,6 +3,7 @@ package repo
 const (
 	checkBarcodeExistsQuery = `SELECT id FROM products WHERE barcode = ? AND id != ? LIMIT 1`
 	checkSkuExistsQuery     = `SELECT id FROM products WHERE sku = ? AND id != ? LIMIT 1`
+	checkNameExistsQuery    = `SELECT id FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id != ? LIMIT 1`
 	countSkuByCategoryQuery = `SELECT COUNT(*) FROM products WHERE category_id = ?`
 )
 
@@ -18,6 +19,15 @@ func (r *productRepo) CheckBarcodeExists(barcode string, excludeID int) (bool, e
 func (r *productRepo) CheckSkuExists(sku string, excludeID int) (bool, error) {
 	var id int
 	err := r.db.Raw(checkSkuExistsQuery, sku, excludeID).Scan(&id).Error
+	if err != nil {
+		return false, err
+	}
+	return id > 0, nil
+}
+
+func (r *productRepo) CheckNameExists(name string, excludeID int) (bool, error) {
+	var id int
+	err := r.db.Raw(checkNameExistsQuery, name, excludeID).Scan(&id).Error
 	if err != nil {
 		return false, err
 	}

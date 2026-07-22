@@ -140,6 +140,7 @@ CREATE TABLE IF NOT EXISTS products (
     barcode        VARCHAR(100)  UNIQUE NULL,
     sku            VARCHAR(50)   NULL UNIQUE,
     name           VARCHAR(200)  NOT NULL,
+    name_normalized VARCHAR(200) GENERATED ALWAYS AS (LOWER(TRIM(name))) STORED,
     category_id    INT           NULL,
     purchase_price DECIMAL(15,2) DEFAULT 0,
     selling_price  DECIMAL(15,2) DEFAULT 0,
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS products (
     is_active      TINYINT(1)    DEFAULT 1,
     created_at     DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_product_name (name_normalized),
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (unit_id)     REFERENCES units(id)      ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

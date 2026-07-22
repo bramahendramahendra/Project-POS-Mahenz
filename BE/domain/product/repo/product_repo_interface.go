@@ -24,6 +24,7 @@ type ProductRepoInterface interface {
 
 	CheckBarcodeExists(barcode string, excludeID int) (bool, error)
 	CheckSkuExists(sku string, excludeID int) (bool, error)
+	CheckNameExists(name string, excludeID int) (bool, error)
 	CountSkuByCategory(categoryID int) (int, error)
 
 	GetPackagesByProduct(productID int) ([]*model_product.ProductPackage, error)

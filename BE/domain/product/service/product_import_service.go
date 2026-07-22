@@ -142,6 +142,7 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 	colSatuan := colIdx(headerProduk, "Satuan")
 
 	seenBarcodes := make(map[string]bool)
+	seenNames := make(map[string]bool)
 	validNos := make(map[int]bool)
 
 	var previewRows []dto.ImportPreviewRow
@@ -165,6 +166,17 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 
 		if nama == "" {
 			errs = append(errs, "Nama produk wajib diisi")
+		} else {
+			namaKey := strings.ToLower(strings.TrimSpace(nama))
+			if seenNames[namaKey] {
+				errs = append(errs, fmt.Sprintf("Nama produk \"%s\" duplikat dalam file", nama))
+			} else {
+				exists, checkErr := s.repo.CheckNameExists(nama, 0)
+				if checkErr == nil && exists {
+					errs = append(errs, fmt.Sprintf("Nama produk \"%s\" sudah digunakan produk lain", nama))
+				}
+			}
+			seenNames[namaKey] = true
 		}
 		satuanID := unitIDMap[strings.ToLower(satuan)]
 		if satuan == "" {
