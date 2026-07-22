@@ -93,16 +93,19 @@ export function ProductSearch() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results])
 
-  const addItemToCart = (product: Product, unitId: number, unitName: string) => {
-    const pkg = product.units.find((u) => u.unit_id === unitId)
+  // unit_id di CartItem sebenarnya id baris product_packages (pkg.id), bukan
+  // units.id — penting karena satu satuan master bisa punya beberapa paket
+  // (rasio beda per supplier/batch/promo).
+  const addItemToCart = (product: Product, pkg: ProductPackage) => {
+    const label = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
     // Pastikan price selalu number — selling_price dari API bisa datang sebagai string
-    const price = Number(getApplicablePrice(product.prices, unitId, 1) ?? pkg?.selling_price ?? 0)
+    const price = Number(getApplicablePrice(product.prices, pkg.unit_id, 1) ?? pkg.selling_price ?? 0)
     addToCart({
       product_id: product.id,
       product_name: product.name,
-      unit_id: unitId,
-      unit_name: unitName,
-      conversion_qty: Number(pkg?.conversion_qty ?? 1),
+      unit_id: pkg.id,
+      unit_name: label,
+      conversion_qty: Number(pkg.resolved_factor ?? 1),
       qty: 1,
       price,
       subtotal: price,
@@ -119,7 +122,7 @@ export function ProductSearch() {
         return
       }
       if (units.length === 1) {
-        addItemToCart(product, units[0].unit_id, units[0].unit_name)
+        addItemToCart(product, units[0])
       } else {
         // Multi-unit via barcode: masukkan ke resolved dan tampilkan di grid
         setResolvedCards((prev) => {
@@ -220,12 +223,10 @@ export function ProductSearch() {
                       <p className="text-center text-xs text-gray-400 py-1">Belum ada unit</p>
                     ) : units.length === 1 ? (
                       <button
-                        onClick={() =>
-                          addItemToCart(resolved!.product, units[0].unit_id, units[0].unit_name)
-                        }
+                        onClick={() => addItemToCart(resolved!.product, units[0])}
                         className="w-full rounded-md bg-blue-50 border border-blue-200 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 active:scale-95 transition-all"
                       >
-                        {units[0].unit_name}
+                        {units[0].package_name ? `${units[0].unit_name} (${units[0].package_name})` : units[0].unit_name}
                         {' — '}
                         {formatRupiah(
                           getApplicablePrice(resolved!.product.prices, units[0].unit_id, 1) ??
@@ -239,16 +240,15 @@ export function ProductSearch() {
                           const price =
                             getApplicablePrice(resolved!.product.prices, unit.unit_id, 1) ??
                             unit.selling_price
+                          const label = unit.package_name ? `${unit.unit_name} (${unit.package_name})` : unit.unit_name
                           return (
                             <button
-                              key={unit.unit_id}
-                              onClick={() =>
-                                addItemToCart(resolved!.product, unit.unit_id, unit.unit_name)
-                              }
+                              key={unit.id}
+                              onClick={() => addItemToCart(resolved!.product, unit)}
                               className="flex flex-col items-center rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 hover:border-blue-500 hover:bg-blue-100 active:scale-95 transition-all"
                             >
                               <span className="text-xs font-semibold text-blue-800">
-                                {unit.unit_name}
+                                {label}
                               </span>
                               <span className="text-xs text-blue-600">
                                 {formatRupiah(price)}

@@ -16,15 +16,17 @@ export function UnitSelectModal() {
 
   const { product, availableUnits } = pendingProduct
 
-  const handleSelectUnit = (unitId: number, unitName: string) => {
-    const price = getApplicablePrice(product.prices, unitId, qty) ?? 0
-    const pkg = availableUnits.find((u) => u.unit_id === unitId)
+  // unit_id di CartItem sebenarnya menyimpan id baris product_packages (bukan
+  // units.id) — penting dibedakan dengan benar sekarang karena satu unit master
+  // bisa punya beberapa paket (rasio beda per supplier/batch/promo).
+  const handleSelectPackage = (pkg: (typeof availableUnits)[number]) => {
+    const price = getApplicablePrice(product.prices, pkg.unit_id, qty) ?? 0
     addToCart({
       product_id: product.id,
       product_name: product.name,
-      unit_id: unitId,
-      unit_name: unitName,
-      conversion_qty: pkg?.conversion_qty ?? 1,
+      unit_id: pkg.id,
+      unit_name: pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name,
+      conversion_qty: pkg.resolved_factor,
       qty,
       price,
       subtotal: qty * price,
@@ -70,15 +72,16 @@ export function UnitSelectModal() {
 
         {/* Unit grid */}
         <div className="grid grid-cols-2 gap-3 p-5">
-          {availableUnits.map((unit) => {
-            const price = getApplicablePrice(product.prices, unit.unit_id, qty)
+          {availableUnits.map((pkg) => {
+            const price = getApplicablePrice(product.prices, pkg.unit_id, qty)
+            const label = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
             return (
               <button
-                key={unit.unit_id}
-                onClick={() => handleSelectUnit(unit.unit_id, unit.unit_name)}
+                key={pkg.id}
+                onClick={() => handleSelectPackage(pkg)}
                 className="flex flex-col items-center gap-1 rounded-lg border-2 border-gray-200 p-4 hover:border-blue-400 hover:bg-blue-50 transition-all active:scale-95"
               >
-                <span className="font-semibold text-gray-800">{unit.unit_name}</span>
+                <span className="font-semibold text-gray-800">{label}</span>
                 {price !== null ? (
                   <span className="text-sm text-blue-600">{formatRupiah(price)}</span>
                 ) : (

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
+	model_product "pos_api/domain/product/model"
 	dto_sync "pos_api/domain/sync/dto"
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
@@ -16,21 +17,21 @@ import (
 )
 
 const (
-	getPackageByIDQuery           = `SELECT pp.conversion_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id = ? LIMIT 1`
-	generateTransactionCodeQuery  = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
-	createTransactionQuery        = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createTransactionItemQuery    = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductStockQuery       = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND (stock - reserved_qty) >= ?`
-	createStockMutationQuery      = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	voidTransactionQuery          = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
-	restoreStockQuery             = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	createReceivableQuery         = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
-	updateReceivableVoidQuery     = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
-	getProductStockQuery          = `SELECT stock FROM products WHERE id = ? LIMIT 1`
-	getProductPurchasePriceQuery  = `SELECT purchase_price FROM products WHERE id = ? LIMIT 1`
-	getTransactionItemsQuery      = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
-	getTransactionForVoidQuery    = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
-	getTransactionByIDQuery       = `
+	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
+	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	updateProductStockQuery      = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND (stock - reserved_qty) >= ?`
+	createStockMutationQuery     = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
+	restoreStockQuery            = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	createReceivableQuery        = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
+	updateReceivableVoidQuery    = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
+	getProductStockQuery         = `SELECT stock FROM products WHERE id = ? LIMIT 1`
+	getProductPurchasePriceQuery = `SELECT purchase_price FROM products WHERE id = ? LIMIT 1`
+	getTransactionItemsQuery     = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
+	getTransactionForVoidQuery   = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
+	getTransactionByIDQuery      = `
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
 		       t.shift_id, t.transaction_date,
 		       t.subtotal, t.discount, t.tax, t.total_amount, t.payment_method,
@@ -208,17 +209,24 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 
 	// 3. Loop items
 	for _, item := range req.Items {
-		// Resolve conversion_qty dan unit_name dari product_packages
+		// Resolve conversion_qty (faktor ke satuan anchor) dan unit_name dari
+		// product_packages — selalu dihitung ulang di server (bukan percaya kiriman
+		// klien) dengan menelusuri rantai ref_package_id, supaya rasio yang berubah
+		// tidak bisa disalahgunakan lewat payload yang sudah usang.
 		conversionQty := item.ConversionQty
 		unitName := item.Unit
 		if item.UnitID != nil && *item.UnitID > 0 {
-			var pkgData struct {
-				ConversionQty float64
-				UnitName      string
-			}
-			if err := r.db.Raw(getPackageByIDQuery, *item.UnitID).Scan(&pkgData).Error; err == nil && pkgData.ConversionQty > 0 {
-				conversionQty = pkgData.ConversionQty
-				unitName = pkgData.UnitName
+			var pkgRows []*model_product.ProductPackage
+			if err := r.db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
+				if factor, factorErr := model_product.ResolvePackageFactor(pkgRows, *item.UnitID); factorErr == nil && factor > 0 {
+					conversionQty = factor
+					for _, p := range pkgRows {
+						if p.ID == *item.UnitID {
+							unitName = p.UnitName
+							break
+						}
+					}
+				}
 			}
 		}
 		if conversionQty <= 0 {

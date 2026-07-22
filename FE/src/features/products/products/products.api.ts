@@ -6,8 +6,8 @@ import { queryKeys } from '@/shared/constants'
 import type { PaginatedData } from '@/shared/types'
 
 import type {
+  CreatePackagePayload,
   CreatePriceTierPayload,
-  CreateProductPackagePayload,
   CreateProductPayload,
   GrosirImportRow,
   ImportBulkPayload,
@@ -22,6 +22,7 @@ import type {
   ProductOption,
   ProductPackage,
   ProductSearchOption,
+  UpdatePackagePayload,
   UpdateProductPayload,
 } from './products.types'
 
@@ -234,14 +235,27 @@ export function useBulkToggleProductStatusMutation() {
 
 // ─── Product Package Mutations ────────────────────────────────────────────────
 
-export function useSaveProductPackagesBulkMutation() {
+export function useCreateProductPackageMutation(productId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ productId, packages }: { productId: number; packages: CreateProductPackagePayload[] }) =>
-      api.post<void>(`/products/${productId}/packages/save`, { packages }),
-    onSuccess: (_data, { productId }) => {
+    mutationFn: (payload: CreatePackagePayload) =>
+      api.post<ProductPackage>(`/products/${productId}/packages/create`, payload),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
-      toast.success('Kemasan produk berhasil disimpan')
+      toast.success('Paket produk berhasil ditambahkan')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useUpdateProductPackageMutation(productId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ packageId, ...payload }: UpdatePackagePayload & { packageId: number }) =>
+      api.post<ProductPackage>(`/products/${productId}/packages/update/${packageId}`, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
+      toast.success('Paket produk berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

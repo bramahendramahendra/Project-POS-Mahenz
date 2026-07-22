@@ -273,7 +273,8 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 		gColNoProduk := colIdx(headerGrosir, "No Produk")
 		gColNamaPaket := colIdx(headerGrosir, "Nama Paket")
 		gColSatuan := colIdx(headerGrosir, "Satuan")
-		gColKonversi := colIdx(headerGrosir, "Konversi")
+		gColQty := colIdx(headerGrosir, "Qty")
+		gColRefQty := colIdx(headerGrosir, "Qty Acuan")
 		gColHargaBeli := colIdx(headerGrosir, "Harga Beli")
 		gColHargaJual := colIdx(headerGrosir, "Harga Jual")
 
@@ -285,7 +286,8 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			errs := []string{}
 			namaPaket := getCell(row, gColNamaPaket)
 			satuan := getCell(row, gColSatuan)
-			konversi, konversiOk := toParsedFloat(getCell(row, gColKonversi))
+			qty, qtyOk := toParsedFloat(getCell(row, gColQty))
+			refQty, refQtyOk := toParsedFloat(getCell(row, gColRefQty))
 			hargaBeli, hargaBeliOk := toParsedFloat(getCell(row, gColHargaBeli))
 			hargaJual, hargaJualOk := toParsedFloat(getCell(row, gColHargaJual))
 
@@ -298,10 +300,15 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			} else if satuanID == 0 {
 				errs = append(errs, fmt.Sprintf("Satuan \"%s\" tidak ditemukan di master data", satuan))
 			}
-			if !konversiOk {
-				errs = append(errs, "Konversi bukan angka yang valid")
-			} else if konversi <= 0 {
-				errs = append(errs, "Konversi harus lebih dari 0")
+			if !qtyOk {
+				errs = append(errs, "Qty bukan angka yang valid")
+			} else if qty <= 0 {
+				errs = append(errs, "Qty harus lebih dari 0")
+			}
+			if !refQtyOk {
+				errs = append(errs, "Qty Acuan bukan angka yang valid")
+			} else if refQty <= 0 {
+				errs = append(errs, "Qty Acuan harus lebih dari 0")
 			}
 			if !hargaBeliOk {
 				errs = append(errs, "Harga Beli bukan angka yang valid")
@@ -317,7 +324,8 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 				NamaPaket: namaPaket,
 				Satuan:    satuan,
 				SatuanID:  satuanID,
-				Konversi:  konversi,
+				Qty:       qty,
+				RefQty:    refQty,
 				HargaBeli: hargaBeli,
 				HargaJual: hargaJual,
 				Valid:     len(errs) == 0,
@@ -343,7 +351,6 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 	data.Failed = []dto.BulkImportFailed{}
 
 	noToProductID := make(map[int]int)
-	defaultPackages := make(map[int]dto.PackageRequest)
 	categoryCache := make(map[string]int)
 
 	for i, row := range bulkReq.Rows {
@@ -429,42 +436,56 @@ func (s *productService) ImportBulk(bulkReq dto.BulkImportRequest) (data dto.Bul
 			noToProductID[row.No] = int(productID)
 		}
 
-		defaultPackages[int(productID)] = dto.PackageRequest{
-			UnitID:        resolvedUnitID,
-			ConversionQty: 1,
-			PurchasePrice: row.HargaBeli,
-			SellingPrice:  row.HargaJual,
-			IsDefault:     true,
-		}
-
 		data.Success++
 	}
 
-	grosirByProduct := make(map[int][]dto.PackageRequest)
+	// Paket anchor (satuan pencatatan stok) sudah otomatis dibuat oleh repo.Create di atas.
+	// Grosir dari sheet "Grosir" ditambahkan sebagai paket terpisah, direferensikan ke
+	// paket anchor produknya masing-masing.
+	grosirByProduct := make(map[int][]dto.GrosirImportRow)
 	for _, g := range bulkReq.Grosir {
 		productID, ok := noToProductID[g.NoProduk]
 		if !ok || g.SatuanID == 0 {
 			continue
 		}
-		grosirByProduct[productID] = append(grosirByProduct[productID], dto.PackageRequest{
-			UnitID:        g.SatuanID,
-			PackageName:   strings.TrimSpace(g.NamaPaket),
-			ConversionQty: g.Konversi,
-			PurchasePrice: g.HargaBeli,
-			SellingPrice:  g.HargaJual,
-			IsDefault:     false,
-		})
+		grosirByProduct[productID] = append(grosirByProduct[productID], g)
 	}
 
-	for productID, defaultPkg := range defaultPackages {
-		allPkgs := []dto.PackageRequest{defaultPkg}
-		if grosirPkgs, ok := grosirByProduct[productID]; ok {
-			allPkgs = append(allPkgs, grosirPkgs...)
-		}
-		if err := s.repo.SavePackages(productID, allPkgs); err != nil {
+	for productID, grosirRows := range grosirByProduct {
+		packages, err := s.repo.GetPackagesByProduct(productID)
+		if err != nil {
 			entry := log_helper.FromBackground("ImportBulk", "product_import",
-				fmt.Sprintf("Gagal menyimpan paket produk ID %d: %v", productID, err))
+				fmt.Sprintf("Gagal mengambil paket produk ID %d: %v", productID, err))
 			log_helper.LogError(entry)
+			continue
+		}
+
+		var anchorID int
+		for _, p := range packages {
+			if p.IsDefault {
+				anchorID = p.ID
+				break
+			}
+		}
+		if anchorID == 0 {
+			continue
+		}
+
+		for _, g := range grosirRows {
+			pkgReq := &dto.CreatePackageRequest{
+				UnitID:        g.SatuanID,
+				PackageName:   strings.TrimSpace(g.NamaPaket),
+				RefPackageID:  anchorID,
+				Qty:           g.Qty,
+				RefQty:        g.RefQty,
+				PurchasePrice: g.HargaBeli,
+				SellingPrice:  g.HargaJual,
+			}
+			if _, err := s.repo.CreatePackage(productID, pkgReq); err != nil {
+				entry := log_helper.FromBackground("ImportBulk", "product_import",
+					fmt.Sprintf("Gagal menyimpan paket grosir produk ID %d: %v", productID, err))
+				log_helper.LogError(entry)
+			}
 		}
 	}
 

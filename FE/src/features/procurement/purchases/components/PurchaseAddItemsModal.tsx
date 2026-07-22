@@ -98,6 +98,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
   const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const queryClient = useQueryClient()
   const watchItems = useWatch({ control, name: 'items' })
+  const [itemPackageId, setItemPackageId] = useState<Record<number, number>>({})
 
   async function handleProductChange(index: number, id: number, productName: string) {
     setValue(`items.${index}.product_id`, id, { shouldValidate: true })
@@ -113,9 +114,10 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     const validPackages = Array.isArray(packages) ? packages : []
     const defaultPkg = validPackages.find((pkg) => pkg.is_default) ?? validPackages[0]
 
+    setItemPackageId((prev) => ({ ...prev, [index]: defaultPkg?.id ?? 0 }))
     setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
     setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
-    setValue(`items.${index}.conversion_qty`, defaultPkg?.conversion_qty ?? 1)
+    setValue(`items.${index}.conversion_qty`, defaultPkg?.resolved_factor ?? 1)
   }
 
   const newItemsTotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
@@ -141,8 +143,9 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     addItems(
       {
         id: purchaseId,
-        items: pendingValues.items.map((item) => ({
+        items: pendingValues.items.map((item, index) => ({
           product_id: item.product_id,
+          package_id: itemPackageId[index] || undefined,
           quantity: item.quantity,
           purchase_price: item.price,
           unit: item.unit,

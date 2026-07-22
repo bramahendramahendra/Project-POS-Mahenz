@@ -212,8 +212,12 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 	sheetGrosir := "Grosir"
 	f.NewSheet(sheetGrosir)
 
-	grosirHeaders := []string{"No Produk", "Nama Paket", "Satuan", "Konversi", "Ref Harga Beli", "Harga Beli", "Ref Harga Jual", "Harga Jual"}
-	grosirExample := []any{0, "1 Dus", "Dus", 12, "", 55000, "", 75000}
+	// Qty & Qty Acuan sama seperti form manual: "Qty x Satuan = Qty Acuan x Satuan Dasar
+	// produk" — dua kolom (bukan satu "Konversi") supaya import juga bisa menambahkan
+	// satuan yang LEBIH KECIL dari satuan dasar (mis. Qty=12 Batang = Qty Acuan=1 Pack),
+	// bukan cuma lebih besar seperti sebelumnya.
+	grosirHeaders := []string{"No Produk", "Nama Paket", "Satuan", "Qty", "Qty Acuan", "Ref Harga Beli", "Harga Beli", "Ref Harga Jual", "Harga Jual"}
+	grosirExample := []any{0, "1 Dus", "Dus", 1, 12, "", 55000, "", 75000}
 
 	refHeaderStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Color: "#FFFFFF"},
@@ -234,27 +238,28 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 		cell, _ := excelize.CoordinatesToCellName(col+1, 2)
 		f.SetCellValue(sheetGrosir, cell, val)
 	}
-	f.SetCellStyle(sheetGrosir, "A1", "D1", headerStyle)
-	f.SetCellStyle(sheetGrosir, "E1", "E1", refHeaderStyle)
-	f.SetCellStyle(sheetGrosir, "F1", "F1", headerStyle)
-	f.SetCellStyle(sheetGrosir, "G1", "G1", refHeaderStyle)
-	f.SetCellStyle(sheetGrosir, "H1", "H1", headerStyle)
-	f.SetCellStyle(sheetGrosir, "F2", "F500", grosirCurrencyStyle)
-	f.SetCellStyle(sheetGrosir, "H2", "H500", grosirCurrencyStyle)
-	f.SetCellStyle(sheetGrosir, "E2", "E500", refCellStyle)
-	f.SetCellStyle(sheetGrosir, "G2", "G500", refCellStyle)
+	f.SetCellStyle(sheetGrosir, "A1", "E1", headerStyle)
+	f.SetCellStyle(sheetGrosir, "F1", "F1", refHeaderStyle)
+	f.SetCellStyle(sheetGrosir, "G1", "G1", headerStyle)
+	f.SetCellStyle(sheetGrosir, "H1", "H1", refHeaderStyle)
+	f.SetCellStyle(sheetGrosir, "I1", "I1", headerStyle)
+	f.SetCellStyle(sheetGrosir, "G2", "G500", grosirCurrencyStyle)
+	f.SetCellStyle(sheetGrosir, "I2", "I500", grosirCurrencyStyle)
+	f.SetCellStyle(sheetGrosir, "F2", "F500", refCellStyle)
+	f.SetCellStyle(sheetGrosir, "H2", "H500", refCellStyle)
 	for row := 2; row <= 500; row++ {
 		cellA, _ := excelize.CoordinatesToCellName(1, row)
 		cellD, _ := excelize.CoordinatesToCellName(4, row)
 		cellE, _ := excelize.CoordinatesToCellName(5, row)
-		cellG, _ := excelize.CoordinatesToCellName(7, row)
-		f.SetCellFormula(sheetGrosir, cellE, fmt.Sprintf(`IFERROR(VLOOKUP(%s,Produk!$A:$J,5,0)*%s,"")`, cellA, cellD))
-		f.SetCellFormula(sheetGrosir, cellG, fmt.Sprintf(`IFERROR(VLOOKUP(%s,Produk!$A:$J,6,0)*%s,"")`, cellA, cellD))
+		cellF, _ := excelize.CoordinatesToCellName(6, row)
+		cellH, _ := excelize.CoordinatesToCellName(8, row)
+		f.SetCellFormula(sheetGrosir, cellF, fmt.Sprintf(`IFERROR(VLOOKUP(%s,Produk!$A:$J,5,0)*%s/%s,"")`, cellA, cellE, cellD))
+		f.SetCellFormula(sheetGrosir, cellH, fmt.Sprintf(`IFERROR(VLOOKUP(%s,Produk!$A:$J,6,0)*%s/%s,"")`, cellA, cellE, cellD))
 	}
 
-	f.SetCellValue(sheetGrosir, "A3", "* No Produk: isi dengan nilai kolom 'No' dari sheet Produk. Satuan dipilih dari dropdown. Kolom Ref otomatis.")
-	f.SetCellStyle(sheetGrosir, "A3", "H3", noteStyle)
-	f.MergeCell(sheetGrosir, "A3", "H3")
+	f.SetCellValue(sheetGrosir, "A3", "* No Produk: isi dengan nilai kolom 'No' dari sheet Produk. Satuan dipilih dari dropdown. Qty x Satuan = Qty Acuan x Satuan Dasar produk (boleh Qty Acuan lebih besar ATAU lebih kecil dari Qty). Kolom Ref otomatis.")
+	f.SetCellStyle(sheetGrosir, "A3", "I3", noteStyle)
+	f.MergeCell(sheetGrosir, "A3", "I3")
 
 	dvGNoProduk := excelize.NewDataValidation(true)
 	dvGNoProduk.Sqref = "A4:A500"
@@ -278,28 +283,34 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 		f.AddDataValidation(sheetGrosir, dvGSatuan)
 	}
 
-	dvGKonversi := excelize.NewDataValidation(true)
-	dvGKonversi.Sqref = "D4:D500"
-	dvGKonversi.SetRange(0.001, 9999999999999.999, excelize.DataValidationTypeDecimal, excelize.DataValidationOperatorGreaterThanOrEqual)
-	dvGKonversi.SetError(excelize.DataValidationErrorStyleStop, "Konversi tidak valid", "Konversi harus berupa angka > 0.")
-	f.AddDataValidation(sheetGrosir, dvGKonversi)
+	dvGQty := excelize.NewDataValidation(true)
+	dvGQty.Sqref = "D4:D500"
+	dvGQty.SetRange(0.001, 9999999999999.999, excelize.DataValidationTypeDecimal, excelize.DataValidationOperatorGreaterThanOrEqual)
+	dvGQty.SetError(excelize.DataValidationErrorStyleStop, "Qty tidak valid", "Qty harus berupa angka > 0.")
+	f.AddDataValidation(sheetGrosir, dvGQty)
+
+	dvGRefQty := excelize.NewDataValidation(true)
+	dvGRefQty.Sqref = "E4:E500"
+	dvGRefQty.SetRange(0.001, 9999999999999.999, excelize.DataValidationTypeDecimal, excelize.DataValidationOperatorGreaterThanOrEqual)
+	dvGRefQty.SetError(excelize.DataValidationErrorStyleStop, "Qty Acuan tidak valid", "Qty Acuan harus berupa angka > 0.")
+	f.AddDataValidation(sheetGrosir, dvGRefQty)
 
 	dvGHargaBeli := excelize.NewDataValidation(true)
-	dvGHargaBeli.Sqref = "F4:F500"
+	dvGHargaBeli.Sqref = "G4:G500"
 	dvGHargaBeli.SetRange(0, 9999999999999.99, excelize.DataValidationTypeDecimal, excelize.DataValidationOperatorGreaterThanOrEqual)
 	dvGHargaBeli.SetError(excelize.DataValidationErrorStyleStop, "Harga beli tidak valid", "Harga beli harus berupa angka >= 0.")
 	f.AddDataValidation(sheetGrosir, dvGHargaBeli)
 
 	dvGHargaJual := excelize.NewDataValidation(true)
-	dvGHargaJual.Sqref = "H4:H500"
+	dvGHargaJual.Sqref = "I4:I500"
 	dvGHargaJual.SetRange(0.01, 9999999999999.99, excelize.DataValidationTypeDecimal, excelize.DataValidationOperatorGreaterThanOrEqual)
 	dvGHargaJual.SetError(excelize.DataValidationErrorStyleStop, "Harga jual tidak valid", "Harga jual harus berupa angka > 0.")
 	f.AddDataValidation(sheetGrosir, dvGHargaJual)
 
-	for _, col := range []string{"A", "B", "C", "D", "F", "H"} {
+	for _, col := range []string{"A", "B", "C", "D", "E", "G", "I"} {
 		f.SetColWidth(sheetGrosir, col, col, 16)
 	}
-	for _, col := range []string{"E", "G"} {
+	for _, col := range []string{"F", "H"} {
 		f.SetColWidth(sheetGrosir, col, col, 18)
 	}
 

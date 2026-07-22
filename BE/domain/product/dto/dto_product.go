@@ -30,6 +30,10 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
+	// UnitID sengaja tidak ada di sini — satuan anchor (satuan pencatatan stok)
+	// permanen sejak produk dibuat, tidak pernah diubah lewat update biasa. Ini
+	// menghindari data korup: dulu field ini bisa diedit bebas tanpa menyesuaikan
+	// paket lain atau stok yang sudah tercatat.
 	UpdateRequest struct {
 		ID            int     `json:"-"`
 		Barcode       string  `json:"barcode" validate:"required,max=100"`
@@ -40,7 +44,6 @@ type (
 		SellingPrice  float64 `json:"selling_price" validate:"required,min=0"`
 		Stock         float64 `json:"stock" validate:"min=0"`
 		MinStock      float64 `json:"min_stock" validate:"min=0"`
-		UnitID        int     `json:"unit_id" validate:"required,min=1"`
 	}
 
 	DeleteRequest struct {

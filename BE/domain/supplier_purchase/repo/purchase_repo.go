@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	model_product "pos_api/domain/product/model"
 	dto "pos_api/domain/supplier_purchase/dto"
 	model "pos_api/domain/supplier_purchase/model"
 	"pos_api/errors"
@@ -13,6 +14,7 @@ import (
 )
 
 const (
+	getPackagesByProductQuery  = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
 	generatePurchaseCodeQuery  = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
 	createPurchaseQuery        = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createPurchaseItemQuery    = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -38,6 +40,31 @@ const (
 	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
 	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
+
+// resolveConversionQty menghitung ulang faktor konversi dari server berdasarkan PackageID
+// yang dipilih user (menelusuri rantai ref_package_id sampai ke paket anchor), bukan
+// percaya ConversionQty yang dikirim klien — supaya rasio yang sudah berubah di produk
+// tidak bisa dieksploitasi lewat payload yang usang. ConversionQty klien cuma jadi
+// fallback kalau PackageID tidak dikirim (kompatibilitas alur lama).
+func resolveConversionQty(tx *gorm.DB, productID int, packageID *int, fallback float64) float64 {
+	if fallback <= 0 {
+		fallback = 1
+	}
+	if packageID == nil || *packageID <= 0 {
+		return fallback
+	}
+
+	var pkgRows []*model_product.ProductPackage
+	if err := tx.Raw(getPackagesByProductQuery, productID).Scan(&pkgRows).Error; err != nil {
+		return fallback
+	}
+
+	factor, err := model_product.ResolvePackageFactor(pkgRows, *packageID)
+	if err != nil || factor <= 0 {
+		return fallback
+	}
+	return factor
+}
 
 // calculateTotal menghitung subtotal & total dari daftar item pembelian.
 // Diekstrak dari Create/Update supaya tidak duplikasi logic (dan dipakai juga oleh AddItems).
@@ -264,11 +291,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
-
-			conversionQty := item.ConversionQty
-			if conversionQty <= 0 {
-				conversionQty = 1
-			}
+			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
 			stockAdd := item.Quantity * conversionQty
 
 			if err := tx.Exec(createPurchaseItemQuery,
@@ -361,10 +384,7 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
-			conversionQty := item.ConversionQty
-			if conversionQty <= 0 {
-				conversionQty = 1
-			}
+			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
 			if err := tx.Exec(createPurchaseItemQuery,
 				req.ID, item.ProductID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
@@ -521,10 +541,7 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
-			conversionQty := item.ConversionQty
-			if conversionQty <= 0 {
-				conversionQty = 1
-			}
+			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
 			stockAdd := item.Quantity * conversionQty
 
 			if err := tx.Exec(createPurchaseItemQuery,

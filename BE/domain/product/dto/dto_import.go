@@ -18,12 +18,17 @@ type BulkImportRow struct {
 	SatuanID    int     `json:"satuan_id"`
 }
 
+// GrosirImportRow: satuan lain untuk sebuah produk dari sheet "Grosir". Qty & RefQty
+// sama seperti di form manual — "Qty x Satuan = RefQty x Satuan Dasar produk". Ini
+// memungkinkan import juga menambahkan satuan yang LEBIH KECIL dari satuan dasar
+// (mis. Qty=12 Batang = RefQty=1 Pack), bukan cuma lebih besar seperti sebelumnya.
 type GrosirImportRow struct {
 	NoProduk  int     `json:"no_produk"`
 	NamaPaket string  `json:"nama_paket"`
 	Satuan    string  `json:"satuan"`
 	SatuanID  int     `json:"satuan_id"`
-	Konversi  float64 `json:"konversi"`
+	Qty       float64 `json:"qty"`
+	RefQty    float64 `json:"ref_qty"`
 	HargaBeli float64 `json:"harga_beli"`
 	HargaJual float64 `json:"harga_jual"`
 }
@@ -50,7 +55,8 @@ type ImportPreviewGrosirRow struct {
 	NamaPaket string   `json:"nama_paket"`
 	Satuan    string   `json:"satuan"`
 	SatuanID  int      `json:"satuan_id"`
-	Konversi  float64  `json:"konversi"`
+	Qty       float64  `json:"qty"`
+	RefQty    float64  `json:"ref_qty"`
 	HargaBeli float64  `json:"harga_beli"`
 	HargaJual float64  `json:"harga_jual"`
 	Valid     bool     `json:"valid"`

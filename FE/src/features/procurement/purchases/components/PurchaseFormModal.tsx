@@ -21,6 +21,7 @@ import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 import type { SupplierOption } from '@/features/procurement/suppliers'
 import { useProductSearchQuery } from '@/features/products/products'
+import { formatResolvedFactor } from '@/features/products/products/products.utils'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
@@ -207,7 +208,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       setItemSelectedPackageId((prev) => ({ ...prev, [index]: defaultPkg?.id ?? 0 }))
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
       setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
-      setValue(`items.${index}.conversion_qty`, defaultPkg?.conversion_qty ?? 1)
+      setValue(`items.${index}.conversion_qty`, defaultPkg?.resolved_factor ?? 1)
     } else {
       setItemUnitOptions((prev) => {
         const next = { ...prev }
@@ -233,13 +234,12 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemRefPurchasePrice((prev) => ({ ...prev, [index]: pkg.purchase_price }))
     setValue(`items.${index}.unit`, pkg.unit_name)
     setValue(`items.${index}.price`, pkg.purchase_price)
-    setValue(`items.${index}.conversion_qty`, pkg.conversion_qty ?? 1)
+    setValue(`items.${index}.conversion_qty`, pkg.resolved_factor ?? 1)
   }
 
   function unitOptionLabel(pkg: ProductPackage) {
-    return pkg.conversion_qty > 1
-      ? `${pkg.package_name || pkg.unit_name} (x${pkg.conversion_qty})`
-      : pkg.package_name || pkg.unit_name
+    const name = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
+    return pkg.resolved_factor > 1 ? `${name} (x${formatResolvedFactor(pkg.resolved_factor)})` : name
   }
 
   const handleClose = () => {
@@ -265,8 +265,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
     const payload = {
       ...pendingValues,
-      items: pendingValues.items.map((item) => ({
+      items: pendingValues.items.map((item, index) => ({
         product_id: item.product_id,
+        package_id: itemSelectedPackageId[index] || undefined,
         quantity: item.quantity,
         purchase_price: item.price,
         unit: item.unit,

@@ -23,6 +23,15 @@ export function formatProductPackage(pkg: ProductPackage): string {
   return pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
 }
 
+/**
+ * resolved_factor bisa berupa hasil pembagian panjang (mis. 1/120 = 0.008333...) —
+ * dibulatkan ke 4 desimal & trailing zero dibuang supaya enak dibaca, tanpa
+ * menyembunyikan presisi yang masih berarti untuk satuan yang jauh lebih kecil.
+ */
+export function formatResolvedFactor(factor: number): string {
+  return Number(factor.toFixed(4)).toString()
+}
+
 export function getDisplayPrice(product: Product): number {
   const defaultUnit = (product.units ?? []).find((u) => u.is_default)
   if (!defaultUnit) return product.selling_price

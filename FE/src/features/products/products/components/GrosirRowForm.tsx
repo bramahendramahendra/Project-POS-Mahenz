@@ -16,25 +16,43 @@ import {
 import { grosirSchema } from '../products.schema'
 import type { GrosirFormValues } from '../products.schema'
 
+export interface PackageRefOption {
+  /** ID asli (mode edit) atau temp_id (mode tambah produk, 0 = paket dasar) */
+  id: number
+  label: string
+}
+
 interface GrosirRowFormProps {
-  baseUnitName: string
-  basePurchase: number
-  baseSelling: number
+  /** Pilihan untuk dropdown "Merujuk ke Satuan" — sudah termasuk paket dasar. */
+  refOptions: PackageRefOption[]
   availableUnits: { id: number; name: string; abbreviation: string }[]
   initialValues?: GrosirFormValues
-  onSave: (v: GrosirFormValues) => void
+  isSaving?: boolean
+  onSave: (values: GrosirFormValues) => void
   onCancel: () => void
 }
 
+const defaultGrosirValues: GrosirFormValues = {
+  unit_id: 0,
+  package_name: '',
+  ref_package_id: 0,
+  qty: 1,
+  ref_qty: 1,
+  purchase_price: 0,
+  selling_price: 0,
+}
+
 export function GrosirRowForm({
-  baseUnitName,
-  basePurchase,
-  baseSelling,
+  refOptions,
   availableUnits,
   initialValues,
+  isSaving,
   onSave,
   onCancel,
 }: GrosirRowFormProps) {
+  // Default "Merujuk ke Satuan" ke opsi pertama yang tersedia — di mode tambah produk itu
+  // selalu id 0 (placeholder anchor), tapi di mode edit produk anchor punya ID asli
+  // (bukan 0), jadi tidak bisa di-hardcode 0 di sini.
   const {
     register,
     handleSubmit,
@@ -43,25 +61,36 @@ export function GrosirRowForm({
     formState: { errors },
   } = useForm<GrosirFormValues>({
     resolver: zodResolver(grosirSchema),
-    defaultValues: initialValues ?? { unit_id: 0, package_name: '', conversion_qty: 1, purchase_price: 0, selling_price: 0 },
+    defaultValues: initialValues ?? { ...defaultGrosirValues, ref_package_id: refOptions[0]?.id ?? 0 },
   })
 
-  const convQty = useWatch({ control: grosirControl, name: 'conversion_qty' }) || 0
   const unitIdVal = useWatch({ control: grosirControl, name: 'unit_id' })
-  const refPurchase = basePurchase * convQty
-  const refSelling = baseSelling * convQty
+  const refPackageIdVal = useWatch({ control: grosirControl, name: 'ref_package_id' })
+  const qtyVal = useWatch({ control: grosirControl, name: 'qty' }) || 0
+  const refQtyVal = useWatch({ control: grosirControl, name: 'ref_qty' }) || 0
+
+  const refSelected = refOptions.find((p) => p.id === refPackageIdVal)
+  const selectedUnitName = availableUnits.find((u) => u.id === unitIdVal)?.name ?? '(satuan)'
 
   return (
-    <div className="rounded-md border bg-gray-50 p-3 space-y-3">
+    <div className="rounded-md border border-blue-100 bg-blue-50/40 p-3 space-y-3">
+      {/* Contoh konkret — supaya pemakai pertama kali langsung paham cara isinya */}
+      <div className="rounded-md bg-white border border-blue-100 px-3 py-2 text-xs text-gray-600">
+        <span className="font-medium text-gray-700">Contoh:</span> kalau 1 Dus isi 24 Pack, isi{' '}
+        <span className="font-medium">Satuan Baru</span> = Dus, <span className="font-medium">Merujuk ke Satuan</span> = Pack,
+        lalu kolom kiri diisi <span className="font-mono">1</span> dan kolom kanan diisi{' '}
+        <span className="font-mono">24</span>.
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Satuan *</Label>
+          <Label className="text-xs">Satuan Baru *</Label>
           <Select
             value={unitIdVal > 0 ? String(unitIdVal) : ''}
             onValueChange={(v) => setGrosirValue('unit_id', Number(v))}
           >
-            <SelectTrigger className={`h-8 text-sm ${errors.unit_id ? 'border-red-500' : ''}`}>
-              <SelectValue placeholder="Pilih Satuan" />
+            <SelectTrigger className={`h-8 text-sm bg-white ${errors.unit_id ? 'border-red-500' : ''}`}>
+              <SelectValue placeholder="Pilih satuan yang mau ditambah" />
             </SelectTrigger>
             <SelectContent>
               {availableUnits.filter((u) => u.id > 0).map((u) => (
@@ -74,54 +103,86 @@ export function GrosirRowForm({
           {errors.unit_id && <p className="text-xs text-red-500">{errors.unit_id.message}</p>}
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Nama Paket</Label>
+          <Label className="text-xs">Nama Paket (opsional)</Label>
           <Input
             {...register('package_name')}
-            placeholder="Opsional, misal: 1 Dus, 3 Botol"
-            className="h-8 text-sm"
+            placeholder="Misal: Lama, Baru, Promo"
+            className="h-8 text-sm bg-white"
           />
+          <p className="text-[11px] text-gray-500">
+            Isi kalau nanti ada lebih dari satu paket untuk satuan yang sama (mis. rasio beda per supplier/promo).
+          </p>
         </div>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs">Konversi ke {baseUnitName || 'Satuan Dasar'} *</Label>
-        <Input
-          type="number"
-          min={1}
-          {...register('conversion_qty', { valueAsNumber: true })}
-          className="h-8 text-sm"
-        />
-        {convQty > 0 && baseUnitName && (
-          <p className="text-xs text-blue-600">1 paket ini = {convQty} {baseUnitName}</p>
-        )}
-        {errors.conversion_qty && <p className="text-xs text-red-500">{errors.conversion_qty.message}</p>}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Merujuk ke Satuan *</Label>
+          <Select
+            value={String(refPackageIdVal ?? 0)}
+            onValueChange={(v) => setGrosirValue('ref_package_id', Number(v))}
+          >
+            <SelectTrigger className={`h-8 text-sm bg-white ${errors.ref_package_id ? 'border-red-500' : ''}`}>
+              <SelectValue placeholder="Pilih satuan yang sudah ada" />
+            </SelectTrigger>
+            <SelectContent>
+              {refOptions.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.ref_package_id && <p className="text-xs text-red-500">{errors.ref_package_id.message}</p>}
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Perbandingan Jumlah *</Label>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              min={0.001}
+              step="any"
+              {...register('qty', { valueAsNumber: true })}
+              className="h-8 text-sm bg-white"
+            />
+            <span className="text-xs text-gray-500 whitespace-nowrap">{selectedUnitName} =</span>
+            <Input
+              type="number"
+              min={0.001}
+              step="any"
+              {...register('ref_qty', { valueAsNumber: true })}
+              className="h-8 text-sm bg-white"
+            />
+          </div>
+          {errors.qty && <p className="text-xs text-red-500">{errors.qty.message}</p>}
+          {errors.ref_qty && <p className="text-xs text-red-500">{errors.ref_qty.message}</p>}
+        </div>
       </div>
 
-      {convQty > 0 && (basePurchase > 0 || baseSelling > 0) && (
-        <div className="rounded bg-blue-50 border border-blue-100 px-3 py-1.5 text-xs text-blue-700 flex gap-4">
-          <span>Ref. Harga Beli: <strong>Rp {refPurchase.toLocaleString('id-ID')}</strong></span>
-          <span>Ref. Harga Jual: <strong>Rp {refSelling.toLocaleString('id-ID')}</strong></span>
+      {unitIdVal > 0 && refSelected && qtyVal > 0 && refQtyVal > 0 && (
+        <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700 font-medium">
+          {qtyVal} {selectedUnitName} = {refQtyVal} {refSelected.label}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-xs">Harga Beli Aktual</Label>
+          <Label className="text-xs">Harga Beli</Label>
           <Controller
             name="purchase_price"
             control={grosirControl}
             render={({ field }) => (
-              <RupiahInput value={field.value} onChange={field.onChange} className="h-8 text-sm" />
+              <RupiahInput value={field.value} onChange={field.onChange} className="h-8 text-sm bg-white" />
             )}
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Harga Jual Aktual *</Label>
+          <Label className="text-xs">Harga Jual *</Label>
           <Controller
             name="selling_price"
             control={grosirControl}
             render={({ field }) => (
-              <RupiahInput value={field.value} onChange={field.onChange} className="h-8 text-sm" />
+              <RupiahInput value={field.value} onChange={field.onChange} className="h-8 text-sm bg-white" />
             )}
           />
           {errors.selling_price && <p className="text-xs text-red-500">{errors.selling_price.message}</p>}
@@ -129,8 +190,12 @@ export function GrosirRowForm({
       </div>
 
       <div className="flex gap-2 justify-end">
-        <Button type="button" variant="outline" size="sm" onClick={onCancel}>Batal</Button>
-        <Button type="button" size="sm" onClick={handleSubmit(onSave)}>Simpan Paket</Button>
+        <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
+          Batal
+        </Button>
+        <Button type="button" size="sm" onClick={handleSubmit(onSave)} disabled={isSaving}>
+          {isSaving ? 'Menyimpan...' : 'Simpan Paket'}
+        </Button>
       </div>
     </div>
   )

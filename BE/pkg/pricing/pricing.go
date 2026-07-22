@@ -77,7 +77,7 @@ func resolveUnitPrice(productRepo product_repo.ProductRepoInterface, productID i
 			return 0, &errors.InternalServerError{Message: err.Error()}
 		}
 		for _, pkg := range packages {
-			if pkg.UnitID == *unitID {
+			if pkg.ID == *unitID {
 				return pkg.SellingPrice, nil
 			}
 		}

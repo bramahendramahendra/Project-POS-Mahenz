@@ -49,7 +49,8 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/generate-sku", perm("can_create"), productGenerateHandler.GenerateSku)
 
 		g.POST("/:id/packages/list", productPackageHandler.GetPackagesByProduct)
-		g.POST("/:id/packages/save", perm("can_edit"), productPackageHandler.SavePackages)
+		g.POST("/:id/packages/create", perm("can_edit"), productPackageHandler.CreatePackage)
+		g.POST("/:id/packages/update/:package_id", perm("can_edit"), productPackageHandler.UpdatePackage)
 		g.POST("/:id/packages/delete/:package_id", perm("can_delete"), productPackageHandler.DeletePackage)
 
 		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)

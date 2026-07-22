@@ -47,14 +47,14 @@ func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
 	})
 }
 
-func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
+func (h *ProductPackageHandler) CreatePackage(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.PackageByProductRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
 	}
 
-	req, err := binder.BindJSON[dto.SavePackageRequest](c)
+	req, err := binder.BindJSON[dto.CreatePackageRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
 		return
@@ -66,7 +66,42 @@ func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.SavePackages(&req); err != nil {
+	data, err := h.service.CreatePackage(uriReq.ID, &req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Paket produk berhasil ditambahkan",
+		Data:    data,
+	})
+}
+
+func (h *ProductPackageHandler) UpdatePackage(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.PackageUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdatePackageRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.PackageID
+	req.ProductID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.UpdatePackage(uriReq.PackageID, uriReq.ID, &req)
+	if err != nil {
 		c.Error(err)
 		return
 	}
@@ -74,7 +109,8 @@ func (h *ProductPackageHandler) SavePackages(c *gin.Context) {
 	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
 		Code:    helper.StatusOk,
 		Status:  true,
-		Message: "Paket produk berhasil disimpan",
+		Message: "Paket produk berhasil diperbarui",
+		Data:    data,
 	})
 }
 

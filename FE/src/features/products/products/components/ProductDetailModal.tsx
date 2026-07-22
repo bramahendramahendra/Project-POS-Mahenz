@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui/button'
 import { formatRupiah } from '@/shared/utils'
 
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
-import { calcMargin } from '../products.utils'
+import { calcMargin, formatResolvedFactor } from '../products.utils'
 
 interface ProductDetailModalProps {
   open: boolean
@@ -123,8 +123,10 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                   <tbody>
                     {grosirUnits.map((u) => (
                       <tr key={u.id} className="border-t">
-                        <td className="px-2 py-1.5 font-medium">{u.unit_name}</td>
-                        <td className="px-2 py-1.5 text-gray-600">{u.conversion_qty} {product.unit_name}</td>
+                        <td className="px-2 py-1.5 font-medium">
+                          {u.package_name ? `${u.unit_name} (${u.package_name})` : u.unit_name}
+                        </td>
+                        <td className="px-2 py-1.5 text-gray-600">{formatResolvedFactor(u.resolved_factor)} {product.unit_name}</td>
                         <td className="px-2 py-1.5">{formatRupiah(u.purchase_price)}</td>
                         <td className="px-2 py-1.5">{formatRupiah(u.selling_price)}</td>
                       </tr>

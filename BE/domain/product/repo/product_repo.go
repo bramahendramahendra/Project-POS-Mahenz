@@ -1,9 +1,13 @@
 package repo
 
 import (
+	"fmt"
+
 	dto "pos_api/domain/product/dto"
 	model "pos_api/domain/product/model"
 	request_helper "pos_api/helper/request"
+
+	"gorm.io/gorm"
 )
 
 const (
@@ -60,8 +64,10 @@ const (
 	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
 	checkProductPurchasedQuery  = `SELECT COUNT(*) FROM purchase_items WHERE product_id = ?`
 	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	insertAnchorPackageOnCreate = `INSERT INTO product_packages (product_id, unit_id, purchase_price, selling_price, is_default) VALUES (?, ?, ?, ?, 1)`
 	getLastProductInsertIDQuery = `SELECT LAST_INSERT_ID()`
-	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, unit_id=?, updated_at=NOW() WHERE id=?`
+	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, updated_at=NOW() WHERE id=?`
+	updateAnchorPackagePrice    = `UPDATE product_packages SET purchase_price=?, selling_price=?, updated_at=NOW() WHERE product_id=? AND is_default=1`
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
 	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
 	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
@@ -195,29 +201,80 @@ func (r *productRepo) CountPurchaseItems(productID int) (int, error) {
 	return count, nil
 }
 
+// Create menyimpan produk baru sekaligus paket anchor-nya (satuan pencatatan stok,
+// permanen sejak dibuat) dan satuan lain (req.Packages, opsional) dalam SATU transaksi —
+// supaya user bisa isi semua satuan produk langsung di form Tambah Produk, satu kali
+// simpan, tanpa produk pernah ada dalam keadaan "setengah jadi" kalau ada yang gagal.
 func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
-	err := r.db.Exec(createProductQuery,
-		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-		req.SellingPrice, req.Stock, req.MinStock, req.UnitID,
-	).Error
-	if err != nil {
-		return 0, err
-	}
-
 	var id int64
-	err = r.db.Raw(getLastProductInsertIDQuery).Scan(&id).Error
+
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(createProductQuery,
+			req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
+			req.SellingPrice, req.Stock, req.MinStock, req.UnitID,
+		).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Raw(getLastProductInsertIDQuery).Scan(&id).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Exec(insertAnchorPackageOnCreate, id, req.UnitID, req.PurchasePrice, req.SellingPrice).Error; err != nil {
+			return err
+		}
+		var anchorID int64
+		if err := tx.Raw(getLastProductInsertIDQuery).Scan(&anchorID).Error; err != nil {
+			return err
+		}
+
+		// tempToReal: peta penanda sementara dari FE (temp_id) ke ID asli product_packages
+		// yang baru dibuat. 0 selalu berarti paket anchor.
+		tempToReal := map[int]int64{0: anchorID}
+		for _, p := range req.Packages {
+			refID, ok := tempToReal[p.RefTempID]
+			if !ok {
+				return fmt.Errorf("paket dengan temp_id %d merujuk paket yang belum dibuat (ref_temp_id %d)", p.TempID, p.RefTempID)
+			}
+
+			var pkgName *string
+			if p.PackageName != "" {
+				pkgName = &p.PackageName
+			}
+			if err := tx.Exec(insertProductPackageQuery,
+				id, p.UnitID, pkgName, refID, p.Qty, p.RefQty, p.PurchasePrice, p.SellingPrice,
+			).Error; err != nil {
+				return err
+			}
+			var newID int64
+			if err := tx.Raw(getLastProductInsertIDQuery).Scan(&newID).Error; err != nil {
+				return err
+			}
+			tempToReal[p.TempID] = newID
+		}
+
+		return nil
+	})
 	if err != nil {
 		return 0, err
 	}
 	return id, nil
 }
 
+// Update menyimpan perubahan produk sekaligus menyelaraskan harga di paket anchor-nya
+// (satuan pencatatan stok) — supaya harga di paket anchor tidak pernah drift dari harga
+// dasar produk yang ditampilkan di form.
 func (r *productRepo) Update(req *dto.UpdateRequest) error {
-	err := r.db.Exec(updateProductQuery,
-		req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-		req.SellingPrice, req.Stock, req.MinStock, req.UnitID, req.ID,
-	).Error
-	return err
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Exec(updateProductQuery,
+			req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
+			req.SellingPrice, req.Stock, req.MinStock, req.ID,
+		).Error; err != nil {
+			return err
+		}
+
+		return tx.Exec(updateAnchorPackagePrice, req.PurchasePrice, req.SellingPrice, req.ID).Error
+	})
 }
 
 func (r *productRepo) Delete(req *dto.DeleteRequest) error {

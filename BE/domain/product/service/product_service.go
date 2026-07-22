@@ -171,6 +171,10 @@ func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.P
 		return data, &errors.BadRequestError{Message: "Nama produk sudah digunakan"}
 	}
 
+	if err := validatePackageDrafts(req.Packages); err != nil {
+		return data, err
+	}
+
 	newID, err := s.repo.Create(req)
 	if err != nil {
 		return data, err

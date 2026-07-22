@@ -70,6 +70,8 @@ export interface SupplierPurchasePayment {
 
 export interface CreatePurchaseItemPayload {
   product_id: number
+  /** Id product_packages yang dipilih — dipakai server untuk resolve conversion_qty terkini. */
+  package_id?: number
   quantity: number
   purchase_price: number
   unit: string

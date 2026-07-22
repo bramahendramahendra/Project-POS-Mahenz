@@ -156,24 +156,35 @@ CREATE TABLE IF NOT EXISTS products (
     FOREIGN KEY (unit_id)     REFERENCES units(id)      ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- product_packages: varian satuan jual produk (grosir, konversi, dll)
--- unit_id       : FK ke master units (wajib, NOT NULL)
--- package_name  : label deskriptif opsional, misal "1 Dus", "3 Botol"
--- conversion_qty: kelipatan konversi ke satuan dasar (is_default=true selalu = 1)
--- is_default=1  : paket satuan dasar produk
+-- product_packages: satuan jual/beli produk, model pohon konversi per produk.
+-- unit_id       : FK ke master units (wajib, NOT NULL) — satuan yang diwakili paket ini.
+-- package_name  : label pembeda, WAJIB kalau ada >1 paket dengan unit_id sama
+--                 (mis. "Slop (Lama)" vs "Slop (Baru)" — rasio beda per batch/supplier/promo).
+-- ref_package_id: paket lain (produk yang sama) yang jadi acuan rasio paket ini. NULL hanya
+--                 untuk paket anchor (is_default=1) — satuan tempat stok produk disimpan.
+-- qty, ref_qty  : relasi simetris "qty x paket ini = ref_qty x paket ref_package_id".
+--                 qty selalu terisi (default 1), ref_qty NULL kalau ref_package_id NULL.
+--                 Faktor ke ref_package_id = (ref_qty / qty), sehingga arah lebih besar
+--                 (mis. "1 Slop = 10 Pack" -> qty=1, ref_qty=10) maupun arah lebih kecil
+--                 (mis. "12 Batang = 1 Pack" -> qty=12, ref_qty=1) sama-sama bisa ditulis
+--                 tanpa pecahan.
+-- is_default=1  : paket anchor produk (tepat 1 per produk, tidak pernah pindah setelah dibuat).
 CREATE TABLE IF NOT EXISTS product_packages (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     product_id     INT           NOT NULL,
     unit_id        INT           NOT NULL,
     package_name   VARCHAR(100)  NULL,
-    conversion_qty DECIMAL(15,3) NOT NULL DEFAULT 1,
+    ref_package_id INT           NULL,
+    qty            DECIMAL(15,3) NOT NULL DEFAULT 1,
+    ref_qty        DECIMAL(15,3) NULL,
     selling_price  DECIMAL(15,2) NOT NULL DEFAULT 0,
     purchase_price DECIMAL(15,2) NOT NULL DEFAULT 0,
     is_default     TINYINT(1)    DEFAULT 0,
     created_at     DATETIME      DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    FOREIGN KEY (unit_id)    REFERENCES units(id)    ON DELETE RESTRICT
+    FOREIGN KEY (unit_id)    REFERENCES units(id)    ON DELETE RESTRICT,
+    FOREIGN KEY (ref_package_id) REFERENCES product_packages(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS product_prices (
@@ -248,10 +259,15 @@ CREATE TABLE IF NOT EXISTS purchases (
     FOREIGN KEY (payment_method) REFERENCES payment_methods(code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- package_id: referensi longgar ke product_packages.id (tanpa FK, sama seperti pola
+-- transaction_items.unit_id) — dipakai BE untuk resolve conversion_qty dari server saat
+-- baris ini dibuat. Paket boleh dihapus/berubah belakangan, riwayat tetap utuh karena
+-- conversion_qty & unit sudah dibekukan di baris ini.
 CREATE TABLE IF NOT EXISTS purchase_items (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     purchase_id    INT           NOT NULL,
     product_id     INT           NULL,
+    package_id     INT           NULL,
     quantity       DECIMAL(15,3) NOT NULL,
     unit           VARCHAR(50)   NOT NULL,
     conversion_qty DECIMAL(15,3) NOT NULL DEFAULT 1,

@@ -23,7 +23,10 @@ export type ProductFormValues = z.infer<typeof productSchema>
 export const grosirSchema = z.object({
   unit_id: z.number({ error: 'Satuan wajib dipilih' }).min(1, 'Satuan wajib dipilih'),
   package_name: z.string().max(100).optional(),
-  conversion_qty: z.number().min(1, 'Konversi harus > 0'),
+  // 0 = merujuk paket dasar (anchor) — nilai default & sah, bukan "belum dipilih".
+  ref_package_id: z.number().min(0, 'Paket acuan wajib dipilih'),
+  qty: z.number().min(0.001, 'Jumlah harus > 0'),
+  ref_qty: z.number().min(0.001, 'Rasio harus > 0'),
   purchase_price: z.number().min(0),
   selling_price: z.number().min(1, 'Harga jual harus > 0'),
 })

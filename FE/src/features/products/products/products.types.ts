@@ -5,7 +5,12 @@ export interface ProductPackage {
   unit_name: string
   abbreviation: string
   package_name: string
-  conversion_qty: number
+  /** null hanya untuk paket anchor (is_default true) */
+  ref_package_id: number | null
+  qty: number
+  ref_qty: number | null
+  /** 1 paket ini = resolved_factor x satuan anchor produk, dihitung server-side */
+  resolved_factor: number
   purchase_price: number
   selling_price: number
   is_default: boolean
@@ -55,6 +60,21 @@ export interface ProductListFilter {
   sort_order?: 'asc' | 'desc'
 }
 
+// PackageDraftPayload: satuan lain yang diisi bersamaan di form Tambah Produk, sebelum
+// produk (dan paket anchor-nya) tersimpan. temp_id/ref_temp_id cuma penanda sementara
+// di sisi FE (bukan ID asli product_packages) — lihat catatan di BE dto.go PackageDraftRequest.
+export interface PackageDraftPayload {
+  temp_id: number
+  unit_id: number
+  package_name?: string
+  /** 0 = merujuk paket dasar (anchor); selain itu wajib temp_id draft lain yang lebih dulu dibuat */
+  ref_temp_id: number
+  qty: number
+  ref_qty: number
+  purchase_price: number
+  selling_price: number
+}
+
 export interface CreateProductPayload {
   name: string
   sku: string
@@ -66,18 +86,24 @@ export interface CreateProductPayload {
   min_stock: number
   unit_id: number
   is_active: boolean
+  packages?: PackageDraftPayload[]
 }
 
-export type UpdateProductPayload = Partial<CreateProductPayload>
+// unit_id sengaja tidak ada — satuan anchor permanen sejak produk dibuat, tidak bisa
+// diubah lewat update biasa (lihat catatan di BE dto_product.go UpdateRequest).
+export type UpdateProductPayload = Partial<Omit<CreateProductPayload, 'unit_id'>>
 
-export interface CreateProductPackagePayload {
+export interface CreatePackagePayload {
   unit_id: number
   package_name?: string
-  conversion_qty: number
+  ref_package_id: number
+  qty: number
+  ref_qty: number
   purchase_price: number
   selling_price: number
-  is_default: boolean
 }
+
+export type UpdatePackagePayload = CreatePackagePayload
 
 export interface CreatePriceTierPayload {
   tier_name: string
@@ -127,7 +153,8 @@ export interface ImportPreviewGrosirRow {
   nama_paket: string
   satuan: string
   satuan_id: number
-  konversi: number
+  qty: number
+  ref_qty: number
   harga_beli: number
   harga_jual: number
   valid: boolean
@@ -157,7 +184,8 @@ export interface GrosirImportRow {
   nama_paket: string
   satuan: string
   satuan_id: number
-  konversi: number
+  qty: number
+  ref_qty: number
   harga_beli: number
   harga_jual: number
 }

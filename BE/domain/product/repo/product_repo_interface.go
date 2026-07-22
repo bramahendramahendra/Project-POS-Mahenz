@@ -28,8 +28,10 @@ type ProductRepoInterface interface {
 	CountSkuByCategory(categoryID int) (int, error)
 
 	GetPackagesByProduct(productID int) ([]*model_product.ProductPackage, error)
-	SavePackages(productID int, packages []dto_product.PackageRequest) error
+	CreatePackage(productID int, req *dto_product.CreatePackageRequest) (int64, error)
+	UpdatePackage(id, productID int, req *dto_product.UpdatePackageRequest) error
 	DeletePackage(id, productID int) error
+	CountPackagesReferencing(packageID int) (int, error)
 
 	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
 	SavePrices(productID int, prices []dto_product.PriceRequest) error

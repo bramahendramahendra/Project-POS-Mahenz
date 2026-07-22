@@ -92,10 +92,13 @@ Tahun 1: jual per Dus (isi 24 Botol). Tahun 2: mulai eceran per Botol. Tahun 3: 
 
 Stok lama (1 Slop = 10 Pack) dan stok baru (1 Slop = 5 Pack) ada bersamaan di rak.
 
-**Hasil evaluasi: TIDAK sepenuhnya bisa dihandle — limitasi nyata.** Solusi rebase cuma simpan satu rasio "saat ini" per produk, tidak ada konsep rasio berbeda per batch.
-- Aman selama stok lama sudah dipecah jadi Pack saat diterima dulu (rasio waktu itu sudah kepakai, jadi angka Pack).
-- Bermasalah kalau Slop lama dijual **utuh** setelah rasio berubah — kasir potong stok pakai rasio sekarang (5), padahal fisik Slop itu isinya 10 Pack → stok kelebihan tercatat diam-diam.
-- Solusi sebenarnya: stok per-batch/lot (tiap kulakan simpan rasio sendiri) — fitur terpisah, jauh lebih besar dari rebase satuan. Di luar cakupan rencana ini.
+**Update evaluasi: BISA dihandle** — dengan syarat desain tidak memaksa satu unit cuma boleh punya satu rasio. Solusinya: izinkan beberapa "paket" untuk unit yang sama, dibedakan label:
+- Paket "Slop (Lama)" → 1 Slop = 10 Pack
+- Paket "Slop (Baru)" → 1 Slop = 5 Pack
+
+Keduanya aktif bersamaan, kasir/pembelian pilih paket yang sesuai fisik barangnya saat transaksi — stok terpotong benar sesuai paket yang dipilih.
+
+**Yang tetap jadi tanggung jawab manusia, bukan sistem:** kasir harus tahu box yang dipegang itu dari paket "Lama" atau "Baru" (dari label fisik/tanggal terima), baru pilih yang benar di layar. Software cuma menyediakan pilihannya, tidak bisa otomatis tahu isi fisik box yang belum dibuka — ini berlaku untuk solusi apapun (termasuk sistem lot sekalipun).
 
 ### Kasus Mie Instan: multi-level (Dus = 4 Renceng = 20 Bungkus)
 
@@ -118,19 +121,52 @@ Tahun 1: per Peti (±15 kg). Tahun 2: per kg. Tahun 3: peti jadi 10 kg. Tahun 4:
 
 **Hasil evaluasi: bisa dihandle secara mekanisme, dengan catatan akurasi.** Mekanismenya sama seperti kasus lain (rebase 2×: Peti→kg→butir). Bedanya: rasio kg↔butir itu **perkiraan**, bukan hitungan fisik eksak seperti Dus/Pack/Slop — bisa beda tiap batch (telur kecil vs jumbo). Solusi tetap jalan (rasio diedit tiap kali beda), tapi stok dalam satuan "butir" jadi estimasi, bukan pasti. Ini batasan yang perlu disadari, bukan gap fitur.
 
+### Kasus 4: Konversi tidak presisi, variasi per item (Jeruk)
+
+Tahun 1: per kg. Tahun 2: per buah (berat 150–250 gram, tidak seragam). Tahun 3: per peti grosir (±20 kg, tidak pasti).
+
+**Hasil evaluasi: bisa dihandle secara mekanisme (sama seperti Telur), tapi beda kategori — perlu pendekatan beda.** Bedanya dari Telur: rasio Telur cukup stabil (sesekali direvisi), sedangkan berat jeruk **beda di setiap transaksi**, bukan cuma sesekali antar-batch. Kalau dipaksa satu rasio tetap, stok "buah" akan meleset terus-menerus.
+
+**Rekomendasi:** produk jenis ini sebaiknya dijual **per kg dengan berat ditimbang langsung saat transaksi** (kasir input berat aktual), bukan qty × rasio tetap. "Buah" cuma keterangan tambahan opsional, bukan dasar hitungan stok. Peti (±20 kg) aman dipakai untuk estimasi pemesanan borongan, bukan potong stok presisi per transaksi retail.
+
+### Kasus 5-12: batch kedua (Minyak Goreng, Cukai, BBM, Beras, Sabun, Kue Kering, Semangka, Semen)
+
+| Kasus | Status | Catatan |
+|---|---|---|
+| 5. Minyak Goreng — sisip Pack di tengah Dus-Jerigen | ✅ Handled | Graph model memang untuk ini — Pack cukup diisi 1 pasangan, pasangan lain otomatis konsisten (6×2=12) |
+| 6. Cukai Rokok — rasio berubah karena regulasi, variasi per tanggal produksi | ✅ Handled | Mekanisme sama Kasus 3 — multi-paket berlabel (per periode aturan), kasir pilih sesuai tanggal produksi |
+| 7. BBM/Oli — isi ulang custom (1.7 liter bebas) | ⚠️ Bukan soal konversi satuan — bug terpisah | Bukan "pilih paket", tapi input qty desimal bebas. Kasir saat ini cuma terima qty bilangan bulat (`parseInt`, min 1) — perbaikan terpisah di form kasir, di luar redesain satuan |
+| 8. Beras — karung beda ukuran per supplier | ✅ Handled | Multi-paket per unit (Karung A=25kg, Karung B=20kg), cuma relevan di pembelian; begitu jadi stok kg sudah tercampur rata |
+| 9. Sabun — promo bonus isi (48→50 pcs) | ✅ Handled | Multi-paket lagi — "Dus Normal"=48, "Dus Promo"=50, pilih sesuai batch beli |
+| 10. Kue Kering — naik kelas Toples→Dus→Kontainer | ✅ Handled | Paling sederhana, sama pola Kasus 1 — basis dari awal sudah terkecil, tinggal tambah lebih besar |
+| 11. Semangka — dipotong, harga per estimasi berat potongan | ❌ Di luar kategori — fitur beda total | Bukan "satuan produk sama", tapi produk utuh diubah bentuk (potongan ditimbang) — kategori "produk olahan/turunan", tidak terkait sistem konversi satuan |
+| 12. Semen — migrasi "sak" lama ke kg + sak per merek | ✅ Handled ke depan, tidak untuk data lama | Ke depan: multi-paket ("Sak Merek A"=40kg, dst). Data transaksi lama yang cuma catat "sak" tanpa keterangan tidak bisa diperjelas otomatis — keterbatasan data lama |
+
+**Temuan penting:** "Multi-paket per unit berlabel" (dari Kasus 3) jadi mekanisme berulang — muncul di Kasus 3, 6, 8, 9, 12. Ini pola umum untuk rasio beda karena sumber (supplier), waktu (regulasi/promo), atau batch produksi — bukan solusi khusus rokok saja.
+
+## Evaluasi ulang 5 kasus terhadap desain FINAL (graph/pasangan bebas)
+
+| Kasus | Status | Catatan |
+|---|---|---|
+| 1. Gula Pasir | ✅ Handled | Sama seperti sebelumnya |
+| 2. Air Mineral | ✅ Handled | Lebih simpel — tidak perlu rebase/hitung ulang stok sama sekali lagi, cukup tambah 1 pasangan |
+| 3. Dua batch rasio beda (Rokok) | ✅ Handled (update) | Selama desain izinkan >1 paket untuk unit yang sama (label pembeda "Lama"/"Baru") — kasir pilih manual sesuai fisik barang |
+| Mie Instan (multi-level) | ✅ Handled | Lebih simpel — tanpa rebase, hubungan antar level otomatis konsisten |
+| Telur (rasio perkiraan) | ✅ Handled, catatan sama | Mekanisme lebih simpel, tapi catatan "estimasi bukan pasti" tetap berlaku (soal sifat data, bukan desain) |
+
+Skor jadi **5/5** — desain final ini **menghilangkan semua kebutuhan rebase/migrasi stok**, dan dengan izinkan multi-paket per unit, kasus batch pun tertangani (selama kasir pilih paket yang benar saat transaksi — bagian ini tetap tanggung jawab manusia, bukan software).
+
 ## Ringkasan & Rekomendasi
 
-**Solusi inti** — 3 mekanisme, semua sudah ada di aplikasi kecuali #1:
-1. **Ubah Satuan Dasar (rebase)** — fitur baru. Dipakai saat mau jual satuan yang lebih kecil dari basis saat ini. Semua satuan lain & stok ikut terkonversi otomatis, riwayat lama tidak berubah.
-2. **Tambah Paket Grosir** — sudah ada. Dipakai saat mau tambah satuan yang lebih besar dari yang sudah ada.
-3. **Edit angka rasio** — sudah ada. Dipakai saat rasio kemasan berubah tapi arah/urutan satuan tetap sama.
-
-**Skor dari 5 kasus yang diuji:** 4 dari 5 kasus (Gula Pasir, Air Mineral, Mie Instan, Telur) tertangani penuh oleh 3 mekanisme di atas — termasuk kasus multi-level (Dus=Renceng=Bungkus) dan rasio naik-turun berkali-kali. Cuma **Kasus 3 (dua batch rasio beda beredar bersamaan)** yang tidak tertangani, karena itu butuh pelacakan stok per-batch/lot — kategori fitur yang berbeda sama sekali dari urusan konversi satuan.
+**Solusi final:** jaringan konversi antar-satuan per produk, pasangan bebas, boleh lebih dari satu paket untuk unit yang sama (beda label/rasio, untuk kasus batch), "Satuan Dasar" jadi cuma pilihan tampilan (lihat bagian "Solusi FINAL" di atas). Tidak ada lagi konsep rebase/migrasi stok.
 
 **Rekomendasi:**
-1. **Kerjakan sekarang** (masih tahap dev, aman dilakukan): fitur Ubah Satuan Dasar + kunci dropdown Satuan Dasar di form edit + perbaiki pembelian supaya rasio konversi selalu diverifikasi dari server (bukan percaya input layar). Tiga ini saling terkait dan sama-sama menyentuh titik yang sama (konversi satuan & stok), jadi masuk akal dikerjakan sekaligus.
-2. **Putuskan dulu, jangan langsung dikerjakan:** apakah kasus "dua batch rasio beda" (Kasus 3) benar-benar akan terjadi di operasional toko kamu? Kalau toko selalu memecah kemasan besar jadi satuan kecil segera saat barang diterima (praktik umum), limitasi ini tidak pernah kerasa. Kalau toko memang sengaja menyimpan & menjual kemasan besar utuh dalam jangka panjang sementara rasio sering berubah, ini perlu direncanakan sebagai fitur terpisah (stok per-lot) — lebih besar scope-nya, sebaiknya dipikirkan sebelum ada data produksi supaya tidak perlu migrasi data nanti.
-3. **Boleh ditunda:** penanda "estimasi vs eksak" untuk kasus seperti Telur (kg↔butir), dan perbaikan form "tambah item ke PO existing" yang belum bisa pilih satuan. Ini nice-to-have, tidak menghalangi kasus inti.
+1. **Kerjakan sekarang** (masih tahap dev, aman dilakukan): bangun fitur konversi berbasis pasangan ini dari awal, izinkan multi-paket per unit berlabel, sekalian perbaiki pembelian supaya rasio konversi selalu diverifikasi dari server (bukan percaya input layar).
+2. **Boleh ditunda:** penanda "estimasi vs eksak" (Telur/Jeruk), form "tambah item ke PO existing" yang belum bisa pilih satuan.
+3. **Di luar cakupan redesain satuan — kategori masalah beda, evaluasi terpisah kalau dibutuhkan:**
+   - Kasir cuma terima qty bilangan bulat (`parseInt`, min 1) — perlu diubah kalau butuh jual custom/desimal (Kasus 7, BBM isi ulang).
+   - "Produk olahan/turunan" (Kasus 11, Semangka dipotong & ditimbang) — fitur baru sama sekali, bukan bagian dari sistem konversi satuan.
+   - Cost/harga modal beda per batch/supplier (disinggung di Kasus 8) — itu topik akuntansi biaya (costing), beda dari konversi qty.
 
 ## Status
 

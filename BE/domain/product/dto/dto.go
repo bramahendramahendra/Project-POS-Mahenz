@@ -12,15 +12,26 @@ type (
 		Stock         float64 `json:"stock" validate:"min=0"`
 		MinStock      float64 `json:"min_stock" validate:"min=0"`
 		UnitID        int     `json:"unit_id" validate:"required,min=1"`
+		// Packages: satuan lain yang diisi bersamaan saat produk dibuat (opsional).
+		// Diproses berurutan sesuai urutan array ini — lihat PackageDraftRequest.
+		Packages []PackageDraftRequest `json:"packages" validate:"dive"`
 	}
 
-	PackageRequest struct {
+	// PackageDraftRequest: satu baris "satuan lain" yang diisi di form Tambah Produk,
+	// sebelum produk (dan paket anchor-nya) benar-benar tersimpan. TempID adalah
+	// penanda sementara dari FE (bukan ID asli product_packages) — dipakai draft lain
+	// untuk saling merujuk dalam satu payload. RefTempID = 0 berarti merujuk paket
+	// anchor (satuan dasar produk); selain itu wajib TempID draft LAIN yang muncul
+	// LEBIH DULU di array Packages (diproses berurutan, tidak boleh maju/referensi ke depan).
+	PackageDraftRequest struct {
+		TempID        int     `json:"temp_id" validate:"required,min=1"`
 		UnitID        int     `json:"unit_id" validate:"required,min=1"`
-		PackageName   string  `json:"package_name"`
-		ConversionQty float64 `json:"conversion_qty" validate:"required,min=0.001"`
+		PackageName   string  `json:"package_name" validate:"max=100"`
+		RefTempID     int     `json:"ref_temp_id"`
+		Qty           float64 `json:"qty" validate:"required,min=0.001"`
+		RefQty        float64 `json:"ref_qty" validate:"required,min=0.001"`
 		PurchasePrice float64 `json:"purchase_price" validate:"min=0"`
 		SellingPrice  float64 `json:"selling_price" validate:"min=0"`
-		IsDefault     bool    `json:"is_default"`
 	}
 
 	// RESPONSE
