@@ -6,18 +6,23 @@ Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE +
 
 ## Aturan Umum (berlaku di SETIAP fase)
 
+**Mindset wajib — bertindak sebagai QA/tester/bug bounty hunter, bukan developer yang mendemokan fitur:**
+- Tugas testing **bukan** membuktikan fitur bisa jalan (happy path), tapi **berusaha aktif membuatnya gagal/rusak/tidak konsisten**. Kalau setelah dicoba dengan berbagai cara tetap tidak ketemu bug, itu baru hasil yang valid untuk fase tsb — bukan karena cuma dicoba jalur normalnya sekali lalu dianggap selesai.
+- Perlakukan setiap input dari user sebagai **tidak bisa dipercaya**: apapun yang bisa diketik/dikirim, coba kirim yang paling "nakal", bukan cuma yang wajar.
+- Perlakukan FE **hanya sebagai lapisan kenyamanan**, bukan sumber kebenaran validasi — semua aturan bisnis penting harus diverifikasi ulang tetap ditolak BE walau FE-nya dilewati (lewat curl/devtools/API langsung).
+- Kalau suatu kondisi negatif "kebetulan" tidak bisa dicoba lewat UI (misal tombol disabled), itu **bukan alasan untuk skip** — coba tetap dari sisi API langsung, karena constraint UI bisa dilewati siapa pun yang tahu endpoint-nya.
+
+**Kategori kondisi yang WAJIB dicoba di setiap fitur (bukan cuma yang relevan sekilas — evaluasi semua, catat yang di-skip beserta alasannya):**
+- **Validasi & boundary:** field kosong/wajib tidak diisi, nilai batas (0, negatif, desimal aneh, angka sangat besar/overflow, teks sangat panjang/emoji/karakter aneh), tipe data salah dikirim langsung ke API (string ke field angka, dsb).
+- **Duplikasi & konsistensi data:** SKU/barcode/nama/kode yang sama, dua entitas yang saling mereferensikan secara sirkular kalau modelnya memungkinkan.
+- **Konkurensi & timing:** double-click submit, klik cepat berulang pada tombol aksi (approve/void/bayar), dua tab/sesi browser berbeda memproses data yang sama bersamaan (race condition — misal dua kasir approve retur yang sama, dua device bayar PO yang sama), refresh/reload di tengah proses async.
+- **State & alur yang tidak semestinya:** loncat langsung ke state akhir tanpa lewat state antara (misal bayar PO yang belum dibuat lunas dari status apapun), aksi pada data yang sudah di status final (approve 2x, void yang sudah void, hapus yang sudah dihapus), kombinasi status yang harusnya saling eksklusif.
+- **Keamanan & otorisasi (perlakukan aplikasi seperti target bug bounty):** akses endpoint API langsung tanpa lewat UI, akses resource milik/scope role lain lewat manipulasi ID di URL/payload (IDOR — misal user kasir akses detail transaksi kasir lain atau produk yang bukan haknya), coba aksi yang UI-nya disembunyikan tapi endpoint BE-nya tetap hidup, uji role/permission berbeda (owner/admin/kasir) untuk tiap aksi CRUD, cek apakah token/session yang sudah logout/expired benar-benar ditolak BE (bukan cuma di-redirect FE), cek pesan error tidak membocorkan info sensitif (stack trace, query SQL, keberadaan akun).
+- **Integritas lintas modul:** setelah suatu aksi (checkout, void, retur, bayar), verifikasi SEMUA sisi yang seharusnya berubah benar-benar konsisten (stok, mutasi stok, kas, piutang, laporan) — bukan cuma modul yang sedang difokuskan.
+- **UX kegagalan:** matikan network sesaat/perlambat koneksi (throttle) saat submit penting, cek apakah UI stuck loading/blank atau kasih pesan jelas; cek console browser & tab Network setiap langkah — tidak boleh ada error JS atau request gagal yang didiamkan tanpa feedback ke user.
+
 **Cara testing:**
-- Semua pengujian dilakukan dengan menjalankan BE (`go run main.go`) dan FE (`npm run dev`) sungguhan, lalu men-drive browser asli (bukan cuma baca kode atau curl API sepihak).
-- Setiap fitur diuji tidak hanya jalur normal (happy path), tapi juga kondisi yang rawan bug:
-  - Input kosong / field wajib tidak diisi
-  - Nilai batas (0, negatif, angka sangat besar, teks sangat panjang)
-  - Data duplikat (misal SKU/barcode yang sama, nama yang sama)
-  - Aksi berulang cepat (double-click submit, double-klik tombol aksi)
-  - Kombinasi status yang saling eksklusif (misal tombol yang harusnya hilang untuk status tertentu)
-  - Refresh/reload di tengah proses
-  - Akses langsung ke API tanpa lewat UI (untuk pastikan validasi tidak cuma di FE)
-  - Role/permission berbeda (owner/admin/kasir) kalau relevan dengan fitur tsb
-- Console browser & network request dicek setiap langkah — tidak boleh ada error JS atau request gagal yang tidak ditangani.
+- Semua pengujian dilakukan dengan menjalankan BE (`go run main.go`) dan FE (`npm run dev`) sungguhan, lalu men-drive browser asli (bukan cuma baca kode atau curl API sepihak) — curl/devtools dipakai sebagai **pelengkap** untuk kasus yang tidak bisa dipicu murni dari UI (lihat poin keamanan di atas), bukan pengganti testing browser.
 - Setelah selesai satu fase, semua proses (BE/FE) dimatikan lagi dan file/test data sementara dibersihkan.
 
 **Cara memperbaiki bug (kalau ditemukan):**
@@ -32,7 +37,7 @@ Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE +
    npm run build
    ```
    Ketiganya harus **0 error dan 0 warning** sebelum fase dianggap selesai.
-6. Laporan akhir tiap fase: daftar bug yang ditemukan, penyebabnya, cara perbaikannya, dan bukti hasil testing browser setelah perbaikan.
+6. Laporan akhir tiap fase: daftar bug yang ditemukan (penyebab, cara perbaikan, bukti hasil testing browser setelah perbaikan) **dan** daftar kondisi negatif/adversarial yang sudah dicoba tapi ternyata aman (supaya kelihatan cakupan testingnya, bukan cuma yang gagal) — jangan laporkan fase "selesai tanpa bug" tanpa merinci apa saja yang sudah dicoba untuk membuatnya gagal.
 
 ---
 
@@ -69,9 +74,9 @@ Jalankan Fase 1.2: regresi khusus fitur "field Stok hanya bisa diedit Admin" yan
 Jalankan Fase 1.3: debug fitur Import Produk (upload file, preview hasil parsing, submit import — termasuk file dengan baris invalid/duplikat untuk lihat penanganan errornya) dan fitur Generate Barcode/SKU otomatis saat tambah produk baru. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
-**1.4 Produk — paket grosir & tier harga**
+**1.4 Produk — satuan/paket dinamis (graph qty/ref_qty) & tier harga**
 ```
-Jalankan Fase 1.4: debug fitur paket/satuan grosir (mis. 1 Dus isi 12 Pcs) dan tier harga di form produk — tambah, edit, hapus paket; pastikan konversi qty dan harga per paket konsisten saat dipakai nanti di pembelian/kasir. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 1.4: debug fitur satuan/paket produk dengan model dinamis saat ini (product_packages: unit_id, ref_package_id, qty, ref_qty — bukan lagi single "konversi ke basis"). Test di form Tambah Produk (mode draft, 1 form sekaligus): buat produk dengan beberapa paket berantai (mis. Slop -> Pack -> Batang) dalam satu kali submit, verifikasi resolved_factor tiap paket benar dan anchor (paket dasar) otomatis ter-set is_default. Test di form Edit Produk (mode live): tambah paket baru, edit rasio qty/ref_qty paket yang sudah ada (bukan anchor), coba hapus anchor (harus ditolak), coba hapus paket yang masih direferensikan paket lain (harus ditolak). Test juga tier harga per satuan tetap konsisten dipakai saat kasir/pembelian. Coba juga buat kombinasi rasio yang membentuk siklus (cycle) antar paket — harus ditolak validasi. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.5 Kategori Produk**
@@ -266,6 +271,16 @@ Jalankan Fase 13: debug menu Sync Center — modul integrasi paling kompleks (tr
 
 ---
 
+### Fase 13b — PIN Kasir (verifikasi dulu sebelum di-debug penuh)
+
+> Catatan: BE punya domain `pin` lengkap dengan endpoint `/pin/check|set|verify|change` (`BE/domain/pin`), tapi saat pengecekan terakhir **tidak ditemukan pemanggilannya di kode FE manapun**. Kemungkinan fitur ini belum diwire ke UI (rencana ke depan) atau memang sudah tidak dipakai. Jalankan sub-fase ini duluan sebagai investigasi, baru putuskan apakah perlu jadi fase debug penuh atau cukup dicatat sebagai dead code.
+
+```
+Jalankan Fase 13b: cek apakah fitur PIN (endpoint /pin/check, /pin/set, /pin/verify, /pin/change di BE/domain/pin) benar-benar dipakai di suatu alur UI (misal ganti kasir cepat, konfirmasi void/diskon, dsb) dengan grep menyeluruh di FE dan cek juga halaman-halaman yang mungkin memicunya lewat network request di browser. Kalau ternyata dipakai, laporkan di menu/alur mana dan baru susulkan skenario testingnya. Kalau ternyata tidak dipakai sama sekali, laporkan sebagai temuan (bukan fix) untuk didiskusikan — apakah mau diwire ke FE, atau dihapus sebagai dead code — jangan hapus/ubah apapun tanpa konfirmasi eksplisit.
+```
+
+---
+
 ### Fase 14 — Sistem: User, Role, Akses
 
 **14.1 Manajemen User**
@@ -335,3 +350,4 @@ Jalankan Fase 17: regresi akhir menyeluruh. Jalankan ulang secara singkat (smoke
 - Fase tidak harus dijalankan berurutan dalam satu sesi — bisa dicicil kapan saja, tapi **urutan antar fase tetap disarankan mengikuti nomor di atas** karena ada dependency data (misal Fase 6 butuh produk dari Fase 1 & supplier dari Fase 2 sudah beres).
 - Kalau satu fase menemukan banyak bug dan terasa kepanjangan, boleh dihentikan di tengah dan dilanjutkan nanti — cukup sebutkan fase & sub-bagian mana yang terakhir dikerjakan.
 - Data uji yang dibuat selama testing (produk/PO/transaksi dummy) boleh dibiarkan di database development kecuali mengganggu fase berikutnya — beri tahu asisten kalau perlu dibersihkan dulu sebelum lanjut fase tertentu.
+- Fase 6.6 & 15.1 (struk/Pengaturan Printer): bug "struk asli tidak memakai Pengaturan Printer" sudah diperbaiki di luar rencana ini (ReceiptPrint.tsx sekarang konsumsi header/footer/paper_size/logo/auto_print, plus default BE untuk paper_size & footer saat setting kosong). Saat fase ini dijalankan, perlakukan sebagai **regresi** — pastikan perbaikan itu masih benar, bukan menemukan ulang dari nol.

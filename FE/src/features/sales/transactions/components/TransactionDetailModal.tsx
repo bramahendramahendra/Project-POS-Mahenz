@@ -256,6 +256,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
             paymentMethod={transaction.payment_method}
             amountPaid={transaction.payment_amount}
             customerName={transaction.customer_name}
+            mode="reprint"
           />
         )
       })()}

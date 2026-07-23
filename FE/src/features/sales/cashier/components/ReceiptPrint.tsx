@@ -1,4 +1,5 @@
-import { Printer, ShoppingCart } from 'lucide-react'
+import { useEffect, useRef } from 'react'
+import { Printer, ShoppingCart, X } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
@@ -14,6 +15,8 @@ import { formatRupiah } from '@/shared/utils'
 
 import { useStoreProfileQuery } from '@/features/settings/store'
 import type { StoreProfile } from '@/features/settings/store'
+import { usePrinterSettingsQuery } from '@/features/settings/printer'
+import type { PrinterSettings } from '@/features/settings/printer'
 
 import type {
   CartItem,
@@ -35,6 +38,15 @@ interface ReceiptPrintProps {
   paymentMethod: PaymentMethod
   amountPaid: number
   customerName?: string
+  mode?: 'checkout' | 'reprint'
+}
+
+const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
+  paper_size: '80mm',
+  receipt_header: '',
+  receipt_footer: 'Terima kasih telah berbelanja',
+  show_logo: false,
+  auto_print: false,
 }
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
@@ -58,6 +70,7 @@ function formatDate(dateStr: string): string {
 
 function buildReceiptHtml(params: {
   storeProfile?: StoreProfile
+  printerSettings: PrinterSettings
   checkoutData: CheckoutResponse
   cart: CartItem[]
   summary: CartSummary
@@ -67,10 +80,14 @@ function buildReceiptHtml(params: {
   amountPaid: number
   customerName?: string
 }): string {
-  const { storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName } = params
-  const storeName = storeProfile?.name || 'POS System'
+  const { storeProfile, printerSettings, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName } = params
+  const storeName = printerSettings.receipt_header || storeProfile?.name || 'POS System'
   const storeSub = [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')
   const change = Math.max(0, amountPaid - summary.grandTotal)
+  const bodyWidth = printerSettings.paper_size === '58mm' ? '210px' : '300px'
+  const logoRow = printerSettings.show_logo && storeProfile?.logo_url
+    ? `<div class="center"><img src="${storeProfile.logo_url}" alt="Logo" style="max-width:80px;max-height:80px;margin:0 auto 6px;" /></div>`
+    : ''
 
   const itemRows = cart.map((item) => {
     const price = formatRupiah(item.effective_price ?? item.price)
@@ -122,7 +139,7 @@ function buildReceiptHtml(params: {
       font-family: 'Courier New', monospace;
       font-size: 12px;
       color: #111;
-      width: 300px;
+      width: ${bodyWidth};
       margin: 0 auto;
       padding: 16px 12px;
     }
@@ -147,6 +164,7 @@ function buildReceiptHtml(params: {
   </style>
 </head>
 <body>
+  ${logoRow}
   <div class="center">
     <div class="store-name">${storeName}</div>
     ${storeSub ? `<div class="store-sub">${storeSub}</div>` : ''}
@@ -198,7 +216,7 @@ function buildReceiptHtml(params: {
 
   <hr class="divider" />
 
-  <div class="footer">Terima kasih telah berbelanja!</div>
+  <div class="footer">${printerSettings.receipt_footer || ''}</div>
 
   <script>
     window.onload = function() {
@@ -221,19 +239,32 @@ export function ReceiptPrint({
   paymentMethod,
   amountPaid,
   customerName,
+  mode = 'checkout',
 }: ReceiptPrintProps) {
   const change = amountPaid - summary.grandTotal
   const { data: storeProfile } = useStoreProfileQuery()
+  const { data: printerSettingsData } = usePrinterSettingsQuery()
+  const printerSettings = printerSettingsData ?? DEFAULT_PRINTER_SETTINGS
+  const autoPrinted = useRef(false)
 
   const handlePrint = () => {
     const html = buildReceiptHtml({
-      storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
+      storeProfile, printerSettings, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
     })
     const win = window.open('', '_blank', 'width=380,height=600,toolbar=0,menubar=0,scrollbars=1')
     if (!win) return
     win.document.write(html)
     win.document.close()
   }
+
+  useEffect(() => {
+    if (open && mode === 'checkout' && printerSettings.auto_print && !autoPrinted.current) {
+      autoPrinted.current = true
+      handlePrint()
+    }
+    if (!open) autoPrinted.current = false
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, mode, printerSettings.auto_print])
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) onClose() }}>
@@ -249,8 +280,11 @@ export function ReceiptPrint({
 
           {/* Toko header */}
           <div className="text-center space-y-0.5">
+            {printerSettings.show_logo && storeProfile?.logo_url && (
+              <img src={storeProfile.logo_url} alt="Logo" className="mx-auto mb-1 max-h-16 max-w-20 object-contain" />
+            )}
             <p className="text-base font-bold text-gray-900 tracking-wide">
-              {storeProfile?.name || 'POS System'}
+              {printerSettings.receipt_header || storeProfile?.name || 'POS System'}
             </p>
             {[storeProfile?.address, storeProfile?.phone].filter(Boolean).length > 0 && (
               <p className="text-sm text-gray-500">
@@ -352,7 +386,7 @@ export function ReceiptPrint({
           </div>
 
           <div className="text-center pt-1">
-            <p className="text-xs text-gray-400">Terima kasih telah berbelanja!</p>
+            <p className="text-xs text-gray-400">{printerSettings.receipt_footer || ''}</p>
           </div>
         </div>
         </ScrollArea>
@@ -362,10 +396,17 @@ export function ReceiptPrint({
             <Printer size={14} />
             Cetak
           </Button>
-          <Button onClick={onClose} className="gap-1.5">
-            <ShoppingCart size={14} />
-            Transaksi Baru
-          </Button>
+          {mode === 'checkout' ? (
+            <Button onClick={onClose} className="gap-1.5">
+              <ShoppingCart size={14} />
+              Transaksi Baru
+            </Button>
+          ) : (
+            <Button onClick={onClose} className="gap-1.5">
+              <X size={14} />
+              Tutup
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

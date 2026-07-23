@@ -77,12 +77,20 @@ func (s *settingService) UpdateStoreProfile(req *dto.StoreProfileRequest) error 
 }
 
 func (s *settingService) GetPrinterSettings() (*dto.PrinterSettingsResponse, error) {
+	paperSize := s.getSettingValue("printer_paper_size")
+	if paperSize == "" {
+		paperSize = "80mm"
+	}
+	receiptFooter := s.getSettingValue("printer_receipt_footer")
+	if receiptFooter == "" {
+		receiptFooter = "Terima kasih telah berbelanja"
+	}
 	showLogo := s.getSettingValue("printer_show_logo") == "true"
 	autoPrint := s.getSettingValue("printer_auto_print") == "true"
 	return &dto.PrinterSettingsResponse{
-		PaperSize:     s.getSettingValue("printer_paper_size"),
+		PaperSize:     paperSize,
 		ReceiptHeader: s.getSettingValue("printer_receipt_header"),
-		ReceiptFooter: s.getSettingValue("printer_receipt_footer"),
+		ReceiptFooter: receiptFooter,
 		ShowLogo:      showLogo,
 		AutoPrint:     autoPrint,
 	}, nil
