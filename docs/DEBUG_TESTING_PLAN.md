@@ -15,6 +15,7 @@ Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE +
 **Kategori kondisi yang WAJIB dicoba di setiap fitur (bukan cuma yang relevan sekilas — evaluasi semua, catat yang di-skip beserta alasannya):**
 - **Validasi & boundary:** field kosong/wajib tidak diisi, nilai batas (0, negatif, desimal aneh, angka sangat besar/overflow, teks sangat panjang/emoji/karakter aneh), tipe data salah dikirim langsung ke API (string ke field angka, dsb).
 - **Duplikasi & konsistensi data:** SKU/barcode/nama/kode yang sama, dua entitas yang saling mereferensikan secara sirkular kalau modelnya memungkinkan.
+- **Variasi data uji:** jangan pakai 1 pola data yang sama berulang-ulang (misal selalu "Produk Test 1" dengan harga bulat). Variasikan: kategori/satuan berbeda-beda, harga desimal vs bulat vs sangat murah/mahal, nama pendek vs panjang vs mengandung karakter khusus, qty kecil vs besar, kombinasi diskon/pajak berbeda, tanggal transaksi berbeda (hari ini, lintas bulan/tahun kalau relevan untuk laporan). Tujuannya supaya bug yang cuma muncul di kondisi data tertentu (mis. pembulatan desimal, sorting, format tanggal) ikut ketahuan — bukan cuma bug yang kelihatan di 1 skenario data yang itu-itu saja.
 - **Konkurensi & timing:** double-click submit, klik cepat berulang pada tombol aksi (approve/void/bayar), dua tab/sesi browser berbeda memproses data yang sama bersamaan (race condition — misal dua kasir approve retur yang sama, dua device bayar PO yang sama), refresh/reload di tengah proses async.
 - **State & alur yang tidak semestinya:** loncat langsung ke state akhir tanpa lewat state antara (misal bayar PO yang belum dibuat lunas dari status apapun), aksi pada data yang sudah di status final (approve 2x, void yang sudah void, hapus yang sudah dihapus), kombinasi status yang harusnya saling eksklusif.
 - **Keamanan & otorisasi (perlakukan aplikasi seperti target bug bounty):** akses endpoint API langsung tanpa lewat UI, akses resource milik/scope role lain lewat manipulasi ID di URL/payload (IDOR — misal user kasir akses detail transaksi kasir lain atau produk yang bukan haknya), coba aksi yang UI-nya disembunyikan tapi endpoint BE-nya tetap hidup, uji role/permission berbeda (owner/admin/kasir) untuk tiap aksi CRUD, cek apakah token/session yang sudah logout/expired benar-benar ditolak BE (bukan cuma di-redirect FE), cek pesan error tidak membocorkan info sensitif (stack trace, query SQL, keberadaan akun).
@@ -23,7 +24,8 @@ Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE +
 
 **Cara testing:**
 - Semua pengujian dilakukan dengan menjalankan BE (`go run main.go`) dan FE (`npm run dev`) sungguhan, lalu men-drive browser asli (bukan cuma baca kode atau curl API sepihak) — curl/devtools dipakai sebagai **pelengkap** untuk kasus yang tidak bisa dipicu murni dari UI (lihat poin keamanan di atas), bukan pengganti testing browser.
-- Setelah selesai satu fase, semua proses (BE/FE) dimatikan lagi dan file/test data sementara dibersihkan.
+- **Data uji (termasuk data dummy/adversarial) TIDAK perlu dihapus** — biarkan tetap ada di database development setelah dipakai, karena ini berguna juga bagi user (bisa dicek/dipakai ulang di luar sesi testing). Tidak ada langkah cleanup data di akhir kasus maupun akhir fase.
+- Setelah selesai satu fase, cukup matikan proses BE/FE — tidak perlu membersihkan data.
 
 **Cara memperbaiki bug (kalau ditemukan):**
 1. **Analisis dulu** akar masalahnya sebelum ubah kode — baca kode terkait secara utuh, jangan asumsi dari gejala saja.
@@ -349,5 +351,5 @@ Jalankan Fase 17: regresi akhir menyeluruh. Jalankan ulang secara singkat (smoke
 
 - Fase tidak harus dijalankan berurutan dalam satu sesi — bisa dicicil kapan saja, tapi **urutan antar fase tetap disarankan mengikuti nomor di atas** karena ada dependency data (misal Fase 6 butuh produk dari Fase 1 & supplier dari Fase 2 sudah beres).
 - Kalau satu fase menemukan banyak bug dan terasa kepanjangan, boleh dihentikan di tengah dan dilanjutkan nanti — cukup sebutkan fase & sub-bagian mana yang terakhir dikerjakan.
-- Data uji yang dibuat selama testing (produk/PO/transaksi dummy) boleh dibiarkan di database development kecuali mengganggu fase berikutnya — beri tahu asisten kalau perlu dibersihkan dulu sebelum lanjut fase tertentu.
+- Data uji yang dibuat selama testing (produk/PO/transaksi dummy, termasuk yang adversarial) **dibiarkan saja di database development, tidak perlu dihapus** — ini berguna juga bagi user untuk dicek/dipakai kembali di luar sesi testing.
 - Fase 6.6 & 15.1 (struk/Pengaturan Printer): bug "struk asli tidak memakai Pengaturan Printer" sudah diperbaiki di luar rencana ini (ReceiptPrint.tsx sekarang konsumsi header/footer/paper_size/logo/auto_print, plus default BE untuk paper_size & footer saat setting kosong). Saat fase ini dijalankan, perlakukan sebagai **regresi** — pastikan perbaikan itu masih benar, bukan menemukan ulang dari nol.
