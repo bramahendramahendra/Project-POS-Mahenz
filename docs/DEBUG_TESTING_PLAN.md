@@ -85,11 +85,15 @@ BE/database/migrations/002_seed_data.sql
 
 **0.1 Health check & login**
 ```
+Jalankan Fase 0.1 (Health check & login) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan FE bisa diakses. Login via browser sebagai owner, admin, dan kasir (3 kali login terpisah) — pastikan masing-masing berhasil redirect ke dashboard tanpa error, dan sidebar menu yang muncul sesuai hak akses role masing-masing (bandingkan dengan seed data role_menu_access). Coba juga login dengan password salah dan username tidak terdaftar, pastikan pesan error jelas dan tidak bocor informasi (misal tidak bilang "user tidak ada" vs "password salah" secara eksplisit kalau itu bukan by design). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **0.2 Session & logout**
 ```
+Jalankan Fase 0.2 (Session & logout) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 0.2: test logout dari browser, pastikan token/session benar-benar invalid setelah logout (coba akses halaman butuh auth setelah logout, harus ke-redirect ke login). Test juga apa yang terjadi kalau token kedaluwarsa/expired (kalau bisa disimulasikan) — pastikan tidak stuck di halaman blank atau infinite loading. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
@@ -99,31 +103,43 @@ Jalankan Fase 0.2: test logout dari browser, pastikan token/session benar-benar 
 
 **1.1 Produk — CRUD dasar**
 ```
+Jalankan Fase 1.1 (Produk — CRUD dasar) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.1: debug CRUD Produk. Test tambah produk (semua field wajib & opsional, termasuk kondisi field kosong dan barcode/SKU duplikat), edit produk, nonaktifkan/aktifkan produk, hapus produk (termasuk coba hapus produk yang masih punya stok/riwayat — pastikan ditolak dengan pesan jelas kalau memang ada aturan begitu). Test juga search & filter di list produk. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.2 Produk — gating stok berdasarkan role**
 ```
+Jalankan Fase 1.2 (Produk — gating stok berdasarkan role) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.2: regresi khusus fitur "field Stok hanya bisa diedit Admin" yang sudah dibuat sebelumnya. Login sebagai Admin (stok harus editable) dan Owner (stok harus readonly) di form Tambah & Edit Produk, verifikasi lewat browser. Juga coba bypass langsung ke API sebagai Owner mengirim nilai stok berbeda — pastikan BE tetap menolak/override. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.3 Produk — import massal & generate kode**
 ```
+Jalankan Fase 1.3 (Produk — import massal & generate kode) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.3: debug fitur Import Produk (upload file, preview hasil parsing, submit import — termasuk file dengan baris invalid/duplikat untuk lihat penanganan errornya) dan fitur Generate Barcode/SKU otomatis saat tambah produk baru. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.4 Produk — satuan/paket dinamis (graph qty/ref_qty) & tier harga**
 ```
+Jalankan Fase 1.4 (Produk — satuan/paket dinamis (graph qty/ref_qty) & tier harga) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.4: debug fitur satuan/paket produk dengan model dinamis saat ini (product_packages: unit_id, ref_package_id, qty, ref_qty — bukan lagi single "konversi ke basis"). Test di form Tambah Produk (mode draft, 1 form sekaligus): buat produk dengan beberapa paket berantai (mis. Slop -> Pack -> Batang) dalam satu kali submit, verifikasi resolved_factor tiap paket benar dan anchor (paket dasar) otomatis ter-set is_default. Test di form Edit Produk (mode live): tambah paket baru, edit rasio qty/ref_qty paket yang sudah ada (bukan anchor), coba hapus anchor (harus ditolak), coba hapus paket yang masih direferensikan paket lain (harus ditolak). Test juga tier harga per satuan tetap konsisten dipakai saat kasir/pembelian. Coba juga buat kombinasi rasio yang membentuk siklus (cycle) antar paket — harus ditolak validasi. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.5 Kategori Produk**
 ```
+Jalankan Fase 1.5 (Kategori Produk) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.5: debug menu Kategori. CRUD lengkap, coba hapus kategori yang masih dipakai produk (pastikan ditangani dengan benar — ditolak atau produk ikut ter-uncategorized sesuai desain). Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.6 Unit/Satuan**
 ```
+Jalankan Fase 1.6 (Unit/Satuan) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 1.6: debug menu Unit. CRUD lengkap, coba hapus unit yang masih dipakai produk. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
@@ -132,6 +148,8 @@ Jalankan Fase 1.6: debug menu Unit. CRUD lengkap, coba hapus unit yang masih dip
 ### Fase 2 — Supplier
 
 ```
+Jalankan Fase 2 (Supplier) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 2: debug menu Supplier. Test tambah/edit supplier (field kosong, nomor telepon/email format aneh), toggle aktif/nonaktif, hapus supplier (termasuk coba hapus supplier yang masih punya riwayat pembelian — pastikan ditangani benar), search/filter di list. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
@@ -141,21 +159,29 @@ Jalankan Fase 2: debug menu Supplier. Test tambah/edit supplier (field kosong, n
 
 **3.1 Create**
 ```
+Jalankan Fase 3.1 (Create) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 3.1: debug create Pembelian Supplier. Test dengan 1 item, banyak item, produk yang sama dipilih 2x (harus ditolak validasi), diskon lebih besar dari subtotal (harus ditolak), submit tanpa pilih supplier/produk, double-klik tombol simpan (pastikan tidak submit 2x). Verifikasi stok & mutasi stok bertambah benar di DB setelah submit sukses. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **3.2 Edit & Delete**
 ```
+Jalankan Fase 3.2 (Edit & Delete) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 3.2: debug edit dan delete Pembelian Supplier. Pastikan tombol Edit/Delete cuma muncul untuk PO yang belum ada pembayaran. Test edit ubah qty/harga/item (verifikasi stok lama di-rollback dan stok baru benar), test delete (verifikasi stok & mutasi stok ikut dihapus/dikembalikan). Coba akses endpoint edit/delete langsung via API untuk PO yang sudah dibayar — pastikan ditolak backend juga. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **3.3 Bayar (Pay)**
 ```
+Jalankan Fase 3.3 (Bayar (Pay)) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 3.3: debug fitur Bayar PO. Test bayar sebagian (verifikasi status jadi "Sebagian" & sisa hutang benar), bayar lunas via tombol "Bayar Lunas" maupun input manual, coba bayar lebih dari sisa hutang (harus ditolak), coba bayar PO yang sudah lunas (harus ditolak). Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **3.4 Void**
 ```
+Jalankan Fase 3.4 (Void) dari docs\DEBUG_TESTING_PLAN.md :
+
 Jalankan Fase 3.4: debug fitur Void PO. Test void PO yang belum dibayar (berhasil, stok balik, status jadi Dibatalkan), coba void PO yang sudah dibayar (harus ditolak), coba void 2x berturut-turut cepat (pastikan tidak dobel rollback stok), coba void PO yang sudah punya retur terkait (harus ditolak). Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 

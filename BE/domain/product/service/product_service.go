@@ -147,6 +147,22 @@ func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.P
 		req.Stock = 0
 	}
 
+	category, err := s.repoCategory.GetByID(*req.CategoryID)
+	if err != nil {
+		return data, err
+	}
+	if category == nil {
+		return data, &errors.BadRequestError{Message: "Kategori tidak ditemukan"}
+	}
+
+	unit, err := s.repoUnit.GetByID(req.UnitID)
+	if err != nil {
+		return data, err
+	}
+	if unit == nil {
+		return data, &errors.BadRequestError{Message: "Satuan tidak ditemukan"}
+	}
+
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
 	if err != nil {
 		return data, err
@@ -223,6 +239,14 @@ func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.P
 	// di DB dipertahankan apapun yang dikirim di request.
 	if role != "admin" {
 		req.Stock = existsUpdate.Stock
+	}
+
+	category, err := s.repoCategory.GetByID(*req.CategoryID)
+	if err != nil {
+		return data, err
+	}
+	if category == nil {
+		return data, &errors.BadRequestError{Message: "Kategori tidak ditemukan"}
 	}
 
 	exists, err := s.repo.CheckBarcodeExists(req.Barcode, req.ID)

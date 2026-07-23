@@ -56,5 +56,18 @@ func (s *productService) GenerateSku(categoryID int) (data dto.GenerateSkuRespon
 		return
 	}
 
-	return dto.GenerateSkuResponse{SKU: fmt.Sprintf("%s-%04d", dataDB.Code, count+1)}, nil
+	// Count baris tidak selalu = nomor urut SKU tertinggi (bisa ada SKU manual yang
+	// melompat/tidak sekuensial), dan dua request generate yang hampir bersamaan bisa
+	// membaca count yang sama sebelum salah satu produk tersimpan — jadi tetap perlu
+	// dicek keunikannya, bukan cuma count+1 langsung dipakai.
+	for next := count + 1; ; next++ {
+		candidate := fmt.Sprintf("%s-%04d", dataDB.Code, next)
+		exists, err := s.repo.CheckSkuExists(candidate, 0)
+		if err != nil {
+			return data, err
+		}
+		if !exists {
+			return dto.GenerateSkuResponse{SKU: candidate}, nil
+		}
+	}
 }

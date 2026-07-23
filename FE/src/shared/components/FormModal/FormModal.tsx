@@ -59,9 +59,7 @@ export function FormModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn('flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0', SIZE_MAP[size])}
-        onInteractOutside={(e) => {
-          if (isLoading) e.preventDefault()
-        }}
+        onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => {
           if (isLoading) e.preventDefault()
         }}
