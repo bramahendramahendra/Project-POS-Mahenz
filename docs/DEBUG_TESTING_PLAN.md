@@ -1,6 +1,42 @@
 # Rencana Debug Testing Menyeluruh — POS Mahenz
 
-Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE + BE terkait), dipecah menjadi fase-fase kecil supaya bisa dicicil dan tetap terarah. Setiap fase punya prompt siap-pakai — tinggal copy-paste ke asisten kapan pun mau dijalankan, tidak harus berurutan dalam satu sesi.
+Dokumen ini berisi rencana pengujian debug seluruh menu dan fitur aplikasi (FE + BE terkait), dipecah menjadi fase-fase kecil supaya bisa dicicil dan tetap terarah. Setiap fase punya prompt siap-pakai — cukup rujuk fase & file ini ke asisten (mis. "Jalankan Fase 1.1 dari docs\DEBUG_TESTING_PLAN.md"), tidak harus berurutan dalam satu sesi.
+
+---
+
+## Prasyarat & Cara Menjalankan (wajib dibaca sebelum fase manapun)
+
+**1. Jalankan BE & FE (dua proses terpisah, biarkan tetap hidup selama fase berjalan):**
+```
+# Terminal 1 — Backend
+cd BE
+go run main.go
+# → API di http://localhost:8080/api, health check di http://localhost:8080/health
+
+# Terminal 2 — Frontend
+cd FE
+npm run dev
+# → aplikasi di http://localhost:3000
+```
+Kalau salah satu proses gagal start (port bentrok, error koneksi DB, dsb), itu sendiri sudah temuan Fase 0 — jangan lanjut ke fase lain sebelum keduanya bisa jalan normal.
+
+**2. Pastikan database (`pos_retail_db`, MySQL/MariaDB lokal) sudah ada skema & seed-nya.** Kalau kosong (misal habis di-drop untuk test "dari kosong"), jalankan dulu:
+```
+BE/database/migrations/001_init_schema.sql
+BE/database/migrations/002_seed_data.sql
+```
+
+**3. Kredensial login untuk tiap role (dari seed data):**
+- Owner: `owner` / `owner123`
+- Admin: `admin` / `admin123`
+- Kasir: **tidak ada user seeded** — kalau fase butuh role Kasir, buat dulu user baru dengan role Kasir lewat Manajemen User (login sebagai Owner/Admin dulu), baru login sebagai user itu.
+
+**4. Cara "men-drive browser asli" secara konkret:** tidak ada tool GUI browser interaktif di sini — cara yang dipakai adalah menulis script **Playwright** (Node.js, headless Chromium) ke folder scratchpad, dijalankan via `node nama-script.js`, dan mengambil screenshot di titik-titik penting (`page.screenshot(...)`) untuk diperiksa. Alur standarnya per fase:
+1. Tulis script Playwright: buka `http://localhost:3000/login`, login dengan kredensial sesuai role yang dites, lalu navigasi ke menu terkait dan jalankan skenario (isi form, klik tombol, dst — sesuai kondisi normal & adversarial yang wajib dicoba di Aturan Umum).
+2. Rekam: screenshot di tiap langkah penting, log `console` browser (tangkap event `page.on('console', ...)` untuk error JS), dan log response API relevan (`page.on('response', ...)`) untuk verifikasi status code & body — ini yang menggantikan "lihat langsung di browser" secara manual.
+3. Jalankan script (`node ...`), lalu baca screenshot yang dihasilkan (pakai tool baca file/gambar) untuk verifikasi visual — jangan hanya percaya log teks tanpa cek visual untuk hal yang sifatnya tampilan (mis. pesan error muncul di UI, tombol hilang/muncul, layout struk).
+4. Untuk kasus yang butuh akses API langsung tanpa lewat UI (poin keamanan di Aturan Umum), boleh pakai `curl`/PowerShell `Invoke-RestMethod` dengan token dari login, bukan lewat Playwright.
+5. Kalau Playwright belum pernah dipakai di lingkungan kerja saat itu (folder scratchpad baru/kosong), install dulu (`npm init -y && npm install playwright && npx playwright install chromium`) sebelum mulai — ini satu kali saja per lingkungan kerja baru, bukan per fase.
 
 ---
 
