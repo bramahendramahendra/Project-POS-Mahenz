@@ -206,6 +206,10 @@ INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
 SELECT m.id, 'sistem.versi', 'Versi Aplikasi', 'RefreshCw', '/settings/versions', 6
 FROM menus m WHERE m.key_name = 'sistem';
 
+INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
+SELECT m.id, 'sistem.backup', 'Backup & Restore', 'DatabaseBackup', '/settings/backup', 7
+FROM menus m WHERE m.key_name = 'sistem';
+
 -- -------------------------------------------------------------
 -- Route Registry — daftar path FE yang valid, dipakai dropdown "Path"
 -- di Manajemen Menu supaya tidak bisa diisi sembarangan.
@@ -238,34 +242,31 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
     ('/settings/roles', 'Manajemen Role'),
     ('/settings/menus', 'Manajemen Menu'),
     ('/settings/printer', 'Printer'),
-    ('/settings/versions', 'Versi Aplikasi');
+    ('/settings/versions', 'Versi Aplikasi'),
+    ('/settings/backup', 'Backup & Restore');
 
 -- -------------------------------------------------------------
 -- Role Menu Access
--- Owner  : akses penuh semua menu
--- Admin  : semua menu kecuali sistem.users (owner only),
---          sistem.roles & sistem.menus & sistem.versi (view only)
--- Kasir  : hanya penjualan.kasir dan keuangan.kas_saya
+-- Owner : akses penuh SEMUA menu operasional bisnis, KECUALI 5 menu teknis
+--         (sistem.roles, sistem.menus, sistem.versi, sistem.backup,
+--         operasional.sync) — dianggap wilayah Admin IT, bukan Owner.
+-- Admin : berperan sebagai admin IT — akses penuh ke SEMUA menu tanpa
+--         kecuali, termasuk 5 menu teknis di atas.
+-- Kasir : hanya penjualan.kasir dan keuangan.kas_saya, plus profil toko
+--         (view only).
 -- -------------------------------------------------------------
 
--- OWNER: full access semua menu
+-- OWNER: full access semua menu kecuali 5 menu teknis (wilayah Admin IT)
+INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, m.id, 1, 1, 1, 1
+FROM roles r
+JOIN menus m ON m.key_name NOT IN ('sistem.roles', 'sistem.menus', 'sistem.versi', 'sistem.backup', 'operasional.sync')
+WHERE r.name = 'owner';
+
+-- ADMIN: full access semua menu tanpa kecuali (admin IT)
 INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 SELECT r.id, m.id, 1, 1, 1, 1
 FROM roles r, menus m
-WHERE r.name = 'owner';
-
--- ADMIN: akses penuh semua menu kecuali yang owner-only
-INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, m.id, 1, 1, 1, 0
-FROM roles r
-JOIN menus m ON m.key_name NOT IN ('sistem.roles', 'sistem.menus', 'sistem.users', 'sistem.versi')
-WHERE r.name = 'admin';
-
--- ADMIN: sistem.roles, sistem.menus, sistem.versi — view only
-INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, m.id, 1, 0, 0, 0
-FROM roles r
-JOIN menus m ON m.key_name IN ('sistem.roles', 'sistem.menus', 'sistem.versi')
 WHERE r.name = 'admin';
 
 -- KASIR: kasir, kas saya, dan profil toko (view only)
@@ -280,25 +281,3 @@ SELECT r.id, m.id, 1, 0, 0, 0
 FROM roles r
 JOIN menus m ON m.key_name = 'sistem.profil_toko'
 WHERE r.name = 'kasir';
-
-INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
-SELECT m.id, 'sistem.backup', 'Backup & Restore', 'DatabaseBackup', '/settings/backup', 7
-FROM menus m WHERE m.key_name = 'sistem';
-
-INSERT IGNORE INTO route_registry (path, label) VALUES
-    ('/settings/backup', 'Backup & Restore');
-
--- OWNER: akses penuh (view, create, delete/restore) — mengikuti pola blanket
--- "owner full access" yang sudah berjalan untuk semua menu lain.
-INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, m.id, 1, 1, 1, 1
-FROM roles r, menus m
-WHERE r.name = 'owner' AND m.key_name = 'sistem.backup';
-
--- ADMIN: boleh lihat & buat backup rutin, TIDAK boleh restore (can_delete=0) —
--- mengikuti pola default admin (can_delete owner-only) yang sudah berlaku di
--- seluruh menu lain di aplikasi ini.
-INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, m.id, 1, 1, 1, 0
-FROM roles r, menus m
-WHERE r.name = 'admin' AND m.key_name = 'sistem.backup';
