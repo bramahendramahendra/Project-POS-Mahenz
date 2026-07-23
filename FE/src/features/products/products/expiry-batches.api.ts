@@ -4,12 +4,20 @@ import { toast } from 'sonner'
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
 
-import type { ExpiryWarningsResponse } from './expiry-batches.types'
+import type { ExpiryBatchHistory, ExpiryWarningsResponse } from './expiry-batches.types'
 
 export function useExpiryWarningsQuery(search?: string) {
   return useQuery({
     queryKey: queryKeys.expiryBatches.warnings(search),
     queryFn: () => api.post<ExpiryWarningsResponse>('/expiry-batches/warnings', { search: search ?? '' }),
+  })
+}
+
+export function useExpiryBatchHistoryQuery(productId?: number) {
+  return useQuery({
+    queryKey: queryKeys.expiryBatches.history(productId ?? 0),
+    queryFn: () => api.post<ExpiryBatchHistory[]>(`/expiry-batches/product/${productId}`, {}),
+    enabled: !!productId && productId > 0,
   })
 }
 

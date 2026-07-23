@@ -8,6 +8,7 @@ export const queryKeys = {
   expiryBatches: {
     all: () => ['expiryBatches'] as const,
     warnings: (search?: string) => ['expiryBatches', 'warnings', search] as const,
+    history: (productId: number) => ['expiryBatches', 'history', productId] as const,
   },
 
   products: {

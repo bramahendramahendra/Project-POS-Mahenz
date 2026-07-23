@@ -115,15 +115,21 @@ type (
 		CreatedAt     string  `json:"created_at"`
 	}
 
+	PurchaseItemExpiryBatchResponse struct {
+		Qty         float64 `json:"qty"`
+		ExpiredDate string  `json:"expired_date"`
+	}
+
 	PurchaseItemResponse struct {
-		ID            int     `json:"id"`
-		ProductID     int     `json:"product_id"`
-		ProductName   string  `json:"product_name"`
-		Quantity      float64 `json:"quantity"`
-		Unit          string  `json:"unit"`
-		ConversionQty float64 `json:"conversion_qty"`
-		PurchasePrice float64 `json:"purchase_price"`
-		Subtotal      float64 `json:"subtotal"`
+		ID            int                               `json:"id"`
+		ProductID     int                               `json:"product_id"`
+		ProductName   string                            `json:"product_name"`
+		Quantity      float64                           `json:"quantity"`
+		Unit          string                            `json:"unit"`
+		ConversionQty float64                           `json:"conversion_qty"`
+		PurchasePrice float64                           `json:"purchase_price"`
+		Subtotal      float64                           `json:"subtotal"`
+		ExpiryBatches []PurchaseItemExpiryBatchResponse `json:"expiry_batches,omitempty"`
 	}
 
 	PurchaseResponse struct {

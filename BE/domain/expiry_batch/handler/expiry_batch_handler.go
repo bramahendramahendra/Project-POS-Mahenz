@@ -45,6 +45,32 @@ func (h *ExpiryBatchHandler) GetWarnings(c *gin.Context) {
 	})
 }
 
+func (h *ExpiryBatchHandler) GetByProduct(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.GetByProductUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(uriReq); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByProduct(uriReq.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Histori batch expired produk",
+		Data:    data,
+	})
+}
+
 func (h *ExpiryBatchHandler) Confirm(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.ConfirmUriRequest](c)
 	if err != nil {

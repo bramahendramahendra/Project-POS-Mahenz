@@ -14,27 +14,28 @@ import (
 )
 
 const (
-	getPackagesByProductQuery  = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generatePurchaseCodeQuery  = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
-	createPurchaseQuery        = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createPurchaseItemQuery    = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	addStockQuery              = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
-	payPurchaseQuery           = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getPurchaseItemsQuery      = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
-	createPaymentQuery         = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
-	getPaymentsQuery           = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
-	rollbackStockQuery         = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
-	deleteStockMutationsQuery  = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
-	deletePurchaseItemsQuery   = `DELETE FROM purchase_items WHERE purchase_id = ?`
-	deletePurchaseQuery        = `DELETE FROM purchases WHERE id = ?`
-	getPurchaseByIDQuery       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
-	getRawPurchaseByIDQuery    = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
-	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
-	countPurchasesBase         = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
-	createStockMutationQuery   = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	getProductStockQuery       = `SELECT stock FROM products WHERE id = ? LIMIT 1`
-	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
-	createExpiryBatchQuery     = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
+	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
+	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	addStockQuery                       = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	payPurchaseQuery                    = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPurchaseItemsQuery               = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
+	createPaymentQuery                  = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+	getPaymentsQuery                    = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
+	rollbackStockQuery                  = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
+	deleteStockMutationsQuery           = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
+	deletePurchaseItemsQuery            = `DELETE FROM purchase_items WHERE purchase_id = ?`
+	deletePurchaseQuery                 = `DELETE FROM purchases WHERE id = ?`
+	getPurchaseByIDQuery                = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
+	getRawPurchaseByIDQuery             = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
+	getAllPurchasesBase                 = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
+	countPurchasesBase                  = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
+	createStockMutationQuery            = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getProductStockQuery                = `SELECT stock FROM products WHERE id = ? LIMIT 1`
+	validatePaymentMethodQuery          = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
+	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
+	getExpiryBatchesByPurchaseItemQuery = `SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = ? ORDER BY expired_date ASC`
 
 	getPurchaseForVoidQuery   = `SELECT status, paid_amount FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
 	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', updated_at = NOW() WHERE id = ?`
@@ -208,7 +209,6 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var items []model.PurchaseItem
 	for rows.Next() {
@@ -217,11 +217,32 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 			&item.ID, &item.ProductID, &item.ProductName,
 			&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
 		); err != nil {
+			rows.Close()
 			return nil, err
 		}
 		items = append(items, item)
 	}
+	rows.Close()
+
+	// Rincian expired diambil per item SETELAH rows di atas ditutup (bukan di dalam loop
+	// yang sama) supaya tidak ada query bersarang di koneksi yang masih dipakai rows.Next().
+	for i := range items {
+		batches, err := r.getExpiryBatchesByPurchaseItem(items[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		items[i].ExpiryBatches = batches
+	}
+
 	return items, nil
+}
+
+func (r *purchaseRepo) getExpiryBatchesByPurchaseItem(purchaseItemID int) ([]model.PurchaseItemExpiryBatch, error) {
+	var batches []model.PurchaseItemExpiryBatch
+	if err := r.db.Raw(getExpiryBatchesByPurchaseItemQuery, purchaseItemID).Scan(&batches).Error; err != nil {
+		return nil, err
+	}
+	return batches, nil
 }
 
 func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, error) {

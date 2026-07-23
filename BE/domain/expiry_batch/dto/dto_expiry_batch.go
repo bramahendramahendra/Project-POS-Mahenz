@@ -6,6 +6,10 @@ type (
 		Search string `json:"search"`
 	}
 
+	GetByProductUriRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
 	ConfirmUriRequest struct {
 		ID int `uri:"id" validate:"required,min=1"`
 	}
@@ -47,5 +51,14 @@ type (
 		ProductID    int    `json:"product_id"`
 		Severity     string `json:"severity"` // "near" | "expired"
 		WarningCount int    `json:"warning_count"`
+	}
+
+	// BatchHistoryResponse: SEMUA batch expired produk ini apapun statusnya — dipakai di
+	// Detail Produk supaya staf bisa lihat histori lengkap (bukan cuma yang lagi warning).
+	BatchHistoryResponse struct {
+		ID          int     `json:"id"`
+		Qty         float64 `json:"qty"`
+		ExpiredDate string  `json:"expired_date"`
+		Status      string  `json:"status"` // "active" | "cleared" | "written_off"
 	}
 )

@@ -1,0 +1,271 @@
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:99
+[0m[33m[1.133ms] [34;1m[rows:0][0m CREATE TABLE IF NOT EXISTS migrations_history (
+		id          INT AUTO_INCREMENT PRIMARY KEY,
+		filename    VARCHAR(255) UNIQUE NOT NULL,
+		executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	) DEFAULT CHARSET=utf8
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:27
+[0m[33m[0.679ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:28
+[0m[33m[0.835ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.592ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '001_init_schema.sql'
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '002_seed_data.sql'
+
+2026/07/23 16:53:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.522ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '003_expiry_batch.sql'
+2026/07/23 16:53:04 [37mServer running on port[0m :8080
+2026/07/23 16:53:04 [37mRoutes:[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/detail/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/delete/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/generate-code        [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GenerateCode-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/list                 [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/create               [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/update/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/pay/:id              [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Pay-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/void/:id             [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Void-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/:id/payments         [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetPayments-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-purchases/:id/add-items        [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).AddItems-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-returns/detail/:id             [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-returns/delete/:id             [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-returns/list                   [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-returns/create                 [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/supplier-returns/update-status/:id      [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).UpdateStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/detail/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetDetail-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/delete/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/list                          [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/options                       [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/create                        [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/update/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/suppliers/toggle-status/:id             [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/detail/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/delete/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/list                             [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/active                           [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/summary                          [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetSummary-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/create                           [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/update/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/shifts/toggle-status/:id                [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/settings                                [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).Save-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/settings/reset                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).Reset-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/settings/store                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).UpdateStoreProfile-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/settings/printer                        [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).UpdatePrinterSettings-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/stock-mutations/list                    [0m   [37mpos_api/domain/stock_mutation/handler.(*StockMutationHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/stock-mutations/product/:product_id     [0m   [37mpos_api/domain/stock_mutation/handler.(*StockMutationHandler).GetByProduct-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/sync/conflicts/:id/resolve              [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).ResolveConflict-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/sync/push                               [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).PushSync-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/import-preview                 [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).ImportPreview-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/import-bulk                    [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).ImportBulk-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/import-template                [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).DownloadImportTemplate-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/detail/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/delete/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/generate-barcode               [0m   [37mpos_api/domain/product/handler.(*ProductGenerateHandler).GenerateBarcode-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/generate-sku                   [0m   [37mpos_api/domain/product/handler.(*ProductGenerateHandler).GenerateSku-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/list                           [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/options                        [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/search                         [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Search-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/by-barcode/:barcode            [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetByBarcode-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/create                         [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/update/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/toggle-status/:id              [0m   [37mpos_api/domain/product/handler.(*ProductHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/packages/list              [0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).GetPackagesByProduct-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/packages/create            [0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).CreatePackage-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/packages/update/:package_id[0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).UpdatePackage-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/packages/delete/:package_id[0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).DeletePackage-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/prices/list                [0m   [37mpos_api/domain/product/handler.(*ProductPriceHandler).GetPricesByProduct-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/products/:id/prices/save                [0m   [37mpos_api/domain/product/handler.(*ProductPriceHandler).SavePrices-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/pin/set                                 [0m   [37mpos_api/domain/pin/handler.(*PinHandler).SetPin-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/pin/verify                              [0m   [37mpos_api/domain/pin/handler.(*PinHandler).VerifyPin-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/pin/change                              [0m   [37mpos_api/domain/pin/handler.(*PinHandler).ChangePin-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/payment-statuses/list                   [0m   [37mpos_api/domain/payment_status/handler.(*PaymentStatusHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/payment-methods/list                    [0m   [37mpos_api/domain/payment_method/handler.(*PaymentMethodHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/current                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetCurrent-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/close/:id                   [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).Close-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/update-sales/:id            [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).UpdateSales-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/update-expenses/:id         [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).UpdateExpenses-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/my-cash                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetMyCash-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/list                        [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetHistory-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/summary                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetSummary-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/kasir-options               [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetKasirOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/detail/:id                  [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/cash-drawer/open                        [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).Open-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/detail/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/delete/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/list                         [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/options                      [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/create                       [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/update/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/categories/toggle-status/:id            [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/detail/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/delete/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/list                          [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/active                        [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/create                        [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/update/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/customers/toggle-status/:id             [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/sales/list                      [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesList-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/sales/summary                   [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesSummaryData-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/stock/list                      [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockList-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/stock/summary                   [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockSummaryData-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/profit-loss/data                [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetProfitLossData-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/reports/cashier/list                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetCashierList-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/receivables/payments/:id                [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetPayments-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/receivables/pay/:id                     [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).Pay-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/receivables/list                        [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/receivables/summary                     [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetSummary-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/receivables/detail/:id                  [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/restore                                 [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Restore-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/detail/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/delete/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/list                              [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/options                           [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/create                            [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/update/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/toggle-status/:id                 [0m   [37mpos_api/domain/role/handler.(*RoleHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/:id/menus/list                    [0m   [37mpos_api/domain/access/handler.(*AccessHandler).GetByRoleID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/roles/:id/menus/set                     [0m   [37mpos_api/domain/access/handler.(*AccessHandler).SetRoleAccess-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/route-registry/options                  [0m   [37mpos_api/domain/route_registry/handler.(*RouteRegistryHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/create                            [0m   [37mpos_api/domain/user/handler.(*UserHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/change-password/:id               [0m   [37mpos_api/domain/user/handler.(*UserHandler).ChangePassword-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/detail/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/delete/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/list                              [0m   [37mpos_api/domain/user/handler.(*UserHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/update/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/users/toggle-status/:id                 [0m   [37mpos_api/domain/user/handler.(*UserHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/detail/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/delete/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/list                              [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/options                           [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/create                            [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/update/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/units/toggle-status/:id                 [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).ToggleStatus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expenses/detail/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expenses/delete/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expenses/list                           [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expenses/create                         [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expenses/update/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expiry-batches/warnings                 [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).GetWarnings-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expiry-batches/write-off/:id            [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).WriteOff-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expiry-batches/product/:id              [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).GetByProduct-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/expiry-batches/confirm/:id              [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).Confirm-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/detail/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/delete/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Delete-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/my                                [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetMyMenus-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/options                           [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetOptions-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/list                              [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/create                            [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/update/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Update-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/menus/reorder                           [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Reorder-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/auth/login                              [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).Login-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/auth/logout                             [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).Logout-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/auth/refresh                            [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).RefreshToken-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/auth/verify-token                       [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).VerifyToken-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/auth/me                                 [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).GetMe-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/transactions/list                       [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/transactions/detail/:id                 [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).GetByID-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/transactions/create                     [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/transactions/void/:id                   [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).Void-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/finance/summary                         [0m   [37mpos_api/domain/finance/handler.(*FinanceHandler).GetSummary-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/finance/cashflow                        [0m   [37mpos_api/domain/finance/handler.(*FinanceHandler).GetCashflow-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/version/list                            [0m   [37mpos_api/domain/version/handler.(*VersionHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/version/android                         [0m   [37mpos_api/domain/version/handler.(*VersionHandler).UpdateAndroidVersion-fm[0m
+2026/07/23 16:53:04 [32mPOST[0m   [34m/api/backup                                  [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Create-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/sales                           [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/sales/chart                     [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesChart-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/sales/export                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportSalesReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/stock                           [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/stock/export                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportStockReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/profit-loss                     [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetProfitLoss-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/profit-loss/export              [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportProfitLoss-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/cashier                         [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetCashierReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/reports/cashier/export                  [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportCashierReport-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/settings                                [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetAll-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/settings/store                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetStoreProfile-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/settings/printer                        [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetPrinterSettings-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/settings/:key                           [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetByKey-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/sync/conflicts                          [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetConflicts-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/sync/conflicts/count                    [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetConflictCount-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/sync/queue                              [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetQueue-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/sync/history                            [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetHistory-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/stats                         [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetStats-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/sales-trend                   [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetSalesTrend-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/summary-extra                 [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetSummaryExtra-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/top-products                  [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetTopProducts-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/top-categories                [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetTopCategories-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/dashboard/payment-methods               [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetPaymentMethods-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/backup/list                             [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).GetList-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/backup/download/:filename               [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Download-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/version/android                         [0m   [37mpos_api/domain/version/handler.(*VersionHandler).CheckAndroid-fm[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/health                                  [0m   [37mpos_api/routes.publicRoutes.func1[0m
+2026/07/23 16:53:04 [32mGET [0m   [34m/api/pin/check                               [0m   [37mpos_api/domain/pin/handler.(*PinHandler).CheckPin-fm[0m
+[GIN] 2026/07/23 - 16:53:08 | 200 |            0s |             ::1 | GET      "/api/health"
+
+2026/07/23 16:53:08 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[1.788ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('743ac0e8-3192-4c8c-bd14-802d6f14d52a', 'GET', '/api/health', 200, '', '{"code":"00","data":null,"message":"OK","status":true}', NULL, 0, '::1', NULL, '2026-07-23 16:53:08.369')
+
+2026/07/23 16:53:22 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:17
+[0m[33m[1.534ms] [34;1m[rows:1][0m SELECT u.id, u.username, u.password, u.full_name, u.role_id, r.name AS role_name, u.is_active FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.username = 'admin' LIMIT 1
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:67
+[0m[33m[0.497ms] [34;1m[rows:1][0m DELETE FROM sessions WHERE user_id = 2
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:38
+[0m[33m[0.000ms] [34;1m[rows:1][0m INSERT INTO sessions (user_id, user_role, token, refresh_token, device_info, ip_address, expires_at) VALUES (2, 'admin', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg0ODI5MjAzLCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.HHinOttp1Crh605i13Xy8hOPD148sphlk5MXUaea_Lo', '3729ebaf7beace7584deee20a0ebe462d7b921c70e5d1b4c032467fd03d67428', '', '::1', '2026-07-30 16:53:23.035') ON DUPLICATE KEY UPDATE user_role=VALUES(user_role), token=VALUES(token), refresh_token=VALUES(refresh_token), device_info=VALUES(device_info), ip_address=VALUES(ip_address), expires_at=VALUES(expires_at), created_at=NOW()
+[GIN] 2026/07/23 - 16:53:23 | 200 |     91.4556ms |             ::1 | POST     "/api/auth/login"
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[0.000ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('f08d9971-7f28-4b50-9edf-3f407a5ffebf', 'POST', '/api/auth/login', 200, '{"username":"admin","password":"admin123"}', '{"code":"00","status":true,"message":"Login berhasil","data":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg0ODI5MjAzLCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.HHinOttp1Crh605i13Xy8hOPD148sphlk5MXUaea_Lo","refresh_token":"3729ebaf7beace7584deee20a0ebe462d7b921c70e5d1b4c032467fd03d67428","expires_at":"2026-07-30T16:53:23.0351693+07:00","user":{"id":2,"username":"admin","full_name":"Administrator","role_id":2,"role_name":"admin"}}}', NULL, 91, '::1', NULL, '2026-07-23 16:53:23.035')
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.511ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg0ODI5MjAzLCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.HHinOttp1Crh605i13Xy8hOPD148sphlk5MXUaea_Lo' LIMIT 1
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:166
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = 1
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:208
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = 1
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:242
+[0m[33m[0.569ms] [34;1m[rows:2][0m SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = 1 ORDER BY expired_date ASC
+[GIN] 2026/07/23 - 16:53:23 | 200 |      2.9567ms |             ::1 | POST     "/api/supplier-purchases/detail/1"
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[1.876ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('bfc6f3da-a594-4f41-af99-92b35e401f81', 'POST', '/api/supplier-purchases/detail/1', 200, '{}', '{"code":"00","status":true,"message":"Detail purchase order","data":{"id":1,"purchase_code":"PO-20260723-001","invoice_number":"INV-EXP-002","supplier_id":1,"supplier_name":"CV Sumber Makmur","purchase_date":"2026-07-23T00:00:00+07:00","discount_amount":0,"total_amount":1000000,"payment_status":"unpaid","paid_amount":0,"remaining_amount":1000000,"status":"active","user_name":"Administrator","notes":"","items":[{"id":1,"product_id":11,"product_name":"Import Beras Premium 5kg","quantity":20,"unit":"Pcs","conversion_qty":1,"purchase_price":50000,"subtotal":1000000,"expiry_batches":[{"qty":15,"expired_date":"2026-07-25T00:00:00+07:00"},{"qty":5,"expired_date":"2026-12-30T00:00:00+07:00"}]}]}}', 2, 2, '::1', NULL, '2026-07-23 16:53:23.144')
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.549ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg0ODI5MjAzLCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.HHinOttp1Crh605i13Xy8hOPD148sphlk5MXUaea_Lo' LIMIT 1
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/access/repo/access_repo.go:55
+[0m[33m[1.130ms] [34;1m[rows:37][0m 
+SELECT
+    m.key_name,
+    COALESCE(rma.can_view,   0) AS can_view,
+    COALESCE(rma.can_create, 0) AS can_create,
+    COALESCE(rma.can_edit,   0) AS can_edit,
+    COALESCE(rma.can_delete, 0) AS can_delete
+FROM menus m
+LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+    AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+WHERE m.is_active = 1
+ORDER BY m.id ASC
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:80
+[0m[33m[0.528ms] [34;1m[rows:1][0m 
+		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
+		FROM product_expiry_batches eb
+		LEFT JOIN products p ON eb.product_id = p.id
+		WHERE eb.product_id = 1
+		ORDER BY eb.expired_date ASC
+	
+[GIN] 2026/07/23 - 16:53:23 | 200 |      2.8769ms |             ::1 | POST     "/api/expiry-batches/product/1"
+
+2026/07/23 16:53:23 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.748ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('3473a187-4659-4a75-ae29-02eee5da0303', 'POST', '/api/expiry-batches/product/1', 200, '{}', '{"code":"00","status":true,"message":"Histori batch expired produk","data":[{"id":6,"qty":8,"expired_date":"2026-07-15","status":"active"}]}', 2, 2, '::1', NULL, '2026-07-23 16:53:23.243')
+exit status 0xffffffff

@@ -10,6 +10,11 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 // 'void' berarti PO dibatalkan; tidak bisa lagi di-edit/dihapus/dibayar/ditambah item.
 export type PurchaseStatus = 'active' | 'void'
 
+export interface PurchaseItemExpiryBatch {
+  qty: number
+  expired_date: string
+}
+
 export interface SupplierPurchaseItem {
   id: number
   product_id: number
@@ -19,6 +24,7 @@ export interface SupplierPurchaseItem {
   conversion_qty: number
   purchase_price: number
   subtotal: number
+  expiry_batches?: PurchaseItemExpiryBatch[]
 }
 
 export interface PurchasePayment {

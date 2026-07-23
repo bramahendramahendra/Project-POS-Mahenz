@@ -5,10 +5,28 @@ import (
 	"math"
 
 	dto "pos_api/domain/supplier_purchase/dto"
+	model "pos_api/domain/supplier_purchase/model"
 	"pos_api/errors"
 
 	"gorm.io/gorm"
 )
+
+// mapExpiryBatches mengubah rincian batch expired dari model repo ke bentuk response —
+// dipakai di 4 tempat (GetByID, Create, Update, AddItems) yang sama-sama membangun
+// PurchaseItemResponse dari model.PurchaseItem.
+func mapExpiryBatches(batches []model.PurchaseItemExpiryBatch) []dto.PurchaseItemExpiryBatchResponse {
+	if len(batches) == 0 {
+		return nil
+	}
+	result := make([]dto.PurchaseItemExpiryBatchResponse, 0, len(batches))
+	for _, b := range batches {
+		result = append(result, dto.PurchaseItemExpiryBatchResponse{
+			Qty:         b.Qty,
+			ExpiredDate: b.ExpiredDate.Format("2006-01-02"),
+		})
+	}
+	return result
+}
 
 // validateExpiryBatches memastikan, untuk tiap item PO yang mencentang "ada tanggal
 // expired", total qty di rincian batch-nya persis sama dengan qty item itu sendiri —
@@ -83,6 +101,7 @@ func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error)
 			ConversionQty: v.ConversionQty,
 			PurchasePrice: v.PurchasePrice,
 			Subtotal:      v.Subtotal,
+			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
 		})
 	}
 
@@ -149,6 +168,7 @@ func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseRespo
 			ConversionQty: v.ConversionQty,
 			PurchasePrice: v.PurchasePrice,
 			Subtotal:      v.Subtotal,
+			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
 		})
 	}
 
@@ -218,6 +238,7 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 			ConversionQty: v.ConversionQty,
 			PurchasePrice: v.PurchasePrice,
 			Subtotal:      v.Subtotal,
+			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
 		})
 	}
 
@@ -362,6 +383,7 @@ func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseR
 			ConversionQty: v.ConversionQty,
 			PurchasePrice: v.PurchasePrice,
 			Subtotal:      v.Subtotal,
+			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
 		})
 	}
 

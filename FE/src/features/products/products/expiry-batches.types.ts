@@ -20,3 +20,12 @@ export interface ExpiryWarningsResponse {
   warnings: ExpiryWarning[] | null
   product_severity: ProductExpirySeverity[] | null
 }
+
+export type ExpiryBatchStatus = 'active' | 'cleared' | 'written_off'
+
+export interface ExpiryBatchHistory {
+  id: number
+  qty: number
+  expired_date: string
+  status: ExpiryBatchStatus
+}

@@ -143,6 +143,13 @@ Jalankan Fase 1.6 (Unit/Satuan) dari docs\DEBUG_TESTING_PLAN.md :
 Jalankan Fase 1.6: debug menu Unit. CRUD lengkap, coba hapus unit yang masih dipakai produk. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
+**1.7 Produk — Batch Expired (fitur baru)**
+```
+Jalankan Fase 1.7 (Produk — Batch Expired) dari docs\DEBUG_TESTING_PLAN.md :
+
+Jalankan Fase 1.7: debug fitur tracking tanggal expired produk. Di form Tambah/Edit Pembelian: centang "Produk ini ada tanggal expired" pada 1 baris item, coba split qty ke beberapa tanggal berbeda (total harus pas dengan qty item — coba juga yang sengaja tidak pas, harus ditolak baik di FE maupun API langsung), coba uncheck setelah isi data (rincian harus kebersihan). Setelah PO tersimpan: cek badge warning muncul benar di halaman Produk (kuning untuk mendekati expired ≤7 hari, merah untuk sudah lewat), klik badge untuk buka modal detail batch. Test aksi "Sudah Dicek, Aman" (harus hilang dari warning tanpa mengubah stok) dan "Musnahkan" (harus kurangi stok & tercatat di riwayat mutasi stok, coba juga sebagai role Admin — tombol Musnahkan harus tersembunyi karena cuma Owner yang boleh). Verifikasi juga alur Kasir/Transaksi tidak terganggu oleh fitur ini (tidak ada validasi/blocking baru yang muncul saat checkout). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+```
+
 ---
 
 ### Fase 2 — Supplier

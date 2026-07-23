@@ -25,6 +25,7 @@ func ExpiryBatchRoutes(r *gin.RouterGroup) {
 	g := r.Group("/expiry-batches")
 	{
 		g.POST("/warnings", perm("can_view"), expiryBatchHandler.GetWarnings)
+		g.POST("/product/:id", perm("can_view"), expiryBatchHandler.GetByProduct)
 		g.POST("/confirm/:id", perm("can_edit"), expiryBatchHandler.Confirm)
 		g.POST("/write-off/:id", perm("can_delete"), expiryBatchHandler.WriteOff)
 	}

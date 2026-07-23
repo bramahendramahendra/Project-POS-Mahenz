@@ -67,6 +67,24 @@ func (s *expiryBatchService) GetWarnings(req *dto.GetWarningsRequest) (data []dt
 	return data, productSeverity, nil
 }
 
+func (s *expiryBatchService) GetByProduct(productID int) (data []dto.BatchHistoryResponse, err error) {
+	dataDB, err := s.repo.GetByProduct(productID)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, dto.BatchHistoryResponse{
+			ID:          v.ID,
+			Qty:         v.Qty,
+			ExpiredDate: v.ExpiredDate.Format("2006-01-02"),
+			Status:      v.Status,
+		})
+	}
+
+	return data, nil
+}
+
 func (s *expiryBatchService) Confirm(req *dto.ConfirmRequest) (err error) {
 	batch, err := s.repo.GetByID(req.ID)
 	if err != nil {

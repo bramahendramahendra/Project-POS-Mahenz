@@ -1,9 +1,17 @@
 import { DetailField, FormModal, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah } from '@/shared/utils'
 
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
+import { useExpiryBatchHistoryQuery } from '../expiry-batches.api'
+import type { ExpiryBatchStatus } from '../expiry-batches.types'
 import { calcMargin, formatResolvedFactor } from '../products.utils'
+
+const EXPIRY_STATUS_LABEL: Record<ExpiryBatchStatus, { label: string; className: string }> = {
+  active: { label: 'Perlu Dicek', className: 'bg-amber-100 text-amber-700' },
+  cleared: { label: 'Sudah Dicek, Aman', className: 'bg-green-100 text-green-700' },
+  written_off: { label: 'Dimusnahkan', className: 'bg-red-100 text-red-600' },
+}
 
 interface ProductDetailModalProps {
   open: boolean
@@ -15,6 +23,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
   const enabled = open && (productId ?? 0) > 0
   const { data: product, isLoading } = useProductDetailQuery(enabled ? (productId as number) : 0)
   const { data: units = [] } = useProductPackagesQuery(enabled ? (productId as number) : 0)
+  const { data: expiryHistory = [] } = useExpiryBatchHistoryQuery(enabled ? productId : undefined)
 
   const margin = product ? calcMargin(product.purchase_price, product.selling_price) : 0
   const grosirUnits = (units ?? []).filter((u) => !u.is_default)
@@ -129,6 +138,39 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                         <td className="px-2 py-1.5 text-gray-600">{formatResolvedFactor(u.resolved_factor)} {product.unit_name}</td>
                         <td className="px-2 py-1.5">{formatRupiah(u.purchase_price)}</td>
                         <td className="px-2 py-1.5">{formatRupiah(u.selling_price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Batch Expired */}
+          {expiryHistory.length > 0 && (
+            <div className="space-y-2 border-t pt-3">
+              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Batch Expired</p>
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['Qty', 'Tanggal Expired', 'Status'].map((h) => (
+                        <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {expiryHistory.map((b) => (
+                      <tr key={b.id} className="border-t">
+                        <td className="px-2 py-1.5 font-medium">{b.qty}</td>
+                        <td className="px-2 py-1.5 text-gray-600">{formatDate(b.expired_date)}</td>
+                        <td className="px-2 py-1.5">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${EXPIRY_STATUS_LABEL[b.status].className}`}
+                          >
+                            {EXPIRY_STATUS_LABEL[b.status].label}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

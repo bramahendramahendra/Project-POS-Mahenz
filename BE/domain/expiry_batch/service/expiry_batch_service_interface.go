@@ -8,6 +8,7 @@ import (
 type (
 	ExpiryBatchServiceInterface interface {
 		GetWarnings(req *dto.GetWarningsRequest) (data []dto.WarningResponse, productSeverity []dto.ProductSeverityResponse, err error)
+		GetByProduct(productID int) (data []dto.BatchHistoryResponse, err error)
 		Confirm(req *dto.ConfirmRequest) (err error)
 		WriteOff(req *dto.WriteOffRequest) (err error)
 	}

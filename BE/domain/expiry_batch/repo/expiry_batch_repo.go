@@ -25,6 +25,15 @@ const (
 	getWarningsSearchClause = ` AND p.name LIKE ?`
 	getWarningsOrderClause  = ` ORDER BY eb.expired_date ASC`
 
+	getByProductQuery = `
+		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
+		FROM product_expiry_batches eb
+		LEFT JOIN products p ON eb.product_id = p.id
+		WHERE eb.product_id = ?
+		ORDER BY eb.expired_date ASC
+	`
+
 	getExpiryBatchByIDQuery = `
 		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
 		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
@@ -61,6 +70,14 @@ func (r *expiryBatchRepo) GetWarnings(search string) ([]*model.ExpiryBatch, erro
 
 	var rows []*model.ExpiryBatch
 	if err := r.db.Raw(query, args...).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+func (r *expiryBatchRepo) GetByProduct(productID int) ([]*model.ExpiryBatch, error) {
+	var rows []*model.ExpiryBatch
+	if err := r.db.Raw(getByProductQuery, productID).Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	return rows, nil

@@ -97,7 +97,21 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
                   <tbody>
                     {purchase.items.map((item, i) => (
                       <tr key={item.id ?? i} className="border-t">
-                        <td className="px-2 py-1.5 font-medium">{item.product_name || `Produk #${item.product_id}`}</td>
+                        <td className="px-2 py-1.5 font-medium">
+                          {item.product_name || `Produk #${item.product_id}`}
+                          {item.expiry_batches && item.expiry_batches.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {item.expiry_batches.map((b, bi) => (
+                                <span
+                                  key={bi}
+                                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 text-[10px] font-normal text-indigo-700"
+                                >
+                                  {b.qty} unit · exp {formatDate(b.expired_date)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
                         <td className="px-2 py-1.5 text-gray-700">{item.quantity}</td>
                         <td className="px-2 py-1.5 text-gray-600">{item.unit}</td>
                         <td className="px-2 py-1.5">{formatRupiah(item.purchase_price)}</td>
