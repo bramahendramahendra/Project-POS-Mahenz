@@ -1,16 +1,9 @@
 import { useState } from 'react'
 import { Printer } from 'lucide-react'
 
-import { ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
+import { ActionModal, ConfirmDialog, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 import { ReceiptPrint } from '@/features/sales/cashier/components/ReceiptPrint'
 import type { CartItem, CartSummary, Discount, Tax } from '@/features/sales/cashier'
@@ -74,19 +67,44 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
     })
   }
 
+  const footer = transaction ? (
+    <div className="border-t px-5 py-3 flex items-center gap-2 shrink-0">
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1"
+        onClick={() => setReceiptOpen(true)}
+      >
+        <Printer size={14} />
+        Cetak Ulang
+      </Button>
+      <RoleGuard menuKey="penjualan.transaksi" action="can_delete">
+        {transaction.status === 'completed' && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="ml-auto"
+            onClick={() => setVoidConfirmOpen(true)}
+          >
+            Void Transaksi
+          </Button>
+        )}
+      </RoleGuard>
+    </div>
+  ) : null
+
   return (
     <>
-      <Dialog open={open} onOpenChange={(val) => { if (!val) onClose() }}>
-        <DialogContent className="flex flex-col gap-0 p-0 max-w-lg max-h-[90vh]">
-          <DialogHeader className="border-b px-5 py-3 shrink-0">
-            <DialogTitle>Detail Transaksi</DialogTitle>
-            {transaction && (
-              <DialogDescription className="font-mono text-xs">
-                {transaction.transaction_code}
-              </DialogDescription>
-            )}
-          </DialogHeader>
-
+      <ActionModal
+        open={open}
+        onOpenChange={(val) => { if (!val) onClose() }}
+        title="Detail Transaksi"
+        description={transaction?.transaction_code}
+        descriptionClassName="font-mono text-xs"
+        contentClassName="max-w-lg max-h-[90vh]"
+        headerClassName="border-b px-5 py-3 shrink-0"
+        footer={footer}
+      >
           <ScrollArea className="flex-1">
           <div className="p-5">
             {isLoading ? (
@@ -195,34 +213,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
             ) : null}
           </div>
           </ScrollArea>
-
-          {transaction && (
-            <div className="border-t px-5 py-3 flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                onClick={() => setReceiptOpen(true)}
-              >
-                <Printer size={14} />
-                Cetak Ulang
-              </Button>
-              <RoleGuard menuKey="penjualan.transaksi" action="can_delete">
-                {transaction.status === 'completed' && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="ml-auto"
-                    onClick={() => setVoidConfirmOpen(true)}
-                  >
-                    Void Transaksi
-                  </Button>
-                )}
-              </RoleGuard>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      </ActionModal>
 
       <ConfirmDialog
         open={voidConfirmOpen}

@@ -1,21 +1,13 @@
 import { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { useState } from 'react'
 
-import { Button } from '@/shared/components/ui/button'
+import { ActionModal } from '@/shared/components'
 import { Label } from '@/shared/components/ui/label'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
 import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
@@ -196,23 +188,18 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
 
   return (
     <>
-      <Dialog
+      <ActionModal
         open={open}
-        onOpenChange={(val) => {
-          if (!isPending) onOpenChange(val)
-        }}
+        onOpenChange={onOpenChange}
+        title="Pembayaran"
+        description="Form pembayaran transaksi"
+        contentClassName="max-w-md"
+        isLoading={isPending}
+        asForm
+        onFormSubmit={handleSubmit(onSubmit)}
+        submitLabel={isPending ? 'Memproses...' : '✓ Proses Bayar'}
+        submitDisabled={!sufficient || isPending || !kasOpen}
       >
-        <DialogContent
-          className="flex flex-col gap-0 p-0 max-w-md"
-          onInteractOutside={(e) => { if (isPending) e.preventDefault() }}
-          onEscapeKeyDown={(e) => { if (isPending) e.preventDefault() }}
-        >
-          <DialogHeader className="border-b px-6 py-4">
-            <DialogTitle>Pembayaran</DialogTitle>
-            <DialogDescription className="sr-only">Form pembayaran transaksi</DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit(onSubmit)}>
             <ScrollArea style={{ maxHeight: '70vh' }}>
             <div className="px-6 py-4 space-y-5">
               {/* Guard kas belum buka */}
@@ -339,24 +326,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
               )}
             </div>
             </ScrollArea>
-
-            <DialogFooter className="border-t px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => !isPending && onOpenChange(false)}
-                disabled={isPending}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={!sufficient || isPending || !kasOpen}>
-                {isPending && <Loader2 size={14} className="animate-spin" />}
-                {isPending ? 'Memproses...' : '✓ Proses Bayar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      </ActionModal>
 
       {receiptOpen && receiptData && receiptSnapshot && (
         <ReceiptPrint

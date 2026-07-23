@@ -1,8 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { Product, ProductPackage } from '@/features/products/products'
-
 import type { CartItem, Discount, DiscountType, Tax } from './cashier.types'
 import { calcDiscountAmount, calcItemSubtotal, calcTaxAmount, calculateItemDiscount } from './cashier.utils'
 
@@ -18,8 +16,6 @@ interface CashierState {
 
   // UI State (not persisted)
   paymentModalOpen: boolean
-  unitSelectModalOpen: boolean
-  pendingProduct: { product: Product; availableUnits: ProductPackage[] } | null
 
   // Actions — Cart
   addToCart: (item: CartItem) => void
@@ -40,8 +36,6 @@ interface CashierState {
   // Actions — Modal
   openPaymentModal: () => void
   closePaymentModal: () => void
-  openUnitSelectModal: (product: Product, units: ProductPackage[]) => void
-  closeUnitSelectModal: () => void
 }
 
 function recalcDiscountAndTax(
@@ -68,8 +62,6 @@ export const useCashierStore = create<CashierState>()(
 
       // UI state defaults
       paymentModalOpen: false,
-      unitSelectModalOpen: false,
-      pendingProduct: null,
 
       // ── Cart Actions ──
 
@@ -210,10 +202,6 @@ export const useCashierStore = create<CashierState>()(
 
       openPaymentModal: () => set({ paymentModalOpen: true }),
       closePaymentModal: () => set({ paymentModalOpen: false }),
-
-      openUnitSelectModal: (product, availableUnits) =>
-        set({ unitSelectModalOpen: true, pendingProduct: { product, availableUnits } }),
-      closeUnitSelectModal: () => set({ unitSelectModalOpen: false, pendingProduct: null }),
     }),
     {
       name: 'cashier-draft',

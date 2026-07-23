@@ -1,0 +1,1 @@
+export { ExtendedConfirmDialog } from './ExtendedConfirmDialog'

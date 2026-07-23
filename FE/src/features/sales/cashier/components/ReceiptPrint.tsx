@@ -1,16 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { Printer, ShoppingCart, X } from 'lucide-react'
 
+import { ActionModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/shared/components/ui/dialog'
+import { DialogFooter } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
 import { useStoreProfileQuery } from '@/features/settings/store'
@@ -266,14 +260,35 @@ export function ReceiptPrint({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, printerSettings.auto_print])
 
-  return (
-    <Dialog open={open} onOpenChange={(val) => { if (!val) onClose() }}>
-      <DialogContent className="flex flex-col gap-0 p-0 max-w-sm">
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>Struk Transaksi</DialogTitle>
-          <DialogDescription className="sr-only">Detail struk transaksi</DialogDescription>
-        </DialogHeader>
+  const footer = (
+    <DialogFooter className="border-t px-6 py-4">
+      <Button variant="outline" onClick={handlePrint} className="gap-1.5">
+        <Printer size={14} />
+        Cetak
+      </Button>
+      {mode === 'checkout' ? (
+        <Button onClick={onClose} className="gap-1.5">
+          <ShoppingCart size={14} />
+          Transaksi Baru
+        </Button>
+      ) : (
+        <Button onClick={onClose} className="gap-1.5">
+          <X size={14} />
+          Tutup
+        </Button>
+      )}
+    </DialogFooter>
+  )
 
+  return (
+    <ActionModal
+      open={open}
+      onOpenChange={(val) => { if (!val) onClose() }}
+      title="Struk Transaksi"
+      description="Detail struk transaksi"
+      contentClassName="max-w-sm"
+      footer={footer}
+    >
         {/* Receipt preview */}
         <ScrollArea style={{ maxHeight: '65vh' }}>
         <div className="px-6 py-5 space-y-4">
@@ -390,25 +405,6 @@ export function ReceiptPrint({
           </div>
         </div>
         </ScrollArea>
-
-        <DialogFooter className="border-t px-6 py-4">
-          <Button variant="outline" onClick={handlePrint} className="gap-1.5">
-            <Printer size={14} />
-            Cetak
-          </Button>
-          {mode === 'checkout' ? (
-            <Button onClick={onClose} className="gap-1.5">
-              <ShoppingCart size={14} />
-              Transaksi Baru
-            </Button>
-          ) : (
-            <Button onClick={onClose} className="gap-1.5">
-              <X size={14} />
-              Tutup
-            </Button>
-          )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </ActionModal>
   )
 }
