@@ -34,12 +34,26 @@ const (
 	createStockMutationQuery   = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getProductStockQuery       = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
+	createExpiryBatchQuery     = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
 
 	getPurchaseForVoidQuery   = `SELECT status, paid_amount FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
 	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', updated_at = NOW() WHERE id = ?`
 	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
 	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
+
+// insertExpiryBatches menyimpan rincian tanggal expired (opsional) untuk 1 baris item
+// PO yang baru saja di-insert — dipanggil setelah ID baris purchase_items itu didapat.
+// Sum qty-nya sudah divalidasi sama dengan qty item di service (validateExpiryBatches),
+// di sini tinggal insert apa adanya.
+func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID int, batches []dto.ExpiryBatchDraft) error {
+	for _, b := range batches {
+		if err := tx.Exec(createExpiryBatchQuery, productID, purchaseItemID, b.Qty, b.ExpiredDate).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 // resolveConversionQty menghitung ulang faktor konversi dari server berdasarkan PackageID
 // yang dipilih user (menelusuri rantai ref_package_id sampai ke paket anchor), bukan
@@ -301,6 +315,16 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 				return err
 			}
 
+			if len(item.ExpiryBatches) > 0 {
+				var purchaseItemID int
+				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
+					return err
+				}
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+					return err
+				}
+			}
+
 			var stockBefore float64
 			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
 				return err
@@ -391,6 +415,17 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			).Error; err != nil {
 				return err
 			}
+
+			if len(item.ExpiryBatches) > 0 {
+				var purchaseItemID int
+				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
+					return err
+				}
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+					return err
+				}
+			}
+
 			if err := tx.Exec(addStockQuery, item.Quantity*conversionQty, item.ProductID).Error; err != nil {
 				return err
 			}
@@ -548,6 +583,16 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 				req.ID, item.ProductID, item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
+			}
+
+			if len(item.ExpiryBatches) > 0 {
+				var purchaseItemID int
+				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
+					return err
+				}
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+					return err
+				}
 			}
 
 			var stockBefore float64

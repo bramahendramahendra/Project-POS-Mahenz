@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form'
+import { Fragment, useEffect, useState } from 'react'
+import { useForm, useFieldArray, useWatch, Controller, type Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
+import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
@@ -74,6 +75,128 @@ function PurchaseProductCell({
       searchPlaceholder="Cari produk..."
       emptyText="Produk tidak ditemukan."
     />
+  )
+}
+
+// ExpiryBatchSection: rincian tanggal expired opsional untuk 1 baris item PO. Checkbox
+// dan repeater-nya sengaja disatukan di sini (bukan di komponen utama) karena useFieldArray
+// per baris cuma bisa dipanggil sebagai hook terpisah per index — tidak bisa dipanggil
+// dinamis di dalam .map() komponen induk.
+function ExpiryBatchSection({
+  control,
+  index,
+  itemQuantity,
+}: {
+  control: Control<PurchaseFormValues>
+  index: number
+  itemQuantity: number
+}) {
+  const { fields, append, remove, replace } = useFieldArray({
+    control,
+    name: `items.${index}.expiry_batches`,
+  })
+  const watchBatches = useWatch({ control, name: `items.${index}.expiry_batches` }) ?? []
+  const enabled = fields.length > 0
+  const totalAllocated = watchBatches.reduce((sum, b) => sum + (b?.qty || 0), 0)
+  const isBalanced = enabled && Math.abs(totalAllocated - itemQuantity) < 0.0001
+
+  function handleToggle(checked: boolean) {
+    if (checked) {
+      append({ qty: itemQuantity || 0, expired_date: '' })
+    } else {
+      replace([])
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`expiry-toggle-${index}`}
+          checked={enabled}
+          onCheckedChange={(v) => handleToggle(v === true)}
+        />
+        <label htmlFor={`expiry-toggle-${index}`} className="text-xs font-medium text-gray-700 cursor-pointer">
+          Produk ini ada tanggal expired
+        </label>
+      </div>
+
+      {enabled && (
+        <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/60 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-gray-700">Rincian Tanggal Expired</span>
+            <span className="text-[11px] text-gray-500">Total qty harus sama dengan {itemQuantity}</span>
+          </div>
+
+          <div className="space-y-1.5">
+            {fields.map((f, bi) => (
+              <div key={f.id} className="grid grid-cols-[110px_1fr_auto] gap-2 items-center rounded-md border bg-white p-1.5">
+                <Controller
+                  control={control}
+                  name={`items.${index}.expiry_batches.${bi}.qty`}
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      min={0.001}
+                      step="any"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                      className="h-7 text-xs"
+                      placeholder="Qty"
+                    />
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name={`items.${index}.expiry_batches.${bi}.expired_date`}
+                  render={({ field }) => (
+                    <Input
+                      type="date"
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      className="h-7 text-xs"
+                    />
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => remove(bi)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-2 h-7 gap-1 text-xs"
+            onClick={() => append({ qty: 0, expired_date: '' })}
+          >
+            <Plus className="h-3 w-3" />
+            Tambah Tanggal Expired
+          </Button>
+
+          <div
+            className={`mt-2 flex justify-between rounded-md border px-2.5 py-1.5 text-xs font-medium ${
+              isBalanced
+                ? 'border-green-200 bg-green-50 text-green-700'
+                : 'border-red-200 bg-red-50 text-red-600'
+            }`}
+          >
+            <span>Qty teralokasi</span>
+            <span>
+              {totalAllocated} / {itemQuantity} {isBalanced ? '✓' : ''}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -272,6 +395,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         purchase_price: item.price,
         unit: item.unit,
         conversion_qty: item.conversion_qty ?? 1,
+        expiry_batches: item.expiry_batches && item.expiry_batches.length > 0 ? item.expiry_batches : undefined,
       })),
       paid_amount: pendingValues.payment_status === 'paid' ? total : pendingValues.paid_amount,
     }
@@ -420,7 +544,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                   const currentProductId = watchItems[index]?.product_id
                   const itemErrors = errors.items?.[index]
                   return (
-                    <tr key={field.id}>
+                    <Fragment key={field.id}>
+                    <tr>
                       <td className="px-3 py-2">
                         <PurchaseProductCell
                           value={currentProductId ?? 0}
@@ -503,6 +628,17 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                         )}
                       </td>
                     </tr>
+                    <tr>
+                      <td colSpan={7} className="bg-gray-50/60 px-3 pb-3 pt-0">
+                        <ExpiryBatchSection control={control} index={index} itemQuantity={qty} />
+                        {itemErrors?.expiry_batches && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {(itemErrors.expiry_batches as { message?: string }).message}
+                          </p>
+                        )}
+                      </td>
+                    </tr>
+                    </Fragment>
                   )
                 })}
               </tbody>

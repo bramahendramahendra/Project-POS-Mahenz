@@ -1,4 +1,4 @@
-import { Eye, Lock, LockOpen, Pencil, Printer, Trash2 } from 'lucide-react'
+import { Eye, Lock, LockOpen, Pencil, Printer, Trash2, TriangleAlert } from 'lucide-react'
 
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -8,6 +8,7 @@ import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import { calcMargin } from '../products.utils'
 import type { Product } from '../products.types'
+import type { ProductExpirySeverity } from '../expiry-batches.types'
 
 export interface ProductColumnHandlers {
   onDetail: (product: Product) => void
@@ -15,19 +16,41 @@ export interface ProductColumnHandlers {
   onDelete: (product: Product) => void
   onLabel: (product: Product) => void
   onToggleStatus: (id: number, isActive: boolean) => void
+  onOpenExpiry: (product: Product) => void
+  expirySeverityMap: Record<number, ProductExpirySeverity>
 }
 
 export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<Product>[] {
-  const { onDetail, onEdit, onDelete, onLabel, onToggleStatus } = handlers
+  const { onDetail, onEdit, onDelete, onLabel, onToggleStatus, onOpenExpiry, expirySeverityMap } = handlers
 
   return [
     {
       key: 'name',
       header: 'Nama Produk',
       sortable: true,
-      cell: (row) => (
-        <span className="font-medium text-gray-800">{row.name}</span>
-      ),
+      cell: (row) => {
+        const expiry = expirySeverityMap[row.id]
+        return (
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-gray-800">{row.name}</span>
+            {expiry && (
+              <button
+                type="button"
+                onClick={() => onOpenExpiry(row)}
+                title={`${expiry.warning_count} batch perlu dicek`}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  expiry.severity === 'expired'
+                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                }`}
+              >
+                <TriangleAlert size={10} />
+                {expiry.severity === 'expired' ? 'Expired' : 'Mendekati Expired'}
+              </button>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'barcode',

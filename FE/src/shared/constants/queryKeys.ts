@@ -5,6 +5,11 @@ export const queryKeys = {
     profile: () => ['auth', 'profile'] as const,
   },
 
+  expiryBatches: {
+    all: () => ['expiryBatches'] as const,
+    warnings: (search?: string) => ['expiryBatches', 'warnings', search] as const,
+  },
+
   products: {
     all: () => ['products'] as const,
     list: (filter?: Filter) => ['products', 'list', filter] as const,

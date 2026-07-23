@@ -1,11 +1,38 @@
 package service
 
 import (
+	"fmt"
+	"math"
+
 	dto "pos_api/domain/supplier_purchase/dto"
 	"pos_api/errors"
 
 	"gorm.io/gorm"
 )
+
+// validateExpiryBatches memastikan, untuk tiap item PO yang mencentang "ada tanggal
+// expired", total qty di rincian batch-nya persis sama dengan qty item itu sendiri —
+// tidak boleh kurang/lebih. Toleransi kecil dipakai karena qty desimal (satuan
+// grosir/pecahan) supaya tidak salah tolak akibat pembulatan floating point.
+func validateExpiryBatches(items []dto.PurchaseRequest) error {
+	const epsilon = 0.0001
+	for i, item := range items {
+		if len(item.ExpiryBatches) == 0 {
+			continue
+		}
+		var total float64
+		for _, b := range item.ExpiryBatches {
+			total += b.Qty
+		}
+		if math.Abs(total-item.Quantity) > epsilon {
+			return &errors.BadRequestError{Message: fmt.Sprintf(
+				"Item ke-%d: total qty batch expired (%.3f) harus sama dengan qty item (%.3f)",
+				i+1, total, item.Quantity,
+			)}
+		}
+	}
+	return nil
+}
 
 func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error) {
 	data = []dto.PurchaseResponse{}
@@ -92,6 +119,10 @@ func (s *purchaseService) GenerateCode() (data dto.GenerateCodeResponse, err err
 }
 
 func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error) {
+	if err := validateExpiryBatches(req.Items); err != nil {
+		return data, err
+	}
+
 	if req.PaymentMethod != "" {
 		valid, err := s.repo.IsValidPaymentMethod(req.PaymentMethod)
 		if err != nil {
@@ -155,6 +186,10 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	}
 	if existing.PaidAmount > 0 {
 		return data, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
+	}
+
+	if err := validateExpiryBatches(req.Items); err != nil {
+		return data, err
 	}
 
 	if req.PaymentMethod != "" {
@@ -305,6 +340,10 @@ func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseR
 	}
 	if existing.PaymentStatus == "unpaid" {
 		return data, &errors.BadRequestError{Message: "PO belum ada pembayaran, gunakan Edit untuk menambah item"}
+	}
+
+	if err := validateExpiryBatches(req.Items); err != nil {
+		return data, err
 	}
 
 	dataDB, err := s.repo.AddItems(req)

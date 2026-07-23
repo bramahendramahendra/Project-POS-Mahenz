@@ -68,6 +68,11 @@ export interface SupplierPurchasePayment {
   notes?: string
 }
 
+export interface ExpiryBatchDraftPayload {
+  qty: number
+  expired_date: string
+}
+
 export interface CreatePurchaseItemPayload {
   product_id: number
   /** Id product_packages yang dipilih — dipakai server untuk resolve conversion_qty terkini. */
@@ -76,6 +81,8 @@ export interface CreatePurchaseItemPayload {
   purchase_price: number
   unit: string
   conversion_qty: number
+  /** Opsional — diisi hanya kalau staf mencentang "Produk ini ada tanggal expired". */
+  expiry_batches?: ExpiryBatchDraftPayload[]
 }
 
 export interface CreateSupplierPurchasePayload {

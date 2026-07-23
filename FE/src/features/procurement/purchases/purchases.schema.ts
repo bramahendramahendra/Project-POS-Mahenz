@@ -1,6 +1,14 @@
 import { z } from 'zod'
 import { todayStr } from '@/shared/utils'
 
+// expiryBatchDraftSchema: 1 baris rincian "sebagian qty item ini expired tanggal X".
+// Total qty di semua baris untuk 1 item dicek sama dengan quantity item itu lewat
+// superRefine di bawah (butuh baca field lain, tidak bisa lewat tag field tunggal).
+export const expiryBatchDraftSchema = z.object({
+  qty: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
+  expired_date: z.string().min(1, 'Wajib diisi'),
+})
+
 export const purchaseItemSchema = z.object({
   product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
   product_name: z.string().optional(),
@@ -8,6 +16,7 @@ export const purchaseItemSchema = z.object({
   price: z.number({ error: 'Wajib diisi' }).positive('Harga harus lebih dari 0'),
   unit: z.string().min(1, 'Wajib diisi'),
   conversion_qty: z.number().min(1).catch(1),
+  expiry_batches: z.array(expiryBatchDraftSchema).optional(),
 })
 
 export const purchaseSchema = z
@@ -73,6 +82,18 @@ export const purchaseSchema = z
         })
       } else {
         seen.set(item.product_id, index)
+      }
+    })
+
+    data.items.forEach((item, index) => {
+      if (!item.expiry_batches || item.expiry_batches.length === 0) return
+      const totalBatchQty = item.expiry_batches.reduce((sum, b) => sum + (b.qty || 0), 0)
+      if (Math.abs(totalBatchQty - item.quantity) > 0.0001) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Total qty batch expired (${totalBatchQty}) harus sama dengan qty item (${item.quantity})`,
+          path: ['items', index, 'expiry_batches'],
+        })
       }
     })
   })

@@ -8865,3 +8865,359 @@ Error #01: Produk tidak ditemukan
 
 2026/07/23 11:19:35 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
 [0m[33m[9.490ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('eb7bc996-d660-44ad-9b10-43b493c98f7c', 'POST', '/api/transactions/detail/5', 200, '{}', '{"code":"00","status":true,"message":"Detail transaksi","data":{"id":5,"transaction_code":"WEB-20260723-005","user_id":2,"kasir_name":"Administrator","shift_id":null,"transaction_date":"2026-07-23T11:19:31+07:00","subtotal":65000,"discount":0,"tax":0,"total_amount":65000,"payment_method":"cash","payment_amount":100000,"change_amount":35000,"customer_id":null,"customer_name":"","is_credit":false,"status":"completed","device_source":"web","items":[{"id":5,"product_id":11,"product_name":"Import Beras Premium 5kg","quantity":1,"unit":"Pcs","price":65000,"subtotal":65000,"discount_item":0,"conversion_qty":1,"unit_id":10}]}}', 2, 3, '::1', NULL, '2026-07-23 11:19:35.299')
+[GIN] 2026/07/23 - 11:26:51 | 200 |            0s |             ::1 | GET      "/api/health"
+
+2026/07/23 11:26:51 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[4.717ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('6347b510-821e-496d-83f8-f1ade1fd4fc2', 'GET', '/api/health', 200, '', '{"code":"00","data":null,"message":"OK","status":true}', NULL, 0, '::1', NULL, '2026-07-23 11:26:51.347')
+[GIN] 2026/07/23 - 11:27:15 | 204 |            0s |             ::1 | OPTIONS  "/api/auth/login"
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:17
+[0m[33m[1.207ms] [34;1m[rows:1][0m SELECT u.id, u.username, u.password, u.full_name, u.role_id, r.name AS role_name, u.is_active FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.username = 'admin' LIMIT 1
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:67
+[0m[33m[9.636ms] [34;1m[rows:1][0m DELETE FROM sessions WHERE user_id = 2
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:38
+[0m[33m[3.049ms] [34;1m[rows:1][0m INSERT INTO sessions (user_id, user_role, token, refresh_token, device_info, ip_address, expires_at) VALUES (2, 'admin', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y', '89d67196b570a0478837dee62cc7d69b528891106d65f19d31be2d700d5177f2', 'web', '::1', '2026-07-30 11:27:15.839') ON DUPLICATE KEY UPDATE user_role=VALUES(user_role), token=VALUES(token), refresh_token=VALUES(refresh_token), device_info=VALUES(device_info), ip_address=VALUES(ip_address), expires_at=VALUES(expires_at), created_at=NOW()
+[GIN] 2026/07/23 - 11:27:15 | 200 |     68.6503ms |             ::1 | POST     "/api/auth/login"
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.295ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('2209f594-1602-4c34-a2d0-ab35ce25b4ef', 'POST', '/api/auth/login', 200, '{"username":"admin","password":"admin123","device_info":"web"}', '{"code":"00","status":true,"message":"Login berhasil","data":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y","refresh_token":"89d67196b570a0478837dee62cc7d69b528891106d65f19d31be2d700d5177f2","expires_at":"2026-07-30T11:27:15.8390591+07:00","user":{"id":2,"username":"admin","full_name":"Administrator","role_id":2,"role_name":"admin"}}}', NULL, 68, '::1', NULL, '2026-07-23 11:27:15.851')
+[GIN] 2026/07/23 - 11:27:15 | 204 |            0s |             ::1 | OPTIONS  "/api/menus/my"
+[GIN] 2026/07/23 - 11:27:15 | 204 |            0s |             ::1 | OPTIONS  "/api/menus/my"
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.505ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/menu/repo/menu_repo.go:121
+[0m[33m[1.250ms] [34;1m[rows:-][0m 
+		SELECT
+			m.id,
+			m.parent_id,
+			m.key_name,
+			m.label,
+			m.icon,
+			m.path,
+			m.order_index,
+			COALESCE(rma.can_view,   0),
+			COALESCE(rma.can_create, 0),
+			COALESCE(rma.can_edit,   0),
+			COALESCE(rma.can_delete, 0)
+		FROM menus m
+		LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+			AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+		WHERE m.is_active = 1
+		ORDER BY m.order_index ASC, m.id ASC
+		
+[GIN] 2026/07/23 - 11:27:15 | 200 |      2.2782ms |             ::1 | POST     "/api/menus/my"
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.648ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/domain/menu/repo/menu_repo.go:121
+[0m[33m[1.714ms] [34;1m[rows:-][0m 
+		SELECT
+			m.id,
+			m.parent_id,
+			m.key_name,
+			m.label,
+			m.icon,
+			m.path,
+			m.order_index,
+			COALESCE(rma.can_view,   0),
+			COALESCE(rma.can_create, 0),
+			COALESCE(rma.can_edit,   0),
+			COALESCE(rma.can_delete, 0)
+		FROM menus m
+		LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+			AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+		WHERE m.is_active = 1
+		ORDER BY m.order_index ASC, m.id ASC
+		
+[GIN] 2026/07/23 - 11:27:15 | 200 |      4.0596ms |             ::1 | POST     "/api/menus/my"
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.963ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('300b7f1c-b9a2-4da0-aa6e-1cc892b11257', 'POST', '/api/menus/my', 200, '{}', '{"code":"00","status":true,"message":"Menu akses","data":[{"key_name":"beranda","label":"Beranda","icon":"Home","path":null,"order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"beranda.dashboard","label":"Dashboard","icon":"LayoutDashboard","path":"/dashboard","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"penjualan","label":"Penjualan","icon":"ShoppingCart","path":null,"order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"penjualan.kasir","label":"Kasir","icon":"ShoppingCart","path":"/kasir","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"penjualan.transaksi","label":"Transaksi","icon":"Receipt","path":"/transactions","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"produk","label":"Produk","icon":"Package","path":null,"order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"produk.produk","label":"Produk","icon":"Package","path":"/products","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.kategori","label":"Kategori","icon":"Tag","path":"/products/categories","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.unit","label":"Unit","icon":"PackageSearch","path":"/products/units","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pengadaan","label":"Pengadaan","icon":"Truck","path":null,"order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pengadaan.supplier","label":"Supplier","icon":"Truck","path":"/suppliers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.pembelian","label":"Pembelian","icon":"ShoppingBag","path":"/suppliers/purchases","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.retur","label":"Retur","icon":"RotateCcw","path":"/suppliers/returns","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelanggan","label":"Pelanggan","icon":"Users","path":null,"order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelanggan.pelanggan","label":"Pelanggan","icon":"Users","path":"/customers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelanggan.piutang","label":"Piutang","icon":"CreditCard","path":"/receivables","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"keuangan","label":"Keuangan","icon":"Wallet","path":null,"order_index":6,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"keuangan.dashboard","label":"Dashboard Keuangan","icon":"Wallet","path":"/finance","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_harian","label":"Kas Harian","icon":"Landmark","path":"/finance/cash-drawer","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.pengeluaran","label":"Pengeluaran","icon":"TrendingDown","path":"/finance/expenses","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_saya","label":"Kas Saya","icon":"Wallet","path":"/finance/my-cash","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelaporan","label":"Pelaporan","icon":"BarChart2","path":null,"order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelaporan.penjualan","label":"Penjualan","icon":"TrendingUp","path":"/reports/sales","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.laba_rugi","label":"Laba Rugi","icon":"LineChart","path":"/reports/profit-loss","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.stok","label":"Stok","icon":"PackageSearch","path":"/reports/stock","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.kinerja_kasir","label":"Kinerja Kasir","icon":"BarChart2","path":"/reports/cashier","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"operasional","label":"Operasional","icon":"Clock","path":null,"order_index":8,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"operasional.shift","label":"Shift","icon":"Clock","path":"/shifts","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"operasional.sync","label":"Sync Center","icon":"RefreshCw","path":"/sync","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"sistem","label":"Sistem","icon":"Settings","path":null,"order_index":9,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"sistem.profil_toko","label":"Profil Toko","icon":"Settings","path":"/settings/store","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.roles","label":"Manajemen Role","icon":"Shield","path":"/settings/roles","order_index":3,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.menus","label":"Manajemen Menu","icon":"LayoutList","path":"/settings/menus","order_index":4,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.printer","label":"Printer","icon":"Printer","path":"/settings/printer","order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.versi","label":"Versi Aplikasi","icon":"RefreshCw","path":"/settings/versions","order_index":6,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.backup","label":"Backup \u0026 Restore","icon":"DatabaseBackup","path":"/settings/backup","order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]}]}', 2, 2, '::1', NULL, '2026-07-23 11:27:15.863')
+
+2026/07/23 11:27:15 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.182ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('a316394d-7cd8-4655-a3f2-36b044e6da05', 'POST', '/api/menus/my', 200, '{}', '{"code":"00","status":true,"message":"Menu akses","data":[{"key_name":"beranda","label":"Beranda","icon":"Home","path":null,"order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"beranda.dashboard","label":"Dashboard","icon":"LayoutDashboard","path":"/dashboard","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"penjualan","label":"Penjualan","icon":"ShoppingCart","path":null,"order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"penjualan.kasir","label":"Kasir","icon":"ShoppingCart","path":"/kasir","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"penjualan.transaksi","label":"Transaksi","icon":"Receipt","path":"/transactions","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"produk","label":"Produk","icon":"Package","path":null,"order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"produk.produk","label":"Produk","icon":"Package","path":"/products","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.kategori","label":"Kategori","icon":"Tag","path":"/products/categories","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.unit","label":"Unit","icon":"PackageSearch","path":"/products/units","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pengadaan","label":"Pengadaan","icon":"Truck","path":null,"order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pengadaan.supplier","label":"Supplier","icon":"Truck","path":"/suppliers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.pembelian","label":"Pembelian","icon":"ShoppingBag","path":"/suppliers/purchases","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.retur","label":"Retur","icon":"RotateCcw","path":"/suppliers/returns","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelanggan","label":"Pelanggan","icon":"Users","path":null,"order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelanggan.pelanggan","label":"Pelanggan","icon":"Users","path":"/customers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelanggan.piutang","label":"Piutang","icon":"CreditCard","path":"/receivables","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"keuangan","label":"Keuangan","icon":"Wallet","path":null,"order_index":6,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"keuangan.dashboard","label":"Dashboard Keuangan","icon":"Wallet","path":"/finance","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_harian","label":"Kas Harian","icon":"Landmark","path":"/finance/cash-drawer","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.pengeluaran","label":"Pengeluaran","icon":"TrendingDown","path":"/finance/expenses","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_saya","label":"Kas Saya","icon":"Wallet","path":"/finance/my-cash","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelaporan","label":"Pelaporan","icon":"BarChart2","path":null,"order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelaporan.penjualan","label":"Penjualan","icon":"TrendingUp","path":"/reports/sales","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.laba_rugi","label":"Laba Rugi","icon":"LineChart","path":"/reports/profit-loss","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.stok","label":"Stok","icon":"PackageSearch","path":"/reports/stock","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.kinerja_kasir","label":"Kinerja Kasir","icon":"BarChart2","path":"/reports/cashier","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"operasional","label":"Operasional","icon":"Clock","path":null,"order_index":8,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"operasional.shift","label":"Shift","icon":"Clock","path":"/shifts","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"operasional.sync","label":"Sync Center","icon":"RefreshCw","path":"/sync","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"sistem","label":"Sistem","icon":"Settings","path":null,"order_index":9,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"sistem.profil_toko","label":"Profil Toko","icon":"Settings","path":"/settings/store","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.roles","label":"Manajemen Role","icon":"Shield","path":"/settings/roles","order_index":3,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.menus","label":"Manajemen Menu","icon":"LayoutList","path":"/settings/menus","order_index":4,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.printer","label":"Printer","icon":"Printer","path":"/settings/printer","order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.versi","label":"Versi Aplikasi","icon":"RefreshCw","path":"/settings/versions","order_index":6,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.backup","label":"Backup \u0026 Restore","icon":"DatabaseBackup","path":"/settings/backup","order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]}]}', 2, 4, '::1', NULL, '2026-07-23 11:27:15.866')
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.533ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/menu/repo/menu_repo.go:121
+[0m[33m[0.533ms] [34;1m[rows:-][0m 
+		SELECT
+			m.id,
+			m.parent_id,
+			m.key_name,
+			m.label,
+			m.icon,
+			m.path,
+			m.order_index,
+			COALESCE(rma.can_view,   0),
+			COALESCE(rma.can_create, 0),
+			COALESCE(rma.can_edit,   0),
+			COALESCE(rma.can_delete, 0)
+		FROM menus m
+		LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+			AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+		WHERE m.is_active = 1
+		ORDER BY m.order_index ASC, m.id ASC
+		
+[GIN] 2026/07/23 - 11:27:16 | 200 |      2.5082ms |             ::1 | POST     "/api/menus/my"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.547ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('530e0811-e02e-47dc-91d2-712d2369f41d', 'POST', '/api/menus/my', 200, '{}', '{"code":"00","status":true,"message":"Menu akses","data":[{"key_name":"beranda","label":"Beranda","icon":"Home","path":null,"order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"beranda.dashboard","label":"Dashboard","icon":"LayoutDashboard","path":"/dashboard","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"penjualan","label":"Penjualan","icon":"ShoppingCart","path":null,"order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"penjualan.kasir","label":"Kasir","icon":"ShoppingCart","path":"/kasir","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"penjualan.transaksi","label":"Transaksi","icon":"Receipt","path":"/transactions","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"produk","label":"Produk","icon":"Package","path":null,"order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"produk.produk","label":"Produk","icon":"Package","path":"/products","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.kategori","label":"Kategori","icon":"Tag","path":"/products/categories","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.unit","label":"Unit","icon":"PackageSearch","path":"/products/units","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pengadaan","label":"Pengadaan","icon":"Truck","path":null,"order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pengadaan.supplier","label":"Supplier","icon":"Truck","path":"/suppliers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.pembelian","label":"Pembelian","icon":"ShoppingBag","path":"/suppliers/purchases","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.retur","label":"Retur","icon":"RotateCcw","path":"/suppliers/returns","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelanggan","label":"Pelanggan","icon":"Users","path":null,"order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelanggan.pelanggan","label":"Pelanggan","icon":"Users","path":"/customers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelanggan.piutang","label":"Piutang","icon":"CreditCard","path":"/receivables","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"keuangan","label":"Keuangan","icon":"Wallet","path":null,"order_index":6,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"keuangan.dashboard","label":"Dashboard Keuangan","icon":"Wallet","path":"/finance","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_harian","label":"Kas Harian","icon":"Landmark","path":"/finance/cash-drawer","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.pengeluaran","label":"Pengeluaran","icon":"TrendingDown","path":"/finance/expenses","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_saya","label":"Kas Saya","icon":"Wallet","path":"/finance/my-cash","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelaporan","label":"Pelaporan","icon":"BarChart2","path":null,"order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelaporan.penjualan","label":"Penjualan","icon":"TrendingUp","path":"/reports/sales","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.laba_rugi","label":"Laba Rugi","icon":"LineChart","path":"/reports/profit-loss","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.stok","label":"Stok","icon":"PackageSearch","path":"/reports/stock","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.kinerja_kasir","label":"Kinerja Kasir","icon":"BarChart2","path":"/reports/cashier","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"operasional","label":"Operasional","icon":"Clock","path":null,"order_index":8,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"operasional.shift","label":"Shift","icon":"Clock","path":"/shifts","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"operasional.sync","label":"Sync Center","icon":"RefreshCw","path":"/sync","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"sistem","label":"Sistem","icon":"Settings","path":null,"order_index":9,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"sistem.profil_toko","label":"Profil Toko","icon":"Settings","path":"/settings/store","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.roles","label":"Manajemen Role","icon":"Shield","path":"/settings/roles","order_index":3,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.menus","label":"Manajemen Menu","icon":"LayoutList","path":"/settings/menus","order_index":4,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.printer","label":"Printer","icon":"Printer","path":"/settings/printer","order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.versi","label":"Versi Aplikasi","icon":"RefreshCw","path":"/settings/versions","order_index":6,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.backup","label":"Backup \u0026 Restore","icon":"DatabaseBackup","path":"/settings/backup","order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]}]}', 2, 2, '::1', NULL, '2026-07-23 11:27:16.051')
+[GIN] 2026/07/23 - 11:27:16 | 204 |            0s |             ::1 | OPTIONS  "/api/sync/conflicts/count"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.509ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/access/repo/access_repo.go:55
+[0m[33m[0.657ms] [34;1m[rows:37][0m 
+SELECT
+    m.key_name,
+    COALESCE(rma.can_view,   0) AS can_view,
+    COALESCE(rma.can_create, 0) AS can_create,
+    COALESCE(rma.can_edit,   0) AS can_edit,
+    COALESCE(rma.can_delete, 0) AS can_delete
+FROM menus m
+LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+    AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+WHERE m.is_active = 1
+ORDER BY m.id ASC
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/sync/repo/sync_repo.go:84
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM sync_conflicts WHERE status = 'pending'
+[GIN] 2026/07/23 - 11:27:16 | 200 |      2.3759ms |             ::1 | GET      "/api/sync/conflicts/count"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.220ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('ad6caa23-bb85-44ab-b80a-d79d560c8408', 'GET', '/api/sync/conflicts/count', 200, '', '{"code":"00","status":true,"message":"Jumlah konflik pending","data":{"count":0}}', 2, 2, '::1', NULL, '2026-07-23 11:27:16.104')
+[GIN] 2026/07/23 - 11:27:16 | 204 |            0s |             ::1 | OPTIONS  "/api/dashboard/stats?period=today"
+[GIN] 2026/07/23 - 11:27:16 | 204 |            0s |             ::1 | OPTIONS  "/api/dashboard/sales-trend?period=7days"
+[GIN] 2026/07/23 - 11:27:16 | 204 |            0s |             ::1 | OPTIONS  "/api/dashboard/top-products?start_date=2026-07-17&end_date=2026-07-23&limit=10"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.506ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.044ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:124
+[0m[33m[1.057ms] [34;1m[rows:-][0m 
+		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
+		       COALESCE(SUM(discount),0) as total_discount
+		FROM transactions WHERE DATE(transaction_date) BETWEEN '2026-07-23' AND '2026-07-23' AND status = 'completed'
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:177
+[0m[33m[0.518ms] [34;1m[rows:-][0m 
+		SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as label,
+		       COALESCE(SUM(total_amount),0) as total_sales,
+		       COUNT(*) as total_transactions
+		FROM transactions
+		WHERE transaction_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND status = 'completed'
+		GROUP BY DATE(transaction_date) ORDER BY label
+[GIN] 2026/07/23 - 11:27:16 | 200 |      2.0772ms |             ::1 | GET      "/api/dashboard/sales-trend?period=7days"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:133
+[0m[33m[0.514ms] [34;1m[rows:-][0m SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date BETWEEN '2026-07-23' AND '2026-07-23'
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:142
+[0m[33m[0.000ms] [34;1m[rows:-][0m 
+		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales
+		FROM transactions WHERE MONTH(transaction_date) = MONTH(NOW())
+		AND YEAR(transaction_date) = YEAR(NOW()) AND status = 'completed'
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:151
+[0m[33m[0.000ms] [34;1m[rows:-][0m 
+		SELECT COALESCE(SUM(amount),0) as total FROM expenses
+		WHERE MONTH(expense_date) = MONTH(NOW()) AND YEAR(expense_date) = YEAR(NOW())
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[2.614ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:160
+[0m[33m[0.537ms] [34;1m[rows:-][0m SELECT COUNT(*) FROM products WHERE stock <= min_stock AND is_active = 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.112ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('bfdaa79a-34cb-476a-bc77-68d03355f909', 'GET', '/api/dashboard/sales-trend?period=7days', 200, '', '{"code":"00","status":true,"message":"Tren penjualan","data":[{"label":"2026-07-23","total_sales":288600,"total_transactions":5}]}', 2, 2, '::1', NULL, '2026-07-23 11:27:16.414')
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:169
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT COUNT(*) FROM receivables WHERE status != 'paid'
+[GIN] 2026/07/23 - 11:27:16 | 200 |      4.1888ms |             ::1 | GET      "/api/dashboard/stats?period=today"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/dashboard/repo/dashboard_repo.go:199
+[0m[33m[1.113ms] [34;1m[rows:-][0m 
+		SELECT ti.product_id, p.name as product_name,
+		       SUM(ti.quantity) as total_qty,
+		       SUM(ti.subtotal) as total_value
+		FROM transaction_items ti
+		LEFT JOIN products p ON ti.product_id = p.id
+		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		WHERE DATE(t.transaction_date) BETWEEN '2026-07-17' AND '2026-07-23' AND t.status = 'completed'
+		GROUP BY ti.product_id, p.name
+		ORDER BY total_qty DESC LIMIT 10
+[GIN] 2026/07/23 - 11:27:16 | 200 |      4.3768ms |             ::1 | GET      "/api/dashboard/top-products?start_date=2026-07-17&end_date=2026-07-23&limit=10"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[11.682ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('4a0762cf-3c2b-4cb0-8068-c2a0008bcd1e', 'GET', '/api/dashboard/stats?period=today', 200, '', '{"code":"00","status":true,"message":"Statistik dashboard","data":{"today":{"total_transactions":5,"total_sales":288600,"total_discount":0,"total_expenses":0,"gross_profit":288600},"this_month":{"total_transactions":5,"total_sales":288600,"total_expenses":0,"gross_profit":288600},"low_stock_count":5,"open_receivables":0}}', 2, 4, '::1', NULL, '2026-07-23 11:27:16.416')
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[18.447ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('352b7fa2-1208-40ae-a548-bd90a567771d', 'GET', '/api/dashboard/top-products?start_date=2026-07-17&end_date=2026-07-23&limit=10', 200, '', '{"code":"00","status":true,"message":"Produk terlaris","data":[{"product_id":1,"product_name":"Teh Botol Sosro 350ml (Edited)","total_qty":46,"total_value":223600},{"product_id":11,"product_name":"Import Beras Premium 5kg","total_qty":1,"total_value":65000}]}', 2, 4, '::1', NULL, '2026-07-23 11:27:16.417')
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.233ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/menu/repo/menu_repo.go:121
+[0m[33m[0.540ms] [34;1m[rows:-][0m 
+		SELECT
+			m.id,
+			m.parent_id,
+			m.key_name,
+			m.label,
+			m.icon,
+			m.path,
+			m.order_index,
+			COALESCE(rma.can_view,   0),
+			COALESCE(rma.can_create, 0),
+			COALESCE(rma.can_edit,   0),
+			COALESCE(rma.can_delete, 0)
+		FROM menus m
+		LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+			AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+		WHERE m.is_active = 1
+		ORDER BY m.order_index ASC, m.id ASC
+		
+[GIN] 2026/07/23 - 11:27:16 | 200 |      2.2765ms |             ::1 | POST     "/api/menus/my"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.547ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('64ae2c79-c1bc-4d3b-90ea-3ba4f0a9a67c', 'POST', '/api/menus/my', 200, '{}', '{"code":"00","status":true,"message":"Menu akses","data":[{"key_name":"beranda","label":"Beranda","icon":"Home","path":null,"order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"beranda.dashboard","label":"Dashboard","icon":"LayoutDashboard","path":"/dashboard","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"penjualan","label":"Penjualan","icon":"ShoppingCart","path":null,"order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"penjualan.kasir","label":"Kasir","icon":"ShoppingCart","path":"/kasir","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"penjualan.transaksi","label":"Transaksi","icon":"Receipt","path":"/transactions","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"produk","label":"Produk","icon":"Package","path":null,"order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"produk.produk","label":"Produk","icon":"Package","path":"/products","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.kategori","label":"Kategori","icon":"Tag","path":"/products/categories","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"produk.unit","label":"Unit","icon":"PackageSearch","path":"/products/units","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pengadaan","label":"Pengadaan","icon":"Truck","path":null,"order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pengadaan.supplier","label":"Supplier","icon":"Truck","path":"/suppliers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.pembelian","label":"Pembelian","icon":"ShoppingBag","path":"/suppliers/purchases","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pengadaan.retur","label":"Retur","icon":"RotateCcw","path":"/suppliers/returns","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelanggan","label":"Pelanggan","icon":"Users","path":null,"order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelanggan.pelanggan","label":"Pelanggan","icon":"Users","path":"/customers","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelanggan.piutang","label":"Piutang","icon":"CreditCard","path":"/receivables","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"keuangan","label":"Keuangan","icon":"Wallet","path":null,"order_index":6,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"keuangan.dashboard","label":"Dashboard Keuangan","icon":"Wallet","path":"/finance","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_harian","label":"Kas Harian","icon":"Landmark","path":"/finance/cash-drawer","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.pengeluaran","label":"Pengeluaran","icon":"TrendingDown","path":"/finance/expenses","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"keuangan.kas_saya","label":"Kas Saya","icon":"Wallet","path":"/finance/my-cash","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"pelaporan","label":"Pelaporan","icon":"BarChart2","path":null,"order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"pelaporan.penjualan","label":"Penjualan","icon":"TrendingUp","path":"/reports/sales","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.laba_rugi","label":"Laba Rugi","icon":"LineChart","path":"/reports/profit-loss","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.stok","label":"Stok","icon":"PackageSearch","path":"/reports/stock","order_index":3,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"pelaporan.kinerja_kasir","label":"Kinerja Kasir","icon":"BarChart2","path":"/reports/cashier","order_index":4,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"operasional","label":"Operasional","icon":"Clock","path":null,"order_index":8,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"operasional.shift","label":"Shift","icon":"Clock","path":"/shifts","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"operasional.sync","label":"Sync Center","icon":"RefreshCw","path":"/sync","order_index":2,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]},{"key_name":"sistem","label":"Sistem","icon":"Settings","path":null,"order_index":9,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[{"key_name":"sistem.profil_toko","label":"Profil Toko","icon":"Settings","path":"/settings/store","order_index":1,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.roles","label":"Manajemen Role","icon":"Shield","path":"/settings/roles","order_index":3,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.menus","label":"Manajemen Menu","icon":"LayoutList","path":"/settings/menus","order_index":4,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.printer","label":"Printer","icon":"Printer","path":"/settings/printer","order_index":5,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]},{"key_name":"sistem.versi","label":"Versi Aplikasi","icon":"RefreshCw","path":"/settings/versions","order_index":6,"permission":{"can_view":true,"can_create":false,"can_edit":false,"can_delete":false},"children":[]},{"key_name":"sistem.backup","label":"Backup \u0026 Restore","icon":"DatabaseBackup","path":"/settings/backup","order_index":7,"permission":{"can_view":true,"can_create":true,"can_edit":true,"can_delete":false},"children":[]}]}]}', 2, 2, '::1', NULL, '2026-07-23 11:27:16.758')
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.510ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/domain/sync/repo/sync_repo.go:84
+[0m[33m[1.048ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM sync_conflicts WHERE status = 'pending'
+[GIN] 2026/07/23 - 11:27:16 | 200 |      2.1247ms |             ::1 | GET      "/api/sync/conflicts/count"
+
+2026/07/23 11:27:16 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.018ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('06095dd0-2924-49ea-8150-fa323b0908bf', 'GET', '/api/sync/conflicts/count', 200, '', '{"code":"00","status":true,"message":"Jumlah konflik pending","data":{"count":0}}', 2, 2, '::1', NULL, '2026-07-23 11:27:16.8')
+[GIN] 2026/07/23 - 11:27:17 | 204 |            0s |             ::1 | OPTIONS  "/api/customers/list"
+[GIN] 2026/07/23 - 11:27:17 | 204 |            0s |             ::1 | OPTIONS  "/api/cash-drawer/current"
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.591ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.800ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/domain/customer/repo/customer_repo.go:38
+[0m[33m[1.077ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM customers WHERE 1=1 AND is_active = true
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/domain/customer/repo/customer_repo.go:61
+[0m[33m[0.568ms] [34;1m[rows:0][0m SELECT id, customer_code, name, phone, address, credit_limit, notes, is_active, created_at FROM customers WHERE 1=1 AND is_active = true ORDER BY name ASC LIMIT 20 OFFSET 0
+[GIN] 2026/07/23 - 11:27:17 | 200 |      3.7774ms |             ::1 | POST     "/api/customers/list"
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/domain/cash_drawer/repo/cash_drawer_repo.go:137
+[0m[33m[1.644ms] [34;1m[rows:1][0m SELECT cd.id, cd.user_id, u.full_name as user_name, cd.shift_id, s.name as shift_name, s.start_time as shift_start, s.end_time as shift_end, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, (cd.opening_balance + COALESCE((SELECT SUM(total_amount) FROM transactions WHERE user_id = cd.user_id AND payment_method = 'cash' AND status = 'completed' AND transaction_date >= cd.open_time), 0) - COALESCE((SELECT SUM(amount) FROM expenses WHERE user_id = cd.user_id AND created_at >= cd.open_time), 0)) as expected_balance, cd.status, cd.open_notes FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE cd.user_id = 2 AND cd.status = 'open' LIMIT 1
+[GIN] 2026/07/23 - 11:27:17 | 200 |      2.9868ms |             ::1 | POST     "/api/cash-drawer/current"
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.806ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('b9e5dea0-6476-49ce-ac07-ce7ec8a88ac4', 'POST', '/api/cash-drawer/current', 200, '{}', '{"code":"00","status":true,"message":"Status kas harian","data":{"id":1,"user_id":2,"user_name":"Administrator","shift_id":null,"shift_name":null,"shift_start":null,"shift_end":null,"open_time":"2026-07-23T11:17:04+07:00","opening_balance":100000,"total_sales":65000,"total_cash_sales":65000,"total_expenses":0,"expected_balance":165000,"status":"open","open_notes":""}}', 2, 2, '::1', NULL, '2026-07-23 11:27:17.163')
+
+2026/07/23 11:27:17 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.806ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('62c4d660-f12a-4287-bb0e-dcf0ce3ec4aa', 'POST', '/api/customers/list', 200, '{"page":1,"limit":20,"search":"","is_active":true}', '{"code":"00","status":true,"message":"Daftar pelanggan","data":[],"pagination":{"page":1,"per_page":20,"total":0,"total_pages":0}}', 2, 3, '::1', NULL, '2026-07-23 11:27:17.163')
+[GIN] 2026/07/23 - 11:27:18 | 204 |            0s |             ::1 | OPTIONS  "/api/products/search"
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.605ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:170
+[0m[33m[0.752ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, p.name, p.selling_price, (p.stock - p.reserved_qty) as stock, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name
+		FROM products p
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.is_active = 1 AND (p.name LIKE '%Import Beras Premium%' OR p.barcode LIKE '%Import Beras Premium%') LIMIT 20
+[GIN] 2026/07/23 - 11:27:18 | 200 |      1.3572ms |             ::1 | POST     "/api/products/search"
+[GIN] 2026/07/23 - 11:27:18 | 204 |            0s |             ::1 | OPTIONS  "/api/products/detail/11"
+[GIN] 2026/07/23 - 11:27:18 | 204 |            0s |             ::1 | OPTIONS  "/api/products/11/packages/list"
+[GIN] 2026/07/23 - 11:27:18 | 204 |            0s |             ::1 | OPTIONS  "/api/products/11/prices/list"
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.076ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.076ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[10.267ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('bf2a0c29-3b78-44d9-8abf-0870caab4d1f', 'POST', '/api/products/search', 200, '{"q":"Import Beras Premium","limit":20}', '{"code":"00","status":true,"message":"Hasil pencarian produk","data":[{"id":11,"barcode":"8995170829136","name":"Import Beras Premium 5kg","selling_price":65000,"stock":14,"min_stock":3,"unit_id":1,"unit_name":"Pcs"}]}', 2, 1, '::1', NULL, '2026-07-23 11:27:18.811')
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:136
+[0m[33m[1.429ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 11 LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:136
+[0m[33m[1.429ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 11 LIMIT 1
+[GIN] 2026/07/23 - 11:27:18 | 200 |       3.181ms |             ::1 | POST     "/api/products/detail/11"
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[3.709ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoid2ViIiwiZXhwIjoxNzg0ODA5NjM1LCJmdWxsX25hbWUiOiJBZG1pbmlzdHJhdG9yIiwicm9sZSI6ImFkbWluIiwidXNlcl9pZCI6MiwidXNlcm5hbWUiOiJhZG1pbiJ9.plc5stMr0RwU6ZZ65WMLJd9YFkVMF-Lj6TBMJQrgs4Y' LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_package_repo.go:23
+[0m[33m[0.528ms] [34;1m[rows:2][0m 
+		SELECT pp.id, pp.product_id, pp.unit_id, COALESCE(u.name, '') AS unit_name, COALESCE(u.abbreviation, '') AS abbreviation,
+		       COALESCE(pp.package_name, '') AS package_name, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, pp.selling_price, pp.is_default
+		FROM product_packages pp
+		JOIN units u ON u.id = pp.unit_id
+		WHERE pp.product_id = 11
+[GIN] 2026/07/23 - 11:27:18 | 200 |      3.7094ms |             ::1 | POST     "/api/products/11/packages/list"
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:136
+[0m[33m[1.341ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 11 LIMIT 1
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_price_repo.go:18
+[0m[33m[0.527ms] [34;1m[rows:0][0m SELECT id, product_id, tier_name, min_qty, price FROM product_prices WHERE product_id = 11 ORDER BY min_qty
+[GIN] 2026/07/23 - 11:27:18 | 200 |      5.5773ms |             ::1 | POST     "/api/products/11/prices/list"
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.939ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('9f4e185b-af0a-4565-9527-167ff60fc6c9', 'POST', '/api/products/11/packages/list', 200, '{}', '{"code":"00","status":true,"message":"Daftar paket produk","data":[{"id":10,"product_id":11,"unit_id":1,"unit_name":"Pcs","abbreviation":"pcs","package_name":"","ref_package_id":null,"qty":1,"ref_qty":null,"resolved_factor":1,"purchase_price":55000,"selling_price":65000,"is_default":true},{"id":11,"product_id":11,"unit_id":2,"unit_name":"Pack","abbreviation":"pack","package_name":"Karung","ref_package_id":10,"qty":10,"ref_qty":1,"resolved_factor":0.1,"purchase_price":500000,"selling_price":620000,"is_default":false}]}', 2, 3, '::1', NULL, '2026-07-23 11:27:18.824')
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.467ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('9d5934e1-287c-4d62-8aa4-7db8387db611', 'POST', '/api/products/detail/11', 200, '{}', '{"code":"00","status":true,"message":"Detail produk","data":{"id":11,"barcode":"8995170829136","sku":"MAK-0004","name":"Import Beras Premium 5kg","category_id":2,"category_name":"Makanan","purchase_price":55000,"selling_price":65000,"stock":14,"reserved_qty":0,"min_stock":3,"unit_id":1,"unit_name":"Pcs","unit_abbreviation":"pcs","is_active":true,"extra_packages":1,"price_tiers_count":0}}', 2, 3, '::1', NULL, '2026-07-23 11:27:18.823')
+
+2026/07/23 11:27:18 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.585ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('01d155c5-d5da-4bc7-82e9-7f9e3d547a1c', 'POST', '/api/products/11/prices/list', 200, '{}', '{"code":"00","status":true,"message":"Daftar harga tier produk","data":[]}', 2, 5, '::1', NULL, '2026-07-23 11:27:18.826')
+2026/07/23 11:40:30 Shutdown Server ...
+2026/07/23 11:40:30 All connections closed successfully
+2026/07/23 11:40:30 Server Exiting

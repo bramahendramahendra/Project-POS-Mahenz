@@ -11,9 +11,12 @@ import {
   useBulkToggleProductStatusMutation,
   useToggleProductStatusMutation,
 } from '../products.api'
+import { useExpiryWarningsQuery } from '../expiry-batches.api'
 import type { Product, ProductListFilter } from '../products.types'
+import type { ProductExpirySeverity } from '../expiry-batches.types'
 import { exportProductsToExcel } from '../products.utils'
 import { buildProductColumns } from './ProductTableColumns'
+import { ExpiryWarningModal } from './ExpiryWarningModal'
 import { ImportCsvModal } from './ImportCsvModal'
 import { LabelPrintModal } from './LabelPrintModal'
 import { ProductDetailModal } from './ProductDetailModal'
@@ -43,12 +46,21 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
+  const [expiryProduct, setExpiryProduct] = useState<Product | null>(null)
 
   const { data: productData, isLoading } = useProductListQuery({ ...filter, page, limit: pageSize })
   const products = productData?.data ?? []
   const total = productData?.total ?? 0
 
   const { data: categories = [] } = useCategoryOptionsQuery()
+  const { data: expiryData } = useExpiryWarningsQuery()
+  const expirySeverityMap = (expiryData?.product_severity ?? []).reduce<Record<number, ProductExpirySeverity>>(
+    (acc, s) => {
+      acc[s.product_id] = s
+      return acc
+    },
+    {}
+  )
 
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductMutation()
   const { mutate: toggleStatus } = useToggleProductStatusMutation()
@@ -152,6 +164,8 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
       openLabel()
     },
     onToggleStatus: handleToggleStatus,
+    onOpenExpiry: setExpiryProduct,
+    expirySeverityMap,
   })
 
   return (
@@ -247,6 +261,11 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
         open={detailOpen}
         onOpenChange={(open) => { if (!open) handleCloseDetail() }}
         productId={detailProduct?.id}
+      />
+
+      <ExpiryWarningModal
+        product={expiryProduct}
+        onOpenChange={(open) => { if (!open) setExpiryProduct(null) }}
       />
     </div>
   )
