@@ -31,8 +31,11 @@ const MyCashPage            = lazy(() => import('@/features/finance/my-cash/MyCa
 const ExpensesPage          = lazy(() => import('@/features/finance/expenses/ExpensesPage').then(m => ({ default: m.ExpensesPage })))
 const ReceivablesPage       = lazy(() => import('@/features/customers/receivables/ReceivablesPage').then(m => ({ default: m.ReceivablesPage })))
 
-// Reporting
+// Beranda
 const DashboardPage          = lazy(() => import('@/features/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })))
+
+// Reporting
+const BusinessSummaryPage    = lazy(() => import('@/features/reporting/business-summary/BusinessSummaryPage').then(m => ({ default: m.BusinessSummaryPage })))
 const SalesReportPage        = lazy(() => import('@/features/reporting/sales/SalesReportPage').then(m => ({ default: m.SalesReportPage })))
 const ProfitLossPage         = lazy(() => import('@/features/reporting/profit-loss/ProfitLossPage').then(m => ({ default: m.ProfitLossPage })))
 const StockReportPage        = lazy(() => import('@/features/reporting/stock/StockReportPage').then(m => ({ default: m.StockReportPage })))
@@ -90,6 +93,7 @@ const PROTECTED_ROUTES: RouteDef[] = [
   { path: ROUTES.FINANCE_MY_CASH, menuKey: 'keuangan.kas_saya', element: <MyCashPage /> },
 
   // Pelaporan
+  { path: ROUTES.REPORTS_BUSINESS_SUMMARY, menuKey: 'pelaporan.ringkasan_bisnis', element: <BusinessSummaryPage /> },
   { path: ROUTES.REPORTS_SALES, menuKey: 'pelaporan.penjualan', element: <SalesReportPage /> },
   { path: ROUTES.REPORTS_PROFIT_LOSS, menuKey: 'pelaporan.laba_rugi', element: <ProfitLossPage /> },
   { path: ROUTES.REPORTS_STOCK, menuKey: 'pelaporan.stok', element: <StockReportPage /> },

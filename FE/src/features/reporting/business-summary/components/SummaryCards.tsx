@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 
 import { formatRupiah } from '@/shared/utils'
 
-import type { DashboardPeriod, DashboardStats } from '../dashboard.types'
+import type { DashboardPeriod, DashboardStats } from '../business-summary.types'
 
 interface SummaryCardsProps {
   stats: DashboardStats | undefined

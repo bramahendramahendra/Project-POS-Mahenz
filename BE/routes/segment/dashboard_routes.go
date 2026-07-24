@@ -9,6 +9,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DashboardRoutes — landing page operasional (/dashboard), dipakai semua role yang
+// punya akses menu beranda.dashboard (termasuk Kasir). Datanya sudah otomatis
+// ter-scope ke user yang login (lewat user_id di context), jadi tidak perlu
+// permission middleware per-menu seperti domain pelaporan.
 func DashboardRoutes(r *gin.RouterGroup) {
 	dashboardRepo := dashboard_repo.NewDashboardRepo(pkgdatabase.DB)
 	dashboardService := dashboard_service.NewDashboardService(dashboardRepo)
@@ -16,11 +20,7 @@ func DashboardRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/dashboard")
 	{
-		g.GET("/stats", dashboardHandler.GetStats)
-		g.GET("/sales-trend", dashboardHandler.GetSalesTrend)
-		g.GET("/top-products", dashboardHandler.GetTopProducts)
-		g.GET("/top-categories", dashboardHandler.GetTopCategories)
-		g.GET("/payment-methods", dashboardHandler.GetPaymentMethods)
-		g.GET("/summary-extra", dashboardHandler.GetSummaryExtra)
+		g.GET("/recent-transactions", dashboardHandler.GetRecentTransactions)
+		g.GET("/today-summary", dashboardHandler.GetTodaySummary)
 	}
 }

@@ -19,13 +19,16 @@ func (s *transactionService) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionR
 	return transactions, total, nil
 }
 
-func (s *transactionService) GetByID(id int) (*dto.TransactionResponse, error) {
+func (s *transactionService) GetByID(id int, requestingUserID int, role string) (*dto.TransactionResponse, error) {
 	t, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, &errors.InternalServerError{Message: err.Error()}
 	}
 	if t == nil {
 		return nil, &errors.NotFoundError{Message: "Transaksi tidak ditemukan"}
+	}
+	if role != "owner" && role != "admin" && t.UserID != requestingUserID {
+		return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke transaksi ini"}
 	}
 	return t, nil
 }

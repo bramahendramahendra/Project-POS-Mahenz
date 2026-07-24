@@ -10,7 +10,7 @@ import {
 
 import { formatDateShort } from '@/shared/utils'
 
-import type { SalesTrendItem } from '../dashboard.types'
+import type { SalesTrendItem } from '../business-summary.types'
 
 interface SalesChartProps {
   data: SalesTrendItem[]

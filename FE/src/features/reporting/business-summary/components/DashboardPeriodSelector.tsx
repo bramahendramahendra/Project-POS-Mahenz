@@ -1,6 +1,6 @@
 import { Button } from '@/shared/components/ui/button'
 
-import type { DashboardPeriod } from '../dashboard.types'
+import type { DashboardPeriod } from '../business-summary.types'
 
 const PERIODS: { label: string; value: DashboardPeriod }[] = [
   { label: 'Hari Ini', value: 'today' },

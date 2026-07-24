@@ -2,7 +2,7 @@ import { DataTable } from '@/shared/components'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
-import type { TopProductItem } from '../dashboard.types'
+import type { TopProductItem } from '../business-summary.types'
 
 interface TopProductsTableProps {
   data: TopProductItem[]

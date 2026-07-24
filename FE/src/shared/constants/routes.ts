@@ -30,6 +30,7 @@ export const ROUTES = {
   REPORTS_PROFIT_LOSS: '/reports/profit-loss',
   REPORTS_STOCK: '/reports/stock',
   REPORTS_CASHIER: '/reports/cashier',
+  REPORTS_BUSINESS_SUMMARY: '/reports/business-summary',
 
   // Operasional
   SHIFTS: '/shifts',

@@ -60,7 +60,7 @@ func (h *TransactionHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	data, svcErr := h.service.GetByID(req.ID)
+	data, svcErr := h.service.GetByID(req.ID, helper.GetUserID(c), helper.GetUserRole(c))
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -86,10 +86,7 @@ func (h *TransactionHandler) Create(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
-
-	resp, svcErr := h.service.Create(&req, uid)
+	resp, svcErr := h.service.Create(&req, helper.GetUserID(c))
 	if svcErr != nil {
 		c.Error(svcErr)
 		return
@@ -115,10 +112,7 @@ func (h *TransactionHandler) Void(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	uid, _ := userID.(int)
-
-	if svcErr := h.service.Void(&req, uid); svcErr != nil {
+	if svcErr := h.service.Void(&req, helper.GetUserID(c)); svcErr != nil {
 		c.Error(svcErr)
 		return
 	}

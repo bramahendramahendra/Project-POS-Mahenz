@@ -10,7 +10,7 @@ import (
 type (
 	TransactionServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error)
-		GetByID(id int) (*dto.TransactionResponse, error)
+		GetByID(id int, requestingUserID int, role string) (*dto.TransactionResponse, error)
 		Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
 		Void(req *dto.VoidRequest, userID int) error
 	}

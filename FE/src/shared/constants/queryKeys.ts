@@ -73,11 +73,17 @@ export const queryKeys = {
     data: () => ['myCash', 'data'] as const,
   },
 
+  businessSummary: {
+    all: () => ['businessSummary'] as const,
+    stats: (period: string) => ['businessSummary', 'stats', period] as const,
+    salesTrend: (period: string) => ['businessSummary', 'salesTrend', period] as const,
+    topProducts: (period: string) => ['businessSummary', 'topProducts', period] as const,
+  },
+
   dashboard: {
     all: () => ['dashboard'] as const,
-    stats: (period: string) => ['dashboard', 'stats', period] as const,
-    salesTrend: (period: string) => ['dashboard', 'salesTrend', period] as const,
-    topProducts: (period: string) => ['dashboard', 'topProducts', period] as const,
+    recentTransactions: () => ['dashboard', 'recentTransactions'] as const,
+    todaySummary: () => ['dashboard', 'todaySummary'] as const,
   },
 
   reports: {

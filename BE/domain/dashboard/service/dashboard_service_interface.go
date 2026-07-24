@@ -7,12 +7,8 @@ import (
 
 type (
 	DashboardServiceInterface interface {
-		GetStats(period string) (*dto.StatsResponse, error)
-		GetSalesTrend(period string) ([]dto.SalesTrendItem, error)
-		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
-		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
-		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)
-		GetSummaryExtra(period string) (*dto.SummaryExtraResponse, error)
+		GetRecentTransactions(userID int, limit int) ([]dto.RecentTransactionItem, error)
+		GetTodaySummary(userID int) (*dto.TodaySummaryResponse, error)
 	}
 
 	dashboardService struct {

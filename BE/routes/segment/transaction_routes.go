@@ -26,7 +26,7 @@ func TransactionRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/transactions")
 	{
-		g.POST("/list", transactionHandler.GetAll)
+		g.POST("/list", perm("can_view"), transactionHandler.GetAll)
 		g.POST("/detail/:id", transactionHandler.GetByID)
 		g.POST("/create", perm("can_create"), transactionHandler.Create)
 		g.POST("/void/:id", perm("can_delete"), transactionHandler.Void)

@@ -20,11 +20,14 @@ npm run dev
 ```
 Kalau salah satu proses gagal start (port bentrok, error koneksi DB, dsb), itu sendiri sudah temuan Fase 0 — jangan lanjut ke fase lain sebelum keduanya bisa jalan normal.
 
-**2. Pastikan database (`pos_retail_db`, MySQL/MariaDB lokal) sudah ada skema & seed-nya.** Kalau kosong (misal habis di-drop untuk test "dari kosong"), jalankan dulu:
+**2. Pastikan database (`pos_retail_db`, MySQL/MariaDB lokal) sudah ada skema & seed-nya.** Kalau kosong (misal habis di-drop untuk test "dari kosong"), jalankan dulu **berurutan**:
 ```
 BE/database/migrations/001_init_schema.sql
 BE/database/migrations/002_seed_data.sql
+BE/database/migrations/003_business_summary_menu.sql   -- menu "Ringkasan Bisnis" + grant Kasir ke beranda.dashboard
+BE/database/migrations/004_kasir_shift_access.sql      -- grant view-only Kasir ke operasional.shift
 ```
+Tidak ada migration runner otomatis di BE (`main.go` tidak menjalankan migration saat start) — kalau file `.sql` di atas baru ditambahkan/diubah setelah DB sudah ada isinya, jalankan manual (mis. lewat `mysql` CLI atau tool DB apapun) sebelum testing. **Setelah menjalankan migration apapun yang menyentuh `role_menu_access`, WAJIB restart proses BE** — ada cache permission in-memory (`pkg/permcache`) yang cuma ter-invalidate otomatis kalau perubahan lewat endpoint resmi (`Role Access` di UI/`POST /roles/:id/menus/set`), bukan kalau lewat SQL langsung.
 
 **3. Kredensial login untuk tiap role (dari seed data):**
 - Owner: `owner` / `owner123`
@@ -88,7 +91,7 @@ BE/database/migrations/002_seed_data.sql
 ```
 Jalankan Fase 0.1 (Health check & login) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan FE bisa diakses. Login via browser sebagai owner, admin, dan kasir (3 kali login terpisah) — pastikan masing-masing berhasil redirect ke dashboard tanpa error, dan sidebar menu yang muncul sesuai hak akses role masing-masing (bandingkan dengan seed data role_menu_access). Coba juga login dengan password salah dan username tidak terdaftar, pastikan pesan error jelas dan tidak bocor informasi (misal tidak bilang "user tidak ada" vs "password salah" secara eksplisit kalau itu bukan by design). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan FE bisa diakses. Login via browser sebagai owner, admin, dan kasir (3 kali login terpisah) — pastikan masing-masing berhasil redirect ke dashboard tanpa error, dan sidebar menu yang muncul sesuai hak akses role masing-masing (bandingkan dengan `role_menu_access` hasil `002_seed_data.sql` **DITAMBAH** grant dari `003_business_summary_menu.sql` dan `004_kasir_shift_access.sql` — Kasir sekarang seharusnya lihat "Beranda > Dashboard" dan "Operasional > Shift" juga, tidak cuma 3 menu seperti di seed murni). Coba juga login dengan password salah dan username tidak terdaftar, pastikan pesan error jelas dan tidak bocor informasi (misal tidak bilang "user tidak ada" vs "password salah" secara eksplisit kalau itu bukan by design). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **0.2 Session & logout**
@@ -274,7 +277,9 @@ Regresi khusus mekanisme cetak (baru diganti dari popup window.open ke print-di-
 
 **6.7 Riwayat Transaksi & Detail**
 ```
-Jalankan Fase 6.7: debug halaman Transaksi (list riwayat). Test filter tanggal/kasir/metode pembayaran, buka detail transaksi (verifikasi item, harga, diskon, total cocok dengan yang tersimpan), pagination. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 6.7: debug halaman Transaksi (list riwayat). Test filter tanggal/kasir/metode pembayaran, buka detail transaksi (verifikasi item, harga, diskon, total cocok dengan yang tersimpan), pagination.
+
+Regresi khusus IDOR yang baru diperbaiki (BE/domain/transaction/service/transaction_service.go `GetByID` — sebelumnya endpoint `/transactions/detail/:id` dan `/transactions/list` tidak ada permission check sama sekali, siapapun yang login bisa lihat transaksi siapapun): login sebagai Kasir A, buat/pastikan ada transaksi milik Kasir A dan milik user lain (mis. Admin). Verifikasi: Kasir A bisa lihat detail transaksinya SENDIRI (lewat dashboard "Transaksi Terakhir Saya" atau kalau punya akses halaman Transaksi), tapi coba akses `POST /transactions/detail/:id` langsung (curl/API, pakai ID milik user lain) HARUS 403 — bukan 200 dengan data bocor. Coba juga `POST /transactions/list` dengan token Kasir yang tidak punya menu `penjualan.transaksi` — harus 403. Login sebagai Admin/Owner, pastikan masih bisa lihat detail & list transaksi SIAPAPUN (tidak ke-over-block oleh perbaikan ini). Fix bug yang ditemukan, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
 ```
 
 **6.8 Void Transaksi**
@@ -308,16 +313,20 @@ Jalankan Fase 9: debug menu Piutang. Verifikasi piutang dari transaksi kredit (F
 
 ---
 
-### Fase 10 — Dashboard & Dashboard Keuangan
+### Fase 10 — Dashboard (landing page operasional) & Dashboard Keuangan
+
+> Catatan: `/dashboard` (menuKey `beranda.dashboard`) sudah di-rombak total dari "dashboard bisnis" jadi landing page operasional harian, dipakai SEMUA role termasuk Kasir (sebelumnya Kasir tidak punya akses sama sekali — sekarang dapat lewat migrasi `003_business_summary_menu.sql`). Isi statistik bisnis (grafik penjualan, produk terlaris, dst) sudah PINDAH ke menu baru "Ringkasan Bisnis" — lihat Fase 11.5, jangan dicari di sini lagi.
 
 ```
-Jalankan Fase 10: debug halaman Dashboard (menu Beranda > Dashboard, DashboardPage.tsx) dan Dashboard Keuangan (menu Keuangan > Dashboard, menuKey keuangan.dashboard, FinancePage.tsx — isinya BUKAN grafik, tapi filter tanggal + 4 kartu ringkasan Pemasukan/Pengeluaran/Laba/Piutang + tabel arus kas).
+Jalankan Fase 10: debug halaman Dashboard baru (FE/src/features/dashboard/DashboardPage.tsx) dan Dashboard Keuangan (menu Keuangan > Dashboard, menuKey keuangan.dashboard, FinancePage.tsx — tidak berubah dari sebelumnya, isinya filter tanggal + 4 kartu ringkasan Pemasukan/Pengeluaran/Laba/Piutang + tabel arus kas).
 
-Dashboard: pastikan widget statistik (SummaryCards), grafik tren penjualan (SalesChart), dan tabel produk terlaris (TopProductsTable) load tanpa error di kondisi data kosong maupun ada data untuk tiap pilihan periode (Hari Ini/Minggu Ini/Bulan Ini), dan angkanya konsisten dengan data transaksi dari fase sebelumnya.
+Dashboard baru — test sebagai KASIR (skenario utama, buat user Kasir dulu kalau belum ada): sapaan nama + tanggal tampil benar; kartu status kas (CashDrawerStatusCard) — kalau belum ada shift aktif di DB, tombol "Buka Kas" harus disabled dengan pesan "hubungi Admin/Owner" (bukan silently gagal atau dropdown kosong); kalau ada shift aktif dan kas belum dibuka, buka kas via modal (reuse OpenCashDrawerModal) harus berhasil dan kartu berubah jadi tombol "Mulai Transaksi" menuju /kasir; kartu "Transaksi Saya Hari Ini"/"Penjualan Saya Hari Ini" cuma hitung transaksi milik user itu sendiri (bukan semua kasir — bandingkan dengan Laporan Kinerja Kasir Fase 11.4 punya user lain untuk pastikan tidak ketuker); list "Transaksi Terakhir Saya" cuma nampilin transaksi miliknya sendiri, klik salah satu baris buka detail transaksi (reuse TransactionDetailModal) dan tombol "Cetak Ulang" harus jalan.
+
+Dashboard baru — test sebagai ADMIN/OWNER: kalau user itu TIDAK punya akses menu `penjualan.kasir`, harus tampil versi ringkas (shortcut card ke Ringkasan Bisnis/Produk/Pembelian — cuma shortcut yang menu-nya memang bisa diakses user itu), BUKAN kartu status kas. Kalau admin/owner KEBETULAN dikasih akses `penjualan.kasir` juga, harus tetap dapat versi kasir lengkap (perilaku ini berdasar `hasAccess('penjualan.kasir')`, bukan role hardcode) — jangan dianggap "harusnya beda" cuma karena rolenya admin/owner.
 
 Dashboard Keuangan: test filter tanggal manual (Dari/Sampai) dan preset (Hari ini/Minggu ini/Bulan ini/Reset), verifikasi 4 kartu ringkasan dan tabel arus kas (kolom Tipe Pemasukan/Pengeluaran, Nominal) konsisten dengan data transaksi & pengeluaran dari fase-fase sebelumnya, cek kondisi rentang tanggal yang tidak menghasilkan data (empty state, bukan error).
 
-Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
 ```
 
 ---
@@ -344,12 +353,27 @@ Jalankan Fase 11.3: debug Laporan Stok. Verifikasi mutasi stok (masuk dari pembe
 Jalankan Fase 11.4: debug Laporan Kinerja Kasir. Test filter per kasir/tanggal, verifikasi jumlah transaksi & total penjualan per kasir cocok dengan data riil. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
+**11.5 Ringkasan Bisnis (baru — hasil pemindahan Dashboard lama)**
+```
+Jalankan Fase 11.5: debug menu "Ringkasan Bisnis" (menu Pelaporan > Ringkasan Bisnis, menuKey pelaporan.ringkasan_bisnis, path /reports/business-summary, FE/src/features/reporting/business-summary/BusinessSummaryPage.tsx, BE domain/business_summary). Ini isi persis Dashboard lama yang dipindah (widget statistik SummaryCards, grafik tren penjualan SalesChart, tabel produk terlaris TopProductsTable) — cuma beda lokasi menu & title.
+
+Test data: pilih tiap periode (Hari Ini/Minggu Ini/Bulan Ini), pastikan angkanya konsisten dengan Laporan Penjualan (Fase 11.1) untuk rentang tanggal yang sama (harusnya identik, bukan cuma mirip — ini regresi penting karena datanya baru dipindah dari domain BE lama `dashboard` ke `business_summary`, logic query-nya disalin manual).
+
+Test permission (regresi Bug BE yang baru diperbaiki — endpoint `/reports/business-summary/*` sekarang dilindungi permission middleware `pelaporan.ringkasan_bisnis`, sebelumnya endpoint dashboard lama TIDAK punya permission check sama sekali): login sebagai Kasir, pastikan menu "Ringkasan Bisnis" TIDAK muncul di sidebar, akses langsung via URL `/reports/business-summary` harus di-redirect balik, dan coba panggil endpoint API-nya langsung pakai token Kasir (curl/Invoke-RestMethod) — harus 403 di semua endpoint (`/stats`, `/sales-trend`, `/top-products`, `/top-categories`, `/payment-methods`, `/summary-extra`), bukan cuma disembunyikan di UI. Owner & Admin harus tetap bisa akses normal (200).
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
+```
+
 ---
 
 ### Fase 12 — Shift
 
 ```
-Jalankan Fase 12: debug menu Shift. Test CRUD shift (jam mulai/selesai, nama shift), assign shift ke user/kasir, verifikasi shift yang aktif muncul benar saat buka kas. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 12: debug menu Shift. Test CRUD shift (jam mulai/selesai, nama shift), assign shift ke user/kasir, verifikasi shift yang aktif muncul benar saat buka kas.
+
+Regresi khusus grant baru Kasir ke `operasional.shift` (migrasi `004_kasir_shift_access.sql`, view-only can_view=1 can_create/edit/delete=0): login sebagai Kasir, pastikan menu "Operasional > Shift" MUNCUL di sidebar (baru, sebelumnya Kasir tidak lihat menu ini sama sekali) dan halaman-nya bisa dibuka (list shift kebaca), tapi tombol Tambah/Edit/Hapus shift TIDAK ada/disabled untuk Kasir (cuma view). Ini grant ditambahkan supaya endpoint `POST /shifts/active` (dipakai dropdown pilih shift di modal Buka Kas) tidak 403 buat Kasir — kalau ada perubahan ke permission ini di masa depan, pastikan dropdown Buka Kas di Kasir tetap bisa keisi shift aktif (lihat juga Fase 10 bagian CashDrawerStatusCard).
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 ---
@@ -386,7 +410,9 @@ Jalankan Fase 14.2: debug menu Manajemen Role. CRUD role, coba hapus role yang m
 
 **14.3 Role Access**
 ```
-Jalankan Fase 14.3: debug menu Role Access. Ubah permission (can_view/can_create/can_edit/can_delete) suatu role untuk beberapa menu, logout-login ulang sebagai user dengan role itu, verifikasi perubahan permission langsung berefek ke sidebar dan tombol aksi yang muncul di halaman terkait. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 14.3: debug menu Role Access. Ubah permission (can_view/can_create/can_edit/can_delete) suatu role untuk beberapa menu, logout-login ulang sebagai user dengan role itu, verifikasi perubahan permission langsung berefek ke sidebar dan tombol aksi yang muncul di halaman terkait.
+
+Regresi khusus (bug BE yang baru diperbaiki di `access_service.go` `SetRoleAccess` — sebelumnya ada blok `IsSystem`+"cuma owner boleh" yang kontradiksi sama seed data, bikin role SISTEM/bawaan yaitu Owner/Admin/Kasir tidak bisa diubah akses menunya lewat UI oleh SIAPAPUN): login sebagai Admin, buka Role Access untuk role Kasir (role sistem/bawaan) — HARUS bisa buka & simpan perubahan (sebelumnya ditolak "Akses menu role sistem tidak dapat diubah"). Verifikasi perubahan itu langsung aktif TANPA perlu restart BE (beda dari kalau ubah lewat SQL langsung — lewat UI resmi cache permission ter-invalidate otomatis). Login sebagai Owner, pastikan menu "Manajemen Role" memang TIDAK muncul di sidebar dia (ini BENAR sesuai desain, Owner sengaja dikecualikan dari 5 menu teknis termasuk sistem.roles — bukan bug, jangan "diperbaiki"). Test juga guard yang tetap harus ada: Admin coba ubah akses menu ROLE-NYA SENDIRI (role Admin) — harus tetap ditolak ("Tidak bisa mengubah akses menu role sendiri"), guard ini disengaja tetap ada walau blok IsSystem-nya dihapus. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
 ```
 
 **14.4 Manajemen Menu**
@@ -423,7 +449,15 @@ Jalankan Fase 15.4: debug menu Backup & Restore. Jalankan backup manual, verifik
 ### Fase 16 — Cross-check Permission/RBAC
 
 ```
-Jalankan Fase 16: debug permission lintas role secara menyeluruh. Untuk role Owner, Admin, dan Kasir: cek satu-satu menu apa saja yang muncul di sidebar sesuai role_menu_access, lalu untuk tiap menu yang TIDAK seharusnya bisa diakses role tsb, coba akses langsung via URL (bukan cuma sidebar disembunyikan) dan via API langsung — pastikan backend menolak dengan status 403/pesan jelas, bukan cuma disembunyikan di UI. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 16: debug permission lintas role secara menyeluruh. Untuk role Owner, Admin, dan Kasir: cek satu-satu menu apa saja yang muncul di sidebar sesuai role_menu_access, lalu untuk tiap menu yang TIDAK seharusnya bisa diakses role tsb, coba akses langsung via URL (bukan cuma sidebar disembunyikan) dan via API langsung — pastikan backend menolak dengan status 403/pesan jelas, bukan cuma disembunyikan di UI.
+
+Checklist tambahan hasil migrasi & perbaikan bug sesi sebelumnya (pastikan semua masih benar, bukan cuma dites sekali waktu bug-nya baru diperbaiki):
+- Kasir: menu "Beranda > Dashboard" muncul (migrasi 003), menu "Operasional > Shift" muncul view-only (migrasi 004), menu "Pelaporan > Ringkasan Bisnis" TIDAK muncul dan endpoint `/reports/business-summary/*` 403.
+- Kasir: endpoint `/transactions/detail/:id` cuma bisa untuk transaksi miliknya sendiri (403 untuk milik orang lain), `/transactions/list` 403 total (lihat Fase 6.7).
+- Admin: bisa buka & simpan Role Access untuk role sistem (Owner/Admin/Kasir), tapi tetap tidak bisa ubah role-nya sendiri (lihat Fase 14.3).
+- Owner: tetap TIDAK punya akses menu Manajemen Role/Menu/Versi/Backup/Sync Center (5 menu teknis) — ini desain yang benar, bukan bug.
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
 ```
 
 ---
