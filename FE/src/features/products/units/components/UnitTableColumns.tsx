@@ -21,6 +21,7 @@ export function buildUnitColumns(handlers: UnitColumnHandlers): ColumnDef<Unit>[
       key: 'name',
       header: 'Nama Satuan',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),

@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 
+import { useBreakpoint } from '@/shared/hooks'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import {
   Table,
@@ -11,8 +12,9 @@ import {
 } from '@/shared/components/ui/table'
 import { cn } from '@/shared/utils'
 
-import type { DataTableProps, SortState } from './DataTable.types'
+import type { ColumnDef, DataTableProps, SortState } from './DataTable.types'
 import { DataTableEmpty } from './DataTableEmpty'
+import { DataTableMobileCard } from './DataTableMobileCard'
 import { DataTablePagination } from './DataTablePagination'
 import { DataTableSkeleton } from './DataTableSkeleton'
 
@@ -28,6 +30,8 @@ export function DataTable<TData extends Record<string, unknown>>({
   onSort,
   className,
 }: DataTableProps<TData>) {
+  const isDesktopTable = useBreakpoint('md')
+
   // ─── Row selection helpers ──────────────────────────────────────────────
   const allRowKeys = data.map((row) => row[rowSelection?.rowKey as keyof TData] as string | number)
   const selectedKeys = rowSelection?.selectedKeys ?? new Set<string | number>()
@@ -81,6 +85,34 @@ export function DataTable<TData extends Record<string, unknown>>({
     return (
       <div className={cn('rounded-md border bg-white', className)}>
         <DataTableEmpty message={emptyMessage} description={emptyDescription} />
+      </div>
+    )
+  }
+
+  // ─── Mobile card view ───────────────────────────────────────────────────
+  if (!isDesktopTable) {
+    return (
+      <div className={cn('flex flex-col gap-3', className)}>
+        {data.map((row, rowIdx) => {
+          const rowKey = rowSelection
+            ? (row[rowSelection.rowKey as keyof TData] as string | number)
+            : rowIdx
+          const isSelected = rowSelection?.selectedKeys?.has(rowKey) ?? false
+
+          return (
+            <DataTableMobileCard
+              key={String(rowKey)}
+              row={row}
+              columns={columns as ColumnDef<Record<string, unknown>>[]}
+              rowSelection={
+                rowSelection?.enabled
+                  ? { isSelected, onToggle: () => handleSelectRow(rowKey) }
+                  : undefined
+              }
+            />
+          )
+        })}
+        {pagination && <DataTablePagination {...pagination} />}
       </div>
     )
   }

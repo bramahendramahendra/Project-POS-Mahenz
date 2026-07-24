@@ -219,7 +219,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
               {/* Payment method */}
               <div className="space-y-2">
                 <Label className="text-sm">Metode Pembayaran</Label>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {PAYMENT_METHODS.map(({ key, label }) => {
                     const isKreditOption = key === 'kredit'
                     const disabled = isKreditOption && !hasCustomer

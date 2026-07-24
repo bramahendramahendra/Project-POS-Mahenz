@@ -4,6 +4,7 @@ import type { LucideProps } from 'lucide-react'
 
 import { useMenuStore } from '@/features/menu/menu.store'
 import type { MenuItem } from '@/features/menu/menu.types'
+import { useBreakpoint } from '@/shared/hooks'
 
 // Render icon Lucide berdasarkan nama string dari backend
 function DynamicIcon({ name, size = 16 }: { name: string | null; size?: number }) {
@@ -14,7 +15,7 @@ function DynamicIcon({ name, size = 16 }: { name: string | null; size?: number }
 }
 
 // Render satu nav item (bisa memiliki children)
-function NavItem({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
+function NavItem({ item, depth = 0, onNavigate }: { item: MenuItem; depth?: number; onNavigate: () => void }) {
   const hasChildren = item.children.length > 0
 
   // Grup tanpa path — tampilkan sebagai label grup
@@ -34,7 +35,7 @@ function NavItem({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
           {item.label}
         </p>
         {item.children.map((child) => (
-          <NavItem key={child.key_name} item={child} depth={depth + 1} />
+          <NavItem key={child.key_name} item={child} depth={depth + 1} onNavigate={onNavigate} />
         ))}
       </div>
     )
@@ -46,6 +47,7 @@ function NavItem({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
       <NavLink
         to={item.path}
         end
+        onClick={onNavigate}
         style={({ isActive }) => ({
           display: 'flex',
           alignItems: 'center',
@@ -73,27 +75,47 @@ function NavItem({ item, depth = 0 }: { item: MenuItem; depth?: number }) {
   return null
 }
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const menus = useMenuStore((s) => s.menus)
+  const isDesktop = useBreakpoint('lg')
+  const visible = isDesktop || isOpen
 
   return (
-    <aside
-      style={{
-        position: 'fixed',
-        top: 'var(--navbar-height)',
-        left: 0,
-        bottom: 0,
-        width: 'var(--sidebar-width)',
-        backgroundColor: 'var(--color-primary)',
-        overflowY: 'auto',
-        zIndex: 100,
-      }}
-    >
-      <nav className="py-2">
-        {menus.map((item) => (
-          <NavItem key={item.key_name} item={item} />
-        ))}
-      </nav>
-    </aside>
+    <>
+      {!isDesktop && isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            top: 'var(--navbar-height)',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            zIndex: 99,
+          }}
+        />
+      )}
+      <aside
+        style={{
+          position: 'fixed',
+          top: 'var(--navbar-height)',
+          left: 0,
+          bottom: 0,
+          width: 'var(--sidebar-width)',
+          backgroundColor: 'var(--color-primary)',
+          overflowY: 'auto',
+          zIndex: 100,
+          transform: visible ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.2s ease',
+        }}
+      >
+        <nav className="py-2">
+          {menus.map((item) => (
+            <NavItem key={item.key_name} item={item} onNavigate={onClose} />
+          ))}
+        </nav>
+      </aside>
+    </>
   )
 }

@@ -80,7 +80,7 @@ export function ReturnDetailModal({ returnId, open, onOpenChange }: ReturnDetail
           </div>
         ) : (
           <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-gray-50 p-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border bg-gray-50 p-4 sm:grid-cols-2">
               <DetailField label="Kode Retur">
                 <span className="font-mono font-medium text-blue-700">{detail.return_code}</span>
               </DetailField>

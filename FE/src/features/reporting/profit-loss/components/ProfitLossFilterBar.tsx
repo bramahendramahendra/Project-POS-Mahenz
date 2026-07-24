@@ -41,7 +41,7 @@ export function ProfitLossFilterBar({ filter, onChange, onReset }: ProfitLossFil
           className="w-40 h-9"
         />
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" className="h-9" onClick={() => applyPreset(todayStr(), todayStr())}>
           Hari ini
         </Button>

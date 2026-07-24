@@ -28,7 +28,7 @@ function SummaryCard({ label, value, isLoading }: CardProps) {
 
 export function SalesReportSummaryCard({ summary, isLoading }: SalesReportSummaryCardProps) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <SummaryCard
         label="Total Transaksi"
         value={String(summary?.total_transactions ?? 0)}

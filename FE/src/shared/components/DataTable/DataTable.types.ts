@@ -7,6 +7,10 @@ export interface ColumnDef<TData> {
   width?: string
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
+  /** Jadi judul card di tampilan mobile (idealnya cuma 1 kolom per tabel) */
+  mobileLabel?: boolean
+  /** Disembunyikan di tampilan card mobile (field teknis/sekunder) */
+  mobileHidden?: boolean
 }
 
 export interface PaginationProps {

@@ -22,6 +22,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
       key: 'supplier_code',
       header: 'Kode',
       width: '110px',
+      mobileHidden: true,
       cell: (row) => (
         <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
           {row.supplier_code}
@@ -32,6 +33,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
       key: 'name',
       header: 'Nama Supplier',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),

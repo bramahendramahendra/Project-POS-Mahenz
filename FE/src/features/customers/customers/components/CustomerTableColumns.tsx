@@ -21,6 +21,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
       key: 'customer_code',
       header: 'Kode',
       width: '90px',
+      mobileHidden: true,
       cell: (row) => (
         <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
           {row.customer_code}
@@ -31,6 +32,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
       key: 'name',
       header: 'Nama Pelanggan',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.name}</span>,
     },
     {
@@ -46,6 +48,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
     {
       key: 'address',
       header: 'Alamat',
+      mobileHidden: true,
       cell: (row) =>
         row.address ? (
           <span className="text-sm text-gray-600">{row.address}</span>

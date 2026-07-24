@@ -24,6 +24,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
     {
       key: 'purchase_code',
       header: 'Kode PO',
+      mobileLabel: true,
       cell: (row) => (
         <span className="text-sm font-mono font-medium text-blue-700">{row.purchase_code}</span>
       ),
@@ -39,6 +40,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
     {
       key: 'invoice_number',
       header: 'No. Faktur',
+      mobileHidden: true,
       cell: (row) => <span className="text-sm font-medium">{row.invoice_number}</span>,
     },
     {

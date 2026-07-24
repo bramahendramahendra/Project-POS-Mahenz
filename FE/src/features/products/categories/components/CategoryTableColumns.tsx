@@ -21,6 +21,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       key: 'code',
       header: 'Kode',
       width: '80px',
+      mobileHidden: true,
       cell: (row) => (
         <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{row.code}</span>
       ),
@@ -29,6 +30,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
       key: 'name',
       header: 'Nama Kategori',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),
@@ -36,6 +38,7 @@ export function buildCategoryColumns(handlers: CategoryColumnHandlers): ColumnDe
     {
       key: 'description',
       header: 'Deskripsi',
+      mobileHidden: true,
       cell: (row) =>
         row.description ? (
           <span className="text-sm text-gray-600">{row.description}</span>

@@ -33,12 +33,14 @@ export function buildUserColumns(handlers: UserColumnHandlers): ColumnDef<AppUse
       key: 'username',
       header: 'Username',
       sortable: true,
+      mobileHidden: true,
       cell: (row) => <span className="font-mono text-sm text-gray-700">{row.username}</span>,
     },
     {
       key: 'full_name',
       header: 'Nama',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.full_name}</span>,
     },
     {

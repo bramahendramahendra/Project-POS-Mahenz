@@ -32,7 +32,7 @@ BE/database/migrations/002_seed_data.sql
 - Kasir: **tidak ada user seeded** — kalau fase butuh role Kasir, buat dulu user baru dengan role Kasir lewat Manajemen User (login sebagai Owner/Admin dulu), baru login sebagai user itu.
 
 **4. Cara "men-drive browser asli" secara konkret:** tidak ada tool GUI browser interaktif di sini — cara yang dipakai adalah menulis script **Playwright** (Node.js, headless Chromium) ke folder scratchpad, dijalankan via `node nama-script.js`, dan mengambil screenshot di titik-titik penting (`page.screenshot(...)`) untuk diperiksa. Alur standarnya per fase:
-1. Tulis script Playwright: buka `http://localhost:3000/login`, login dengan kredensial sesuai role yang dites, lalu navigasi ke menu terkait dan jalankan skenario (isi form, klik tombol, dst — sesuai kondisi normal & adversarial yang wajib dicoba di Aturan Umum).
+1. Tulis script Playwright: buka `http://localhost:XXXX/login` (ganti XXXX sesuai port aktual dari output `npm run dev`, lihat catatan di atas), login dengan kredensial sesuai role yang dites, lalu navigasi ke menu terkait dan jalankan skenario (isi form, klik tombol, dst — sesuai kondisi normal & adversarial yang wajib dicoba di Aturan Umum). Untuk fase yang menyentuh tabel/form/layout, set `viewport` context ke `{ width: 375, height: 812 }` (mobile) dan `{ width: 768, height: 1024 }` (tablet) selain ukuran desktop biasa — lihat poin "Responsivitas mobile/tablet" di Aturan Umum.
 2. Rekam: screenshot di tiap langkah penting, log `console` browser (tangkap event `page.on('console', ...)` untuk error JS), dan log response API relevan (`page.on('response', ...)`) untuk verifikasi status code & body — ini yang menggantikan "lihat langsung di browser" secara manual.
 3. Jalankan script (`node ...`), lalu baca screenshot yang dihasilkan (pakai tool baca file/gambar) untuk verifikasi visual — jangan hanya percaya log teks tanpa cek visual untuk hal yang sifatnya tampilan (mis. pesan error muncul di UI, tombol hilang/muncul, layout struk).
 4. Untuk kasus yang butuh akses API langsung tanpa lewat UI (poin keamanan di Aturan Umum), boleh pakai `curl`/PowerShell `Invoke-RestMethod` dengan token dari login, bukan lewat Playwright.
@@ -57,6 +57,7 @@ BE/database/migrations/002_seed_data.sql
 - **Keamanan & otorisasi (perlakukan aplikasi seperti target bug bounty):** akses endpoint API langsung tanpa lewat UI, akses resource milik/scope role lain lewat manipulasi ID di URL/payload (IDOR — misal user kasir akses detail transaksi kasir lain atau produk yang bukan haknya), coba aksi yang UI-nya disembunyikan tapi endpoint BE-nya tetap hidup, uji role/permission berbeda (owner/admin/kasir) untuk tiap aksi CRUD, cek apakah token/session yang sudah logout/expired benar-benar ditolak BE (bukan cuma di-redirect FE), cek pesan error tidak membocorkan info sensitif (stack trace, query SQL, keberadaan akun).
 - **Integritas lintas modul:** setelah suatu aksi (checkout, void, retur, bayar), verifikasi SEMUA sisi yang seharusnya berubah benar-benar konsisten (stok, mutasi stok, kas, piutang, laporan) — bukan cuma modul yang sedang difokuskan.
 - **UX kegagalan:** matikan network sesaat/perlambat koneksi (throttle) saat submit penting, cek apakah UI stuck loading/blank atau kasih pesan jelas; cek console browser & tab Network setiap langkah — tidak boleh ada error JS atau request gagal yang didiamkan tanpa feedback ke user.
+- **Responsivitas mobile/tablet:** aplikasi ini sudah dibuat responsive (layout shell, `DataTable` → card-view di mobile, CashierPage → tab Produk/Keranjang) — untuk fase yang halamannya punya tabel data, form modal, atau layout khusus, ulangi skenario intinya (bukan cuma happy path desktop) minimal di viewport **375px (mobile)** dan **768px (tablet)** selain 1280px (desktop) yang biasa dipakai. Cek: tidak ada horizontal scroll/overflow di level halaman, sidebar drawer buka-tutup normal, card-view `DataTable` menampilkan field yang benar (judul & field tersembunyi sesuai `mobileLabel`/`mobileHidden` di masing-masing `*TableColumns.tsx`), modal tidak overflow ke luar layar. Ini terutama penting di fase-fase yang banyak dipakai tabel/form (Fase 1, 3, 4, 6, 9, 11, 14) karena satu bug di komponen shared (`DataTable`, `AppLayout`, `dialog.tsx`) berdampak ke semua menu sekaligus.
 
 **Cara testing:**
 - Semua pengujian dilakukan dengan menjalankan BE (`go run main.go`) dan FE (`npm run dev`) sungguhan, lalu men-drive browser asli (bukan cuma baca kode atau curl API sepihak) — curl/devtools dipakai sebagai **pelengkap** untuk kasus yang tidak bisa dipicu murni dari UI (lihat poin keamanan di atas), bukan pengganti testing browser.
@@ -95,6 +96,13 @@ Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan F
 Jalankan Fase 0.2 (Session & logout) dari docs\DEBUG_TESTING_PLAN.md :
 
 Jalankan Fase 0.2: test logout dari browser, pastikan token/session benar-benar invalid setelah logout (coba akses halaman butuh auth setelah logout, harus ke-redirect ke login). Test juga apa yang terjadi kalau token kedaluwarsa/expired (kalau bisa disimulasikan) — pastikan tidak stuck di halaman blank atau infinite loading. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+```
+
+**0.3 Layout shell & DataTable responsive (baseline)**
+```
+Jalankan Fase 0.3 (Layout shell & DataTable responsive) dari docs\DEBUG_TESTING_PLAN.md :
+
+Jalankan Fase 0.3: regresi baseline untuk komponen shared yang dipakai di SEMUA halaman (AppLayout/Sidebar/Navbar di FE/src/shared/components/layouts, DataTable di FE/src/shared/components/DataTable, dialog.tsx/alert-dialog.tsx/tabs.tsx di FE/src/shared/components/ui). Login lalu buka minimal 3-4 halaman berbeda yang punya tabel data (mis. Produk, Pembelian, Transaksi) di viewport 375px, 768px, dan 1280px: verifikasi sidebar jadi drawer + hamburger berfungsi di <1024px dan tetap fixed di >=1024px, DataTable jadi card-view yang benar di <768px (field judul & yang disembunyikan sesuai desain, bukan asal), tidak ada horizontal overflow di level dokumen (cek dengan `document.documentElement.scrollWidth - clientWidth` lewat script Playwright, bukan cuma dilihat sekilas), dan modal/dialog tidak overflow ke luar layar di mobile. Ini baseline — kalau ada bug di sini, prioritaskan perbaikannya sebelum lanjut ke fase lain karena dampaknya menyebar ke semua menu. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 ---
@@ -297,7 +305,13 @@ Jalankan Fase 9: debug menu Piutang. Verifikasi piutang dari transaksi kredit (F
 ### Fase 10 — Dashboard & Dashboard Keuangan
 
 ```
-Jalankan Fase 10: debug halaman Dashboard dan Dashboard Keuangan. Pastikan semua widget/grafik (statistik, tren penjualan, produk terlaris, kategori terlaris, metode pembayaran) load tanpa error di kondisi data kosong maupun ada data, dan angkanya konsisten dengan data transaksi/kas dari fase-fase sebelumnya. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 10: debug halaman Dashboard (menu Beranda > Dashboard, DashboardPage.tsx) dan Dashboard Keuangan (menu Keuangan > Dashboard, menuKey keuangan.dashboard, FinancePage.tsx — isinya BUKAN grafik, tapi filter tanggal + 4 kartu ringkasan Pemasukan/Pengeluaran/Laba/Piutang + tabel arus kas).
+
+Dashboard: pastikan widget statistik (SummaryCards), grafik tren penjualan (SalesChart), dan tabel produk terlaris (TopProductsTable) load tanpa error di kondisi data kosong maupun ada data untuk tiap pilihan periode (Hari Ini/Minggu Ini/Bulan Ini), dan angkanya konsisten dengan data transaksi dari fase sebelumnya.
+
+Dashboard Keuangan: test filter tanggal manual (Dari/Sampai) dan preset (Hari ini/Minggu ini/Bulan ini/Reset), verifikasi 4 kartu ringkasan dan tabel arus kas (kolom Tipe Pemasukan/Pengeluaran, Nominal) konsisten dengan data transaksi & pengeluaran dari fase-fase sebelumnya, cek kondisi rentang tanggal yang tidak menghasilkan data (empty state, bukan error).
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 ---

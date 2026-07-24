@@ -36,7 +36,7 @@ function DataDiff({
   const allKeys = Array.from(new Set([...Object.keys(serverData), ...Object.keys(localData)]))
 
   return (
-    <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
+    <div className="grid grid-cols-1 gap-3 mt-3 text-xs sm:grid-cols-2">
       <div className="space-y-1">
         <p className="font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Data Server</p>
         {allKeys.map((key) => {

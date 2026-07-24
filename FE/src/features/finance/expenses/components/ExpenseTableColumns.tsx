@@ -50,11 +50,13 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
     {
       key: 'description',
       header: 'Keterangan',
+      mobileLabel: true,
       cell: (row) => <span className="text-sm text-gray-700">{row.description}</span>,
     },
     {
       key: 'payment_method',
       header: 'Metode',
+      mobileHidden: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">
           {PAYMENT_METHOD_LABEL[row.payment_method] ?? row.payment_method}
@@ -74,6 +76,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
       key: 'user_name',
       header: 'Kasir',
       sortable: true,
+      mobileHidden: true,
       cell: (row) => <span className="text-sm text-gray-500">{row.user_name}</span>,
     },
     {

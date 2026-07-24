@@ -19,6 +19,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
     {
       key: 'transaction_code',
       header: 'Kode',
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-mono font-semibold text-gray-800 text-sm">
           {row.transaction_code}
@@ -48,6 +49,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       key: 'kasir_name',
       header: 'Kasir',
       sortable: true,
+      mobileHidden: true,
       cell: (row) => <span className="text-sm">{row.kasir_name}</span>,
     },
     {

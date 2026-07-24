@@ -120,7 +120,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
             ) : transaction ? (
               <div className="space-y-5">
                 {/* Meta info */}
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
                   <div>
                     <p className="text-xs text-gray-500">Tanggal</p>
                     <p className="font-medium">{formatDateTimeLong(transaction.transaction_date)}</p>

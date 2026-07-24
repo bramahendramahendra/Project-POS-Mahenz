@@ -32,21 +32,21 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
       ) : (
         <div className="space-y-4 text-sm">
           {/* Identitas */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Nama Supplier" value={supplier.name} />
             <DetailField label="Kode Supplier">
               <code className="text-xs text-gray-700">{supplier.supplier_code || '—'}</code>
             </DetailField>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Status">
               <StatusBadge status={supplier.is_active ? 'active' : 'inactive'} />
             </DetailField>
             <DetailField label="Nama Kontak" value={supplier.contact_person || '—'} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Telepon" value={supplier.phone || '—'} />
             <DetailField label="Email" value={supplier.email || '—'} />
           </div>
@@ -60,7 +60,7 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
           )}
 
           {/* Summary Cards */}
-          <div className="border-t pt-3 grid grid-cols-3 gap-2">
+          <div className="border-t pt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
             <SummaryCard
               label="Total Pembelian"
               value={formatRupiah(supplier.total_amount)}

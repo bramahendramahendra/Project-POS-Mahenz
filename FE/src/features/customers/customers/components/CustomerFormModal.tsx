@@ -123,7 +123,7 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
             {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="cust-phone">Telepon</Label>
               <Input id="cust-phone" {...register('phone')} placeholder="08xx-xxxx-xxxx" />

@@ -102,7 +102,7 @@ export function BackupTab() {
       ) : files.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-400">Belum ada backup yang dibuat</p>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
+        <div className="rounded-lg border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>

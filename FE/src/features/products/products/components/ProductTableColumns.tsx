@@ -28,6 +28,7 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       key: 'name',
       header: 'Nama Produk',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => {
         const expiry = expirySeverityMap[row.id]
         return (
@@ -55,6 +56,7 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
     {
       key: 'barcode',
       header: 'Barcode / SKU',
+      mobileHidden: true,
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           {row.barcode ? (
@@ -146,6 +148,7 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
       key: 'unit_name',
       header: 'Satuan',
       width: '80px',
+      mobileHidden: true,
       cell: (row) =>
         row.unit_name ? (
           <span className="text-sm text-gray-600">{row.unit_name}</span>

@@ -9,12 +9,14 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
       key: 'product_code',
       header: 'Kode',
       sortable: true,
+      mobileHidden: true,
       cell: (r) => <span className="text-xs font-mono text-gray-500">{r.product_code}</span>,
     },
     {
       key: 'product_name',
       header: 'Nama Produk',
       sortable: true,
+      mobileLabel: true,
       cell: (r) => <span className="text-sm font-medium">{r.product_name}</span>,
     },
     {
@@ -26,6 +28,7 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
     {
       key: 'unit',
       header: 'Satuan',
+      mobileHidden: true,
       cell: (r) => <span className="text-sm">{r.unit}</span>,
     },
     {

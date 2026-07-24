@@ -22,6 +22,7 @@ export function buildShiftColumns(handlers: ShiftColumnHandlers): ColumnDef<Shif
       key: 'name',
       header: 'Nama Shift',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-medium text-gray-800">{row.name}</span>
       ),

@@ -30,6 +30,7 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
     {
       key: 'transaction_code',
       header: 'Kode Transaksi',
+      mobileHidden: true,
       cell: (row) => (
         <span className="font-mono font-semibold text-sm text-gray-800">
           {row.transaction_code}
@@ -39,6 +40,7 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
     {
       key: 'customer_name',
       header: 'Pelanggan',
+      mobileLabel: true,
       cell: (row) => <span className="font-medium">{row.customer_name}</span>,
     },
     {

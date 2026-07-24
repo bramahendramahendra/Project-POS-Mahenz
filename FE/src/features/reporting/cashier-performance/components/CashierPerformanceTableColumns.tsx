@@ -9,6 +9,7 @@ export function buildCashierPerformanceColumns(): ColumnDef<CashierPerformance>[
       key: 'cashier_name',
       header: 'Nama Kasir',
       sortable: true,
+      mobileLabel: true,
       cell: (r) => <span className="font-medium">{r.cashier_name}</span>,
     },
     {
@@ -29,12 +30,14 @@ export function buildCashierPerformanceColumns(): ColumnDef<CashierPerformance>[
       key: 'total_cash',
       header: 'Tunai',
       align: 'right',
+      mobileHidden: true,
       cell: (r) => <span className="text-gray-600">{formatRupiah(r.total_cash)}</span>,
     },
     {
       key: 'total_non_cash',
       header: 'Non-Tunai',
       align: 'right',
+      mobileHidden: true,
       cell: (r) => <span className="text-gray-600">{formatRupiah(r.total_non_cash)}</span>,
     },
     {
@@ -42,6 +45,7 @@ export function buildCashierPerformanceColumns(): ColumnDef<CashierPerformance>[
       header: 'Rata-rata/Transaksi',
       align: 'right',
       sortable: true,
+      mobileHidden: true,
       cell: (r) => <span className="text-gray-600">{formatRupiah(r.avg_per_transaction)}</span>,
     },
     {

@@ -26,7 +26,7 @@ function getInitials(fullName: string) {
     .toUpperCase()
 }
 
-export function Navbar() {
+export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user } = useAuth()
   const { mutate: logout, isPending } = useLogoutMutation()
   const { conflictCount } = useSyncStatus()
@@ -44,7 +44,11 @@ export function Navbar() {
       >
         {/* Kiri */}
         <div className="flex items-center gap-3">
-          <button className="text-white/70 hover:text-white transition-colors p-1">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="text-white/70 hover:text-white transition-colors p-1 lg:hidden"
+          >
             <Menu size={20} />
           </button>
           <span className="text-white font-bold text-lg tracking-wide">{config.appName}</span>

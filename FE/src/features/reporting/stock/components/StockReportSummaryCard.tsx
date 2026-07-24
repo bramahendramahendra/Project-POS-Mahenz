@@ -28,7 +28,7 @@ function SummaryCard({ label, value, isLoading }: CardProps) {
 
 export function StockReportSummaryCard({ summary, isLoading }: StockReportSummaryCardProps) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <SummaryCard
         label="Total Produk"
         value={String(summary?.total_products ?? 0)}

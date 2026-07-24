@@ -45,14 +45,14 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
       ) : (
         <div className="space-y-4 text-sm">
           {/* Identitas */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Nama Produk" value={product.name} />
             <DetailField label="Status">
               <StatusBadge status={product.is_active ? 'active' : 'inactive'} />
             </DetailField>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Barcode">
               <code className="text-xs text-gray-700">{product.barcode || '—'}</code>
             </DetailField>
@@ -61,13 +61,13 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
             </DetailField>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Kategori" value={product.category_name || '—'} />
             <DetailField label="Satuan" value={product.unit_name || '—'} />
           </div>
 
           {/* Harga */}
-          <div className="rounded-md border bg-gray-50 p-3 grid grid-cols-3 gap-3">
+          <div className="rounded-md border bg-gray-50 p-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <DetailField label="Harga Beli" value={formatRupiah(product.purchase_price)} />
             <DetailField label="Harga Jual" value={formatRupiah(product.selling_price)} />
             <DetailField label="Margin">
@@ -86,7 +86,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
           </div>
 
           {/* Stok */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Stok">
               <span
                 className={`font-medium ${
@@ -104,7 +104,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
           </div>
 
           {product.reserved_qty > 0 && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailField label="Stok Direservasi">
                 <span className="font-medium text-amber-600">{product.reserved_qty}</span>
               </DetailField>

@@ -15,12 +15,14 @@ export function buildSalesReportColumns(): ColumnDef<SalesReport>[] {
       key: 'transaction_code',
       header: 'Kode Transaksi',
       sortable: true,
+      mobileLabel: true,
       cell: (r) => <span className="text-sm font-mono font-medium">{r.transaction_code}</span>,
     },
     {
       key: 'cashier_name',
       header: 'Kasir',
       sortable: true,
+      mobileHidden: true,
       cell: (r) => <span className="text-sm">{r.cashier_name}</span>,
     },
     {

@@ -39,7 +39,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
       ) : (
         <div className="space-y-5 text-sm">
           {/* Info Header */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
             <InfoField label="Kode PO">
               <span className="font-mono font-semibold text-blue-700">{purchase.purchase_code}</span>
             </InfoField>
@@ -63,7 +63,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-2 border-t pt-4">
+          <div className="grid grid-cols-2 gap-2 border-t pt-4 sm:grid-cols-4">
             <SummaryCard label="Subtotal" value={formatRupiah(purchase.total_amount + purchase.discount_amount)} color="gray" />
             <SummaryCard label="Diskon" value={formatRupiah(purchase.discount_amount)} color="orange" />
             <SummaryCard label="Total" value={formatRupiah(purchase.total_amount)} color="blue" />

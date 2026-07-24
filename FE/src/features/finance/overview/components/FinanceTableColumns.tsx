@@ -13,11 +13,13 @@ export function buildFinanceColumns(): ColumnDef<CashflowItem>[] {
     {
       key: 'category',
       header: 'Kategori',
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-sm">{row.category}</span>,
     },
     {
       key: 'description',
       header: 'Deskripsi',
+      mobileHidden: true,
       cell: (row) => <span className="text-gray-600 text-sm">{row.description}</span>,
     },
     {

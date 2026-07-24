@@ -27,6 +27,7 @@ export function buildSyncHistoryColumns(): ColumnDef<SyncHistoryItem>[] {
     {
       key: 'device_id',
       header: 'Perangkat',
+      mobileLabel: true,
       cell: (row) => (
         <span className="font-medium text-sm">
           {row.device_id}
@@ -86,6 +87,7 @@ export function buildSyncHistoryColumns(): ColumnDef<SyncHistoryItem>[] {
       key: 'duration_ms',
       header: 'Durasi',
       align: 'right',
+      mobileHidden: true,
       cell: (row) => <span className="text-xs text-gray-500">{row.duration_ms} ms</span>,
     },
   ]

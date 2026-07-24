@@ -123,7 +123,7 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
         submitLabel="Simpan"
       >
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="exp-date">
                 Tanggal <span className="text-red-500">*</span>
@@ -182,7 +182,7 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="exp-amount">
                 Jumlah <span className="text-red-500">*</span>

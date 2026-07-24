@@ -42,6 +42,7 @@ export function buildSyncQueueColumns(): ColumnDef<SyncQueueItem>[] {
     {
       key: 'device_id',
       header: 'Perangkat',
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-sm">{row.device_id}</span>,
     },
     {

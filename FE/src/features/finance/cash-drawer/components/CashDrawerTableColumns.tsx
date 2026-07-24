@@ -30,6 +30,7 @@ export function buildCashDrawerColumns(
       key: 'shift_name',
       header: 'Shift',
       align: 'center',
+      mobileHidden: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">{row.shift_name ?? '—'}</span>
       ),
@@ -38,6 +39,7 @@ export function buildCashDrawerColumns(
       key: 'user_name',
       header: 'Kasir',
       sortable: true,
+      mobileLabel: true,
       cell: (row) => <span className="text-sm font-medium">{row.user_name}</span>,
     },
     {
@@ -45,6 +47,7 @@ export function buildCashDrawerColumns(
       header: 'Saldo Awal Tunai',
       align: 'right',
       sortable: true,
+      mobileHidden: true,
       cell: (row) => <span className="text-sm">{formatRupiah(row.opening_balance)}</span>,
     },
     {

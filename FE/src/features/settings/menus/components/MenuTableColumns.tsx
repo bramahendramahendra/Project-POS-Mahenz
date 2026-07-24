@@ -21,11 +21,13 @@ export function buildMenuColumns(handlers: MenuColumnHandlers): ColumnDef<MenuRe
     {
       key: 'key_name',
       header: 'Key',
+      mobileHidden: true,
       cell: (row) => <span className="font-mono text-xs">{row.key_name}</span>,
     },
     {
       key: 'label',
       header: 'Label',
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.label}</span>,
     },
     {
@@ -41,6 +43,7 @@ export function buildMenuColumns(handlers: MenuColumnHandlers): ColumnDef<MenuRe
     {
       key: 'path',
       header: 'Path',
+      mobileHidden: true,
       cell: (row) =>
         row.path ? (
           <span className="font-mono text-xs text-gray-500">{row.path}</span>

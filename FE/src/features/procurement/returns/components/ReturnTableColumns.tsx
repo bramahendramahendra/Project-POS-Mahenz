@@ -26,6 +26,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
     {
       key: 'return_code',
       header: 'Kode Retur',
+      mobileLabel: true,
       cell: (row) => (
         <span className="text-sm font-mono font-medium text-blue-700">{row.return_code}</span>
       ),
@@ -50,6 +51,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
     {
       key: 'reason',
       header: 'Alasan',
+      mobileHidden: true,
       cell: (row) => <span className="text-sm text-gray-600">{row.reason}</span>,
     },
     {

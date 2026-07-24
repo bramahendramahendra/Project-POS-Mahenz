@@ -23,16 +23,19 @@ export function buildRoleColumns(handlers: RoleColumnHandlers): ColumnDef<Role>[
     {
       key: 'name',
       header: 'Nama Role',
+      mobileHidden: true,
       cell: (row) => <span className="font-mono text-xs font-medium">{row.name}</span>,
     },
     {
       key: 'display_name',
       header: 'Label',
+      mobileLabel: true,
       cell: (row) => <span className="font-medium text-gray-800">{row.display_name}</span>,
     },
     {
       key: 'description',
       header: 'Deskripsi',
+      mobileHidden: true,
       cell: (row) =>
         row.description ? (
           <span className="text-sm text-gray-600">{row.description}</span>

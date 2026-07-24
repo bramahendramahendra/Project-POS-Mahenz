@@ -362,7 +362,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             </div>
 
             {/* Kategori + Satuan */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>
                   Kategori <span className="text-red-500">*</span>
@@ -428,7 +428,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             </div>
 
             {/* Barcode + SKU */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="barcode">
                   Barcode <span className="text-red-500">*</span>
@@ -500,7 +500,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             </div>
 
             {/* Harga Beli + Harga Jual + Margin */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label htmlFor="purchase_price">Harga Beli</Label>
                 <Controller
@@ -565,7 +565,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             </div>
 
             {/* Stok + Stok Minimum */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="stock">Stok</Label>
                 <Input
