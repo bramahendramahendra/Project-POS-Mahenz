@@ -73,7 +73,7 @@ export function buildSupplierColumns(handlers: SupplierColumnHandlers): ColumnDe
         <div className="flex items-center justify-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-indigo-600" onClick={() => onDetail(row)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onDetail(row)}>
                 <Eye size={14} />
               </Button>
             </TooltipTrigger>

@@ -76,7 +76,7 @@ export function buildMenuColumns(handlers: MenuColumnHandlers): ColumnDef<MenuRe
           <RoleGuard menuKey="sistem.menus" action="can_edit">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(row)}>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>
                   <Pencil size={14} />
                 </Button>
               </TooltipTrigger>
@@ -89,7 +89,7 @@ export function buildMenuColumns(handlers: MenuColumnHandlers): ColumnDef<MenuRe
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-red-500 hover:text-red-600"
+                  className="h-7 w-7 text-gray-500 hover:text-red-600"
                   onClick={() => onDelete(row)}
                 >
                   <Trash2 size={14} />

@@ -1,5 +1,8 @@
+import { Banknote } from 'lucide-react'
+
 import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
@@ -92,14 +95,19 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
       width: '80px',
       cell: (row) =>
         row.status !== 'paid' ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 px-3 text-xs"
-            onClick={() => onPay(row)}
-          >
-            Bayar
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-green-600"
+                onClick={() => onPay(row)}
+              >
+                <Banknote size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Bayar</TooltipContent>
+          </Tooltip>
         ) : null,
     },
   ]

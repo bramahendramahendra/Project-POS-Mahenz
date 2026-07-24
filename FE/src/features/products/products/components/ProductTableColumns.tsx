@@ -178,14 +178,6 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
             </TooltipTrigger>
             <TooltipContent>Lihat Detail</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-indigo-600" onClick={() => onLabel(row)}>
-                <Printer size={14} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Cetak Label</TooltipContent>
-          </Tooltip>
           <RoleGuard menuKey="produk.produk" action="can_edit">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -194,6 +186,14 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-indigo-600" onClick={() => onLabel(row)}>
+                  <Printer size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Cetak Label</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>

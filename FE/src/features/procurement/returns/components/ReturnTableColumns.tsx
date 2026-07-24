@@ -1,6 +1,6 @@
 import { Eye, Trash2 } from 'lucide-react'
 
-import { StatusBadge } from '@/shared/components'
+import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
 import { formatDate, formatRupiah } from '@/shared/utils'
@@ -64,24 +64,26 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
       header: 'Aksi',
       align: 'center',
       cell: (row) => (
-        <div className="flex gap-1 justify-center">
+        <div className="flex items-center justify-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" onClick={() => onDetail(row)}>
-                <Eye className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onDetail(row)}>
+                <Eye size={14} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Detail</TooltipContent>
           </Tooltip>
           {row.status === 'pending' && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-                  <Trash2 className="h-4 w-4 text-red-500" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Hapus</TooltipContent>
-            </Tooltip>
+            <RoleGuard menuKey="pengadaan.retur" action="can_delete">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-600" onClick={() => onDelete(row)}>
+                    <Trash2 size={14} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Hapus</TooltipContent>
+              </Tooltip>
+            </RoleGuard>
           )}
         </div>
       ),

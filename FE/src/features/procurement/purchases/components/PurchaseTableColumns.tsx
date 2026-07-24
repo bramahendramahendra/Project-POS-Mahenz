@@ -1,4 +1,4 @@
-import { Eye, PackagePlus, Pencil, Trash2, Ban } from 'lucide-react'
+import { Banknote, Eye, PackagePlus, Pencil, Trash2, Ban } from 'lucide-react'
 
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -110,7 +110,7 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7 text-gray-500 hover:text-indigo-600"
+                        className="h-7 w-7 text-gray-500 hover:text-blue-600"
                         onClick={() => onEdit(row)}
                       >
                         <Pencil size={14} />
@@ -135,14 +135,19 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
                   </Tooltip>
                 )}
                 {row.payment_status !== 'paid' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => onPay(row)}
-                  >
-                    Bayar
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-gray-500 hover:text-green-600"
+                        onClick={() => onPay(row)}
+                      >
+                        <Banknote size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Bayar</TooltipContent>
+                  </Tooltip>
                 )}
               </RoleGuard>
             )}

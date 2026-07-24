@@ -64,19 +64,21 @@ export function buildRoleColumns(handlers: RoleColumnHandlers): ColumnDef<Role>[
       width: '130px',
       cell: (row) => (
         <div className="flex items-center justify-center gap-1">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onManageAccess(row)}>
-                <Settings size={14} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Atur Akses Menu</TooltipContent>
-          </Tooltip>
+          <RoleGuard menuKey="sistem.roles" action="can_edit">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onManageAccess(row)}>
+                  <Settings size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Atur Akses Menu</TooltipContent>
+            </Tooltip>
+          </RoleGuard>
           {!row.is_system && (
             <RoleGuard menuKey="sistem.roles" action="can_edit">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(row)}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onEdit(row)}>
                     <Pencil size={14} />
                   </Button>
                 </TooltipTrigger>
@@ -91,7 +93,7 @@ export function buildRoleColumns(handlers: RoleColumnHandlers): ColumnDef<Role>[
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7 text-red-500 hover:text-red-600"
+                    className="h-7 w-7 text-gray-500 hover:text-red-600"
                     onClick={() => onDelete(row)}
                   >
                     <Trash2 size={14} />
