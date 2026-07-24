@@ -248,7 +248,10 @@ export function ExpenseFormModal({ open, onOpenChange, expense }: ExpenseFormMod
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Pengeluaran' : 'Tambah Pengeluaran'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} pengeluaran "${pendingValues?.description}"?`}

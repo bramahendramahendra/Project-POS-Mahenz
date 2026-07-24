@@ -32,6 +32,10 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
   const open = product !== null
   const [writeOffTarget, setWriteOffTarget] = useState<ExpiryWarning | null>(null)
   const [writeOffNotes, setWriteOffNotes] = useState('')
+  // Sequential, bukan tumpuk — pola sama seperti FormModal + ConfirmDialog di seluruh
+  // aplikasi (mis. ProductFormModal): modal induk digerbang tertutup selagi dialog
+  // konfirmasi anak (write-off) tampil, bukan tetap terbuka di belakangnya.
+  const isWriteOffConfirming = writeOffTarget !== null
 
   const { data } = useExpiryWarningsQuery()
   const { mutate: confirmBatch, isPending: isConfirming } = useConfirmExpiryBatchMutation()
@@ -55,8 +59,8 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
   return (
     <>
       <FormModal
-        open={open}
-        onOpenChange={onOpenChange}
+        open={open && !isWriteOffConfirming}
+        onOpenChange={(val) => { if (!val && !isWriteOffConfirming) onOpenChange(val) }}
         title="Batch Perlu Dicek"
         description={product?.name}
         size="md"

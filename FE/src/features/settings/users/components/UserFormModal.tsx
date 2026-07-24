@@ -165,7 +165,10 @@ function CreateUserForm({ open, onOpenChange }: { open: boolean; onOpenChange: (
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title="Tambah User"
         description={`Yakin ingin menambahkan user "${pendingValues?.full_name}"?`}
@@ -269,7 +272,10 @@ function EditUserForm({
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title="Update User"
         description={`Yakin ingin mengupdate user "${pendingValues?.full_name}"?`}

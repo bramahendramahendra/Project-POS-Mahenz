@@ -158,7 +158,10 @@ export function ShiftFormModal({ open, onOpenChange, shift }: ShiftFormModalProp
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Shift' : 'Tambah Shift'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} shift "${pendingValues?.name}"?`}

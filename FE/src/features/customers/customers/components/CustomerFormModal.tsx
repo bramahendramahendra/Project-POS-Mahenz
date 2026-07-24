@@ -166,7 +166,10 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Pelanggan' : 'Tambah Pelanggan'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} pelanggan "${pendingValues?.name}"?`}

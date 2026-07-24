@@ -331,7 +331,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
 
       <ConfirmDialog
         open={confirmState.isConfirming}
-        onOpenChange={(v) => { if (!v) handleClose() }}
+        onOpenChange={(v) => { if (!v) setConfirmState(initialConfirmState) }}
         title="Tambah Item Pembelian"
         description={`Total PO akan berubah dari ${formatRupiah(currentTotal)} menjadi ${formatRupiah(projectedTotal)}. Status pembayaran akan menjadi "${projectedStatus}". Lanjutkan?`}
         confirmLabel="Ya, Simpan"

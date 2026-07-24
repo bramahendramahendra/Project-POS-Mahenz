@@ -772,7 +772,12 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
     <ConfirmDialog
       open={isConfirming}
-      onOpenChange={(val) => { if (!val) handleClose() }}
+      onOpenChange={(val) => {
+        if (!val) {
+          setIsConfirming(false)
+          setPendingValues(null)
+        }
+      }}
       title={isEditMode ? 'Update Pembelian' : 'Tambah Pembelian'}
       description={`Yakin ingin ${isEditMode ? 'memperbarui' : 'menyimpan'} data pembelian ini?`}
       confirmLabel="Ya, Simpan"

@@ -163,7 +163,10 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setConfirmOpen(false)
+            setPendingValues(null)
+          }
         }}
         title="Konfirmasi Pembayaran"
         description={`Catat pembayaran ${formatRupiah(pendingValues?.amount ?? 0)} untuk piutang ${receivable?.customer_name ?? ''}?`}

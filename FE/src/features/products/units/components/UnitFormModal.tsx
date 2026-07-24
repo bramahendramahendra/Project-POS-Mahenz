@@ -127,7 +127,10 @@ export function UnitFormModal({ open, onOpenChange, unit }: UnitFormModalProps) 
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Satuan' : 'Tambah Satuan'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} satuan "${pendingValues?.name}"?`}

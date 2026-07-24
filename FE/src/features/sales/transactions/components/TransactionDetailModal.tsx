@@ -56,6 +56,10 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
   const { mutate: voidTransaction, isPending: isVoiding } = useVoidTransactionMutation()
 
   const open = transactionId !== null
+  // Sequential, bukan tumpuk — pola sama seperti FormModal + ConfirmDialog di seluruh
+  // aplikasi: modal detail digerbang tertutup selagi dialog anak (konfirmasi void,
+  // atau struk cetak ulang) tampil, bukan tetap terbuka di belakangnya.
+  const isChildDialogOpen = voidConfirmOpen || receiptOpen
 
   const handleVoid = () => {
     if (!transactionId) return
@@ -96,8 +100,8 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
   return (
     <>
       <ActionModal
-        open={open}
-        onOpenChange={(val) => { if (!val) onClose() }}
+        open={open && !isChildDialogOpen}
+        onOpenChange={(val) => { if (!val && !isChildDialogOpen) onClose() }}
         title="Detail Transaksi"
         description={transaction?.transaction_code}
         descriptionClassName="font-mono text-xs"

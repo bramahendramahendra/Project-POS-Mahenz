@@ -124,7 +124,10 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Kategori' : 'Tambah Kategori'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} kategori "${pendingValues?.name}"?`}

@@ -280,7 +280,12 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
 
     <ConfirmDialog
       open={isConfirming}
-      onOpenChange={(val) => { if (!val) handleClose() }}
+      onOpenChange={(val) => {
+        if (!val) {
+          setIsConfirming(false)
+          setPendingPayload(null)
+        }
+      }}
       title="Tambah Retur Pembelian"
       description="Yakin ingin menyimpan data retur ini?"
       confirmLabel="Ya, Simpan"

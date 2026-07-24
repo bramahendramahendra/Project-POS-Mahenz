@@ -768,7 +768,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Produk' : 'Tambah Produk'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} produk "${pendingValues?.name}"?`}

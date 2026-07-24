@@ -170,7 +170,10 @@ export function SupplierFormModal({ open, onOpenChange, supplier }: SupplierForm
       <ConfirmDialog
         open={isConfirming}
         onOpenChange={(val) => {
-          if (!val) handleClose()
+          if (!val) {
+            setIsConfirming(false)
+            setPendingValues(null)
+          }
         }}
         title={isEdit ? 'Update Supplier' : 'Tambah Supplier'}
         description={`Yakin ingin ${isEdit ? 'mengupdate' : 'menambahkan'} supplier "${pendingValues?.name}"?`}
