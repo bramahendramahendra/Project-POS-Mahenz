@@ -166,6 +166,10 @@ INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
 SELECT m.id, 'pelaporan.kinerja_kasir', 'Kinerja Kasir', 'BarChart2', '/reports/cashier', 4
 FROM menus m WHERE m.key_name = 'pelaporan';
 
+INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
+SELECT m.id, 'pelaporan.ringkasan_bisnis', 'Ringkasan Bisnis', 'BarChart3', '/reports/business-summary', 5
+FROM menus m WHERE m.key_name = 'pelaporan';
+
 -- Group: Operasional
 INSERT IGNORE INTO menus (key_name, label, icon, path, order_index) VALUES
     ('operasional', 'Operasional', 'Clock', NULL, 8);
@@ -235,6 +239,7 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
     ('/reports/profit-loss', 'Laporan Laba Rugi'),
     ('/reports/stock', 'Laporan Stok'),
     ('/reports/cashier', 'Laporan Kinerja Kasir'),
+    ('/reports/business-summary', 'Ringkasan Bisnis'),
     ('/shifts', 'Shift'),
     ('/sync', 'Sync Center'),
     ('/settings/store', 'Profil Toko'),
@@ -252,8 +257,20 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
 --         operasional.sync) — dianggap wilayah Admin IT, bukan Owner.
 -- Admin : berperan sebagai admin IT — akses penuh ke SEMUA menu tanpa
 --         kecuali, termasuk 5 menu teknis di atas.
--- Kasir : hanya penjualan.kasir dan keuangan.kas_saya, plus profil toko
---         (view only).
+-- Kasir : HANYA beranda.dashboard (landing page operasional), penjualan.kasir,
+--         dan keuangan.kas_saya — tidak dapat menu lain apapun (TIDAK profil
+--         toko, TIDAK shift, TIDAK ringkasan bisnis). Data referensi seperti
+--         daftar shift aktif tetap terjangkau Kasir lewat endpoint
+--         options/lookup yang memang tidak digembok permission menu (lihat
+--         shift_routes.go `/active`), BUKAN lewat grant menu Shift — jangan
+--         tambah grant operasional.shift ke Kasir, itu bikin menu "Shift"
+--         muncul di sidebar-nya.
+--
+-- Menu baru yang ditambahkan setelah seed awal (mis. pelaporan.ringkasan_bisnis)
+-- otomatis ke-cover wildcard query Owner/Admin di bawah SELAMA baris menu-nya
+-- di-insert SEBELUM blok role_menu_access ini dijalankan (lihat urutan file ini).
+-- role_menu_access itu sendiri tabel materialized, bukan view — kalau nambah
+-- menu baru lagi di kemudian hari, taruh insert menu-nya sebelum baris ini.
 -- -------------------------------------------------------------
 
 -- OWNER: full access semua menu kecuali 5 menu teknis (wilayah Admin IT)
@@ -269,15 +286,16 @@ SELECT r.id, m.id, 1, 1, 1, 1
 FROM roles r, menus m
 WHERE r.name = 'admin';
 
--- KASIR: kasir, kas saya, dan profil toko (view only)
+-- KASIR: dashboard (landing page, view only — tidak ada aksi create di halaman ini)
+INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, m.id, 1, 0, 0, 0
+FROM roles r
+JOIN menus m ON m.key_name = 'beranda.dashboard'
+WHERE r.name = 'kasir';
+
+-- KASIR: kasir dan kas saya (perlu can_create — transaksi & buka kas)
 INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 SELECT r.id, m.id, 1, 1, 0, 0
 FROM roles r
 JOIN menus m ON m.key_name IN ('penjualan.kasir', 'keuangan.kas_saya')
-WHERE r.name = 'kasir';
-
-INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
-SELECT r.id, m.id, 1, 0, 0, 0
-FROM roles r
-JOIN menus m ON m.key_name = 'sistem.profil_toko'
 WHERE r.name = 'kasir';

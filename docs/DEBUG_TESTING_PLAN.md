@@ -20,14 +20,14 @@ npm run dev
 ```
 Kalau salah satu proses gagal start (port bentrok, error koneksi DB, dsb), itu sendiri sudah temuan Fase 0 — jangan lanjut ke fase lain sebelum keduanya bisa jalan normal.
 
-**2. Pastikan database (`pos_retail_db`, MySQL/MariaDB lokal) sudah ada skema & seed-nya.** Kalau kosong (misal habis di-drop untuk test "dari kosong"), jalankan dulu **berurutan**:
+**2. Skema & seed database (`pos_retail_db`, MySQL/MariaDB lokal).** BE **punya migration runner otomatis** (`BE/database/migrate.go`, jalan tiap `go run main.go` start) — dia baca semua file `.sql` di `BE/database/migrations/` urut nama file, skip yang sudah pernah dijalankan (dilacak di tabel `migrations_history`), jalankan yang belum. Jadi cukup pastikan folder migrations cuma berisi:
 ```
 BE/database/migrations/001_init_schema.sql
 BE/database/migrations/002_seed_data.sql
-BE/database/migrations/003_business_summary_menu.sql   -- menu "Ringkasan Bisnis" + grant Kasir ke beranda.dashboard
-BE/database/migrations/004_kasir_shift_access.sql      -- grant view-only Kasir ke operasional.shift
 ```
-Tidak ada migration runner otomatis di BE (`main.go` tidak menjalankan migration saat start) — kalau file `.sql` di atas baru ditambahkan/diubah setelah DB sudah ada isinya, jalankan manual (mis. lewat `mysql` CLI atau tool DB apapun) sebelum testing. **Setelah menjalankan migration apapun yang menyentuh `role_menu_access`, WAJIB restart proses BE** — ada cache permission in-memory (`pkg/permcache`) yang cuma ter-invalidate otomatis kalau perubahan lewat endpoint resmi (`Role Access` di UI/`POST /roles/:id/menus/set`), bukan kalau lewat SQL langsung.
+lalu start BE seperti biasa — migrasi jalan otomatis, **tidak perlu dijalankan manual**. Kalau mau test "dari kosong": drop semua tabel di `pos_retail_db` (termasuk `migrations_history`), lalu start BE — dia akan bikin ulang semuanya dari 2 file di atas.
+
+**Setelah mengubah isi migration yang menyentuh `role_menu_access` (jarang, biasanya cuma pas dev), WAJIB restart proses BE** — ada cache permission in-memory (`pkg/permcache`) yang cuma ter-invalidate otomatis kalau perubahan lewat endpoint resmi (`Role Access` di UI/`POST /roles/:id/menus/set`), bukan kalau lewat migration/SQL langsung.
 
 **3. Kredensial login untuk tiap role (dari seed data):**
 - Owner: `owner` / `owner123`
@@ -91,7 +91,7 @@ Tidak ada migration runner otomatis di BE (`main.go` tidak menjalankan migration
 ```
 Jalankan Fase 0.1 (Health check & login) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan FE bisa diakses. Login via browser sebagai owner, admin, dan kasir (3 kali login terpisah) — pastikan masing-masing berhasil redirect ke dashboard tanpa error, dan sidebar menu yang muncul sesuai hak akses role masing-masing (bandingkan dengan `role_menu_access` hasil `002_seed_data.sql` **DITAMBAH** grant dari `003_business_summary_menu.sql` dan `004_kasir_shift_access.sql` — Kasir sekarang seharusnya lihat "Beranda > Dashboard" dan "Operasional > Shift" juga, tidak cuma 3 menu seperti di seed murni). Coba juga login dengan password salah dan username tidak terdaftar, pastikan pesan error jelas dan tidak bocor informasi (misal tidak bilang "user tidak ada" vs "password salah" secara eksplisit kalau itu bukan by design). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 0.1: start BE dan FE, cek endpoint health BE merespon normal dan FE bisa diakses. Login via browser sebagai owner, admin, dan kasir (3 kali login terpisah — kalau belum ada user Kasir, buat dulu lewat Manajemen User login sebagai Owner/Admin) — pastikan masing-masing berhasil redirect ke dashboard tanpa error, dan sidebar menu yang muncul sesuai `role_menu_access` di `002_seed_data.sql`. Khusus Kasir: sidebar HARUS persis 3 menu — "Beranda > Dashboard", "Penjualan > Kasir", "Keuangan > Kas Saya" — TIDAK ada "Operasional > Shift", TIDAK ada "Sistem > Profil Toko", TIDAK ada menu lain apapun (kalau ada yang nongol di luar 3 itu, itu bug regresi). Coba juga login dengan password salah dan username tidak terdaftar, pastikan pesan error jelas dan tidak bocor informasi (misal tidak bilang "user tidak ada" vs "password salah" secara eksplisit kalau itu bukan by design). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **0.2 Session & logout**
@@ -292,7 +292,11 @@ Jalankan Fase 6.8: debug void transaksi dari halaman Transaksi. Verifikasi stok 
 ### Fase 7 — Keuangan: Kas Harian & Kas Saya
 
 ```
-Jalankan Fase 7: debug menu Kas Harian (rekap semua kasir) dan Kas Saya (kasir yang login). Test lihat ringkasan per shift/tanggal, filter per kasir (Kas Harian), riwayat transaksi tunai/non-tunai dan pengeluaran dalam 1 sesi kas. Verifikasi angka summary konsisten dengan transaksi & pengeluaran dari fase sebelumnya. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 7: debug menu Kas Harian (rekap semua kasir) dan Kas Saya (kasir yang login). Test lihat ringkasan per shift/tanggal, filter per kasir (Kas Harian), riwayat transaksi tunai/non-tunai dan pengeluaran dalam 1 sesi kas. Verifikasi angka summary konsisten dengan transaksi & pengeluaran dari fase sebelumnya.
+
+Regresi khusus guard shift di Kas Saya (`MyCashStatusCard.tsx`, sekarang pakai `PrerequisiteGuard` + `useCashDrawerPrerequisites` — komponen & hook yang SAMA dengan yang dipakai `CashDrawerStatusCard.tsx` di Dashboard, lihat Fase 10): login sebagai Kasir, kalau belum ada shift aktif di DB, halaman Kas Saya harus tampil blok "Belum bisa membuka kas" (ikon jam, judul, checklist) — BUKAN tombol "Buka Kas" polos yang kalau diklik dropdown shift-nya kosong tanpa penjelasan. Setelah ada shift aktif, blok itu harus hilang dan form Buka Kas normal tampil. Pastikan dua tempat ini (Dashboard & Kas Saya) selalu konsisten — kalau salah satu diubah gaya-nya sendiri tanpa yang lain, itu regresi.
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 ---
@@ -315,7 +319,7 @@ Jalankan Fase 9: debug menu Piutang. Verifikasi piutang dari transaksi kredit (F
 
 ### Fase 10 — Dashboard (landing page operasional) & Dashboard Keuangan
 
-> Catatan: `/dashboard` (menuKey `beranda.dashboard`) sudah di-rombak total dari "dashboard bisnis" jadi landing page operasional harian, dipakai SEMUA role termasuk Kasir (sebelumnya Kasir tidak punya akses sama sekali — sekarang dapat lewat migrasi `003_business_summary_menu.sql`). Isi statistik bisnis (grafik penjualan, produk terlaris, dst) sudah PINDAH ke menu baru "Ringkasan Bisnis" — lihat Fase 11.5, jangan dicari di sini lagi.
+> Catatan: `/dashboard` (menuKey `beranda.dashboard`) sudah di-rombak total dari "dashboard bisnis" jadi landing page operasional harian, dipakai SEMUA role termasuk Kasir (sebelumnya Kasir tidak punya akses sama sekali — sekarang dapat lewat `002_seed_data.sql`, grant view-only). Isi statistik bisnis (grafik penjualan, produk terlaris, dst) sudah PINDAH ke menu baru "Ringkasan Bisnis" — lihat Fase 11.5, jangan dicari di sini lagi.
 
 ```
 Jalankan Fase 10: debug halaman Dashboard baru (FE/src/features/dashboard/DashboardPage.tsx) dan Dashboard Keuangan (menu Keuangan > Dashboard, menuKey keuangan.dashboard, FinancePage.tsx — tidak berubah dari sebelumnya, isinya filter tanggal + 4 kartu ringkasan Pemasukan/Pengeluaran/Laba/Piutang + tabel arus kas).
@@ -371,9 +375,9 @@ Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan g
 ```
 Jalankan Fase 12: debug menu Shift. Test CRUD shift (jam mulai/selesai, nama shift), assign shift ke user/kasir, verifikasi shift yang aktif muncul benar saat buka kas.
 
-Regresi khusus grant baru Kasir ke `operasional.shift` (migrasi `004_kasir_shift_access.sql`, view-only can_view=1 can_create/edit/delete=0): login sebagai Kasir, pastikan menu "Operasional > Shift" MUNCUL di sidebar (baru, sebelumnya Kasir tidak lihat menu ini sama sekali) dan halaman-nya bisa dibuka (list shift kebaca), tapi tombol Tambah/Edit/Hapus shift TIDAK ada/disabled untuk Kasir (cuma view). Ini grant ditambahkan supaya endpoint `POST /shifts/active` (dipakai dropdown pilih shift di modal Buka Kas) tidak 403 buat Kasir — kalau ada perubahan ke permission ini di masa depan, pastikan dropdown Buka Kas di Kasir tetap bisa keisi shift aktif (lihat juga Fase 10 bagian CashDrawerStatusCard).
+Regresi khusus permission `/shifts/active` (BE `routes/segment/shift_routes.go` — endpoint ini SENGAJA tidak digembok permission menu apapun, beda dari `/shifts/list`/`/create`/`/update`/`/delete` yang tetap wajib permission `operasional.shift`; pola ini disamakan dengan endpoint options/lookup lain seperti `/product-categories/options`, `/customers/active`, dst yang juga terbuka buat semua user login): login sebagai Kasir, pastikan menu "Operasional > Shift" **TIDAK** muncul di sidebar sama sekali (Kasir tidak boleh lihat/akses halaman Manajemen Shift dalam bentuk apapun), tapi modal "Buka Kas" (dari Dashboard maupun Kas Saya) tetap bisa mengisi dropdown pilih shift dengan benar (karena manggil `/shifts/active` yang ungated). Coba juga langsung `POST /shifts/list` pakai token Kasir via curl/API — harus tetap 403. Kalau ada yang mengubah endpoint `/shifts/active` di masa depan jadi digembok permission lagi, itu akan mematahkan alur Buka Kas Kasir — pastikan tidak terulang (lihat juga Fase 10 bagian CashDrawerStatusCard dan Fase 7 bagian Kas Saya, dua-duanya bergantung pada endpoint ini tetap ungated).
 
-Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build (FE) dan go build+go vet (BE) sampai bersih.
 ```
 
 ---
@@ -451,8 +455,9 @@ Jalankan Fase 15.4: debug menu Backup & Restore. Jalankan backup manual, verifik
 ```
 Jalankan Fase 16: debug permission lintas role secara menyeluruh. Untuk role Owner, Admin, dan Kasir: cek satu-satu menu apa saja yang muncul di sidebar sesuai role_menu_access, lalu untuk tiap menu yang TIDAK seharusnya bisa diakses role tsb, coba akses langsung via URL (bukan cuma sidebar disembunyikan) dan via API langsung — pastikan backend menolak dengan status 403/pesan jelas, bukan cuma disembunyikan di UI.
 
-Checklist tambahan hasil migrasi & perbaikan bug sesi sebelumnya (pastikan semua masih benar, bukan cuma dites sekali waktu bug-nya baru diperbaiki):
-- Kasir: menu "Beranda > Dashboard" muncul (migrasi 003), menu "Operasional > Shift" muncul view-only (migrasi 004), menu "Pelaporan > Ringkasan Bisnis" TIDAK muncul dan endpoint `/reports/business-summary/*` 403.
+Checklist tambahan hasil perbaikan bug sesi-sesi sebelumnya (pastikan semua masih benar, bukan cuma dites sekali waktu bug-nya baru diperbaiki):
+- Kasir: sidebar HARUS persis 3 menu — "Beranda > Dashboard", "Penjualan > Kasir", "Keuangan > Kas Saya". TIDAK ada "Operasional > Shift", TIDAK ada "Sistem > Profil Toko", TIDAK ada "Pelaporan > Ringkasan Bisnis" (endpoint `/reports/business-summary/*` harus 403 buat Kasir).
+- Kasir: meski TIDAK punya menu Shift, endpoint `POST /shifts/active` tetap 200 (ungated by design, dipakai dropdown Buka Kas — lihat Fase 12), tapi `POST /shifts/list` (dan create/update/delete) tetap 403.
 - Kasir: endpoint `/transactions/detail/:id` cuma bisa untuk transaksi miliknya sendiri (403 untuk milik orang lain), `/transactions/list` 403 total (lihat Fase 6.7).
 - Admin: bisa buka & simpan Role Access untuk role sistem (Owner/Admin/Kasir), tapi tetap tidak bisa ubah role-nya sendiri (lihat Fase 14.3).
 - Owner: tetap TIDAK punya akses menu Manajemen Role/Menu/Versi/Backup/Sync Center (5 menu teknis) — ini desain yang benar, bukan bug.

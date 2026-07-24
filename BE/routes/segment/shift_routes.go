@@ -23,7 +23,11 @@ func ShiftRoutes(r *gin.RouterGroup) {
 	g := r.Group("/shifts")
 	{
 		g.POST("/list", perm("can_view"), shiftHandler.GetAll)
-		g.POST("/active", perm("can_view"), shiftHandler.GetOptions)
+		// /active tanpa perm() disengaja — pola sama seperti endpoint options/lookup lain
+		// (product-categories/options, suppliers/options, customers/active, dst): data referensi
+		// buat dropdown, dibutuhkan lintas fitur (di sini oleh OpenCashDrawerModal), bukan cuma
+		// oleh menu Shift itu sendiri. Jangan tempel perm() lagi di sini.
+		g.POST("/active", shiftHandler.GetOptions)
 		g.POST("/summary", perm("can_view"), shiftHandler.GetSummary)
 		g.POST("/detail/:id", perm("can_view"), shiftHandler.GetByID)
 		g.POST("/create", perm("can_create"), shiftHandler.Create)
