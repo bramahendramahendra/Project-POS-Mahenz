@@ -1,0 +1,24 @@
+/*
+ * Pola print-di-tempat: sembunyikan semua isi halaman saat print,
+ * kecuali elemen bertanda .print-root. Elemen di dalam .print-root
+ * yang tidak boleh ikut tercetak (toolbar, tombol) diberi class .no-print.
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-root,
+  .print-root * {
+    visibility: visible;
+  }
+  .print-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px;
+  }
+}

@@ -29,104 +29,99 @@ const DEFAULT_SETTINGS: PrinterSettingsFormValues = {
   auto_print: false,
 }
 
-function buildReceiptHtml(settings: PrinterSettings, forPrint = false): string {
-  const bodyWidth = settings.paper_size === '58mm' ? '210px' : '290px'
+function ReceiptPreview({ settings }: { settings: PrinterSettings }) {
+  const previewWidth = settings.paper_size === '58mm' ? '210px' : '290px'
   const now = new Date().toLocaleString('id-ID', {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-  const printScript = forPrint
-    ? `<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}</script>`
-    : ''
-  return `<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <title>Test Struk</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      color: #111;
-      width: ${bodyWidth};
-      margin: 0 auto;
-      padding: 16px 12px;
-    }
-    .center { text-align: center; }
-    .store-name { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
-    .divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
-    .divider-solid { border: none; border-top: 1px solid #ccc; margin: 8px 0; }
-    .row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-    .label { color: #777; }
-    .muted { color: #777; font-size: 11px; }
-    .bold { font-weight: 700; }
-    .item { margin-bottom: 8px; }
-    .item-name { font-weight: 600; }
-    .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin: 4px 0; }
-    .kembalian { display: flex; justify-content: space-between; font-weight: 600; color: #16a34a; margin-top: 2px; }
-    .footer { text-align: center; color: #888; font-size: 11px; margin-top: 8px; }
-    @media print { body { width: 100%; } }
-  </style>
-</head>
-<body>
-  <div class="center">
-    ${settings.show_logo ? '<div class="muted">[LOGO]</div>' : ''}
-    <div class="store-name">${settings.receipt_header || 'Nama Toko'}</div>
-  </div>
 
-  <hr class="divider" />
-
-  <div class="row"><span class="label">No. Transaksi</span><span class="bold">TRX-TEST-001</span></div>
-  <div class="row"><span class="label">Tanggal</span><span>${now}</span></div>
-  <div class="row"><span class="label">Kasir</span><span>Test Kasir</span></div>
-  <div class="row"><span class="label">Pembayaran</span><span>Tunai</span></div>
-
-  <hr class="divider" />
-
-  <div class="item">
-    <div class="row"><span class="item-name">Produk A</span><span class="bold">Rp 20.000</span></div>
-    <div class="row muted"><span>pcs &times; 2 @ Rp 10.000</span></div>
-  </div>
-  <div class="item">
-    <div class="row"><span class="item-name">Produk B</span><span class="bold">Rp 15.000</span></div>
-    <div class="row muted"><span>pcs &times; 1 @ Rp 15.000</span></div>
-  </div>
-
-  <hr class="divider" />
-
-  <div class="row muted"><span>Subtotal</span><span>Rp 35.000</span></div>
-
-  <hr class="divider-solid" />
-
-  <div class="total-row"><span>TOTAL</span><span>Rp 35.000</span></div>
-  <div class="row muted"><span>Dibayar (Tunai)</span><span>Rp 50.000</span></div>
-  <div class="kembalian"><span>Kembalian</span><span>Rp 15.000</span></div>
-
-  <hr class="divider" />
-
-  <div class="footer">${settings.receipt_footer || ''}</div>
-
-  ${printScript}
-</body>
-</html>`
-}
-
-function openTestPrint(settings: PrinterSettings) {
-  const win = window.open('', '_blank', 'width=400,height=600')
-  if (!win) return
-  win.document.write(buildReceiptHtml(settings, true))
-  win.document.close()
-}
-
-function ReceiptPreview({ settings }: { settings: PrinterSettings }) {
-  const previewWidth = settings.paper_size === '58mm' ? '230px' : '310px'
   return (
-    <iframe
-      srcDoc={buildReceiptHtml(settings, false)}
-      title="Preview Struk"
-      style={{ width: previewWidth, height: '420px', border: 'none' }}
-      scrolling="no"
-    />
+    <div
+      className="print-root"
+      style={{
+        width: previewWidth,
+        margin: '0 auto',
+        fontFamily: "'Courier New', monospace",
+        fontSize: 12,
+        color: '#111',
+        padding: '16px 12px',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        {settings.show_logo && <div style={{ color: '#777', fontSize: 11 }}>[LOGO]</div>}
+        <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '0.5px' }}>
+          {settings.receipt_header || 'Nama Toko'}
+        </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px dashed #aaa', margin: '10px 0' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+        <span style={{ color: '#777' }}>No. Transaksi</span>
+        <span style={{ fontWeight: 700 }}>TRX-TEST-001</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+        <span style={{ color: '#777' }}>Tanggal</span>
+        <span>{now}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+        <span style={{ color: '#777' }}>Kasir</span>
+        <span>Test Kasir</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+        <span style={{ color: '#777' }}>Pembayaran</span>
+        <span>Tunai</span>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px dashed #aaa', margin: '10px 0' }} />
+
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+          <span style={{ fontWeight: 600 }}>Produk A</span>
+          <span style={{ fontWeight: 700 }}>Rp 20.000</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#777', fontSize: 11 }}>
+          <span>pcs &times; 2 @ Rp 10.000</span>
+        </div>
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+          <span style={{ fontWeight: 600 }}>Produk B</span>
+          <span style={{ fontWeight: 700 }}>Rp 15.000</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#777', fontSize: 11 }}>
+          <span>pcs &times; 1 @ Rp 15.000</span>
+        </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px dashed #aaa', margin: '10px 0' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#777', fontSize: 11 }}>
+        <span>Subtotal</span>
+        <span>Rp 35.000</span>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, margin: '4px 0' }}>
+        <span>TOTAL</span>
+        <span>Rp 35.000</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#777', fontSize: 11 }}>
+        <span>Dibayar (Tunai)</span>
+        <span>Rp 50.000</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, color: '#16a34a', marginTop: 2 }}>
+        <span>Kembalian</span>
+        <span>Rp 15.000</span>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px dashed #aaa', margin: '10px 0' }} />
+
+      <div style={{ textAlign: 'center', color: '#888', fontSize: 11, marginTop: 8 }}>
+        {settings.receipt_footer || ''}
+      </div>
+    </div>
   )
 }
 
@@ -243,7 +238,7 @@ export function PrinterSettingsTab() {
             type="button"
             variant="outline"
             className="gap-1.5"
-            onClick={() => openTestPrint(liveSettings)}
+            onClick={() => window.print()}
           >
             <Printer size={15} />
             Test Print
@@ -256,8 +251,8 @@ export function PrinterSettingsTab() {
         </div>
       </form>
 
-      <div className="hidden lg:block shrink-0">
-        <p className="text-xs font-medium text-gray-500 mb-2">Preview Struk</p>
+      <div className="shrink-0">
+        <p className="text-xs font-medium text-gray-500 mb-2 no-print">Preview Struk</p>
         <div className="rounded-lg border bg-gray-50 p-4 shadow-sm">
           <ReceiptPreview settings={liveSettings} />
         </div>

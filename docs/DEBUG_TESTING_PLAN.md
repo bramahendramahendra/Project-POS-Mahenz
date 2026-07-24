@@ -113,7 +113,11 @@ Jalankan Fase 0.3: regresi baseline untuk komponen shared yang dipakai di SEMUA 
 ```
 Jalankan Fase 1.1 (Produk — CRUD dasar) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 1.1: debug CRUD Produk. Test tambah produk (semua field wajib & opsional, termasuk kondisi field kosong dan barcode/SKU duplikat), edit produk, nonaktifkan/aktifkan produk, hapus produk (termasuk coba hapus produk yang masih punya stok/riwayat — pastikan ditolak dengan pesan jelas kalau memang ada aturan begitu). Test juga search & filter di list produk. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 1.1: debug CRUD Produk. Test tambah produk (semua field wajib & opsional, termasuk kondisi field kosong dan barcode/SKU duplikat), edit produk, nonaktifkan/aktifkan produk, hapus produk (termasuk coba hapus produk yang masih punya stok/riwayat — pastikan ditolak dengan pesan jelas kalau memang ada aturan begitu). Test juga search & filter di list produk.
+
+Test juga fitur "Cetak Label Harga" (LabelPrintModal.tsx, pilih 1+ produk dari list → cetak label barcode) — coba berbagai kombinasi ukuran label (kecil/sedang/besar) & jumlah kolom, ubah jumlah label per produk, verifikasi tombol Cetak (print-di-tempat, pakai CSS print bersama di FE/src/shared/styles/print.css — sama seperti struk di Fase 6.6) memicu dialog print dengan benar di 375px/768px/1280px, dan hasil print cuma berisi grid label (toolbar/dialog chrome tidak ikut ke-print).
+
+Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.2 Produk — gating stok berdasarkan role**
@@ -263,7 +267,9 @@ Jalankan Fase 6.5: debug checkout metode Kredit. Coba checkout kredit tanpa pili
 
 **6.6 Struk & Preview**
 ```
-Jalankan Fase 6.6: debug preview & cetak struk setelah transaksi (ukuran kertas 58mm/80mm, header/footer sesuai Pengaturan Printer, auto-print jika aktif). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 6.6: debug preview & cetak struk setelah transaksi (ukuran kertas 58mm/80mm, header/footer sesuai Pengaturan Printer, auto-print jika aktif).
+
+Regresi khusus mekanisme cetak (baru diganti dari popup window.open ke print-di-tempat + @media print, lihat FE/src/features/sales/cashier/components/ReceiptPrint.tsx dan FE/src/shared/styles/print.css): test tombol "Cetak" di modal struk checkout DAN "Cetak Ulang" dari detail transaksi (mode reprint) — lakukan di ketiga breakpoint (375px/768px/1280px sesuai poin Responsivitas di Aturan Umum), pastikan dialog print browser benar-benar muncul (bukan diam-diam gagal), isi struk yang tercetak/preview-print lengkap dan sesuai (bukan halaman kosong atau ikut ke-print elemen UI lain seperti tombol/header modal). Test juga auto-print (toggle di Pengaturan Printer) langsung memicu print saat checkout selesai tanpa perlu klik manual. Kalau device testing punya printer Bluetooth BLE yang sudah pernah dipilih browser sebelumnya (FE/src/features/sales/cashier/blePrinter.ts), verifikasi juga jalur itu terpicu duluan sebelum fallback ke dialog print biasa — kalau tidak ada printer BLE, cukup pastikan fallback ke `window.print()` tetap jalan mulus (skenario paling umum). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **6.7 Riwayat Transaksi & Detail**
@@ -394,7 +400,7 @@ Jalankan Fase 14.4: debug menu Manajemen Menu. Tambah menu baru (pilih parent, p
 
 **15.1 Pengaturan Printer**
 ```
-Jalankan Fase 15.1: debug Pengaturan Printer. Ubah ukuran kertas, header/footer, toggle logo & auto-print, verifikasi preview struk live-update dan tersimpan benar setelah reload halaman. Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 15.1: debug Pengaturan Printer. Ubah ukuran kertas, header/footer, toggle logo & auto-print, verifikasi preview struk live-update dan tersimpan benar setelah reload halaman. Test tombol "Test Print" (print-di-tempat via window.print(), lihat FE/src/features/settings/printer/components/PrinterSettingsTab.tsx) di 375px/768px/1280px — pastikan dialog print browser muncul dan preview struk (sekarang selalu ter-render, tidak lagi disembunyikan di layar <1024px) berisi data test yang benar sesuai setting yang lagi diedit (live, belum disimpan). Fix bug yang ditemukan sesuai Aturan Umum, lalu type-check+lint+build sampai bersih.
 ```
 
 **15.2 Profil Toko**
@@ -436,3 +442,4 @@ Jalankan Fase 17: regresi akhir menyeluruh. Jalankan ulang secara singkat (smoke
 - Kalau satu fase menemukan banyak bug dan terasa kepanjangan, boleh dihentikan di tengah dan dilanjutkan nanti — cukup sebutkan fase & sub-bagian mana yang terakhir dikerjakan.
 - Data uji yang dibuat selama testing (produk/PO/transaksi dummy, termasuk yang adversarial) **dibiarkan saja di database development, tidak perlu dihapus** — ini berguna juga bagi user untuk dicek/dipakai kembali di luar sesi testing.
 - Fase 6.6 & 15.1 (struk/Pengaturan Printer): bug "struk asli tidak memakai Pengaturan Printer" sudah diperbaiki di luar rencana ini (ReceiptPrint.tsx sekarang konsumsi header/footer/paper_size/logo/auto_print, plus default BE untuk paper_size & footer saat setting kosong). Saat fase ini dijalankan, perlakukan sebagai **regresi** — pastikan perbaikan itu masih benar, bukan menemukan ulang dari nol.
+- Fase 6.6 & 15.1 (lanjutan, mekanisme cetak): mekanisme cetak juga sudah diganti total dari popup `window.open`+`document.write` (rapuh/sering gagal diam-diam di mobile Safari/Chrome Android) jadi print-di-tempat (`window.print()` langsung + CSS `.print-root`/`.no-print` di `FE/src/shared/styles/print.css`, dipakai bersama oleh `ReceiptPrint.tsx`, `PrinterSettingsTab.tsx`, dan `LabelPrintModal.tsx`) — plus jalur opsional cetak langsung ke printer Bluetooth BLE (`FE/src/features/sales/cashier/blePrinter.ts`) kalau device pernah pairing satu. Perlakukan sebagai regresi juga: pastikan print-di-tempat ini masih benar di semua breakpoint, jangan dianggap "sudah pasti aman" karena baru saja diganti total dan cuma divalidasi otomatis (stub `window.print`, cek DOM `.print-root`) — belum pernah dicetak ke printer fisik sungguhan. Kalau device testing tidak punya printer fisik, cukup pastikan dialog print browser muncul dengan konten benar; verifikasi cetak fisik nyata di luar sesi ini.

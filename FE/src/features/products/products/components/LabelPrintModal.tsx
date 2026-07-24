@@ -219,15 +219,6 @@ export function LabelPrintModal({ open, onOpenChange, products }: LabelPrintModa
       {/* Preview */}
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          body * { visibility: hidden; }
-          .print-root, .print-root * { visibility: visible; }
-          .print-root {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%;
-            padding: 8px;
-          }
           .label-grid { gap: 4px !important; }
           .label-item { page-break-inside: avoid; break-inside: avoid; }
         }

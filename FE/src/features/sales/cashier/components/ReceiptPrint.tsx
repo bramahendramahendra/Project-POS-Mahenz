@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Printer, ShoppingCart, X } from 'lucide-react'
 
 import { ActionModal } from '@/shared/components'
@@ -8,10 +8,10 @@ import { DialogFooter } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
 
 import { useStoreProfileQuery } from '@/features/settings/store'
-import type { StoreProfile } from '@/features/settings/store'
 import { usePrinterSettingsQuery } from '@/features/settings/printer'
 import type { PrinterSettings } from '@/features/settings/printer'
 
+import { getRememberedPrinter, printViaBle, receiptToPlainText } from '../blePrinter'
 import type {
   CartItem,
   CartSummary,
@@ -62,166 +62,6 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function buildReceiptHtml(params: {
-  storeProfile?: StoreProfile
-  printerSettings: PrinterSettings
-  checkoutData: CheckoutResponse
-  cart: CartItem[]
-  summary: CartSummary
-  discount: Discount
-  tax: Tax
-  paymentMethod: PaymentMethod
-  amountPaid: number
-  customerName?: string
-}): string {
-  const { storeProfile, printerSettings, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName } = params
-  const storeName = printerSettings.receipt_header || storeProfile?.name || 'POS System'
-  const storeSub = [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')
-  const change = Math.max(0, amountPaid - summary.grandTotal)
-  const bodyWidth = printerSettings.paper_size === '58mm' ? '210px' : '300px'
-  const logoRow = printerSettings.show_logo && storeProfile?.logo_url
-    ? `<div class="center"><img src="${storeProfile.logo_url}" alt="Logo" style="max-width:80px;max-height:80px;margin:0 auto 6px;" /></div>`
-    : ''
-
-  const itemRows = cart.map((item) => {
-    const price = formatRupiah(item.effective_price ?? item.price)
-    const discountRow = item.discount_amount && item.discount_amount > 0
-      ? `<div class="row muted">
-           <span>Diskon ${item.discount_type === 'percent' ? `${item.discount_value}%` : formatRupiah(item.discount_value ?? 0)}</span>
-           <span>-${formatRupiah(item.discount_amount)}</span>
-         </div>`
-      : ''
-    return `
-      <div class="item">
-        <div class="row">
-          <span class="item-name">${item.product_name}</span>
-          <span class="bold">${formatRupiah(item.subtotal)}</span>
-        </div>
-        <div class="row muted">
-          <span>${item.unit_name} &times; ${item.qty} @ ${price}</span>
-        </div>
-        ${discountRow}
-      </div>`
-  }).join('')
-
-  const discountRow = summary.discountAmount > 0
-    ? `<div class="row green">
-         <span>Diskon${discount.type === 'percent' ? ` (${discount.value}%)` : ''}</span>
-         <span>-${formatRupiah(summary.discountAmount)}</span>
-       </div>`
-    : ''
-
-  const taxRow = summary.taxAmount > 0
-    ? `<div class="row muted">
-         <span>Pajak (${tax.percent}%)</span>
-         <span>+${formatRupiah(summary.taxAmount)}</span>
-       </div>`
-    : ''
-
-  const customerRow = customerName
-    ? `<div class="row"><span class="label">Pelanggan</span><span>${customerName}</span></div>`
-    : ''
-
-  return `<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <title>Struk - ${checkoutData.transaction_code}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      color: #111;
-      width: ${bodyWidth};
-      margin: 0 auto;
-      padding: 16px 12px;
-    }
-    .center { text-align: center; }
-    .store-name { font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
-    .store-sub { font-size: 11px; color: #555; margin-top: 2px; }
-    .divider { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
-    .divider-solid { border: none; border-top: 1px solid #ccc; margin: 8px 0; }
-    .row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-    .label { color: #777; }
-    .muted { color: #777; font-size: 11px; }
-    .green { color: #16a34a; }
-    .bold { font-weight: 700; }
-    .item { margin-bottom: 8px; }
-    .item-name { font-weight: 600; }
-    .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin: 4px 0; }
-    .kembalian { display: flex; justify-content: space-between; font-weight: 600; color: #16a34a; margin-top: 2px; }
-    .footer { text-align: center; color: #888; font-size: 11px; margin-top: 8px; }
-    @media print {
-      body { width: 100%; }
-    }
-  </style>
-</head>
-<body>
-  ${logoRow}
-  <div class="center">
-    <div class="store-name">${storeName}</div>
-    ${storeSub ? `<div class="store-sub">${storeSub}</div>` : ''}
-  </div>
-
-  <hr class="divider" />
-
-  <div class="row">
-    <span class="label">No. Transaksi</span>
-    <span class="bold">${checkoutData.transaction_code}</span>
-  </div>
-  <div class="row">
-    <span class="label">Tanggal</span>
-    <span>${formatDate(checkoutData.transaction_date)}</span>
-  </div>
-  ${customerRow}
-  <div class="row">
-    <span class="label">Pembayaran</span>
-    <span>${PAYMENT_LABELS[paymentMethod]}</span>
-  </div>
-
-  <hr class="divider" />
-
-  ${itemRows}
-
-  <hr class="divider" />
-
-  <div class="row muted">
-    <span>Subtotal</span>
-    <span>${formatRupiah(summary.subtotal)}</span>
-  </div>
-  ${discountRow}
-  ${taxRow}
-
-  <hr class="divider-solid" />
-
-  <div class="total-row">
-    <span>TOTAL</span>
-    <span>${formatRupiah(summary.grandTotal)}</span>
-  </div>
-  <div class="row muted">
-    <span>Dibayar (${PAYMENT_LABELS[paymentMethod]})</span>
-    <span>${formatRupiah(amountPaid)}</span>
-  </div>
-  <div class="kembalian">
-    <span>Kembalian</span>
-    <span>${formatRupiah(change)}</span>
-  </div>
-
-  <hr class="divider" />
-
-  <div class="footer">${printerSettings.receipt_footer || ''}</div>
-
-  <script>
-    window.onload = function() {
-      window.print()
-      window.onafterprint = function() { window.close() }
-    }
-  </script>
-</body>
-</html>`
-}
-
 export function ReceiptPrint({
   open,
   onClose,
@@ -241,15 +81,25 @@ export function ReceiptPrint({
   const printerSettings = printerSettingsData ?? DEFAULT_PRINTER_SETTINGS
   const autoPrinted = useRef(false)
 
-  const handlePrint = () => {
-    const html = buildReceiptHtml({
-      storeProfile, printerSettings, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
-    })
-    const win = window.open('', '_blank', 'width=380,height=600,toolbar=0,menubar=0,scrollbars=1')
-    if (!win) return
-    win.document.write(html)
-    win.document.close()
-  }
+  const handlePrint = useCallback(async () => {
+    const bleDevice = await getRememberedPrinter()
+    if (bleDevice) {
+      const text = receiptToPlainText({
+        storeName: printerSettings.receipt_header || storeProfile?.name || 'POS System',
+        storeSub: [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • '),
+        footer: printerSettings.receipt_footer,
+        paperSize: printerSettings.paper_size,
+        checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
+      })
+      try {
+        await printViaBle(bleDevice, text)
+        return
+      } catch {
+        // Printer BLE gagal (di luar jangkauan, dst) — fallback ke dialog print biasa.
+      }
+    }
+    window.print()
+  }, [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName])
 
   useEffect(() => {
     if (open && mode === 'checkout' && printerSettings.auto_print && !autoPrinted.current) {
@@ -257,11 +107,10 @@ export function ReceiptPrint({
       handlePrint()
     }
     if (!open) autoPrinted.current = false
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, printerSettings.auto_print])
+  }, [open, mode, printerSettings.auto_print, handlePrint])
 
   const footer = (
-    <DialogFooter className="border-t px-6 py-4">
+    <DialogFooter className="border-t px-6 py-4 no-print">
       <Button variant="outline" onClick={handlePrint} className="gap-1.5">
         <Printer size={14} />
         Cetak
@@ -291,7 +140,10 @@ export function ReceiptPrint({
     >
         {/* Receipt preview */}
         <ScrollArea style={{ maxHeight: '65vh' }}>
-        <div className="px-6 py-5 space-y-4">
+        <div
+          className="print-root px-6 py-5 space-y-4"
+          style={{ maxWidth: printerSettings.paper_size === '58mm' ? '210px' : '300px', margin: '0 auto' }}
+        >
 
           {/* Toko header */}
           <div className="text-center space-y-0.5">
