@@ -27,9 +27,11 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingShift, setEditingShift] = useState<Shift | null>(null)
   const [deletingShift, setDeletingShift] = useState<Shift | null>(null)
+  const [togglingShift, setTogglingShift] = useState<Shift | null>(null)
 
   const { data: shiftData, isLoading } = useShiftListQuery({ 
     ...filter, 
@@ -40,7 +42,7 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
   const total = shiftData?.total ?? 0
 
   const { mutate: deleteShift, isPending: isDeleting } = useDeleteShiftMutation()
-  const { mutate: toggleStatus } = useToggleShiftStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleShiftStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingShift(null)
@@ -93,8 +95,24 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
     })
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleToggleStatus = (id: number) => {
+    const shift = shifts.find((s) => s.id === id)
+    if (!shift) return
+    setTogglingShift(shift)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingShift(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingShift) return
+    toggleStatus(
+      { id: togglingShift.id, isActive: togglingShift.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = !!filter.search || filter.is_active !== undefined
@@ -150,6 +168,17 @@ export const ShiftTable = forwardRef<ShiftTableHandle, object>(function ShiftTab
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingShift?.is_active ? 'Nonaktifkan Shift' : 'Aktifkan Shift'}
+        description={`Shift "${togglingShift?.name}" akan di${togglingShift?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingShift?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingShift?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
     </div>
   )

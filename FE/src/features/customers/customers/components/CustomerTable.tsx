@@ -27,16 +27,18 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null)
+  const [togglingCustomer, setTogglingCustomer] = useState<Customer | null>(null)
 
   const { data: customerData, isLoading } = useCustomerListQuery({ ...filter, page, limit: pageSize })
   const customers = customerData?.data ?? []
   const total = customerData?.total ?? 0
 
   const { mutate: deleteCustomer, isPending: isDeleting } = useDeleteCustomerMutation()
-  const { mutate: toggleStatus } = useToggleCustomerStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleCustomerStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingCustomer(null)
@@ -65,8 +67,24 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
     setDeletingCustomer(null)
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleToggleStatus = (id: number) => {
+    const customer = customers.find((c) => c.id === id)
+    if (!customer) return
+    setTogglingCustomer(customer)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingCustomer(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingCustomer) return
+    toggleStatus(
+      { id: togglingCustomer.id, isActive: togglingCustomer.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const handleFilterChange = (newFilter: CustomerListFilter) => {
@@ -135,6 +153,17 @@ export const CustomerTable = forwardRef<CustomerTableHandle, object>(function Cu
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingCustomer?.is_active ? 'Nonaktifkan Pelanggan' : 'Aktifkan Pelanggan'}
+        description={`Pelanggan "${togglingCustomer?.name}" akan di${togglingCustomer?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingCustomer?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingCustomer?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
     </div>
   )

@@ -41,12 +41,15 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: importOpen, open: openImport, close: closeImport } = useDisclosure()
   const { isOpen: labelOpen, open: openLabel, close: closeLabel } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
+  const { isOpen: bulkToggleOpen, open: openBulkToggle, close: closeBulkToggle } = useDisclosure()
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [detailProduct, setDetailProduct] = useState<Product | null>(null)
   const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
   const [expiryProduct, setExpiryProduct] = useState<Product | null>(null)
+  const [togglingProduct, setTogglingProduct] = useState<Product | null>(null)
 
   const { data: productData, isLoading } = useProductListQuery({ ...filter, page, limit: pageSize })
   const products = productData?.data ?? []
@@ -63,7 +66,7 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   )
 
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductMutation()
-  const { mutate: toggleStatus } = useToggleProductStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleProductStatusMutation()
   const { mutate: bulkToggleStatus, isPending: isBulkToggling } = useBulkToggleProductStatusMutation()
   const { selectedKeys, toggle, selectAll, clearSelection, hasSelection, count } =
     useTableSelection<Product & { id: number }>()
@@ -144,13 +147,45 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
   }
 
   function handleBulkToggleStatus() {
-    const ids = selectedProducts.map((p) => p.id)
-    const label = allActive ? 'dinonaktifkan' : 'diaktifkan'
-    bulkToggleStatus({ ids, label }, { onSuccess: () => clearSelection() })
+    openBulkToggle()
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleCloseBulkToggle = () => {
+    closeBulkToggle()
+  }
+
+  const handleConfirmBulkToggle = () => {
+    const ids = selectedProducts.map((p) => p.id)
+    const label = allActive ? 'dinonaktifkan' : 'diaktifkan'
+    bulkToggleStatus(
+      { ids, label },
+      {
+        onSuccess: () => {
+          clearSelection()
+          handleCloseBulkToggle()
+        },
+      }
+    )
+  }
+
+  const handleToggleStatus = (id: number) => {
+    const product = products.find((p) => p.id === id)
+    if (!product) return
+    setTogglingProduct(product)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingProduct(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingProduct) return
+    toggleStatus(
+      { id: togglingProduct.id, isActive: togglingProduct.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = filter.search || filter.category_id || filter.is_active !== undefined
@@ -244,6 +279,28 @@ export const ProductTable = forwardRef<ProductTableHandle, object>(function Prod
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingProduct?.is_active ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}
+        description={`Produk "${togglingProduct?.name}" akan di${togglingProduct?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingProduct?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingProduct?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
+      />
+
+      <ConfirmDialog
+        open={bulkToggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseBulkToggle() }}
+        title={allActive ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}
+        description={`${count} produk akan di${allActive ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={allActive ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={allActive ? 'destructive' : 'default'}
+        isLoading={isBulkToggling}
+        onConfirm={handleConfirmBulkToggle}
       />
 
       <ImportCsvModal

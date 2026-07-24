@@ -27,16 +27,18 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
+  const [togglingCategory, setTogglingCategory] = useState<Category | null>(null)
 
   const { data: categoryData, isLoading } = useCategoryListQuery({ ...filter, page, limit: pageSize })
   const categories = categoryData?.data ?? []
   const total = categoryData?.total ?? 0
 
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategoryMutation()
-  const { mutate: toggleStatus } = useToggleCategoryStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleCategoryStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingCategory(null)
@@ -89,8 +91,24 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
     })
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleToggleStatus = (id: number) => {
+    const category = categories.find((c) => c.id === id)
+    if (!category) return
+    setTogglingCategory(category)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingCategory(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingCategory) return
+    toggleStatus(
+      { id: togglingCategory.id, isActive: togglingCategory.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = filter.search || filter.is_active !== undefined
@@ -147,6 +165,17 @@ export const CategoryTable = forwardRef<CategoryTableHandle, object>(function Ca
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingCategory?.is_active ? 'Nonaktifkan Kategori' : 'Aktifkan Kategori'}
+        description={`Kategori "${togglingCategory?.name}" akan di${togglingCategory?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingCategory?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingCategory?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CheckCircle2, Trash2, TriangleAlert } from 'lucide-react'
 
-import { ExtendedConfirmDialog, FormModal, RoleGuard } from '@/shared/components'
+import { ConfirmDialog, ExtendedConfirmDialog, FormModal, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
 
@@ -32,10 +32,12 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
   const open = product !== null
   const [writeOffTarget, setWriteOffTarget] = useState<ExpiryWarning | null>(null)
   const [writeOffNotes, setWriteOffNotes] = useState('')
+  const [confirmTarget, setConfirmTarget] = useState<ExpiryWarning | null>(null)
   // Sequential, bukan tumpuk — pola sama seperti FormModal + ConfirmDialog di seluruh
   // aplikasi (mis. ProductFormModal): modal induk digerbang tertutup selagi dialog
-  // konfirmasi anak (write-off) tampil, bukan tetap terbuka di belakangnya.
+  // konfirmasi anak (write-off/confirm) tampil, bukan tetap terbuka di belakangnya.
   const isWriteOffConfirming = writeOffTarget !== null
+  const isConfirmConfirming = confirmTarget !== null
 
   const { data } = useExpiryWarningsQuery()
   const { mutate: confirmBatch, isPending: isConfirming } = useConfirmExpiryBatchMutation()
@@ -56,11 +58,16 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
     )
   }
 
+  const handleConfirmBatch = () => {
+    if (!confirmTarget) return
+    confirmBatch({ id: confirmTarget.id }, { onSuccess: () => setConfirmTarget(null) })
+  }
+
   return (
     <>
       <FormModal
-        open={open && !isWriteOffConfirming}
-        onOpenChange={(val) => { if (!val && !isWriteOffConfirming) onOpenChange(val) }}
+        open={open && !isWriteOffConfirming && !isConfirmConfirming}
+        onOpenChange={(val) => { if (!val && !isWriteOffConfirming && !isConfirmConfirming) onOpenChange(val) }}
         title="Batch Perlu Dicek"
         description={product?.name}
         size="md"
@@ -101,7 +108,7 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
                     size="sm"
                     className="h-7 gap-1 text-xs"
                     disabled={isConfirming}
-                    onClick={() => confirmBatch({ id: w.id })}
+                    onClick={() => setConfirmTarget(w)}
                   >
                     <CheckCircle2 size={13} />
                     Sudah Dicek, Aman
@@ -152,6 +159,20 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
           rows={2}
         />
       </ExtendedConfirmDialog>
+
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        onOpenChange={(val) => { if (!val) setConfirmTarget(null) }}
+        title="Konfirmasi Batch Aman"
+        confirmLabel="Ya, Sudah Dicek"
+        isLoading={isConfirming}
+        onConfirm={handleConfirmBatch}
+        description={
+          confirmTarget
+            ? `${confirmTarget.qty} unit dengan expired ${formatDate(confirmTarget.expired_date)} akan ditandai sudah dicek dan aman. Pastikan Anda sudah memeriksa fisik rak.`
+            : ''
+        }
+      />
     </>
   )
 }

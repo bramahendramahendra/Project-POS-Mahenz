@@ -24,16 +24,18 @@ export const RoleTable = forwardRef<RoleTableHandle, object>(function RoleTable(
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [deletingRole, setDeletingRole] = useState<Role | null>(null)
+  const [togglingRole, setTogglingRole] = useState<Role | null>(null)
 
   const { data: roleData, isLoading } = useRoleListQuery({ ...filter, page, limit: pageSize })
   const roles = roleData?.data ?? []
   const total = roleData?.total ?? 0
 
   const { mutate: deleteRole, isPending: isDeleting } = useDeleteRoleMutation()
-  const { mutate: toggleStatus } = useToggleRoleStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleRoleStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingRole(null)
@@ -76,13 +78,30 @@ export const RoleTable = forwardRef<RoleTableHandle, object>(function RoleTable(
     deleteRole(deletingRole.id, { onSuccess: () => handleCloseDelete() })
   }
 
+  const handleOpenToggle = (id: number) => {
+    const role = roles.find((r) => r.id === id)
+    if (!role) return
+    setTogglingRole(role)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingRole(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingRole) return
+    toggleStatus(togglingRole.id, { onSuccess: () => handleCloseToggle() })
+  }
+
   const hasFilter = !!filter.search
 
   const columns = buildRoleColumns({
     onManageAccess: handleManageAccess,
     onEdit: handleOpenEdit,
     onDelete: handleOpenDelete,
-    onToggleStatus: (id) => toggleStatus(id),
+    onToggleStatus: handleOpenToggle,
   })
 
   return (
@@ -124,6 +143,17 @@ export const RoleTable = forwardRef<RoleTableHandle, object>(function RoleTable(
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingRole?.is_active ? 'Nonaktifkan Role' : 'Aktifkan Role'}
+        description={`Role "${togglingRole?.display_name}" akan di${togglingRole?.is_active ? 'nonaktifkan' : 'aktifkan'}. Semua user dengan role ini akan terpengaruh. Lanjutkan?`}
+        confirmLabel={togglingRole?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingRole?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
     </div>
   )

@@ -23,16 +23,18 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
   const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
+  const [togglingUnit, setTogglingUnit] = useState<Unit | null>(null)
 
   const { data: unitData, isLoading } = useUnitListQuery({ ...filter, page, limit: pageSize })
   const units = unitData?.data ?? []
   const total = unitData?.total ?? 0
 
   const { mutate: deleteUnit, isPending: isDeleting } = useDeleteUnitMutation()
-  const { mutate: toggleStatus } = useToggleUnitStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleUnitStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingUnit(null)
@@ -85,8 +87,24 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
     })
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleToggleStatus = (id: number) => {
+    const unit = units.find((u) => u.id === id)
+    if (!unit) return
+    setTogglingUnit(unit)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingUnit(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingUnit) return
+    toggleStatus(
+      { id: togglingUnit.id, isActive: togglingUnit.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = !!filter.search || filter.is_active !== undefined
@@ -143,6 +161,17 @@ export const UnitTable = forwardRef<UnitTableHandle, object>(function UnitTable(
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingUnit?.is_active ? 'Nonaktifkan Satuan' : 'Aktifkan Satuan'}
+        description={`Satuan "${togglingUnit?.name}" akan di${togglingUnit?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingUnit?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingUnit?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
     </div>
   )

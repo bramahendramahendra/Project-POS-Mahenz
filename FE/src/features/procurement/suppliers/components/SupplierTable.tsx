@@ -25,17 +25,19 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [deletingSupplier, setDeletingSupplier] = useState<Supplier | null>(null)
   const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null)
+  const [togglingSupplier, setTogglingSupplier] = useState<Supplier | null>(null)
 
   const { data: supplierData, isLoading } = useSupplierListQuery({ ...filter, page, limit: pageSize })
   const suppliers = supplierData?.data ?? []
   const total = supplierData?.total ?? 0
 
   const { mutate: deleteSupplier, isPending: isDeleting } = useDeleteSupplierMutation()
-  const { mutate: toggleStatus } = useToggleSupplierStatusMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleSupplierStatusMutation()
 
   const handleOpenAdd = () => {
     setEditingSupplier(null)
@@ -98,8 +100,24 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
     })
   }
 
-  const handleToggleStatus = (id: number, isActive: boolean) => {
-    toggleStatus({ id, isActive })
+  const handleToggleStatus = (id: number) => {
+    const supplier = suppliers.find((s) => s.id === id)
+    if (!supplier) return
+    setTogglingSupplier(supplier)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingSupplier(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingSupplier) return
+    toggleStatus(
+      { id: togglingSupplier.id, isActive: togglingSupplier.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
   }
 
   const hasFilter = !!filter.search || filter.is_active !== undefined
@@ -156,6 +174,17 @@ export const SupplierTable = forwardRef<SupplierTableHandle, object>(function Su
         variant="destructive"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingSupplier?.is_active ? 'Nonaktifkan Supplier' : 'Aktifkan Supplier'}
+        description={`Supplier "${togglingSupplier?.name}" akan di${togglingSupplier?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingSupplier?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingSupplier?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
       />
 
       <SupplierDetailModal
