@@ -166,6 +166,12 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 
 		if nama == "" {
 			errs = append(errs, "Nama produk wajib diisi")
+		} else if len(nama) > 200 {
+			// Kolom products.name adalah VARCHAR(200); tanpa cek ini, MySQL non-strict-mode
+			// akan memotong diam-diam ke 200 karakter saat ImportBulk insert (data korup
+			// tanpa error/warning apapun ke user) — beda dari form Tambah Produk manual yang
+			// sudah divalidasi max=200 di FE (Zod) & BE (CreateRequest).
+			errs = append(errs, "Nama produk maksimal 200 karakter")
 		} else {
 			namaKey := strings.ToLower(strings.TrimSpace(nama))
 			if seenNames[namaKey] {
@@ -220,6 +226,8 @@ func (s *productService) ImportPreview(file *multipart.FileHeader) (data dto.Imp
 			} else {
 				errs = append(errs, "Gagal generate barcode")
 			}
+		} else if len(barcode) > 100 {
+			errs = append(errs, "Barcode maksimal 100 karakter")
 		} else {
 			barcodeKey := strings.ToLower(barcode)
 			if seenBarcodes[barcodeKey] {

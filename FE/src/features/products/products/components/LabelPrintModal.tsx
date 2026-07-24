@@ -76,7 +76,8 @@ function LabelItem({ product, cfg }: { product: Product; cfg: SizeConfig }) {
     <div
       className="label-item"
       style={{
-        width: cfg.labelWidth,
+        width: '100%',
+        maxWidth: cfg.labelWidth,
         boxSizing: 'border-box',
         border: '1px solid #d1d5db',
         borderRadius: 4,
@@ -229,7 +230,7 @@ export function LabelPrintModal({ open, onOpenChange, products }: LabelPrintModa
       ) : (
         <div
           className="label-grid print-root pt-4"
-          style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
+          style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8 }}
         >
           {products.flatMap((product) =>
             Array.from({ length: getQty(product.id) }, (_, i) => (

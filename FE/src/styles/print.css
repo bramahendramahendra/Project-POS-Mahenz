@@ -21,4 +21,24 @@
     width: 100%;
     padding: 8px;
   }
+
+  /* .print-root selalu dipakai dari dalam modal Radix Dialog (lihat komponen-komponen
+   * di atas). DialogContent diberi `transform` (translate -50%/-50% buat centering) —
+   * itu membuatnya jadi containing block baru untuk descendant `position: fixed`,
+   * sehingga .print-root TIDAK menempel ke viewport seperti yang diharapkan, melainkan
+   * ke posisi dialog. DialogContent & ScrollArea di dalamnya juga punya overflow/tinggi
+   * terbatas yang lolos memotong konten walau sudah "invisible". Netralkan semuanya
+   * saat print supaya .print-root benar-benar lepas ke viewport tanpa terpotong.
+   */
+  [role='dialog'] {
+    position: static !important;
+    transform: none !important;
+    inset: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: auto !important;
+  }
+  [data-radix-scroll-area-viewport] {
+    overflow: visible !important;
+  }
 }

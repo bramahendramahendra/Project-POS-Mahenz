@@ -68,6 +68,8 @@ func (s *expiryBatchService) GetWarnings(req *dto.GetWarningsRequest) (data []dt
 }
 
 func (s *expiryBatchService) GetByProduct(productID int) (data []dto.BatchHistoryResponse, err error) {
+	data = []dto.BatchHistoryResponse{}
+
 	dataDB, err := s.repo.GetByProduct(productID)
 	if err != nil {
 		return data, err

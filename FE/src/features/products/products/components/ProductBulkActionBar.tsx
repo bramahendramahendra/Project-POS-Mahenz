@@ -26,9 +26,9 @@ export function ProductBulkActionBar({
   const showBulkStatus = allActive || allInactive
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-blue-50 px-4 py-2 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-blue-50 px-4 py-2 text-sm">
       <span className="font-medium text-blue-700">{count} produk dipilih</span>
-      <div className="ml-auto flex gap-2">
+      <div className="flex flex-wrap gap-2 sm:ml-auto">
         {showBulkStatus && (
           <Button
             variant="outline"
