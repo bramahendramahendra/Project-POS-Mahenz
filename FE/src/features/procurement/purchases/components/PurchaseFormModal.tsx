@@ -226,6 +226,11 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
       price: item.purchase_price,
       unit: item.unit,
       conversion_qty: item.conversion_qty,
+      // Wajib dibawa balik ke form — Update() menghapus semua purchase_items lama
+      // (CASCADE ke product_expiry_batches) lalu re-insert cuma dari payload ini. Kalau
+      // expiry_batches tidak di-hydrate di sini, submit edit apapun (bahkan tanpa
+      // perubahan) akan menghapus permanen rincian tanggal expired yang sudah ada.
+      expiry_batches: item.expiry_batches?.map((b) => ({ qty: b.qty, expired_date: b.expired_date })),
     })),
     discount_amount: data.discount_amount,
     notes: data.notes ?? '',

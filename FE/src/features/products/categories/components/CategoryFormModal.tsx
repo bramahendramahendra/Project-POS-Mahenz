@@ -114,9 +114,12 @@ export function CategoryFormModal({ open, onOpenChange, category }: CategoryForm
               id="category-description"
               {...register('description')}
               placeholder="Deskripsi kategori (opsional)"
-              className="resize-none"
+              className={`resize-none ${errors.description ? 'border-red-500' : ''}`}
               rows={3}
             />
+            {errors.description && (
+              <p className="text-xs text-red-500">{errors.description.message}</p>
+            )}
           </div>
         </div>
       </FormModal>

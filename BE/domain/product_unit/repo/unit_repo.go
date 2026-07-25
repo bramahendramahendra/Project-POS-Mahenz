@@ -13,8 +13,14 @@ const (
 	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
 	checkUnitAbbreviationQuery     = `SELECT id FROM units WHERE abbreviation = ? AND id != ? LIMIT 1`
-	checkUnitUsedQuery             = `SELECT COUNT(*) FROM products WHERE unit_id = ?`
-	checkActiveProductsByUnitQuery = `SELECT COUNT(*) FROM products WHERE unit_id = ? AND is_active = 1`
+	// checkUnitUsedQuery: satuan bisa dipakai sebagai unit_id anchor produk (products.unit_id)
+	// ATAU sebagai satuan salah satu paket/grosir produk (product_packages.unit_id — FK-nya
+	// ON DELETE RESTRICT). Dulu cuma cek products.unit_id, jadi hapus satuan yang cuma dipakai
+	// di product_packages lolos pre-check ini lalu gagal di DELETE dengan error FK mentah.
+	checkUnitUsedQuery = `SELECT (SELECT COUNT(*) FROM products WHERE unit_id = ?) + (SELECT COUNT(*) FROM product_packages WHERE unit_id = ?)`
+	checkActiveProductsByUnitQuery = `SELECT
+		(SELECT COUNT(*) FROM products WHERE unit_id = ? AND is_active = 1)
+		+ (SELECT COUNT(*) FROM product_packages pp JOIN products p ON p.id = pp.product_id WHERE pp.unit_id = ? AND p.is_active = 1)`
 	createUnitQuery                = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
 	getLastInsertIDQuery           = `SELECT LAST_INSERT_ID()`
 	updateUnitQuery                = `UPDATE units SET name = ?, abbreviation = ?, updated_at = NOW() WHERE id = ?`
@@ -138,7 +144,7 @@ func (r *unitRepo) CheckAbbreviationExists(abbreviation string, excludeID int) (
 
 func (r *unitRepo) CountProductUnitsByUnit(unitID int) (int, error) {
 	var count int
-	err := r.db.Raw(checkUnitUsedQuery, unitID).Scan(&count).Error
+	err := r.db.Raw(checkUnitUsedQuery, unitID, unitID).Scan(&count).Error
 	if err != nil {
 		return 0, err
 	}
@@ -147,7 +153,7 @@ func (r *unitRepo) CountProductUnitsByUnit(unitID int) (int, error) {
 
 func (r *unitRepo) CountActiveProductsByUnit(unitID int) (int, error) {
 	var count int
-	err := r.db.Raw(checkActiveProductsByUnitQuery, unitID).Scan(&count).Error
+	err := r.db.Raw(checkActiveProductsByUnitQuery, unitID, unitID).Scan(&count).Error
 	if err != nil {
 		return 0, err
 	}

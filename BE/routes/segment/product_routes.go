@@ -54,6 +54,5 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/:id/packages/delete/:package_id", perm("can_delete"), productPackageHandler.DeletePackage)
 
 		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)
-		g.POST("/:id/prices/save", perm("can_edit"), productPriceHandler.SavePrices)
 	}
 }

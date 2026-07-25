@@ -46,34 +46,3 @@ func (h *ProductPriceHandler) GetPricesByProduct(c *gin.Context) {
 		Data:    data,
 	})
 }
-
-func (h *ProductPriceHandler) SavePrices(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.PriceByProductRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	req, err := binder.BindJSON[dto.SavePriceRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	req.ProductID = uriReq.ID
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if err := h.service.SavePrices(&req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Harga tier produk berhasil disimpan",
-	})
-}

@@ -32,16 +32,3 @@ func (s *productService) GetPricesByProduct(productID int) (data []*dto.PriceRes
 
 	return data, nil
 }
-
-func (s *productService) SavePrices(req *dto.SavePriceRequest) (err error) {
-	exists, err := s.repo.GetByID(req.ProductID)
-	if err != nil {
-		return err
-	}
-	if exists == nil {
-		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-
-	err = s.repo.SavePrices(req.ProductID, req.Prices)
-	return err
-}

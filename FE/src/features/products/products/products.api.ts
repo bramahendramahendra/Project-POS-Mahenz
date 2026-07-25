@@ -7,7 +7,6 @@ import type { PaginatedData } from '@/shared/types'
 
 import type {
   CreatePackagePayload,
-  CreatePriceTierPayload,
   CreateProductPayload,
   GrosirImportRow,
   ImportBulkPayload,
@@ -268,20 +267,6 @@ export function useDeleteProductPackageMutation(productId: number) {
       api.post<void>(`/products/${productId}/packages/delete/${packageId}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.products.productUnits(productId) })
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-// ─── Price Tier Mutations ─────────────────────────────────────────────────────
-
-export function useSavePriceTiersMutation(productId: number) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (prices: CreatePriceTierPayload[]) =>
-      api.post<void>(`/products/${productId}/prices/save`, { prices }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.products.priceTiers(productId) })
     },
     onError: (e: Error) => toast.error(e.message),
   })

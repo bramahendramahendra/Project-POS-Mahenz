@@ -1,6 +1,7 @@
 package repo
 
 import (
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"pos_api/errors"
 	request_helper "pos_api/helper/request"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
@@ -275,10 +277,36 @@ func (r *purchaseRepo) GenerateCode() (string, error) {
 	return fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1), nil
 }
 
+// isDuplicatePurchaseCodeError mendeteksi MySQL error 1062 (duplicate entry) pada
+// kolom purchase_code — bisa terjadi kalau 2 request Create() berjalan bersamaan
+// dan sama-sama menghitung count+1 yang sama sebelum salah satunya sempat commit
+// (generatePurchaseCodeQuery pakai COUNT(*), bukan sequence atomik). Dulu error ini
+// lolos mentah sebagai 500 Internal Server Error ke klien; sekarang di-retry otomatis.
+func isDuplicatePurchaseCodeError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return stderrors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+}
+
 func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error) {
 	var purchaseID int
 
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	const maxCodeRetries = 5
+	var err error
+	for attempt := 0; attempt < maxCodeRetries; attempt++ {
+		err = r.createOnce(req, &purchaseID)
+		if err == nil || !isDuplicatePurchaseCodeError(err) {
+			break
+		}
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(purchaseID)
+}
+
+func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		today := time.Now().Format("2006-01-02")
 		var count int
 		if err := tx.Raw(generatePurchaseCodeQuery, today).Scan(&count).Error; err != nil {
@@ -308,7 +336,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
-		if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseID).Error; err != nil {
+		if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(purchaseID).Error; err != nil {
 			return err
 		}
 
@@ -318,7 +346,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 				paymentDate = time.Now().Format("2006-01-02")
 			}
 			if err := tx.Exec(createPaymentQuery,
-				purchaseID, paymentDate, paidAmount, req.PaymentMethod, req.Notes, req.UserID,
+				*purchaseID, paymentDate, paidAmount, req.PaymentMethod, req.Notes, req.UserID,
 			).Error; err != nil {
 				return err
 			}
@@ -330,7 +358,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 			stockAdd := item.Quantity * conversionQty
 
 			if err := tx.Exec(createPurchaseItemQuery,
-				purchaseID, item.ProductID,
+				*purchaseID, item.ProductID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
@@ -359,7 +387,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 			notes := fmt.Sprintf("Purchase Order %s", code)
 			if err := tx.Exec(createStockMutationQuery,
 				item.ProductID, "in", stockAdd, stockBefore, stockAfter,
-				"purchase", purchaseID, notes, req.UserID,
+				"purchase", *purchaseID, notes, req.UserID,
 			).Error; err != nil {
 				return err
 			}
@@ -367,11 +395,6 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 
 		return nil
 	})
-
-	if err != nil {
-		return nil, err
-	}
-	return r.GetByID(purchaseID)
 }
 
 func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error) {

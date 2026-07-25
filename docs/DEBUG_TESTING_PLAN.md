@@ -137,11 +137,11 @@ Jalankan Fase 1.3 (Produk — import massal & generate kode) dari docs\DEBUG_TES
 Jalankan Fase 1.3: debug fitur Import Produk (upload file, preview hasil parsing, submit import — termasuk file dengan baris invalid/duplikat untuk lihat penanganan errornya) dan fitur Generate Barcode/SKU otomatis saat tambah produk baru. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
-**1.4 Produk — satuan/paket dinamis (graph qty/ref_qty) & tier harga**
+**1.4 Produk — satuan/paket dinamis (graph qty/ref_qty)**
 ```
-Jalankan Fase 1.4 (Produk — satuan/paket dinamis (graph qty/ref_qty) & tier harga) dari docs\DEBUG_TESTING_PLAN.md :
+Jalankan Fase 1.4 (Produk — satuan/paket dinamis (graph qty/ref_qty)) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 1.4: debug fitur satuan/paket produk dengan model dinamis saat ini (product_packages: unit_id, ref_package_id, qty, ref_qty — bukan lagi single "konversi ke basis"). Test di form Tambah Produk (mode draft, 1 form sekaligus): buat produk dengan beberapa paket berantai (mis. Slop -> Pack -> Batang) dalam satu kali submit, verifikasi resolved_factor tiap paket benar dan anchor (paket dasar) otomatis ter-set is_default. Test di form Edit Produk (mode live): tambah paket baru, edit rasio qty/ref_qty paket yang sudah ada (bukan anchor), coba hapus anchor (harus ditolak), coba hapus paket yang masih direferensikan paket lain (harus ditolak). Test juga tier harga per satuan tetap konsisten dipakai saat kasir/pembelian. Coba juga buat kombinasi rasio yang membentuk siklus (cycle) antar paket — harus ditolak validasi. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 1.4: debug fitur satuan/paket produk dengan model dinamis saat ini (product_packages: unit_id, ref_package_id, qty, ref_qty — bukan lagi single "konversi ke basis"). Test di form Tambah Produk (mode draft, 1 form sekaligus): buat produk dengan beberapa paket berantai (mis. Slop -> Pack -> Batang) dalam satu kali submit, verifikasi resolved_factor tiap paket benar dan anchor (paket dasar) otomatis ter-set is_default. Test di form Edit Produk (mode live): tambah paket baru, edit rasio qty/ref_qty paket yang sudah ada (bukan anchor), coba hapus anchor (harus ditolak), coba hapus paket yang masih direferensikan paket lain (harus ditolak). Test juga harga tiap satuan/paket (bukan cuma satuan dasar) tidak ketuker saat dipilih di Kasir/Pembelian. Coba juga buat kombinasi rasio yang membentuk siklus (cycle) antar paket — harus ditolak validasi. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **1.5 Kategori Produk**

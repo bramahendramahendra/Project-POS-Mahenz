@@ -1,16 +1,11 @@
 package repo
 
 import (
-	dto "pos_api/domain/product/dto"
 	model "pos_api/domain/product/model"
-
-	"gorm.io/gorm"
 )
 
 const (
-	getProductPricesQuery    = `SELECT id, product_id, tier_name, min_qty, price FROM product_prices WHERE product_id = ? ORDER BY min_qty`
-	deleteProductPricesQuery = `DELETE FROM product_prices WHERE product_id = ?`
-	insertProductPriceQuery  = `INSERT INTO product_prices (product_id, tier_name, min_qty, price) VALUES (?, ?, ?, ?)`
+	getProductPricesQuery = `SELECT id, product_id, tier_name, min_qty, price FROM product_prices WHERE product_id = ? ORDER BY min_qty`
 )
 
 func (r *productRepo) GetPricesByProduct(productID int) ([]*model.ProductPrice, error) {
@@ -20,21 +15,4 @@ func (r *productRepo) GetPricesByProduct(productID int) ([]*model.ProductPrice, 
 		return nil, err
 	}
 	return dataDB, nil
-}
-
-func (r *productRepo) SavePrices(productID int, prices []dto.PriceRequest) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Exec(deleteProductPricesQuery, productID).Error
-		if err != nil {
-			return err
-		}
-		for _, p := range prices {
-			err := tx.Exec(insertProductPriceQuery, productID, p.TierName, p.MinQty, p.Price).Error
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
 }

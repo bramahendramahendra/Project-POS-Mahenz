@@ -52,6 +52,39 @@ func validateExpiryBatches(items []dto.PurchaseRequest) error {
 	return nil
 }
 
+// validateDuplicateProducts menolak PO yang memilih produk yang sama di lebih dari
+// satu baris item — FE sudah menolak ini di form, tapi endpoint API tetap harus
+// menegakkan aturan yang sama supaya tidak bisa dilewati lewat panggilan API langsung.
+func validateDuplicateProducts(items []dto.PurchaseRequest) error {
+	seen := make(map[int]bool, len(items))
+	for i, item := range items {
+		if seen[item.ProductID] {
+			return &errors.BadRequestError{Message: fmt.Sprintf(
+				"Item ke-%d: produk sudah dipilih di baris lain", i+1,
+			)}
+		}
+		seen[item.ProductID] = true
+	}
+	return nil
+}
+
+// validateDiscountAmount menolak diskon yang lebih besar dari subtotal — tanpa ini,
+// calculateTotal() meng-clamp total_amount ke 0 secara diam-diam sementara
+// discount_amount & payment_status tetap tersimpan apa adanya, menghasilkan data PO
+// yang tidak konsisten (mis. remaining_amount 0 tapi payment_status masih "unpaid").
+func validateDiscountAmount(items []dto.PurchaseRequest, discountAmount float64) error {
+	var subtotal float64
+	for _, item := range items {
+		subtotal += item.PurchasePrice * item.Quantity
+	}
+	if discountAmount > subtotal {
+		return &errors.BadRequestError{Message: fmt.Sprintf(
+			"Diskon (%.2f) tidak boleh lebih besar dari subtotal (%.2f)", discountAmount, subtotal,
+		)}
+	}
+	return nil
+}
+
 func (s *purchaseService) GetAll(req *dto.GetAllRequest) (data []dto.PurchaseResponse, total int64, err error) {
 	data = []dto.PurchaseResponse{}
 	dataDB, total, err := s.repo.GetAll(req)
@@ -138,6 +171,14 @@ func (s *purchaseService) GenerateCode() (data dto.GenerateCodeResponse, err err
 }
 
 func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error) {
+	if err := validateDuplicateProducts(req.Items); err != nil {
+		return data, err
+	}
+
+	if err := validateDiscountAmount(req.Items, req.DiscountAmount); err != nil {
+		return data, err
+	}
+
 	if err := validateExpiryBatches(req.Items); err != nil {
 		return data, err
 	}
@@ -206,6 +247,14 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	}
 	if existing.PaidAmount > 0 {
 		return data, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
+	}
+
+	if err := validateDuplicateProducts(req.Items); err != nil {
+		return data, err
+	}
+
+	if err := validateDiscountAmount(req.Items, req.DiscountAmount); err != nil {
+		return data, err
 	}
 
 	if err := validateExpiryBatches(req.Items); err != nil {
@@ -361,6 +410,10 @@ func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseR
 	}
 	if existing.PaymentStatus == "unpaid" {
 		return data, &errors.BadRequestError{Message: "PO belum ada pembayaran, gunakan Edit untuk menambah item"}
+	}
+
+	if err := validateDuplicateProducts(req.Items); err != nil {
+		return data, err
 	}
 
 	if err := validateExpiryBatches(req.Items); err != nil {

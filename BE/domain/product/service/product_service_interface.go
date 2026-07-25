@@ -33,7 +33,6 @@ type (
 		DeletePackage(req *dto.DeletePackageRequest) (err error)
 
 		GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error)
-		SavePrices(req *dto.SavePriceRequest) (err error)
 
 		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)

@@ -105,12 +105,6 @@ export interface CreatePackagePayload {
 
 export type UpdatePackagePayload = CreatePackagePayload
 
-export interface CreatePriceTierPayload {
-  tier_name: string
-  min_qty: number
-  price: number
-}
-
 export type ProductFilter = ProductListFilter
 
 export interface ProductOption {

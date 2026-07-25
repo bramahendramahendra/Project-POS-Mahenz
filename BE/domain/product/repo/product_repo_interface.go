@@ -34,7 +34,6 @@ type ProductRepoInterface interface {
 	CountPackagesReferencing(packageID int) (int, error)
 
 	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
-	SavePrices(productID int, prices []dto_product.PriceRequest) error
 }
 
 type productRepo struct {
