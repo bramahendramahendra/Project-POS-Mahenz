@@ -154,7 +154,13 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
               </RoleGuard>
             )}
 
-            {!isVoid && row.paid_amount === 0 && (
+            {/* Hapus permanen cuma boleh untuk PO yang sudah di-void — alur wajib:
+                Void dulu (stok & remaining_amount di-rollback, jejak audit paid_amount
+                tetap ada), baru Hapus (bersihkan total termasuk jejak itu). paid_amount
+                SENGAJA tidak lagi disyaratkan 0 di sini — void boleh dilakukan pada PO
+                yang sudah dibayar, jadi status "void" saja sudah cukup jadi gerbangnya.
+                Lihat purchase_service.go Delete(). */}
+            {isVoid && (
               <RoleGuard menuKey="pengadaan.pembelian" action="can_delete">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -169,6 +175,13 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
                   </TooltipTrigger>
                   <TooltipContent>Hapus</TooltipContent>
                 </Tooltip>
+              </RoleGuard>
+            )}
+
+            {/* Void sekarang boleh untuk PO status pembayaran apapun (unpaid/partial/
+                paid) — bukan cuma yang belum dibayar. Lihat purchase_service.go Void(). */}
+            {!isVoid && (
+              <RoleGuard menuKey="pengadaan.pembelian" action="can_delete">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

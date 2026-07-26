@@ -190,7 +190,7 @@ Jalankan Fase 3.1: debug create Pembelian Supplier. Test dengan 1 item, banyak i
 ```
 Jalankan Fase 3.2 (Edit & Delete) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 3.2: debug edit dan delete Pembelian Supplier. Pastikan tombol Edit/Delete cuma muncul untuk PO yang belum ada pembayaran. Test edit ubah qty/harga/item (verifikasi stok lama di-rollback dan stok baru benar), test delete (verifikasi stok & mutasi stok ikut dihapus/dikembalikan). Coba akses endpoint edit/delete langsung via API untuk PO yang sudah dibayar — pastikan ditolak backend juga. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 3.2: debug edit dan delete Pembelian Supplier. Pastikan tombol Edit cuma muncul untuk PO yang belum ada pembayaran, dan tombol Delete cuma muncul untuk PO yang sudah di-void (bukan lagi soal status pembayaran). Test edit ubah qty/harga/item (verifikasi stok lama di-rollback dan stok baru benar). Test alur Void → Delete: pastikan Delete ditolak selama PO belum di-void, lalu berhasil setelah di-void (verifikasi stok TIDAK dikurangi dua kali, karena rollback stok sudah terjadi saat Void). Coba akses endpoint edit/delete langsung via API untuk PO yang sudah dibayar/belum di-void — pastikan ditolak backend juga. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **3.3 Bayar (Pay)**
@@ -204,7 +204,7 @@ Jalankan Fase 3.3: debug fitur Bayar PO. Test bayar sebagian (verifikasi status 
 ```
 Jalankan Fase 3.4 (Void) dari docs\DEBUG_TESTING_PLAN.md :
 
-Jalankan Fase 3.4: debug fitur Void PO. Test void PO yang belum dibayar (berhasil, stok balik, status jadi Dibatalkan), coba void PO yang sudah dibayar (harus ditolak), coba void 2x berturut-turut cepat (pastikan tidak dobel rollback stok), coba void PO yang sudah punya retur terkait (harus ditolak). Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
+Jalankan Fase 3.4: debug fitur Void PO. Test void PO di semua status pembayaran (unpaid/partial/paid — semua harus berhasil), verifikasi stok balik dan status jadi Dibatalkan, verifikasi remaining_amount jadi 0 sementara paid_amount/payment_status tetap tercatat sebagai histori (badge ganda di detail). Coba void 2x berturut-turut cepat (pastikan tidak dobel rollback stok), coba void PO yang sudah punya retur terkait (harus ditolak). Cek dampak ke menu Supplier: PO yang sudah di-void tidak lagi dihitung sebagai hutang aktif. Fix bug yang ditemukan, lalu type-check+lint+build sampai bersih.
 ```
 
 **3.5 Tambah Item ke PO Lunas**

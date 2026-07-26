@@ -312,6 +312,13 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	return data, nil
 }
 
+// Delete menghapus PO permanen dari sistem — hanya boleh untuk PO yang sudah
+// di-void terlebih dahulu (Void mengembalikan stok & tetap menyisakan jejak audit;
+// Delete membersihkan total termasuk jejak itu). Alur wajib: Void dulu, baru Hapus.
+// Sengaja TIDAK lagi mengecek paid_amount di sini — Void boleh dipanggil pada PO yang
+// sudah dibayar (unpaid/partial/paid), dan paid_amount-nya sengaja dipertahankan
+// sebagai histori (lihat purchase_service.go Void). Status "void" saja sudah cukup
+// jadi syarat, karena PO cuma bisa mencapai status itu lewat aturan Void() sendiri.
 func (s *purchaseService) Delete(id int) error {
 	exists, err := s.repo.GetRawByID(id)
 	if err != nil {
@@ -320,11 +327,8 @@ func (s *purchaseService) Delete(id int) error {
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
-	if exists.Status == "void" {
-		return &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa dihapus"}
-	}
-	if exists.PaidAmount > 0 {
-		return &errors.BadRequestError{Message: "PO tidak bisa dihapus karena sudah ada pembayaran"}
+	if exists.Status != "void" {
+		return &errors.BadRequestError{Message: "PO harus di-void terlebih dahulu sebelum bisa dihapus"}
 	}
 
 	return s.repo.Delete(id)
@@ -359,8 +363,11 @@ func (s *purchaseService) Pay(req *dto.PayRequest) error {
 	return s.repo.Pay(req)
 }
 
-// Void membatalkan PO: hanya boleh untuk PO yang belum pernah dibayar sama sekali
-// (paid_amount = 0) dan belum punya retur supplier terkait — supplier_returns.purchase_id
+// Void membatalkan PO di status pembayaran manapun (unpaid/partial/paid) — tidak lagi
+// disyaratkan paid_amount = 0. Kalau PO sudah pernah dibayar, uang itu TIDAK otomatis
+// di-refund oleh sistem (lihat komentar voidPurchaseQuery di repo); yang digugurkan
+// cuma remaining_amount karena tidak ada lagi yang perlu ditagih setelah dibatalkan.
+// Tetap disyaratkan belum punya retur supplier terkait — supplier_returns.purchase_id
 // tidak punya FK constraint di database, jadi pengecekan ini murni di level aplikasi.
 func (s *purchaseService) Void(id int, userID int) error {
 	exists, err := s.repo.GetRawByID(id)
@@ -372,9 +379,6 @@ func (s *purchaseService) Void(id int, userID int) error {
 	}
 	if exists.Status == "void" {
 		return &errors.BadRequestError{Message: "PO sudah di-void"}
-	}
-	if exists.PaidAmount > 0 {
-		return &errors.BadRequestError{Message: "PO tidak bisa di-void karena sudah ada pembayaran"}
 	}
 
 	returnCount, err := s.repo.CountReturnsByPurchaseID(id)

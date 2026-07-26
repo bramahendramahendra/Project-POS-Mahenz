@@ -39,8 +39,14 @@ const (
 	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
 	getExpiryBatchesByPurchaseItemQuery = `SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = ? ORDER BY expired_date ASC`
 
-	getPurchaseForVoidQuery   = `SELECT status, paid_amount FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
-	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', updated_at = NOW() WHERE id = ?`
+	getPurchaseForVoidQuery = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
+	// voidPurchaseQuery: remaining_amount digugurkan ke 0 karena void artinya "tidak
+	// ada lagi yang perlu ditagih/dibayar sejak sekarang". paid_amount & payment_status
+	// SENGAJA tidak disentuh — itu fakta historis (mis. "PO ini sempat Lunas sebelum
+	// dibatalkan"), tetap ditampilkan berdampingan dengan badge void di detail PO. Kalau
+	// PO sudah pernah dibayar sebagian/lunas, uang yang sudah keluar TIDAK otomatis
+	// di-refund oleh sistem ini — itu proses manual di luar sistem.
+	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
 	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
 	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
@@ -484,23 +490,12 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 	return r.GetByID(req.ID)
 }
 
+// Delete membersihkan PO secara permanen — TIDAK melakukan rollback stok karena
+// service.Delete menjamin PO yang sampai ke sini sudah berstatus "void", yang
+// artinya stoknya sudah pernah dikembalikan oleh Void(). Rollback kedua di sini
+// akan mengurangi stok dua kali untuk item yang sama.
 func (r *purchaseRepo) Delete(id int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		items, err := r.GetItems(id)
-		if err != nil {
-			return err
-		}
-
-		for _, item := range items {
-			convQty := item.ConversionQty
-			if convQty <= 0 {
-				convQty = 1
-			}
-			if err := tx.Exec(rollbackStockQuery, item.Quantity*convQty, item.ProductID).Error; err != nil {
-				return err
-			}
-		}
-
 		if err := tx.Exec(deleteStockMutationsQuery, id).Error; err != nil {
 			return err
 		}
@@ -543,13 +538,15 @@ func (r *purchaseRepo) CountReturnsByPurchaseID(purchaseID int) (int64, error) {
 	return count, nil
 }
 
-// Void mengunci baris PO (FOR UPDATE), menandai status void, lalu mengembalikan
-// stok tiap item ke produk dan mencatat mutasi stok baru (tidak menghapus histori lama),
-// meniru pola transaction_repo.go Void.
+// Void mengunci baris PO (FOR UPDATE), menandai status void beserta menggugurkan
+// remaining_amount ke 0, lalu mengembalikan stok tiap item ke produk dan mencatat
+// mutasi stok baru (tidak menghapus histori lama), meniru pola transaction_repo.go
+// Void. Boleh dipanggil untuk PO di status pembayaran manapun (unpaid/partial/paid) —
+// lihat komentar di voidPurchaseQuery soal kenapa paid_amount/payment_status sengaja
+// tidak diubah.
 func (r *purchaseRepo) Void(id int, userID int) error {
 	var lockData struct {
-		Status     string
-		PaidAmount float64
+		Status string
 	}
 	if err := r.db.Raw(getPurchaseForVoidQuery, id).Scan(&lockData).Error; err != nil {
 		return err
@@ -560,9 +557,6 @@ func (r *purchaseRepo) Void(id int, userID int) error {
 	// dan pada titik itu status sudah 'void' sehingga ditolak di sini.
 	if lockData.Status == "void" {
 		return &errors.BadRequestError{Message: "PO sudah di-void"}
-	}
-	if lockData.PaidAmount > 0 {
-		return &errors.BadRequestError{Message: "PO tidak bisa di-void karena sudah ada pembayaran"}
 	}
 
 	if err := r.db.Exec(voidPurchaseQuery, id).Error; err != nil {

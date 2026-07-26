@@ -1,24 +1,28 @@
 package repo
 
 import (
-	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/supplier/dto"
 	model "pos_api/domain/supplier/model"
+	request_helper "pos_api/helper/request"
 )
 
 const (
-	countSuppliersQuery = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
-	getAllSuppliersQuery = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
-	getAllSupplierOptionsQuery     = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
+	countSuppliersQuery              = `SELECT COUNT(*) FROM suppliers WHERE 1=1`
+	getAllSuppliersQuery             = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1`
+	getAllSupplierOptionsQuery       = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 ORDER BY name`
 	getAllSupplierOptionsSearchQuery = `SELECT id, supplier_code, name FROM suppliers WHERE is_active = 1 AND name LIKE ? ORDER BY name LIMIT 20`
-	getSupplierByIDQuery           = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
-	getSupplierPurchasesQuery      = `SELECT id, purchase_code, purchase_date, total_amount, payment_status, remaining_amount FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC LIMIT 10`
-	getSupplierReturnsQuery        = `SELECT id, return_code, return_date, total_return_amount AS total_return, reason, status FROM supplier_returns WHERE supplier_id = ? ORDER BY return_date DESC LIMIT 10`
-	generateSupplierCodeQuery      = `SELECT COUNT(*) FROM suppliers`
-	checkSupplierCodeExistsQuery   = `SELECT id FROM suppliers WHERE supplier_code = ? LIMIT 1`
-	checkSupplierNameExistsQuery   = `SELECT id FROM suppliers WHERE name = ? AND id != ? LIMIT 1`
-	countPurchasesBySupplierQuery  = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ?`
-	countActiveDebtBySupplierQuery = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ? AND payment_status != 'paid'`
+	getSupplierByIDQuery             = `SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE id = ? LIMIT 1`
+	getSupplierPurchasesQuery        = `SELECT id, purchase_code, purchase_date, total_amount, payment_status, remaining_amount FROM purchases WHERE supplier_id = ? ORDER BY purchase_date DESC LIMIT 10`
+	getSupplierReturnsQuery          = `SELECT id, return_code, return_date, total_return_amount AS total_return, reason, status FROM supplier_returns WHERE supplier_id = ? ORDER BY return_date DESC LIMIT 10`
+	generateSupplierCodeQuery        = `SELECT COUNT(*) FROM suppliers`
+	checkSupplierCodeExistsQuery     = `SELECT id FROM suppliers WHERE supplier_code = ? LIMIT 1`
+	checkSupplierNameExistsQuery     = `SELECT id FROM suppliers WHERE name = ? AND id != ? LIMIT 1`
+	countPurchasesBySupplierQuery    = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ?`
+	// status != 'void' wajib ada di sini — PO yang sudah di-void tidak lagi punya
+	// tagihan aktif (remaining_amount digugurkan ke 0 saat void) meskipun
+	// payment_status historisnya masih 'unpaid'/'partial' (sengaja dipertahankan
+	// sebagai jejak audit, lihat purchase_repo.go Void).
+	countActiveDebtBySupplierQuery = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ? AND payment_status != 'paid' AND status != 'void'`
 	createSupplierQuery            = `INSERT INTO suppliers (supplier_code, name, address, phone, email, contact_person, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	getLastSupplierInsertIDQuery   = `SELECT LAST_INSERT_ID()`
 	updateSupplierQuery            = `UPDATE suppliers SET name=?, address=?, phone=?, email=?, contact_person=?, notes=?, updated_at=NOW() WHERE id=?`

@@ -217,7 +217,7 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
         open={deleteOpen}
         onOpenChange={(open) => { if (!open) handleCloseDelete() }}
         title="Hapus Pembelian"
-        description={`Yakin ingin menghapus pembelian "${deletingPurchase?.invoice_number}"? Tindakan ini tidak bisa dibatalkan.`}
+        description={`PO "${deletingPurchase?.purchase_code}" yang sudah di-void akan dihapus permanen dari sistem, termasuk jejak riwayatnya. Tindakan ini tidak bisa dibatalkan.`}
         confirmLabel="Ya, Hapus"
         variant="destructive"
         isLoading={isDeleting}
@@ -228,7 +228,11 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
         open={voidOpen}
         onOpenChange={(open) => { if (!open) handleCloseVoid() }}
         title="Void Pembelian"
-        description={`PO "${voidingPurchase?.purchase_code}" akan dibatalkan. Stok yang sudah masuk akan dikurangi kembali. Tindakan ini tidak bisa dibatalkan. Lanjutkan?`}
+        description={
+          voidingPurchase && voidingPurchase.paid_amount > 0
+            ? `PO "${voidingPurchase.purchase_code}" akan dibatalkan. Stok yang sudah masuk akan dikurangi kembali. PO ini sudah ada pembayaran — pembayaran tersebut TIDAK otomatis dikembalikan oleh sistem, perlu ditangani manual. Tindakan ini tidak bisa dibatalkan. Lanjutkan?`
+            : `PO "${voidingPurchase?.purchase_code}" akan dibatalkan. Stok yang sudah masuk akan dikurangi kembali. Tindakan ini tidak bisa dibatalkan. Lanjutkan?`
+        }
         confirmLabel="Ya, Void"
         variant="destructive"
         isLoading={isVoiding}
