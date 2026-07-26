@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useForm, useFieldArray, useWatch, Controller, type Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Lock, Plus, Trash2, Unlock } from 'lucide-react'
+import { Info, Lock, Plus, Trash2, Unlock } from 'lucide-react'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Checkbox } from '@/shared/components/ui/checkbox'
@@ -21,7 +21,7 @@ import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 import type { SupplierOption } from '@/features/procurement/suppliers'
-import { useProductSearchQuery } from '@/features/products/products'
+import { useProductSearchQuery, fetchProductDetail } from '@/features/products/products'
 import { formatResolvedFactor } from '@/features/products/products/products.utils'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
@@ -287,6 +287,15 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const [itemSelectedPackageId, setItemSelectedPackageId] = useState<Record<number, number>>({})
   const [itemRefPurchasePrice, setItemRefPurchasePrice] = useState<Record<number, number>>({})
 
+  // Snapshot item ASLI (sebelum diedit) + stok produk saat ini — diambil sekali saat
+  // modal Edit dibuka, dipakai buat validasi "produk yang dihapus/diganti dari daftar
+  // tidak boleh bikin stoknya minus" (lihat purchase_repo.go Update() — aturan yang
+  // sama persis, cuma di sini dicek proaktif sebelum user sempat klik Simpan).
+  const [originalItemsSnapshot, setOriginalItemsSnapshot] = useState<
+    { product_id: number; product_name: string; quantity: number; conversion_qty: number }[]
+  >([])
+  const [originalStockMap, setOriginalStockMap] = useState<Record<number, number>>({})
+
   // Menandai PO mana yang UI-state-nya (itemUnitOptions dkk) sudah disinkronkan, supaya
   // reset di bawah hanya terjadi sekali per data baru — pola "adjust state saat render"
   // yang direkomendasikan React untuk sinkron ke data eksternal, bukan react ke event user.
@@ -298,9 +307,52 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const watchPaymentMethod = useWatch({ control, name: 'payment_method' })
   const watchSupplierId = useWatch({ control, name: 'supplier_id' })
   const watchNoInvoice = useWatch({ control, name: 'no_invoice' }) ?? false
+  const watchPaidAmount = useWatch({ control, name: 'paid_amount' }) ?? 0
 
   const subtotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
   const total = Math.max(0, subtotal - (watchDiscount || 0))
+
+  // originalPaymentStatus: status pembayaran PO SEBELUM diedit (bukan pilihan di form,
+  // karena field Status Pembayaran dikunci begitu status aslinya bukan "unpaid" — lihat
+  // rancangan tier di bawah). undefined saat mode Tambah baru (semua bebas).
+  const originalPaymentStatus = isEditMode ? initialData?.payment_status : undefined
+  const originalPaidAmount = initialData?.paid_amount ?? 0
+  // Tier kunci field: "unpaid" bebas semua, "partial" kunci Diskon+Status Pembayaran,
+  // "paid" kunci itu + Metode Pembayaran juga (lihat diskusi rancangan form Edit).
+  const lockDiscountAndStatus = isEditMode && originalPaymentStatus !== undefined && originalPaymentStatus !== 'unpaid'
+  const lockPaymentMethod = isEditMode && originalPaymentStatus === 'paid'
+
+  // Validasi live #1: PO yang ASALNYA Lunas — paid_amount aslinya tetap jadi acuan
+  // (bukan field yang bisa diedit user, lihat handleConfirmedSave), jadi total baru
+  // tidak boleh turun sampai di bawah itu. Untuk tier "partial", pengecekan setara
+  // sudah ditangani oleh superRefine di purchaseSchema (field Jumlah Dibayar-nya
+  // sendiri, yang masih terbuka).
+  const totalBelowOriginalPaid = originalPaymentStatus === 'paid' && total < originalPaidAmount
+
+  // Validasi live #2: produk yang ada di item ASLI tapi sudah tidak ada lagi di item
+  // yang sedang diedit sekarang (dihapus atau diganti ke produk lain) — cek apakah
+  // rollback qty pembelian aslinya bikin stok produk itu minus. Kalau minus, berarti
+  // sebagian stok dari pembelian ini sudah terjual/keluar lewat jalur lain (mis. Kasir),
+  // jadi tidak bisa "ditarik balik" lagi. Aturan yang sama persis dicek ulang di
+  // purchase_repo.go Update() — di sini cuma supaya user tahu sebelum klik Simpan.
+  const currentProductIds = new Set(watchItems.map((item) => item.product_id).filter((id) => id > 0))
+  const removedProductWarnings = originalItemsSnapshot
+    .filter((old) => !currentProductIds.has(old.product_id))
+    .map((old) => {
+      const currentStock = originalStockMap[old.product_id] ?? Infinity
+      const neededRollback = old.quantity * old.conversion_qty
+      return { ...old, currentStock, neededRollback, blocked: currentStock - neededRollback < 0 }
+    })
+    .filter((w) => w.blocked)
+
+  const hasBlockingValidation = totalBelowOriginalPaid || removedProductWarnings.length > 0
+
+  // effectivePaidAmount: paid_amount yang SUNGGUH akan dikirim ke backend — logika ini
+  // dipakai bareng di payload submit (handleConfirmedSave) dan di ringkasan dialog
+  // konfirmasi, supaya keduanya selalu konsisten (satu sumber kebenaran).
+  const effectivePaidAmount =
+    originalPaymentStatus === 'paid' ? originalPaidAmount : watchPaymentStatus === 'paid' ? total : watchPaidAmount
+  const effectiveRemaining = Math.max(0, total - effectivePaidAmount)
 
   // Kode PO dipakai sebagai basis nomor faktur otomatis saat toggle "faktur tidak
   // ada" aktif — di mode tambah dari hasil generate-code, di mode edit dari PO yang
@@ -332,6 +384,24 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemUnitOptions({})
     setItemSelectedPackageId({})
     setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
+
+    const snapshot = fullPurchaseDetail.items.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      conversion_qty: item.conversion_qty || 1,
+    }))
+    setOriginalItemsSnapshot(snapshot)
+    setOriginalStockMap({})
+    Promise.all(
+      snapshot.map((item) =>
+        fetchProductDetail(item.product_id)
+          .then((p) => [item.product_id, p.stock] as const)
+          // Gagal fetch (mis. produk sudah dihapus) — anggap stok "aman tak terbatas" di
+          // sisi FE; backend tetap jadi penjaga akhir yang sebenarnya kalau ini salah.
+          .catch(() => [item.product_id, Infinity] as const)
+      )
+    ).then((pairs) => setOriginalStockMap(Object.fromEntries(pairs)))
   }
 
   // reset() react-hook-form murni imperatif (bukan React state setter), jadi tetap aman
@@ -403,6 +473,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemUnitOptions({})
     setItemSelectedPackageId({})
     setItemRefPurchasePrice({})
+    setOriginalItemsSnapshot([])
+    setOriginalStockMap({})
     setIsConfirming(false)
     setPendingValues(null)
     setSupplierKeyword('')
@@ -433,7 +505,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         conversion_qty: item.conversion_qty ?? 1,
         expiry_batches: item.expiry_batches && item.expiry_batches.length > 0 ? item.expiry_batches : undefined,
       })),
-      paid_amount: pendingValues.payment_status === 'paid' ? total : pendingValues.paid_amount,
+      // paid_amount: kalau PO ini ASALNYA sudah Lunas, jangan ikut menimpanya jadi
+      // total baru (Status Pembayaran & field ini terkunci di tier itu) — pertahankan
+      // angka aslinya apa adanya, biar backend yang hitung ulang remaining_amount &
+      // otomatis turunkan status jadi "Bayar Sebagian" kalau total naik. Untuk tier
+      // "partial", field Jumlah Dibayar masih terbuka jadi tetap dari input user. Untuk
+      // PO yang asalnya "unpaid" (atau mode Tambah baru), Status Pembayaran sendiri
+      // masih bebas dipilih user, jadi perilaku lama (paid_amount = total kalau pilih
+      // Lunas) tetap berlaku. effectivePaidAmount sudah menghitung ketiga kasus ini
+      // (dipakai juga di ringkasan dialog konfirmasi, satu sumber kebenaran).
+      paid_amount: effectivePaidAmount,
     }
 
     if (isEditMode && initialData) {
@@ -460,6 +541,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       title={isEditMode ? 'Edit Pembelian' : 'Tambah Pembelian'}
       size="full"
       isLoading={isPending}
+      submitDisabled={hasBlockingValidation}
       onSubmit={handleSubmit(onSubmit)}
       submitLabel={isEditMode ? 'Simpan Perubahan' : 'Simpan Pembelian'}
     >
@@ -471,6 +553,41 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         </div>
       ) : (
       <div className="space-y-5">
+        {lockDiscountAndStatus && (
+          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <span>
+              {originalPaymentStatus === 'paid'
+                ? 'PO ini sudah lunas — Diskon, Status Pembayaran, dan Metode Pembayaran tidak bisa diubah dari sini.'
+                : `PO ini sudah dibayar sebagian (${formatRupiah(originalPaidAmount)} dari ${formatRupiah(initialData?.total_amount ?? 0)}) — Diskon dan Status Pembayaran tidak bisa diubah dari sini.`}
+            </span>
+          </div>
+        )}
+
+        {removedProductWarnings.map((w) => (
+          <div
+            key={w.product_id}
+            className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+          >
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Produk &quot;{w.product_name}&quot; tidak bisa dihapus/diganti dari pembelian ini — sebagian stoknya
+              sudah terjual (sisa stok {w.currentStock}, butuh rollback {w.neededRollback}). Kembalikan produk ini
+              ke daftar item untuk melanjutkan.
+            </span>
+          </div>
+        ))}
+
+        {totalBelowOriginalPaid && (
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Total baru ({formatRupiah(total)}) tidak boleh lebih kecil dari yang sudah dibayar (
+              {formatRupiah(originalPaidAmount)}). Tambah kembali item yang dikurangi, atau batalkan perubahan ini.
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="pur-code">Kode PO</Label>
@@ -711,6 +828,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                     id="pur-discount"
                     value={field.value ?? 0}
                     onChange={field.onChange}
+                    disabled={lockDiscountAndStatus}
                     className={errors.discount_amount ? 'border-red-500' : ''}
                   />
                 )}
@@ -724,6 +842,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               <Label>Status Pembayaran</Label>
               <Select
                 value={watchPaymentStatus}
+                disabled={lockDiscountAndStatus}
                 onValueChange={(v) => setValue('payment_status', v as PaymentStatus, { shouldValidate: true })}
               >
                 <SelectTrigger>
@@ -765,6 +884,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                 <Label>Metode Pembayaran</Label>
                 <Select
                   value={watchPaymentMethod ?? 'cash'}
+                  disabled={lockPaymentMethod}
                   onValueChange={(v) => setValue('payment_method', v, { shouldValidate: true })}
                 >
                   <SelectTrigger className={errors.payment_method ? 'border-red-500' : ''}>
@@ -826,7 +946,11 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         }
       }}
       title={isEditMode ? 'Update Pembelian' : 'Tambah Pembelian'}
-      description={`Yakin ingin ${isEditMode ? 'memperbarui' : 'menyimpan'} data pembelian ini?`}
+      description={
+        isEditMode && initialData && total !== initialData.total_amount
+          ? `Total pembelian berubah dari ${formatRupiah(initialData.total_amount)} menjadi ${formatRupiah(total)}. Sisa tagihan: ${formatRupiah(effectiveRemaining)}. Yakin ingin memperbarui?`
+          : `Yakin ingin ${isEditMode ? 'memperbarui' : 'menyimpan'} data pembelian ini?`
+      }
       confirmLabel="Ya, Simpan"
       isLoading={isPending}
       onConfirm={handleConfirmedSave}

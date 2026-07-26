@@ -104,23 +104,24 @@ export function buildPurchaseColumns(handlers: PurchaseColumnHandlers): ColumnDe
               <TooltipContent>Detail</TooltipContent>
             </Tooltip>
 
+            {/* Edit sekarang boleh untuk PO status pembayaran apapun (unpaid/partial/paid)
+                — item/qty/harga tetap bisa diubah bebas, tapi field terkait pembayaran
+                dikunci sebagian di form-nya sendiri. Lihat purchase_service.go Update(). */}
             {!isVoid && (
               <RoleGuard menuKey="pengadaan.pembelian" action="can_edit">
-                {row.paid_amount === 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-gray-500 hover:text-blue-600"
-                        onClick={() => onEdit(row)}
-                      >
-                        <Pencil size={14} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit</TooltipContent>
-                  </Tooltip>
-                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                      onClick={() => onEdit(row)}
+                    >
+                      <Pencil size={14} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Edit</TooltipContent>
+                </Tooltip>
                 {row.payment_status !== 'unpaid' && (
                   <Tooltip>
                     <TooltipTrigger asChild>

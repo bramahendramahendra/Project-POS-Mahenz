@@ -234,6 +234,13 @@ func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseRespo
 	return data, nil
 }
 
+// Update mengedit PO di status pembayaran manapun (unpaid/partial/paid) — tidak lagi
+// disyaratkan paid_amount = 0. Karena item/qty/harga tetap bisa diedit bebas
+// (termasuk pada PO yang sudah ada pembayaran), payment_status akhir TIDAK lagi
+// dipercaya dari req.PaymentStatus — dihitung ulang murni dari total baru vs
+// paid_amount (lihat repo.Update()), supaya PO yang tadinya "Lunas" otomatis balik
+// jadi "Bayar Sebagian" kalau total naik, dan supaya total tidak bisa turun sampai
+// di bawah yang sudah dibayar (validasi ada di repo, sebelum mutasi apapun dieksekusi).
 func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseResponse, err error) {
 	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
@@ -244,9 +251,6 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	}
 	if existing.Status == "void" {
 		return data, &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa diedit"}
-	}
-	if existing.PaidAmount > 0 {
-		return data, &errors.BadRequestError{Message: "PO tidak bisa diedit karena sudah ada pembayaran"}
 	}
 
 	if err := validateDuplicateProducts(req.Items); err != nil {

@@ -403,6 +403,12 @@ func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error
 	})
 }
 
+// Update mengedit PO — item/qty/harga/diskon boleh diubah bebas terlepas dari status
+// pembayaran (lihat purchase_service.go Update()). Urutan kerja SENGAJA: hitung &
+// validasi semuanya dulu (total baru vs paid_amount, dan keamanan stok tiap produk
+// yang dihapus/diganti dari daftar) SEBELUM satupun query mutasi (rollback stok,
+// hapus item lama, insert item baru) dieksekusi — supaya kalau validasi gagal,
+// transaksi di-abort tanpa mengubah apapun sama sekali, bukan "setengah ke-update".
 func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		oldItems, err := r.GetItems(req.ID)
@@ -410,6 +416,65 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
+		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
+
+		paidAmount := req.PaidAmount
+		if paidAmount < 0 {
+			paidAmount = 0
+		}
+		remainingAmount := totalAmount - paidAmount
+		if remainingAmount < 0 {
+			return &errors.BadRequestError{Message: fmt.Sprintf(
+				"Total baru (%.2f) tidak boleh lebih kecil dari yang sudah dibayar (%.2f)", totalAmount, paidAmount,
+			)}
+		}
+
+		// payment_status akhir TIDAK dipercaya dari req.PaymentStatus — dihitung ulang murni
+		// dari paidAmount vs totalAmount, supaya PO "Lunas" yang totalnya naik otomatis
+		// balik jadi "Bayar Sebagian", dan tidak ada celah payment_status tidak sinkron
+		// dengan angka aslinya.
+		var paymentStatus string
+		switch {
+		case paidAmount <= 0:
+			paymentStatus = "unpaid"
+		case remainingAmount <= 0:
+			paymentStatus = "paid"
+		default:
+			paymentStatus = "partial"
+		}
+
+		// Validasi stok: untuk tiap item LAMA yang produknya sudah tidak ada lagi di
+		// daftar item BARU (dihapus atau diganti ke produk lain) — bukan yang cuma
+		// qty-nya diubah — pastikan rollback qty pembelian asli tidak bikin stok
+		// produk itu jadi minus. Minus berarti sebagian stok dari pembelian ini sudah
+		// terjual/keluar lewat jalur lain (mis. Kasir), jadi tidak bisa "ditarik balik".
+		newProductIDs := make(map[int]bool, len(req.Items))
+		for _, item := range req.Items {
+			newProductIDs[item.ProductID] = true
+		}
+		for _, old := range oldItems {
+			if newProductIDs[old.ProductID] {
+				continue
+			}
+			convQty := old.ConversionQty
+			if convQty <= 0 {
+				convQty = 1
+			}
+			originalStockQty := old.Quantity * convQty
+
+			var currentStock float64
+			if err := tx.Raw(getProductStockQuery, old.ProductID).Scan(&currentStock).Error; err != nil {
+				return err
+			}
+			if currentStock-originalStockQty < 0 {
+				return &errors.BadRequestError{Message: fmt.Sprintf(
+					"Produk '%s' tidak bisa diganti/dihapus dari pembelian ini karena sebagian stoknya sudah terjual (sisa stok %.3f, butuh rollback %.3f)",
+					old.ProductName, currentStock, originalStockQty,
+				)}
+			}
+		}
+
+		// Validasi lolos semua — baru sekarang boleh mulai mutasi.
 		for _, item := range oldItems {
 			convQty := item.ConversionQty
 			if convQty <= 0 {
@@ -423,21 +488,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 		if err := tx.Exec(deletePurchaseItemsQuery, req.ID).Error; err != nil {
 			return err
 		}
-
-		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
-
-		paymentStatus := req.PaymentStatus
-		if paymentStatus == "" {
-			paymentStatus = "unpaid"
-		}
-		paidAmount := req.PaidAmount
-		switch paymentStatus {
-		case "paid":
-			paidAmount = totalAmount
-		case "unpaid":
-			paidAmount = 0
-		}
-		remainingAmount := totalAmount - paidAmount
 
 		// payment_method punya FK constraint ke payment_methods(code) — kolom ini NOT NULL
 		// DEFAULT 'cash' di skema, tapi UPDATE eksplisit tidak otomatis jatuh ke default itu
