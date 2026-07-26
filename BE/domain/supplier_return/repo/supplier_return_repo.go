@@ -29,6 +29,7 @@ const (
 	getAllReturnsBase  = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
 	countReturnsBase  = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
 	getPurchaseDateQuery          = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
+	getPurchaseStatusQuery        = `SELECT status FROM purchases WHERE id = ? LIMIT 1`
 	getPurchaseItemQtyQuery       = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
 	getTotalReturnedQtyQuery      = `SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = ? AND sr.status IN ('pending', 'approved')`
 	deleteReturnItemsQuery        = `DELETE FROM supplier_return_items WHERE return_id = ?`
@@ -125,6 +126,15 @@ func (r *supplierReturnRepo) GetPurchaseDate(purchaseID int) (string, error) {
 		return "", err
 	}
 	return purchaseDate, nil
+}
+
+func (r *supplierReturnRepo) GetPurchaseStatus(purchaseID int) (string, error) {
+	var status string
+	err := r.db.Raw(getPurchaseStatusQuery, purchaseID).Scan(&status).Error
+	if err != nil {
+		return "", err
+	}
+	return status, nil
 }
 
 func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {

@@ -46,7 +46,10 @@ export function ReturnFormModal({ open, onOpenChange }: ReturnFormModalProps) {
     page: 1,
     limit: 20,
   })
-  const purchases = purchasesData?.data ?? []
+  // PO yang sudah di-void tidak boleh dipilih utk retur — stoknya sudah dikembalikan
+  // saat void, dan backend (supplier_return_service.go Create()) memang menolaknya.
+  // Difilter di sini juga supaya user tidak sempat pilih opsi yang pasti akan ditolak.
+  const purchases = (purchasesData?.data ?? []).filter((p) => p.status !== 'void')
 
   const { mutate: create, isPending } = useCreateSupplierReturnMutation()
 

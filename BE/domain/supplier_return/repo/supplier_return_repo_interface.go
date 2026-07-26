@@ -14,6 +14,7 @@ type (
 		GetStatus(id int) (string, error)
 		GetItems(returnID int) ([]model.SupplierReturnItem, error)
 		GetPurchaseDate(purchaseID int) (string, error)
+		GetPurchaseStatus(purchaseID int) (string, error)
 		Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error)
 		UpdateStatus(id int, status, notes string) error
 		ApproveWithStockReduction(id int, userID int) error

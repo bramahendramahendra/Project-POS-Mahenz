@@ -124,7 +124,12 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 		args = append(args, *req.SupplierID)
 	}
 	if req.PaymentStatus != "" {
-		conditions += " AND p.payment_status = ?"
+		// status != 'void' wajib ikut di sini — payment_status PO yang sudah di-void
+		// SENGAJA dipertahankan sebagai histori (lihat purchase_repo.go Void()), jadi
+		// tanpa ini PO yang sudah dibatalkan tapi payment_status lamanya masih
+		// 'partial'/'unpaid' akan ikut nongol saat difilter tab Sebagian/Hutang,
+		// padahal badge status-nya sendiri sudah menampilkan "Dibatalkan".
+		conditions += " AND p.payment_status = ? AND p.status != 'void'"
 		args = append(args, req.PaymentStatus)
 	}
 
