@@ -25,7 +25,11 @@ export const purchaseSchema = z
       .string()
       .min(1, 'Tanggal wajib diisi')
       .refine((val) => val <= todayStr(), 'Tanggal tidak boleh lebih dari hari ini'),
-    invoice_number: z.string().min(1, 'No. faktur wajib diisi').max(50, 'No. faktur maksimal 50 karakter'),
+    invoice_number: z.string().max(50, 'No. faktur maksimal 50 karakter'),
+    // no_invoice: toggle "faktur tidak ada" — kalau true, invoice_number diisi otomatis
+    // (lihat PurchaseFormModal) dan tidak wajib diisi manual. Field murni state form,
+    // tidak dikirim ke backend (di-strip sebelum payload dibangun).
+    no_invoice: z.boolean().optional(),
     supplier_id: z.number({ error: 'Pilih supplier' }).positive('Pilih supplier'),
     items: z.array(purchaseItemSchema).min(1, 'Minimal 1 item'),
     discount_amount: z.number().nonnegative(),
@@ -37,6 +41,14 @@ export const purchaseSchema = z
   .superRefine((data, ctx) => {
     const subtotal = data.items.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
     const total = Math.max(0, subtotal - (data.discount_amount || 0))
+
+    if (!data.no_invoice && data.invoice_number.trim().length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'No. faktur wajib diisi',
+        path: ['invoice_number'],
+      })
+    }
 
     if (data.discount_amount > subtotal) {
       ctx.addIssue({

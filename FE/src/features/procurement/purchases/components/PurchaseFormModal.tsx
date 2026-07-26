@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useForm, useFieldArray, useWatch, Controller, type Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2 } from 'lucide-react'
+import { Lock, Plus, Trash2, Unlock } from 'lucide-react'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Checkbox } from '@/shared/components/ui/checkbox'
@@ -203,6 +203,7 @@ function ExpiryBatchSection({
 const emptyValues: PurchaseFormValues = {
   purchase_date: todayStr(),
   invoice_number: '',
+  no_invoice: false,
   supplier_id: 0,
   items: [{ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
   discount_amount: 0,
@@ -218,6 +219,7 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
     // <input type="date"> butuh format yyyy-MM-dd persis, kalau tidak inputnya kosong.
     purchase_date: toISODate(new Date(data.purchase_date)),
     invoice_number: data.invoice_number,
+    no_invoice: data.invoice_number.startsWith('AUTO-'),
     supplier_id: data.supplier_id,
     items: data.items.map((item) => ({
       product_id: item.product_id,
@@ -295,9 +297,35 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   const watchPaymentStatus = useWatch({ control, name: 'payment_status' })
   const watchPaymentMethod = useWatch({ control, name: 'payment_method' })
   const watchSupplierId = useWatch({ control, name: 'supplier_id' })
+  const watchNoInvoice = useWatch({ control, name: 'no_invoice' }) ?? false
 
   const subtotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
   const total = Math.max(0, subtotal - (watchDiscount || 0))
+
+  // Kode PO dipakai sebagai basis nomor faktur otomatis saat toggle "faktur tidak
+  // ada" aktif — di mode tambah dari hasil generate-code, di mode edit dari PO yang
+  // sudah tersimpan.
+  const currentPurchaseCode = isEditMode
+    ? (initialData?.purchase_code ?? '')
+    : (codeData?.purchase_code ?? '')
+
+  // Sinkronkan invoice_number ke placeholder otomatis begitu kode PO tersedia — perlu
+  // effect terpisah karena saat toggle pertama kali diklik, kode PO (async) mungkin
+  // belum sempat ter-fetch.
+  useEffect(() => {
+    if (watchNoInvoice && currentPurchaseCode) {
+      setValue('invoice_number', `AUTO-${currentPurchaseCode}`, { shouldValidate: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchNoInvoice, currentPurchaseCode])
+
+  function handleToggleNoInvoice() {
+    const next = !watchNoInvoice
+    setValue('no_invoice', next)
+    setValue('invoice_number', next && currentPurchaseCode ? `AUTO-${currentPurchaseCode}` : '', {
+      shouldValidate: true,
+    })
+  }
 
   if (open && isEditMode && fullPurchaseDetail && fullPurchaseDetail.id !== loadedDetailId) {
     setLoadedDetailId(fullPurchaseDetail.id)
@@ -393,6 +421,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
 
     const payload = {
       ...pendingValues,
+      // no_invoice cuma state UI form (toggle "faktur tidak ada"), bukan field yang
+      // dikenal backend — di-set undefined supaya tidak ikut terserialisasi di payload.
+      no_invoice: undefined,
       items: pendingValues.items.map((item, index) => ({
         product_id: item.product_id,
         package_id: itemSelectedPackageId[index] || undefined,
@@ -473,14 +504,25 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="pur-inv">
-              No. Faktur <span className="text-red-500">*</span>
+              No. Faktur {!watchNoInvoice && <span className="text-red-500">*</span>}
             </Label>
-            <Input
-              id="pur-inv"
-              placeholder="INV-001"
-              {...register('invoice_number')}
-              className={errors.invoice_number ? 'border-red-500' : ''}
-            />
+            <div className="relative">
+              <Input
+                id="pur-inv"
+                placeholder={watchNoInvoice ? '' : 'INV-001'}
+                readOnly={watchNoInvoice}
+                {...register('invoice_number')}
+                className={`pr-9 ${watchNoInvoice ? 'bg-gray-50 text-gray-700' : ''} ${errors.invoice_number ? 'border-red-500' : ''}`}
+              />
+              <button
+                type="button"
+                onClick={handleToggleNoInvoice}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                title={watchNoInvoice ? 'Klik untuk isi manual' : 'Faktur tidak ada'}
+              >
+                {watchNoInvoice ? <Lock size={14} /> : <Unlock size={14} />}
+              </button>
+            </div>
             {errors.invoice_number && (
               <p className="text-xs text-red-500">{errors.invoice_number.message}</p>
             )}
