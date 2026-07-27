@@ -448,33 +448,62 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			paymentStatus = "partial"
 		}
 
-		// Validasi stok: untuk tiap item LAMA yang produknya sudah tidak ada lagi di
-		// daftar item BARU (dihapus atau diganti ke produk lain) — bukan yang cuma
-		// qty-nya diubah — pastikan rollback qty pembelian asli tidak bikin stok
-		// produk itu jadi minus. Minus berarti sebagian stok dari pembelian ini sudah
-		// terjual/keluar lewat jalur lain (mis. Kasir), jadi tidak bisa "ditarik balik".
-		newProductIDs := make(map[int]bool, len(req.Items))
-		for _, item := range req.Items {
-			newProductIDs[item.ProductID] = true
+		// Validasi stok: hitung PERUBAHAN BERSIH (net) stok per produk antara item lama
+		// vs item baru, lalu pastikan stok produk itu SETELAH perubahan tidak minus.
+		//
+		// Ini SENGAJA dihitung per produk (bukan per baris item) dan mencakup SEMUA
+		// produk yang terlibat — baik yang dihapus/diganti dari daftar maupun yang cuma
+		// qty-nya dikurangi untuk produk yang SAMA. Awalnya kami kira kasus qty-dikurangi
+		// (produk sama) selalu aman secara matematis (rollback lama + tambah baru selalu
+		// netral), tapi itu keliru: kalau sebagian stok dari pembelian ini sudah terjual
+		// lewat jalur lain (mis. Kasir) SEBELUM diedit, mengurangi qty terlalu banyak
+		// tetap bisa bikin stok jadi minus — persis seperti kasus produk diganti/dihapus.
+		type stockDelta struct {
+			productName string
+			oldQty      float64
+			newQty      float64
 		}
+		deltas := make(map[int]*stockDelta)
+
 		for _, old := range oldItems {
-			if newProductIDs[old.ProductID] {
-				continue
-			}
 			convQty := old.ConversionQty
 			if convQty <= 0 {
 				convQty = 1
 			}
-			originalStockQty := old.Quantity * convQty
+			d, ok := deltas[old.ProductID]
+			if !ok {
+				d = &stockDelta{productName: old.ProductName}
+				deltas[old.ProductID] = d
+			}
+			d.oldQty += old.Quantity * convQty
+		}
+		for _, item := range req.Items {
+			convQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
+			d, ok := deltas[item.ProductID]
+			if !ok {
+				d = &stockDelta{}
+				deltas[item.ProductID] = d
+			}
+			d.newQty += item.Quantity * convQty
+		}
 
+		for productID, d := range deltas {
+			if d.newQty == d.oldQty {
+				continue // tidak ada perubahan bersih utk produk ini, tidak perlu dicek
+			}
 			var currentStock float64
-			if err := tx.Raw(getProductStockQuery, old.ProductID).Scan(&currentStock).Error; err != nil {
+			if err := tx.Raw(getProductStockQuery, productID).Scan(&currentStock).Error; err != nil {
 				return err
 			}
-			if currentStock-originalStockQty < 0 {
+			finalStock := currentStock - d.oldQty + d.newQty
+			if finalStock < 0 {
+				name := d.productName
+				if name == "" {
+					name = fmt.Sprintf("produk ID %d", productID)
+				}
 				return &errors.BadRequestError{Message: fmt.Sprintf(
-					"Produk '%s' tidak bisa diganti/dihapus dari pembelian ini karena sebagian stoknya sudah terjual (sisa stok %.3f, butuh rollback %.3f)",
-					old.ProductName, currentStock, originalStockQty,
+					"Perubahan pada produk '%s' membuat stok jadi minus (stok saat ini %.3f, perubahan qty pembelian %.3f)",
+					name, currentStock, d.newQty-d.oldQty,
 				)}
 			}
 		}

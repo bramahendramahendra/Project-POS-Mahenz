@@ -12,6 +12,7 @@ Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Front
 2. [Prasyarat Server](#2-prasyarat-server)
 3. [Instalasi Dependensi Server](#3-instalasi-dependensi-server)
 4. [Setup Database MySQL](#4-setup-database-mysql)
+    - 4.1 [Akses Database dari Navicat (Remote)](#41-akses-database-dari-navicat-remote)
 5. [Deploy Backend (Go)](#5-deploy-backend-go)
 6. [Menjalankan Backend sebagai Service (systemd)](#6-menjalankan-backend-sebagai-service-systemd)
 7. [Deploy Frontend (Vite/React)](#7-deploy-frontend-vitereact)
@@ -140,6 +141,59 @@ EXIT;
 **Kenapa buat user terpisah, bukan pakai `root`?** Prinsip *least privilege* — kalau kredensial aplikasi bocor, penyerang hanya bisa mengakses database `pos_retail_db`, bukan seluruh instance MySQL.
 
 Saat backend pertama kali dijalankan, ia otomatis membaca semua file di `BE/database/migrations/` secara berurutan (`001_init_schema.sql` → `006_sync_id_map.sql` saat ini) dan mencatat progres di tabel `migrations_history`. Anda **tidak perlu** menjalankan file SQL secara manual.
+
+### 4.1 Akses Database dari Navicat (Remote)
+
+Secara default MySQL di server hanya bind ke `127.0.0.1` (lihat checklist §10: port 3306 **tidak** dibuka ke publik) — ini benar untuk keamanan production, tapi berarti Navicat di laptop Anda tidak bisa connect langsung ke `IP_SERVER:3306`. Ada dua cara mengaksesnya, pilih salah satu:
+
+**Opsi A — SSH Tunnel (disarankan, tidak perlu ubah firewall/MySQL sama sekali)**
+
+Cara ini paling aman karena port 3306 tetap tertutup ke internet; koneksi dienkripsi lewat SSH yang memang sudah terbuka.
+
+1. Di Navicat, buat koneksi baru **MySQL** → tab **General** isi seperti biasa (Host `127.0.0.1`, Port `3306`, User `pos_user`, Password sesuai `config_prod.json`).
+2. Buka tab **SSH**, centang **Use SSH Tunnel**, lalu isi:
+   ```
+   Host: <IP_SERVER_ANDA>
+   Port: 22
+   User: <user SSH Anda>
+   Authentication Method: Password atau Private Key (sesuaikan dengan cara Anda login SSH ke server)
+   ```
+3. Klik **Test Connection** — Navicat akan connect ke MySQL lewat "terowongan" SSH tersebut, seolah-olah MySQL ada di `localhost` Anda sendiri.
+4. Save & Connect.
+
+**Opsi B — Buka MySQL untuk remote access (kurang disarankan)**
+
+Hanya lakukan ini kalau Opsi A tidak memungkinkan, dan **wajib** batasi akses hanya dari IP Anda (jangan `0.0.0.0/0`).
+
+1. Ubah bind address MySQL agar menerima koneksi dari luar `localhost`:
+   ```bash
+   sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+   ```
+   Cari baris `bind-address = 127.0.0.1`, ubah jadi:
+   ```
+   bind-address = 0.0.0.0
+   ```
+   Lalu restart: `sudo systemctl restart mysql`
+2. Buat/izinkan user MySQL untuk connect dari host tertentu (bukan `'localhost'`), misalnya dari IP publik laptop/kantor Anda `203.0.113.10`:
+   ```sql
+   CREATE USER 'pos_user'@'%' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
+   GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'%';
+   FLUSH PRIVILEGES;
+   ```
+   > Jangan pakai `'pos_user'@'%'` (mengizinkan dari IP mana pun) — ini membuka database ke seluruh internet begitu port 3306 dibuka.
+3. Buka port 3306 di firewall **hanya** untuk IP Anda:
+   ```bash
+   sudo ufw allow from 203.0.113.10 to any port 3306
+   ```
+
+  jika ingin tanpa IP
+   ```bash
+   sudo ufw allow 3306
+   ```
+   
+4. Di Navicat, buat koneksi MySQL biasa (tanpa tab SSH): Host `IP_SERVER_ANDA`, Port `3306`, User `pos_user`, Password sesuai.
+
+**Kenapa Opsi A lebih disarankan?** Membuka 3306 ke internet (meski dibatasi IP) menambah *attack surface* — kalau IP Anda dinamis (berubah-ubah, misal WiFi rumah/kafe), aturan firewall harus terus diperbarui atau malah dilonggarkan jadi rentan. SSH tunnel tidak butuh perubahan firewall/MySQL sama sekali dan tetap aman walau IP Anda berubah, karena yang dibuka publik hanya port 22 (SSH) yang memang sudah ada.
 
 ---
 
@@ -611,7 +665,7 @@ Aplikasi langsung kembali normal begitu flag file dihapus — tidak ada delay/ca
 | Perubahan `VITE_API_URL` tidak berpengaruh setelah edit `.env.production` | Lupa build ulang — Vite meng-inline env var saat build, bukan runtime | Jalankan `npm run build` lagi lalu copy ulang `dist/` |
 | Service backend restart terus-menerus (crash loop) | Cek `journalctl -u pos-backend -f` untuk stack trace asli | Biasanya error koneksi DB atau file migrasi SQL yang gagal dieksekusi |
 
----
+
 
 ## Catatan Kondisi Kode Saat Ini
 

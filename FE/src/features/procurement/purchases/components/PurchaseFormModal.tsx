@@ -329,23 +329,36 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   // sendiri, yang masih terbuka).
   const totalBelowOriginalPaid = originalPaymentStatus === 'paid' && total < originalPaidAmount
 
-  // Validasi live #2: produk yang ada di item ASLI tapi sudah tidak ada lagi di item
-  // yang sedang diedit sekarang (dihapus atau diganti ke produk lain) — cek apakah
-  // rollback qty pembelian aslinya bikin stok produk itu minus. Kalau minus, berarti
-  // sebagian stok dari pembelian ini sudah terjual/keluar lewat jalur lain (mis. Kasir),
-  // jadi tidak bisa "ditarik balik" lagi. Aturan yang sama persis dicek ulang di
-  // purchase_repo.go Update() — di sini cuma supaya user tahu sebelum klik Simpan.
-  const currentProductIds = new Set(watchItems.map((item) => item.product_id).filter((id) => id > 0))
-  const removedProductWarnings = originalItemsSnapshot
-    .filter((old) => !currentProductIds.has(old.product_id))
-    .map((old) => {
-      const currentStock = originalStockMap[old.product_id] ?? Infinity
-      const neededRollback = old.quantity * old.conversion_qty
-      return { ...old, currentStock, neededRollback, blocked: currentStock - neededRollback < 0 }
+  // Validasi live #2: hitung PERUBAHAN BERSIH (net) stok per produk antara item asli
+  // vs item yang sedang diedit sekarang, lalu tandai kalau hasilnya bikin stok produk
+  // itu minus. Sengaja dihitung per produk (bukan cuma "produk yang hilang dari daftar")
+  // karena mengurangi qty pada produk yang SAMA juga bisa bikin minus kalau sebagian
+  // stok dari pembelian ini sudah terjual di jalur lain (mis. Kasir) — bukan cuma
+  // saat produk itu dihapus/diganti sepenuhnya. Aturan yang sama persis dicek ulang
+  // di purchase_repo.go Update() — di sini cuma supaya user tahu sebelum klik Simpan.
+  const productDeltas = new Map<number, { name: string; oldQty: number; newQty: number }>()
+  originalItemsSnapshot.forEach((old) => {
+    const d = productDeltas.get(old.product_id) ?? { name: old.product_name, oldQty: 0, newQty: 0 }
+    d.oldQty += old.quantity * old.conversion_qty
+    productDeltas.set(old.product_id, d)
+  })
+  watchItems.forEach((item) => {
+    if (!item.product_id) return
+    const d = productDeltas.get(item.product_id) ?? { name: item.product_name ?? '', oldQty: 0, newQty: 0 }
+    d.newQty += (item.quantity || 0) * (item.conversion_qty || 1)
+    productDeltas.set(item.product_id, d)
+  })
+
+  const stockWarnings = Array.from(productDeltas.entries())
+    .filter(([, d]) => d.newQty !== d.oldQty)
+    .map(([productId, d]) => {
+      const currentStock = originalStockMap[productId] ?? Infinity
+      const finalStock = currentStock - d.oldQty + d.newQty
+      return { productId, name: d.name, currentStock, changeQty: d.newQty - d.oldQty, blocked: finalStock < 0 }
     })
     .filter((w) => w.blocked)
 
-  const hasBlockingValidation = totalBelowOriginalPaid || removedProductWarnings.length > 0
+  const hasBlockingValidation = totalBelowOriginalPaid || stockWarnings.length > 0
 
   // effectivePaidAmount: paid_amount yang SUNGGUH akan dikirim ke backend — logika ini
   // dipakai bareng di payload submit (handleConfirmedSave) dan di ringkasan dialog
@@ -564,16 +577,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
           </div>
         )}
 
-        {removedProductWarnings.map((w) => (
+        {stockWarnings.map((w) => (
           <div
-            key={w.product_id}
+            key={w.productId}
             className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
           >
             <Info size={14} className="mt-0.5 shrink-0" />
             <span>
-              Produk &quot;{w.product_name}&quot; tidak bisa dihapus/diganti dari pembelian ini — sebagian stoknya
-              sudah terjual (sisa stok {w.currentStock}, butuh rollback {w.neededRollback}). Kembalikan produk ini
-              ke daftar item untuk melanjutkan.
+              Perubahan pada produk &quot;{w.name}&quot; membuat stok jadi minus — sebagian stoknya sudah terjual di
+              jalur lain (sisa stok {w.currentStock}, perubahan qty pembelian {w.changeQty}). Kurangi perubahan pada
+              produk ini untuk melanjutkan.
             </span>
           </div>
         ))}
