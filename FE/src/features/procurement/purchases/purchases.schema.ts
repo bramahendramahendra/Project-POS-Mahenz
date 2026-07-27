@@ -34,7 +34,9 @@ export const purchaseSchema = z
     items: z.array(purchaseItemSchema).min(1, 'Minimal 1 item'),
     discount_amount: z.number().nonnegative(),
     notes: z.string().max(500, 'Catatan maksimal 500 karakter').optional(),
-    payment_status: z.enum(['paid', 'unpaid', 'partial']),
+    // '' = belum dipilih user — status TIDAK di-default-kan lagi ke salah satu opsi,
+    // wajib dipilih manual (lihat superRefine di bawah untuk pesan errornya).
+    payment_status: z.union([z.enum(['paid', 'unpaid', 'partial']), z.literal('')]),
     paid_amount: z.number().nonnegative(),
     payment_method: z.string().optional(),
   })
@@ -58,6 +60,14 @@ export const purchaseSchema = z
       })
     }
 
+    if (data.payment_status === '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Pilih status pembayaran',
+        path: ['payment_status'],
+      })
+    }
+
     if (data.payment_status === 'partial') {
       if (data.paid_amount <= 0) {
         ctx.addIssue({
@@ -74,7 +84,7 @@ export const purchaseSchema = z
       }
     }
 
-    if (data.payment_status !== 'unpaid' && !data.payment_method) {
+    if (data.payment_status !== '' && data.payment_status !== 'unpaid' && !data.payment_method) {
       ctx.addIssue({
         code: 'custom',
         message: 'Metode pembayaran wajib dipilih',

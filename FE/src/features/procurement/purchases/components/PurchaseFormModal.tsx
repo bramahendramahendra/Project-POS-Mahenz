@@ -208,9 +208,9 @@ const emptyValues: PurchaseFormValues = {
   items: [{ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
   discount_amount: 0,
   notes: '',
-  payment_status: 'paid',
+  payment_status: '',
   paid_amount: 0,
-  payment_method: 'cash',
+  payment_method: '',
 }
 
 function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
@@ -443,11 +443,19 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemRefPurchasePrice((prev) => ({ ...prev, [index]: defaultPkg?.purchase_price ?? 0 }))
 
     if (validPackages.length > 1) {
+      // Sengaja TIDAK auto-pilih satuan dasar di sini — dropdown Satuan dibiarkan kosong
+      // (placeholder), user wajib memilih sendiri sebelum Harga/Qty terisi. Kolom "Ref.
+      // Harga Beli" di atas tetap tampil sebagai info pembanding dari satuan dasar, terpisah
+      // dari nilai yang benar-benar akan disimpan.
       setItemUnitOptions((prev) => ({ ...prev, [index]: validPackages }))
-      setItemSelectedPackageId((prev) => ({ ...prev, [index]: defaultPkg?.id ?? 0 }))
-      setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
-      setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
-      setValue(`items.${index}.conversion_qty`, defaultPkg?.resolved_factor ?? 1)
+      setItemSelectedPackageId((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+      setValue(`items.${index}.unit`, '')
+      setValue(`items.${index}.price`, 0)
+      setValue(`items.${index}.conversion_qty`, 1)
     } else {
       setItemUnitOptions((prev) => {
         const next = { ...prev }
@@ -509,6 +517,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       // no_invoice cuma state UI form (toggle "faktur tidak ada"), bukan field yang
       // dikenal backend — di-set undefined supaya tidak ikut terserialisasi di payload.
       no_invoice: undefined,
+      // Skema form mengizinkan '' (belum dipilih) supaya dropdown tidak auto-terisi —
+      // tapi validasi (superRefine) sudah memastikan tidak mungkin '' lolos sampai titik
+      // ini, jadi aman di-cast ke union yang diharapkan backend.
+      payment_status: pendingValues.payment_status as PaymentStatus,
       items: pendingValues.items.map((item, index) => ({
         product_id: item.product_id,
         package_id: itemSelectedPackageId[index] || undefined,
@@ -749,11 +761,15 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                       <td className="px-3 py-2 text-xs text-gray-700">
                         {itemUnitOptions[index]?.length > 1 ? (
                           <Select
-                            value={String(itemSelectedPackageId[index] ?? '')}
+                            value={itemSelectedPackageId[index] ? String(itemSelectedPackageId[index]) : ''}
                             onValueChange={(v) => handleUnitChange(index, v)}
                           >
-                            <SelectTrigger className="h-8 text-xs min-w-[120px]">
-                              <SelectValue placeholder="-" />
+                            <SelectTrigger
+                              className={`h-8 text-xs min-w-[120px] ${
+                                !itemSelectedPackageId[index] && itemErrors?.unit ? 'border-red-500' : ''
+                              }`}
+                            >
+                              <SelectValue placeholder="Pilih satuan" />
                             </SelectTrigger>
                             <SelectContent>
                               {itemUnitOptions[index].map((pkg) => (
@@ -852,14 +868,16 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             </div>
 
             <div className="space-y-1.5">
-              <Label>Status Pembayaran</Label>
+              <Label>
+                Status Pembayaran <span className="text-red-500">*</span>
+              </Label>
               <Select
-                value={watchPaymentStatus}
+                value={watchPaymentStatus || ''}
                 disabled={lockDiscountAndStatus}
                 onValueChange={(v) => setValue('payment_status', v as PaymentStatus, { shouldValidate: true })}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className={errors.payment_status ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Pilih status pembayaran" />
                 </SelectTrigger>
                 <SelectContent>
                   {paymentStatuses.map((s) => (
@@ -869,6 +887,9 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                   ))}
                 </SelectContent>
               </Select>
+              {errors.payment_status && (
+                <p className="text-xs text-red-500">{errors.payment_status.message}</p>
+              )}
             </div>
 
             {watchPaymentStatus === 'partial' && (
@@ -892,11 +913,13 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
               </div>
             )}
 
-            {watchPaymentStatus !== 'unpaid' && (
+            {watchPaymentStatus !== '' && watchPaymentStatus !== 'unpaid' && (
               <div className="space-y-1.5">
-                <Label>Metode Pembayaran</Label>
+                <Label>
+                  Metode Pembayaran <span className="text-red-500">*</span>
+                </Label>
                 <Select
-                  value={watchPaymentMethod ?? 'cash'}
+                  value={watchPaymentMethod || ''}
                   disabled={lockPaymentMethod}
                   onValueChange={(v) => setValue('payment_method', v, { shouldValidate: true })}
                 >

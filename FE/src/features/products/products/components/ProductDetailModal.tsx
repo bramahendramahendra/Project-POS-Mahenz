@@ -5,7 +5,7 @@ import { formatDate, formatRupiah } from '@/shared/utils'
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
 import { useExpiryBatchHistoryQuery } from '../expiry-batches.api'
 import type { ExpiryBatchStatus } from '../expiry-batches.types'
-import { calcMargin, formatResolvedFactor } from '../products.utils'
+import { calcMargin } from '../products.utils'
 
 const EXPIRY_STATUS_LABEL: Record<ExpiryBatchStatus, { label: string; className: string }> = {
   active: { label: 'Perlu Dicek', className: 'bg-amber-100 text-amber-700' },
@@ -27,6 +27,8 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
 
   const margin = product ? calcMargin(product.purchase_price, product.selling_price) : 0
   const grosirUnits = (units ?? []).filter((u) => !u.is_default)
+  const refUnitName = (refPackageId: number | null) =>
+    units.find((p) => p.id === refPackageId)?.unit_name ?? product?.unit_name ?? ''
 
   return (
     <FormModal
@@ -124,7 +126,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
-                      {['Nama Paket', 'Isi', 'H. Beli', 'H. Jual'].map((h) => (
+                      {['Nama Paket', 'Rasio', 'H. Beli', 'H. Jual'].map((h) => (
                         <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">{h}</th>
                       ))}
                     </tr>
@@ -135,7 +137,9 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                         <td className="px-2 py-1.5 font-medium">
                           {u.package_name ? `${u.unit_name} (${u.package_name})` : u.unit_name}
                         </td>
-                        <td className="px-2 py-1.5 text-gray-600">{formatResolvedFactor(u.resolved_factor)} {product.unit_name}</td>
+                        <td className="px-2 py-1.5 text-gray-600">
+                          {u.qty} {u.unit_name} = {u.ref_qty} {refUnitName(u.ref_package_id)}
+                        </td>
                         <td className="px-2 py-1.5">{formatRupiah(u.purchase_price)}</td>
                         <td className="px-2 py-1.5">{formatRupiah(u.selling_price)}</td>
                       </tr>

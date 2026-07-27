@@ -17,7 +17,13 @@ import (
 
 const (
 	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE DATE(purchase_date) = ?`
+	// Dihitung dari AWALAN KODE itu sendiri (bukan kolom purchase_date) — purchase_date
+	// adalah tanggal transaksi bisnis yang bebas dipilih user (bisa dimundurkan), sedangkan
+	// kode PO selalu memakai tanggal sistem saat dibuat (time.Now()). Kalau count dihitung
+	// dari purchase_date, PO yang purchase_date-nya beda dari tanggal pembuatan kodenya
+	// (mis. data seed historis) tidak ikut terhitung padahal kodenya sudah memakai awalan
+	// tanggal itu — menyebabkan nomor urut baru menabrak kode yang sudah dipakai.
+	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
 	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	addStockQuery                       = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
@@ -280,12 +286,12 @@ func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, err
 }
 
 func (r *purchaseRepo) GenerateCode() (string, error) {
-	today := time.Now().Format("2006-01-02")
+	todayCode := time.Now().Format("20060102")
 	var count int
-	if err := r.db.Raw(generatePurchaseCodeQuery, today).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1), nil
+	return fmt.Sprintf("PO-%s-%03d", todayCode, count+1), nil
 }
 
 // isDuplicatePurchaseCodeError mendeteksi MySQL error 1062 (duplicate entry) pada
@@ -318,12 +324,12 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 
 func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		today := time.Now().Format("2006-01-02")
+		todayCode := time.Now().Format("20060102")
 		var count int
-		if err := tx.Raw(generatePurchaseCodeQuery, today).Scan(&count).Error; err != nil {
+		if err := tx.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
 			return err
 		}
-		code := fmt.Sprintf("PO-%s-%03d", time.Now().Format("20060102"), count+1)
+		code := fmt.Sprintf("PO-%s-%03d", todayCode, count+1)
 
 		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
 
