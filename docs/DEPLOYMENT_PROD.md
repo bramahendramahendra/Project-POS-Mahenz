@@ -23,7 +23,8 @@ Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Front
 12. [Maintenance Database](#12-maintenance-database)
 13. [Maintenance Mode (Aplikasi)](#13-maintenance-mode-aplikasi)
 14. [Troubleshooting](#14-troubleshooting)
-15. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
+15. [Full Backup & Redeploy (FE, BE, DB)](#15-full-backup--redeploy-fe-be-db)
+16. [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini)
 
 ---
 
@@ -814,7 +815,173 @@ sudo systemctl reload nginx
 | URL `/maintenance-bypass?token=...` membalas `403` | Token di URL tidak cocok dengan token aktif (sudah kedaluwarsa/dirotasi, atau salah copy-paste) | Jalankan ulang `maintenance-on.sh` untuk generate token baru, pakai URL yang baru dicetak |
 | Sudah buka URL bypass tapi tetap kena halaman maintenance | Cookie `mnt_bypass` belum ter-set (browser blokir cookie / third-party cookie disabled) atau sudah lewat 24 jam | Cek di DevTools → Application → Cookies apakah `mnt_bypass` ada; kalau tidak, ulangi buka URL bypass |
 
+---
 
+## 15. Full Backup & Redeploy (FE, BE, DB)
+
+Dipakai kalau Anda ingin melakukan **redeploy total** (FE, BE, dan database sekaligus) dengan strategi *rename-lalu-clone-ulang*: versi lama (kode + database) tidak dihapus, hanya di-*rename*/duplicate jadi arsip bertanggal, lalu semuanya di-*clone*/dibuat ulang dari nol dengan nama folder & database yang sama seperti semula. Konsepnya mirip snapshot manual — kalau ada yang salah setelah redeploy, versi lama masih utuh di server dan bisa dipakai untuk rollback.
+
+**Kapan dipakai:** situasi yang lebih berat dari update biasa di [§11](#11-update--redeploy-selanjutnya) — misal ada perubahan besar di skema/kode yang ingin dites dari kondisi benar-benar bersih, tapi Anda tetap mau punya jejak/arsip penuh dari versi sebelumnya (kode maupun data) tanpa harus rely sepenuhnya ke git history atau file `.sql` backup saja.
+
+> ⚠️ Proses ini menimbulkan downtime (BE mati sesaat, DB di-drop & dibuat ulang kosong). **Wajib** aktifkan [maintenance mode](#13-maintenance-mode-aplikasi) dulu.
+
+### Ringkasan strategi
+
+| Komponen | Yang lama diapakan | Yang baru |
+|---|---|---|
+| Database `pos_retail_db` | Di-duplicate ke database baru bertanggal (mis. `pos_retail_db_20260727`), lalu `pos_retail_db` asli di-**drop & dibuat ulang kosong** | Migrasi otomatis jalan lagi dari `BE/database/migrations/` saat backend restart |
+| Folder `BE/` | Di-**rename** jadi `BE_20260727` (arsip, dibiarkan ada di server) | `git clone` ulang ke `BE/` (nama sama seperti semula) |
+| Folder `FE/` (source) | Di-**rename** jadi `FE_20260727` (arsip) | `git clone` ulang ke `FE/` (nama sama seperti semula) |
+| `/var/www/pos-web/dist` (hasil build FE yang disajikan Nginx) | Di-**rename** jadi `dist_20260727` (arsip) | Hasil `npm run build` baru di-copy ke `dist/` (nama sama seperti semula) |
+
+Karena semua folder baru memakai **nama identik** dengan sebelumnya (`BE`, `FE`, `dist`), Anda **tidak perlu** mengubah `WorkingDirectory` di systemd (`pos-backend.service`) maupun `root` di `nginx.conf` — keduanya tetap menunjuk ke path yang sama seperti biasa.
+
+### Langkah-langkah
+
+```bash
+# Variabel tanggal, dipakai konsisten di semua langkah di bawah
+TODAY=$(date +%Y%m%d)
+echo "Tanggal arsip: $TODAY"
+```
+
+**1. Aktifkan maintenance mode**
+
+```bash
+sudo maintenance-on.sh pos.domain-anda.com
+```
+
+**2. Duplicate database ke nama baru bertanggal**
+
+```bash
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE pos_retail_db_20260727 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+EXIT;
+```
+
+```bash
+# Dump dari database lama, langsung import ke database baru (tanpa file perantara)
+mysqldump -u pos_user -p pos_retail_db | mysql -u pos_user -p pos_retail_db_20260727
+```
+
+Verifikasi jumlah tabel di database baru sama dengan yang lama:
+```sql
+-- jalankan di masing-masing database untuk dibandingkan
+SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_db';
+SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_db_20260727';
+```
+
+**Kenapa dump+import langsung lewat pipe, bukan lewat file `.sql` dulu?** Lebih cepat dan tidak perlu ruang disk ekstra untuk file perantara — cocok untuk database yang belum terlalu besar. Kalau database sudah besar (ratusan MB+) dan ingin ada file `.sql` fisik sebagai arsip tambahan juga, bisa gabungkan dengan pendekatan di [Backup Database](#backup-database) (§12) terlebih dahulu, baru `mysql ... < file.sql` ke database baru.
+
+**3. Reset database aktif (`pos_retail_db`) jadi kosong**
+
+Ikuti langkah **Drop Semua Tabel** di [§12](#12-maintenance-database) — bukan `DROP DATABASE`, karena user `pos_user` dan privilege-nya ingin tetap dipakai apa adanya untuk deploy baru.
+
+**4. Rename folder BE & FE lama, clone ulang yang baru**
+
+```bash
+cd /opt/pos-mahenz
+
+# Hentikan service backend dulu sebelum folder BE dipindah, supaya tidak ada proses yang masih mengunci file
+sudo systemctl stop pos-backend
+
+sudo mv BE BE_20260727
+sudo mv FE FE_20260727
+
+git clone <URL_REPO_ANDA> /tmp/pos-mahenz-fresh
+sudo mv /tmp/pos-mahenz-fresh/BE /opt/pos-mahenz/BE
+sudo mv /tmp/pos-mahenz-fresh/FE /opt/pos-mahenz/FE
+rm -rf /tmp/pos-mahenz-fresh
+```
+
+**5. Setup ulang BE seperti deploy pertama kali**
+
+Folder `BE/` baru hasil clone masih kosong dari file konfigurasi (`.env`, `config_prod.json` tidak ikut ter-commit ke git). Salin dari arsip lama supaya tidak perlu isi ulang dari nol, lalu build:
+
+```bash
+cd /opt/pos-mahenz/BE
+cp /opt/pos-mahenz/BE_20260727/.env .env
+cp /opt/pos-mahenz/BE_20260727/config/config_prod.json config/config_prod.json
+
+go mod tidy
+go build -o pos_api main.go
+```
+
+> Cek ulang `config_prod.json` → `Database.Database` tetap `pos_retail_db` (bukan nama bertanggal) — aplikasi tetap terhubung ke database aktif yang sudah dikosongkan di langkah 3.
+
+Jalankan ulang service (`WorkingDirectory` di systemd tidak berubah, karena path `BE/` namanya sama seperti sebelumnya):
+
+```bash
+sudo chown -R www-data:www-data /opt/pos-mahenz/BE
+sudo systemctl start pos-backend
+sudo systemctl status pos-backend
+sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan migrasi jalan sukses membuat ulang skema kosong
+```
+
+**6. Setup ulang FE seperti deploy pertama kali**
+
+```bash
+cd /opt/pos-mahenz/FE
+cp /opt/pos-mahenz/FE_20260727/.env.production .env.production
+
+npm install
+npm run type-check
+npm run lint
+npm run build
+
+sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_20260727
+sudo cp -r dist /var/www/pos-web/
+sudo chown -R www-data:www-data /var/www/pos-web
+```
+
+Tidak perlu ubah/reload Nginx — `root /var/www/pos-web/dist` di `nginx.conf` tetap menunjuk ke path yang sama, isinya saja yang baru.
+
+**7. Verifikasi & matikan maintenance mode**
+
+- Buka URL bypass maintenance ([§13](#13-maintenance-mode-aplikasi)) untuk mengetes aplikasi normal dulu sebelum dibuka ke semua user: login, cek halaman-halaman utama, pastikan API jalan.
+- Kalau semua sudah oke: `sudo maintenance-off.sh`
+
+### Membersihkan arsip lama (opsional, manual)
+
+Folder & database bertanggal (`BE_20260727`, `FE_20260727`, `dist_20260727`, `pos_retail_db_20260727`) **sengaja dibiarkan** di server sebagai rollback point, tidak dihapus otomatis oleh langkah-langkah di atas. Kalau sudah yakin tidak diperlukan lagi (biasanya setelah beberapa hari/minggu aplikasi baru terbukti stabil), hapus manual:
+
+```bash
+sudo rm -rf /opt/pos-mahenz/BE_20260727 /opt/pos-mahenz/FE_20260727
+sudo rm -rf /var/www/pos-web/dist_20260727
+```
+
+```sql
+DROP DATABASE pos_retail_db_20260727;
+```
+
+> Pantau juga penggunaan disk (`df -h`) kalau proses redeploy total ini dilakukan berkala — arsip yang menumpuk tanpa pernah dibersihkan lama-lama bisa memenuhi storage server, terutama untuk database yang besar.
+
+### Rollback (kalau redeploy baru ternyata bermasalah)
+
+```bash
+sudo maintenance-on.sh
+
+sudo systemctl stop pos-backend
+sudo mv /opt/pos-mahenz/BE /opt/pos-mahenz/BE_gagal_20260727
+sudo mv /opt/pos-mahenz/BE_20260727 /opt/pos-mahenz/BE
+sudo mv /opt/pos-mahenz/FE /opt/pos-mahenz/FE_gagal_20260727
+sudo mv /opt/pos-mahenz/FE_20260727 /opt/pos-mahenz/FE
+
+sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_gagal_20260727
+sudo mv /var/www/pos-web/dist_20260727 /var/www/pos-web/dist
+
+# Kembalikan database: drop yang baru, restore dari arsip
+mysql -u root -p -e "DROP DATABASE pos_retail_db;"
+mysql -u root -p -e "CREATE DATABASE pos_retail_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysqldump -u pos_user -p pos_retail_db_20260727 | mysql -u pos_user -p pos_retail_db
+
+sudo systemctl start pos-backend
+sudo maintenance-off.sh
+```
+
+---
 
 ## Catatan Kondisi Kode Saat Ini
 
