@@ -621,6 +621,37 @@ Tidak perlu reload Nginx untuk update FE (Nginx hanya membaca file dari disk set
 
 ## 12. Maintenance Database
 
+### Backup Database
+
+Selalu backup dulu sebelum melakukan operasi destruktif (drop tabel, reset database, dsb). Ada dua cara:
+
+**Opsi A — Lewat fitur bawaan aplikasi (disarankan untuk pemakaian rutin)**
+
+Backend sudah punya endpoint backup bawaan (`BE/domain/backup/`) yang menjalankan `mysqldump` dan menyimpan hasilnya ke `BE/backups/*.sql` — kemungkinan besar juga sudah ada tombolnya di menu Sistem/Pengaturan pada FE (cek menu terkait "Backup" di aplikasi). Kelebihannya: terproteksi permission (`sistem.backup`, `can_create`/`can_view`), dan filenya bisa langsung di-download lewat aplikasi tanpa perlu SSH ke server.
+
+**Opsi B — Manual lewat `mysqldump` di server (untuk backup di luar aplikasi, mis. sebelum reset total)**
+
+```bash
+mkdir -p /opt/pos-mahenz/BE/backups   # folder yang sama dipakai fitur backup bawaan aplikasi
+mysqldump -u pos_user -p pos_retail_db > /opt/pos-mahenz/BE/backups/backup_manual_$(date +%Y%m%d_%H%M%S).sql
+```
+
+Verifikasi file backup tidak kosong/corrupt:
+```bash
+ls -lh /opt/pos-mahenz/BE/backups/
+tail -n 5 /opt/pos-mahenz/BE/backups/backup_manual_*.sql   # harus diakhiri baris normal SQL, bukan terpotong
+```
+
+**Kenapa perlu backup dulu sebelum reset?** Langkah drop tabel/database di bawah ini **destruktif dan permanen** — begitu tabel di-drop dan backend restart (migrasi otomatis membuat ulang skema kosong), seluruh data lama (produk, transaksi, user, dll) tidak bisa dikembalikan kecuali dari file `.sql` yang sudah di-backup.
+
+**Cara restore dari file backup** (kalau suatu saat perlu mengembalikan data):
+```bash
+mysql -u pos_user -p pos_retail_db < /opt/pos-mahenz/BE/backups/NAMA_FILE_BACKUP.sql
+```
+> Restore akan menimpa data yang ada saat ini di tabel-tabel yang sama persis dengan yang ada di file backup — pastikan database dalam kondisi yang Anda inginkan sebelum menjalankan ini (biasanya dijalankan tepat setelah drop tabel/database di bawah, pada database yang masih kosong).
+
+---
+
 ### Drop Semua Tabel (Reset Skema, User & Database Tetap Ada)
 
 Dipakai kalau Anda ingin mengosongkan seluruh skema database (misal sebelum re-migrasi dari awal saat ada perubahan besar) **tanpa** menghapus database atau user MySQL-nya.
@@ -670,19 +701,47 @@ sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan migrasi jalan sukse
 
 Kalau Anda juga ingin database dibuat ulang dari nol (bukan cuma tabel), lihat §4 [Setup Database MySQL](#4-setup-database-mysql) — gunakan `DROP DATABASE IF EXISTS pos_retail_db;` lalu `CREATE DATABASE` lagi. Cara ini juga menghapus tabel `migrations_history`, jadi semua migrasi ikut berjalan ulang dari awal.
 
+### Ringkasan Langkah: Reset Total Aplikasi dari Awal
+
+Urutan lengkap kalau Anda ingin menjalankan ulang aplikasi seolah baru pertama kali install (misal untuk demo ulang, ganti data uji, atau ada perubahan skema besar):
+
+1. **(Opsional tapi sangat disarankan)** Aktifkan [maintenance mode](#13-maintenance-mode-aplikasi) dulu supaya tidak ada user lain yang sedang transaksi saat proses reset berjalan: `sudo maintenance-on.sh`
+2. **Backup data lama** (lihat bagian [Backup Database](#backup-database) di atas) — jangan lewati langkah ini kalau ada kemungkinan data lama masih dibutuhkan.
+3. **Drop tabel/database** — pilih salah satu:
+   - Drop semua tabel saja (user & privilege MySQL tetap) — lihat langkah "Drop Semua Tabel" di atas, atau
+   - Drop & buat ulang database dari nol — lihat "Alternatif" di atas.
+4. **Restart backend** supaya migrasi otomatis membuat ulang seluruh skema kosong dari `BE/database/migrations/`:
+   ```bash
+   sudo systemctl restart pos-backend
+   sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan semua file migrasi jalan sukses tanpa error
+   ```
+5. Verifikasi tabel-tabel dasar sudah terbentuk kembali (`SHOW TABLES;`), lalu login ke aplikasi untuk memastikan alur dasar (login, buat data awal, dst) berjalan normal.
+6. Matikan maintenance mode: `sudo maintenance-off.sh`
+
 ---
 
 ## 13. Maintenance Mode (Aplikasi)
 
 Dipakai saat butuh menutup akses ke seluruh aplikasi sementara (deploy backend, migrasi database besar, dsb) tanpa mematikan Nginx atau service lain. Mekanismenya berbasis **flag file**: Nginx mengecek keberadaan file tersebut di setiap request, kalau ada maka semua request (termasuk `/api`) langsung dibalas `503` dan diarahkan ke halaman statis `maintenance.html`.
 
+Ada juga **mode bypass** berbasis cookie + token, supaya Anda (developer/tester) tetap bisa membuka aplikasi secara normal untuk mengetes selagi maintenance aktif untuk user lain.
+
 File terkait ada di `FE/maintenance/`:
 
 | File | Fungsi |
 |---|---|
 | `maintenance.html` | Halaman statis yang ditampilkan ke user saat maintenance aktif |
-| `maintenance-on.sh` | Mengaktifkan mode maintenance (`touch` flag file) |
-| `maintenance-off.sh` | Menonaktifkan mode maintenance (`rm` flag file) |
+| `maintenance-on.sh` | Mengaktifkan mode maintenance (`touch` flag file) + generate token bypass baru |
+| `maintenance-off.sh` | Menonaktifkan mode maintenance (`rm` flag file) + rotasi token (invalidate cookie bypass lama) |
+| `maintenance_token.conf.example` | Template file token bypass, di-copy sekali ke `/etc/nginx/maintenance_token.conf` saat setup awal |
+
+### Cara kerja bypass
+
+1. Setiap kali `maintenance-on.sh` dijalankan, script generate **token acak baru** (`openssl rand -hex 16`), menulisnya ke `/etc/nginx/maintenance_token.conf`, lalu reload Nginx (graceful, tanpa downtime) dan mencetak URL bypass lengkap dengan token tersebut.
+2. Anda buka URL itu **sekali** di browser, mis. `https://pos.domain-anda.com/maintenance-bypass?token=abcd1234...` — Nginx mencocokkan token di URL dengan token aktif, lalu men-set cookie `mnt_bypass` (masa berlaku 24 jam) dan redirect ke `/`.
+3. Selama cookie itu masih ada & masih cocok dengan token aktif, **semua request Anda selanjutnya** (halaman apa pun, tanpa perlu menambahkan token lagi di URL) dilewatkan dari blok `503` — sementara user lain yang tidak punya cookie ini tetap melihat halaman maintenance.
+4. Saat `maintenance-off.sh` dijalankan, token **otomatis dirotasi ulang** — jadi cookie bypass lama (kalau masih tersisa di browser Anda) langsung basi. Kalau minggu depan Anda `maintenance-on.sh` lagi, Anda wajib buka ulang URL bypass dengan token yang baru dicetak saat itu.
+5. Sebagai lapis pengaman kedua, cookie juga otomatis kedaluwarsa setelah **24 jam** meski Anda lupa menjalankan `maintenance-off.sh`.
 
 ### Setup awal (sekali saja di server)
 
@@ -691,17 +750,29 @@ sudo mkdir -p /var/www/pos-web/maintenance
 sudo cp /opt/pos-mahenz/FE/maintenance/maintenance.html /var/www/pos-web/maintenance/
 sudo cp /opt/pos-mahenz/FE/maintenance/maintenance-on.sh /opt/pos-mahenz/FE/maintenance/maintenance-off.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/maintenance-on.sh /usr/local/bin/maintenance-off.sh
+
+# Siapkan file token bypass awal (kosong, akan diisi otomatis saat maintenance-on.sh pertama kali dijalankan)
+sudo cp /opt/pos-mahenz/FE/maintenance/maintenance_token.conf.example /etc/nginx/maintenance_token.conf
 ```
 
-Pastikan `nginx.conf` yang aktif di server (`/etc/nginx/sites-available/...`) sudah memuat konfigurasi cek `maintenance.flag` seperti di `FE/nginx.conf` pada repo ini (lihat [bagian 8](#8-konfigurasi-nginx-reverse-proxy--static-hosting)).
+Pastikan `nginx.conf` yang aktif di server (`/etc/nginx/sites-available/...`) sudah memuat konfigurasi `maintenance.flag`, `include /etc/nginx/maintenance_token.conf;`, dan `location = /maintenance-bypass` seperti di `FE/nginx.conf` pada repo ini (lihat [bagian 8](#8-konfigurasi-nginx-reverse-proxy--static-hosting)).
 
 ### Mengaktifkan maintenance
 
 ```bash
-sudo maintenance-on.sh
+# argumen opsional: domain Anda, dipakai untuk mencetak URL bypass yang siap pakai
+sudo maintenance-on.sh pos.domain-anda.com
 ```
 
-Semua request ke domain akan langsung mendapat halaman maintenance (503), tanpa perlu reload Nginx.
+Semua request ke domain akan langsung mendapat halaman maintenance (503). Script juga mencetak URL bypass — buka sekali di browser Anda untuk mulai testing normal:
+
+```
+Maintenance mode: ON
+Flag file: /var/www/pos-web/maintenance.flag
+
+URL bypass (buka SEKALI di browser Anda untuk mulai testing, cookie berlaku 24 jam):
+https://pos.domain-anda.com/maintenance-bypass?token=3f9a7c2e1b8d4560a1c2e3f4a5b6c7d8
+```
 
 ### Menonaktifkan maintenance
 
@@ -709,12 +780,23 @@ Semua request ke domain akan langsung mendapat halaman maintenance (503), tanpa 
 sudo maintenance-off.sh
 ```
 
-Aplikasi langsung kembali normal begitu flag file dihapus — tidak ada delay/cache karena Nginx mengecek keberadaan file ini di setiap request baru.
+Aplikasi langsung kembali normal begitu flag file dihapus — tidak ada delay/cache karena Nginx mengecek keberadaan file ini di setiap request baru. Token bypass juga otomatis dirotasi, jadi cookie lama tidak berlaku lagi untuk maintenance berikutnya.
+
+### Ganti token secara manual (opsional)
+
+Kalau suatu saat ingin mengganti token tanpa menunggu siklus on/off (misal token bocor), edit langsung:
+
+```bash
+echo 'set $maintenance_token "TOKEN_BARU_ANDA";' | sudo tee /etc/nginx/maintenance_token.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
 
 **Catatan:**
 - Halaman `maintenance.html` di server (`/var/www/pos-web/maintenance/`) **terpisah** dari folder `dist/` FE — supaya tetap bisa diakses walau proses build FE sedang berjalan/gagal.
 - Kalau desain `maintenance.html` diubah di repo, perlu `cp` ulang manual ke server (tidak otomatis ikut proses redeploy FE di [bagian 11](#11-update--redeploy-selanjutnya)).
-- Mekanisme ini menutup **seluruh** aplikasi (FE + API). Untuk mengunci sebagian fitur saja tanpa menutup akses total, perlu pendekatan berbeda (middleware di level backend) — belum diimplementasikan di project ini.
+- File `/etc/nginx/maintenance_token.conf` sengaja **di luar** repo git (mirip `SECRETKEY` di §5.3) — supaya token aktif tidak pernah tersimpan/ter-commit ke source control.
+- Mekanisme ini menutup **seluruh** aplikasi (FE + API) untuk yang tidak punya cookie bypass. Untuk mengunci sebagian fitur saja tanpa menutup akses total, perlu pendekatan berbeda (middleware di level backend) — belum diimplementasikan di project ini.
 
 ---
 
@@ -728,6 +810,9 @@ Aplikasi langsung kembali normal begitu flag file dihapus — tidak ada delay/ca
 | Refresh di `/dashboard` (atau route lain) muncul 404 dari Nginx | `try_files` belum ada di config Nginx | Tambahkan `try_files $uri $uri/ /index.html;`, `nginx -t` lalu reload |
 | Perubahan `VITE_API_URL` tidak berpengaruh setelah edit `.env.production` | Lupa build ulang — Vite meng-inline env var saat build, bukan runtime | Jalankan `npm run build` lagi lalu copy ulang `dist/` |
 | Service backend restart terus-menerus (crash loop) | Cek `journalctl -u pos-backend -f` untuk stack trace asli | Biasanya error koneksi DB atau file migrasi SQL yang gagal dieksekusi |
+| `nginx -t` gagal setelah setup maintenance dengan pesan file `/etc/nginx/maintenance_token.conf` tidak ditemukan | Belum copy file token awal | Jalankan langkah "Setup awal" §13: `sudo cp .../maintenance_token.conf.example /etc/nginx/maintenance_token.conf` |
+| URL `/maintenance-bypass?token=...` membalas `403` | Token di URL tidak cocok dengan token aktif (sudah kedaluwarsa/dirotasi, atau salah copy-paste) | Jalankan ulang `maintenance-on.sh` untuk generate token baru, pakai URL yang baru dicetak |
+| Sudah buka URL bypass tapi tetap kena halaman maintenance | Cookie `mnt_bypass` belum ter-set (browser blokir cookie / third-party cookie disabled) atau sudah lewat 24 jam | Cek di DevTools → Application → Cookies apakah `mnt_bypass` ada; kalau tidak, ulangi buka URL bypass |
 
 
 
