@@ -268,13 +268,28 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
       return [...existingPackages]
         .sort((a, b) => Number(b.is_default) - Number(a.is_default))
         .filter((p) => excludeTempId == null || p.id !== excludeTempId)
-        .map((p) => ({ id: p.id, label: packageLabel(p) }))
+        .map((p) => ({
+          id: p.id,
+          label: packageLabel(p),
+          purchase_price: p.purchase_price,
+          selling_price: p.selling_price,
+        }))
     }
     return [
-      { id: 0, label: anchorLabel },
+      {
+        id: 0,
+        label: anchorLabel,
+        purchase_price: purchasePriceValue,
+        selling_price: sellingPriceValue,
+      },
       ...grosirDrafts
         .filter((d) => d.tempId !== excludeTempId)
-        .map((d) => ({ id: d.tempId, label: draftLabel(d, units.find((u) => u.id === d.unit_id)?.name ?? '') })),
+        .map((d) => ({
+          id: d.tempId,
+          label: draftLabel(d, units.find((u) => u.id === d.unit_id)?.name ?? ''),
+          purchase_price: d.purchase_price,
+          selling_price: d.selling_price,
+        })),
     ]
   }
 

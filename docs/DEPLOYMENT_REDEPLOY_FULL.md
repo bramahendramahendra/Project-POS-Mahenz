@@ -47,6 +47,7 @@ echo "Tanggal arsip: $TODAY"
 
 ```bash
 sudo maintenance-on.sh pos.domain-anda.com
+sudo maintenance-on.sh 139.180.214.187
 ```
 
 **2. Duplicate database ke nama baru bertanggal**
@@ -339,6 +340,7 @@ sudo chown -R www-data:www-data /var/www/pos-web
 
 Kalau kedua syarat itu terpenuhi, langsung lanjut cek konfigurasi:
 ```bash
+sudo rm /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 ```

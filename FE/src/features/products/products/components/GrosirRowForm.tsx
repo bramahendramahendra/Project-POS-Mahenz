@@ -1,5 +1,6 @@
 import { useForm, Controller, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Sparkles } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -12,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
+import { formatRupiah } from '@/shared/utils'
 
 import { grosirSchema } from '../products.schema'
 import type { GrosirFormValues } from '../products.schema'
@@ -20,6 +22,9 @@ export interface PackageRefOption {
   /** ID asli (mode edit) atau temp_id (mode tambah produk, 0 = paket dasar) */
   id: number
   label: string
+  /** Harga per satuan acuan ini — dipakai untuk menghitung Ref. Harga Beli/Jual satuan baru. */
+  purchase_price?: number
+  selling_price?: number
 }
 
 interface GrosirRowFormProps {
@@ -71,6 +76,16 @@ export function GrosirRowForm({
 
   const refSelected = refOptions.find((p) => p.id === refPackageIdVal)
   const selectedUnitName = availableUnits.find((u) => u.id === unitIdVal)?.name ?? '(satuan)'
+
+  // Harga per satuan baru = harga per satuan acuan × (ref_qty / qty), sesuai rasio yang diisi
+  // (contoh: 12 Batang = 1 Pack → harga per Batang = harga per Pack / 12)
+  const hasRatio = qtyVal > 0 && refQtyVal > 0
+  const refPurchasePricePerUnit = hasRatio && refSelected?.purchase_price != null
+    ? (refSelected.purchase_price * refQtyVal) / qtyVal
+    : null
+  const refSellingPricePerUnit = hasRatio && refSelected?.selling_price != null
+    ? (refSelected.selling_price * refQtyVal) / qtyVal
+    : null
 
   return (
     <div className="rounded-md border border-blue-100 bg-blue-50/40 p-3 space-y-3">
@@ -162,6 +177,49 @@ export function GrosirRowForm({
       {unitIdVal > 0 && refSelected && qtyVal > 0 && refQtyVal > 0 && (
         <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700 font-medium">
           {qtyVal} {selectedUnitName} = {refQtyVal} {refSelected.label}
+        </div>
+      )}
+
+      {(refPurchasePricePerUnit != null || refSellingPricePerUnit != null) && (
+        <div className="rounded-md bg-indigo-50 border border-indigo-200 px-3 py-2.5 space-y-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-indigo-700">
+            <Sparkles size={13} />
+            Estimasi harga per {selectedUnitName}, dihitung dari {refSelected?.label}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {refPurchasePricePerUnit != null && (
+              <button
+                type="button"
+                onClick={() => setGrosirValue('purchase_price', Math.round(refPurchasePricePerUnit))}
+                className="group inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white pl-2.5 pr-1 py-1 text-xs text-gray-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
+                title="Klik untuk memakai nilai ini sebagai Harga Beli"
+              >
+                <span className="text-gray-500">Beli</span>
+                <span className="font-semibold text-indigo-700">
+                  {formatRupiah(Math.round(refPurchasePricePerUnit))}
+                </span>
+                <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-medium text-white group-hover:bg-indigo-700">
+                  Pakai
+                </span>
+              </button>
+            )}
+            {refSellingPricePerUnit != null && (
+              <button
+                type="button"
+                onClick={() => setGrosirValue('selling_price', Math.round(refSellingPricePerUnit))}
+                className="group inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white pl-2.5 pr-1 py-1 text-xs text-gray-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
+                title="Klik untuk memakai nilai ini sebagai Harga Jual"
+              >
+                <span className="text-gray-500">Jual</span>
+                <span className="font-semibold text-indigo-700">
+                  {formatRupiah(Math.round(refSellingPricePerUnit))}
+                </span>
+                <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-medium text-white group-hover:bg-indigo-700">
+                  Pakai
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
