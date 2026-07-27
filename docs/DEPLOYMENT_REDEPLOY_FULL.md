@@ -94,6 +94,49 @@ SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_
 
 Ikuti langkah **Drop Semua Tabel** di [DEPLOYMENT_PROD.md §12](DEPLOYMENT_PROD.md#12-maintenance-database) — bukan `DROP DATABASE`, karena user `pos_user` dan privilege-nya ingin tetap dipakai apa adanya untuk deploy baru.
 
+### Drop Semua Tabel (Reset Skema, User & Database Tetap Ada)
+
+Dipakai kalau Anda ingin mengosongkan seluruh skema database (misal sebelum re-migrasi dari awal saat ada perubahan besar) **tanpa** menghapus database atau user MySQL-nya.
+
+> ⚠️ **Destruktif dan permanen.** Semua data (produk, transaksi, user, dll) hilang tanpa bisa dikembalikan kecuali ada backup. Jangan jalankan di production kecuali benar-benar sengaja reset total.
+
+```bash
+mysql -u pos_user -p
+```
+
+```sql
+-- Wajib: tanpa USE, PREPARE/EXECUTE di bawah akan gagal "No database selected" karena
+-- query DROP TABLE yang dihasilkan tidak menyertakan prefix nama database di depan nama tabelnya
+USE pos_retail_db;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+SET @tables = NULL;
+SELECT GROUP_CONCAT('`', table_name, '`') INTO @tables
+FROM information_schema.tables
+WHERE table_schema = 'pos_retail_db';
+
+SET @tables = CONCAT('DROP TABLE IF EXISTS ', @tables);
+PREPARE stmt FROM @tables;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+**Penjelasan:**
+- `SET FOREIGN_KEY_CHECKS = 0` — mematikan sementara pengecekan foreign key, supaya tabel bisa di-drop dalam urutan apa pun tanpa error "cannot drop table referenced by foreign key"
+- Query `GROUP_CONCAT` mengumpulkan semua nama tabel di database `pos_retail_db` menjadi satu string
+- `PREPARE` + `EXECUTE` menjalankan `DROP TABLE IF EXISTS tabel1, tabel2, ...` sekaligus untuk seluruh tabel yang ditemukan
+- `FOREIGN_KEY_CHECKS` dinyalakan lagi di akhir
+
+Verifikasi database benar-benar kosong:
+```sql
+SHOW TABLES;   -- harus muncul: Empty set
+EXIT;
+```
+
+
 **4. Rename folder induk lama, clone ulang penuh yang baru**
 
 ```bash
@@ -115,6 +158,12 @@ sudo chown -R $USER:$USER /opt/pos-mahenz
 
 Folder `BE/` baru hasil clone masih kosong dari file konfigurasi (`.env`, `config_prod.json` tidak ikut ter-commit ke git). Salin dari arsip lama supaya tidak perlu isi ulang dari nol, lalu build:
 
+Generate string acak yang aman:
+
+```bash
+openssl rand -base64 48
+```
+
 ```bash
 cd /opt/pos-mahenz/BE
 sudo cp /opt/pos-mahenz_20260727/BE/.env .env
@@ -129,7 +178,7 @@ go build -o pos_api main.go
 Jalankan ulang service (`WorkingDirectory` di systemd tidak berubah, karena path `/opt/pos-mahenz/BE` namanya sama seperti sebelumnya):
 
 ```bash
-sudo chown -R www-data:www-data /opt/pos-mahenz/BE
+sudo chown -R $USER:$USER /opt/pos-mahenz
 sudo systemctl start pos-backend
 sudo systemctl status pos-backend
 sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan migrasi jalan sukses membuat ulang skema kosong
