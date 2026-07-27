@@ -171,6 +171,9 @@ sudo cp /opt/pos-mahenz_20260727/BE/config/config_prod.json config/config_prod.j
 
 go mod tidy
 go build -o pos_api main.go
+
+# Jalankan manual 
+./pos_api
 ```
 
 > Cek ulang `config_prod.json` → `Database.Database` tetap `pos_retail_db` (bukan nama bertanggal) — aplikasi tetap terhubung ke database aktif yang sudah dikosongkan di langkah 3.

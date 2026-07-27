@@ -468,7 +468,8 @@ Hasil build ada di `FE/dist/` — kumpulan file HTML/CSS/JS statis siap disajika
 
 ```bash
 sudo mkdir -p /var/www/pos-web
-sudo cp -r dist/* /var/www/pos-web/dist/ 2>/dev/null || sudo cp -r dist /var/www/pos-web/
+# sudo cp -r dist/* /var/www/pos-web/dist/ 2>/dev/null || 
+sudo cp -r dist /var/www/pos-web/
 sudo chown -R www-data:www-data /var/www/pos-web
 ```
 
