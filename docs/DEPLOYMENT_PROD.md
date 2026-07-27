@@ -163,7 +163,7 @@ Cara ini paling aman karena port 3306 tetap tertutup ke internet; koneksi dienkr
 
 **Opsi B — Buka MySQL untuk remote access (kurang disarankan)**
 
-Hanya lakukan ini kalau Opsi A tidak memungkinkan, dan **wajib** batasi akses hanya dari IP Anda (jangan `0.0.0.0/0`).
+Hanya lakukan ini kalau Opsi A tidak memungkinkan, dan **wajib** batasi akses hanya dari IP Anda (jangan `0.0.0.0/0`) kecuali IP Anda memang dinamis (lihat varian "tanpa IP" di bawah).
 
 1. Ubah bind address MySQL agar menerima koneksi dari luar `localhost`:
    ```bash
@@ -174,24 +174,80 @@ Hanya lakukan ini kalau Opsi A tidak memungkinkan, dan **wajib** batasi akses ha
    bind-address = 0.0.0.0
    ```
    Lalu restart: `sudo systemctl restart mysql`
-2. Buat/izinkan user MySQL untuk connect dari host tertentu (bukan `'localhost'`), misalnya dari IP publik laptop/kantor Anda `203.0.113.10`:
+2. Buat/izinkan user MySQL untuk connect dari host tertentu, misalnya dari IP publik laptop/kantor Anda `203.0.113.10` (bukan `'localhost'`):
    ```sql
-   CREATE USER 'pos_user'@'%' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
-   GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'%';
+   CREATE USER 'pos_user'@'203.0.113.10' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
+   GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'203.0.113.10';
    FLUSH PRIVILEGES;
    ```
-   > Jangan pakai `'pos_user'@'%'` (mengizinkan dari IP mana pun) — ini membuka database ke seluruh internet begitu port 3306 dibuka.
 3. Buka port 3306 di firewall **hanya** untuk IP Anda:
    ```bash
    sudo ufw allow from 203.0.113.10 to any port 3306
    ```
 
-  jika ingin tanpa IP
+  Cek port :
    ```bash
-   sudo ufw allow 3306
+   sudo ss -tulnp | grep 3306
    ```
-   
 4. Di Navicat, buat koneksi MySQL biasa (tanpa tab SSH): Host `IP_SERVER_ANDA`, Port `3306`, User `pos_user`, Password sesuai.
+
+**Kalau IP Anda tidak tetap (dinamis, misal ganti-ganti WiFi/tethering) sehingga tidak bisa dipatok ke satu IP:**
+
+Anda tetap bisa buka sementara tanpa membatasi IP tertentu — tapi ini **membuka MySQL ke seluruh internet**, jadi hanya untuk keperluan cepat dan **wajib** segera ditutup lagi (lihat langkah "Menutup kembali" di bawah).
+
+```sql
+-- User yang boleh connect dari IP mana pun (tanpa batasan IP)
+CREATE USER 'pos_user'@'%' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
+GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+```bash
+# Buka port 3306 untuk semua IP (bukan hanya IP tertentu)
+sudo ufw allow 3306
+```
+
+Cek port :
+```bash
+sudo ss -tulnp | grep 3306
+```
+
+Di Navicat: Host `IP_SERVER_ANDA`, Port `3306`, User `pos_user`, Password sesuai — bisa connect dari IP mana pun selama aturan ini masih aktif.
+
+> ⚠️ Selama aturan ini aktif, siapa pun di internet yang tahu IP server + password bisa mencoba connect ke MySQL Anda. Pastikan password `pos_user` kuat, dan jangan dibiarkan menyala lebih dari sesi kerja Anda saat itu.
+
+**Menutup kembali setelah selesai (penting kalau niatnya cuma buka sebentar):**
+
+Sesuaikan perintah dengan varian yang tadi dipakai — dengan IP tertentu atau tanpa IP.
+
+```bash
+# 1. Tutup port 3306 di firewall lagi
+sudo ufw status numbered          # lihat nomor aturan 3306 yang aktif
+sudo ufw delete allow from 203.0.113.10 to any port 3306   # kalau tadi pakai IP tertentu
+# ATAU, kalau tadi pakai varian tanpa IP:
+sudo ufw delete allow 3306/tcp
+sudo ufw status   # pastikan aturan 3306 sudah hilang
+
+# 2. Kembalikan bind-address MySQL ke localhost saja
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+# ubah balik: bind-address = 127.0.0.1
+sudo systemctl restart mysql
+
+# 3. (opsional tapi disarankan) hapus user remote yang tadi dibuat
+mysql -u root -p
+```
+```sql
+DROP USER 'pos_user'@'203.0.113.10';   -- atau: DROP USER 'pos_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+Verifikasi sudah tertutup dari luar (jalankan dari komputer Anda, bukan dari server):
+```bash
+telnet IP_SERVER_ANDA 3306   # atau: nc -zv IP_SERVER_ANDA 3306
+# harus gagal connect / connection refused / timeout
+```
+
+> Urutan penting: tutup firewall dulu (langkah 1) baru ubah `bind-address` (langkah 2) — supaya tidak ada jendela waktu di mana MySQL sudah bind ke `0.0.0.0` tapi firewall belum sempat diaktifkan ulang (untuk kasus ini urutannya tidak terlalu kritis karena keduanya dilakukan berurutan cepat, tapi kebiasaan ini penting kalau prosesnya dipisah/didelegasikan).
 
 **Kenapa Opsi A lebih disarankan?** Membuka 3306 ke internet (meski dibatasi IP) menambah *attack surface* — kalau IP Anda dinamis (berubah-ubah, misal WiFi rumah/kafe), aturan firewall harus terus diperbarui atau malah dilonggarkan jadi rentan. SSH tunnel tidak butuh perubahan firewall/MySQL sama sekali dan tetap aman walau IP Anda berubah, karena yang dibuka publik hanya port 22 (SSH) yang memang sudah ada.
 
