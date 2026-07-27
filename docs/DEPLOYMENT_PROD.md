@@ -180,6 +180,12 @@ Hanya lakukan ini kalau Opsi A tidak memungkinkan, dan **wajib** batasi akses ha
    CREATE USER 'pos_user'@'203.0.113.10' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
    GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'203.0.113.10';
    FLUSH PRIVILEGES;
+
+   SELECT user, host FROM mysql.user WHERE user = 'pos_user';
+   SELECT user, host, db FROM mysql.db WHERE user='pos_user';
+
+   SELECT user, host FROM mysql.user
+   SELECT user, host, db FROM mysql.db;
    ```
 3. Buka port 3306 di firewall **hanya** untuk IP Anda:
    ```bash
@@ -201,6 +207,12 @@ Anda tetap bisa buka sementara tanpa membatasi IP tertentu — tapi ini **membuk
 CREATE USER 'pos_user'@'%' IDENTIFIED BY 'PASSWORD_KUAT_DISINI';
 GRANT ALL PRIVILEGES ON pos_retail_db.* TO 'pos_user'@'%';
 FLUSH PRIVILEGES;
+
+SELECT user, host FROM mysql.user WHERE user = 'pos_user';
+SELECT user, host, db FROM mysql.db WHERE user='pos_user';
+
+SELECT user, host FROM mysql.user
+SELECT user, host, db FROM mysql.db;
 ```
 
 ```bash
@@ -858,13 +870,29 @@ sudo mysql -u root -p
 
 ```sql
 CREATE DATABASE pos_retail_db_20260727 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- pos_user hanya punya privilege di pos_retail_db (lihat §4) — tanpa GRANT ini,
+-- langkah import di bawah akan gagal "Access denied ... to database pos_retail_db_20260727"
+GRANT ALL PRIVILEGES ON pos_retail_db_20260727.* TO 'pos_user'@'localhost';
+FLUSH PRIVILEGES;
 EXIT;
 ```
 
 ```bash
 # Dump dari database lama, langsung import ke database baru (tanpa file perantara)
-mysqldump -u pos_user -p pos_retail_db | mysql -u pos_user -p pos_retail_db_20260727
+# --no-tablespaces: user pos_user cuma diberi privilege ALL PRIVILEGES per-database (lihat §4),
+# bukan privilege PROCESS (global) yang dibutuhkan mysqldump untuk dump info tablespace — tanpa
+# flag ini akan gagal dengan error "Access denied ... PROCESS privilege(s)"
+#
+# Password diambil SEKALI lalu disuplai ke kedua command lewat variabel — JANGAN pakai "-p" polos
+# di kedua sisi pipe sekaligus, karena dua prompt password interaktif di terminal yang sama akan
+# saling tertukar/kececer (salah satu proses akan menerima password kosong, gagal "using password: NO")
+read -s -p "Password pos_user: " DBPASS && echo
+mysqldump -u pos_user -p"$DBPASS" --no-tablespaces pos_retail_db | mysql -u pos_user -p"$DBPASS" pos_retail_db_20260727
+unset DBPASS
 ```
+
+> Perhatikan **tidak ada spasi** setelah `-p` (`-p"$DBPASS"`) — kalau ada spasi, MySQL client akan salah membaca `$DBPASS` sebagai nama database, bukan sebagai password.
 
 Verifikasi jumlah tabel di database baru sama dengan yang lama:
 ```sql
