@@ -11,6 +11,8 @@ Ada dua mode:
 
 > ⚠️ Kedua mode tetap butuh downtime singkat di awal (drop & bikin ulang database aktif) dan **wajib** aktifkan [maintenance mode](DEPLOYMENT_PROD.md#13-maintenance-mode-aplikasi) dulu sebelum mulai.
 
+**Struktur folder yang dipakai di panduan ini:** repo `BE/` dan `FE/` berada dalam **satu folder induk yang sama**, `/opt/pos-mahenz/` (persis seperti hasil `git clone` di [DEPLOYMENT_PROD.md §5.1](DEPLOYMENT_PROD.md#51-clone--upload-source-code)). Karena itu, proses rename-arsip di sini dilakukan **satu kali di level folder induk** (`pos-mahenz` → `pos-mahenz_20260727`), bukan me-rename `BE` dan `FE` terpisah — jadi proses clone ulang juga cukup **satu kali clone penuh**, tidak perlu clone ke folder sementara lalu pindah `BE`/`FE` satu-satu.
+
 ---
 
 ## Daftar Isi
@@ -28,11 +30,10 @@ Ada dua mode:
 | Komponen | Yang lama diapakan | Yang baru |
 |---|---|---|
 | Database `pos_retail_db` | Di-duplicate ke database baru bertanggal (mis. `pos_retail_db_20260727`), lalu `pos_retail_db` asli di-**drop & dibuat ulang kosong** | Migrasi otomatis jalan lagi dari `BE/database/migrations/` saat backend restart |
-| Folder `BE/` | Di-**rename** jadi `BE_20260727` (arsip, dibiarkan ada di server) | `git clone` ulang ke `BE/` (nama sama seperti semula) |
-| Folder `FE/` (source) | Di-**rename** jadi `FE_20260727` (arsip) | `git clone` ulang ke `FE/` (nama sama seperti semula) |
+| Folder induk `/opt/pos-mahenz` (berisi `BE/` + `FE/`) | Di-**rename** jadi `/opt/pos-mahenz_20260727` (arsip, dibiarkan ada di server) | `git clone` ulang penuh ke `/opt/pos-mahenz` (nama sama seperti semula, isi `BE/` & `FE/` ikut baru) |
 | `/var/www/pos-web/dist` (hasil build FE yang disajikan Nginx) | Di-**rename** jadi `dist_20260727` (arsip) | Hasil `npm run build` baru di-copy ke `dist/` (nama sama seperti semula) |
 
-Karena semua folder baru memakai **nama identik** dengan sebelumnya (`BE`, `FE`, `dist`), Anda **tidak perlu** mengubah `WorkingDirectory` di systemd (`pos-backend.service`) maupun `root` di `nginx.conf` — keduanya tetap menunjuk ke path yang sama seperti biasa.
+Karena folder baru memakai **nama identik** dengan sebelumnya (`/opt/pos-mahenz`, `dist`), Anda **tidak perlu** mengubah `WorkingDirectory` di systemd (`pos-backend.service`) maupun `root` di `nginx.conf` — keduanya tetap menunjuk ke path yang sama seperti biasa.
 
 ### Langkah-langkah
 
@@ -93,21 +94,21 @@ SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_
 
 Ikuti langkah **Drop Semua Tabel** di [DEPLOYMENT_PROD.md §12](DEPLOYMENT_PROD.md#12-maintenance-database) — bukan `DROP DATABASE`, karena user `pos_user` dan privilege-nya ingin tetap dipakai apa adanya untuk deploy baru.
 
-**4. Rename folder BE & FE lama, clone ulang yang baru**
+**4. Rename folder induk lama, clone ulang penuh yang baru**
 
 ```bash
-cd /opt/pos-mahenz
-
-# Hentikan service backend dulu sebelum folder BE dipindah, supaya tidak ada proses yang masih mengunci file
+# Hentikan service backend dulu sebelum folder dipindah, supaya tidak ada proses yang masih mengunci file
 sudo systemctl stop pos-backend
 
-sudo mv BE BE_20260727
-sudo mv FE FE_20260727
+# cek Status 
+sudo systemctl status pos-backend
 
-git clone <URL_REPO_ANDA> /tmp/pos-mahenz-fresh
-sudo mv /tmp/pos-mahenz-fresh/BE /opt/pos-mahenz/BE
-sudo mv /tmp/pos-mahenz-fresh/FE /opt/pos-mahenz/FE
-rm -rf /tmp/pos-mahenz-fresh
+cd /opt
+sudo mv pos-mahenz pos-mahenz_20260727
+
+# Satu kali clone penuh — otomatis membawa BE/ dan FE/ sekaligus, tidak perlu pindah folder satu-satu
+sudo git clone <URL_REPO_ANDA> /opt/pos-mahenz
+sudo chown -R $USER:$USER /opt/pos-mahenz
 ```
 
 **5. Setup ulang BE seperti deploy pertama kali**
@@ -116,8 +117,8 @@ Folder `BE/` baru hasil clone masih kosong dari file konfigurasi (`.env`, `confi
 
 ```bash
 cd /opt/pos-mahenz/BE
-cp /opt/pos-mahenz/BE_20260727/.env .env
-cp /opt/pos-mahenz/BE_20260727/config/config_prod.json config/config_prod.json
+sudo cp /opt/pos-mahenz_20260727/BE/.env .env
+sudo cp /opt/pos-mahenz_20260727/BE/config/config_prod.json config/config_prod.json
 
 go mod tidy
 go build -o pos_api main.go
@@ -125,7 +126,7 @@ go build -o pos_api main.go
 
 > Cek ulang `config_prod.json` → `Database.Database` tetap `pos_retail_db` (bukan nama bertanggal) — aplikasi tetap terhubung ke database aktif yang sudah dikosongkan di langkah 3.
 
-Jalankan ulang service (`WorkingDirectory` di systemd tidak berubah, karena path `BE/` namanya sama seperti sebelumnya):
+Jalankan ulang service (`WorkingDirectory` di systemd tidak berubah, karena path `/opt/pos-mahenz/BE` namanya sama seperti sebelumnya):
 
 ```bash
 sudo chown -R www-data:www-data /opt/pos-mahenz/BE
@@ -138,7 +139,7 @@ sudo tail -n 30 /var/log/pos-backend/stdout.log   # pastikan migrasi jalan sukse
 
 ```bash
 cd /opt/pos-mahenz/FE
-cp /opt/pos-mahenz/FE_20260727/.env.production .env.production
+sudo cp /opt/pos-mahenz_20260727/FE/.env.production .env.production
 
 npm install
 npm run type-check
@@ -163,10 +164,8 @@ Tidak perlu ubah/reload Nginx — `root /var/www/pos-web/dist` di `nginx.conf` t
 sudo maintenance-on.sh
 
 sudo systemctl stop pos-backend
-sudo mv /opt/pos-mahenz/BE /opt/pos-mahenz/BE_gagal_20260727
-sudo mv /opt/pos-mahenz/BE_20260727 /opt/pos-mahenz/BE
-sudo mv /opt/pos-mahenz/FE /opt/pos-mahenz/FE_gagal_20260727
-sudo mv /opt/pos-mahenz/FE_20260727 /opt/pos-mahenz/FE
+sudo mv /opt/pos-mahenz /opt/pos-mahenz_gagal_20260727
+sudo mv /opt/pos-mahenz_20260727 /opt/pos-mahenz
 
 sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_gagal_20260727
 sudo mv /var/www/pos-web/dist_20260727 /var/www/pos-web/dist
@@ -193,24 +192,24 @@ Ide utamanya: **versi lama tidak pernah benar-benar dimatikan** selama masa test
 | Komponen | Versi Lama (`old`) | Versi Baru (default) |
 |---|---|---|
 | Database | `pos_retail_db_20260727` (arsip, **tidak diubah**, hasil duplicate seperti Mode A langkah 2) | `pos_retail_db` (di-reset kosong, migrasi ulang) |
-| Backend | Service **baru** `pos-backend-old`, `WorkingDirectory=/opt/pos-mahenz/BE_20260727`, port **8081** | Service `pos-backend` seperti biasa, `WorkingDirectory=/opt/pos-mahenz/BE`, port 8080 |
+| Backend | Service **baru** `pos-backend-old`, `WorkingDirectory=/opt/pos-mahenz_20260727/BE`, port **8081** | Service `pos-backend` seperti biasa, `WorkingDirectory=/opt/pos-mahenz/BE`, port 8080 |
 | Frontend (hasil build) | `/var/www/pos-web/dist_20260727` | `/var/www/pos-web/dist` |
 | Cara akses | Cookie `ver_bypass=old` (didapat lewat URL bypass dengan `&version=old`) | Default — tidak perlu cookie tambahan apa pun |
 
 ### Persiapan (sama seperti Mode A langkah 1–3)
 
-Ikuti [Mode A langkah 1–3](#langkah-langkah) apa adanya: aktifkan maintenance, duplicate database ke `pos_retail_db_20260727`, lalu reset `pos_retail_db` jadi kosong. Bedanya mulai dari sini: folder `BE`/`FE` lama **tidak dihapus fungsinya**, hanya di-rename lalu **tetap dijalankan** sebagai service kedua.
+Ikuti [Mode A langkah 1–3](#langkah-langkah) apa adanya: aktifkan maintenance, duplicate database ke `pos_retail_db_20260727`, lalu reset `pos_retail_db` jadi kosong. Bedanya mulai dari sini: folder induk lama (`/opt/pos-mahenz_20260727`, hasil rename) **tidak dihapus fungsinya**, isinya (`BE/`) **tetap dijalankan** sebagai service kedua.
 
-**4. Rename folder lama, clone folder baru** — identik dengan Mode A langkah 4.
+**4. Rename folder induk lama, clone ulang penuh yang baru** — identik dengan Mode A langkah 4.
 
 **5. Setup BE baru** — identik dengan Mode A langkah 5 (build & start `pos-backend` seperti biasa, terhubung ke `pos_retail_db` yang sudah kosong).
 
 **6. Hidupkan BE lama sebagai service kedua di port 8081**
 
-Folder arsip `BE_20260727` sudah berisi binary lama (`pos_api`) hasil build sebelumnya — tidak perlu build ulang, cukup ubah port & pastikan tetap menunjuk ke database arsipnya sendiri:
+Folder arsip `/opt/pos-mahenz_20260727/BE` sudah berisi binary lama (`pos_api`) hasil build sebelumnya — tidak perlu build ulang, cukup ubah port & pastikan tetap menunjuk ke database arsipnya sendiri:
 
 ```bash
-cd /opt/pos-mahenz/BE_20260727
+cd /opt/pos-mahenz_20260727/BE
 
 # Ubah APP_PORT di .env supaya tidak bentrok dengan backend baru yang pakai 8080
 sudo sed -i 's/^APP_PORT=.*/APP_PORT=8081/' .env
@@ -236,9 +235,9 @@ After=network.target mysql.service
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/pos-mahenz/BE_20260727
+WorkingDirectory=/opt/pos-mahenz_20260727/BE
 Environment="SECRETKEY=ganti-dengan-string-acak-panjang-dan-rahasia"
-ExecStart=/opt/pos-mahenz/BE_20260727/pos_api
+ExecStart=/opt/pos-mahenz_20260727/BE/pos_api
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:/var/log/pos-backend-old/stdout.log
@@ -252,7 +251,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo mkdir -p /var/log/pos-backend-old
-sudo chown -R www-data:www-data /var/log/pos-backend-old /opt/pos-mahenz/BE_20260727
+sudo chown -R www-data:www-data /var/log/pos-backend-old /opt/pos-mahenz_20260727/BE
 
 sudo systemctl daemon-reload
 sudo systemctl start pos-backend-old
@@ -390,13 +389,13 @@ sudo systemctl reload nginx
 sudo maintenance-off.sh
 ```
 
-Traffic publik otomatis kembali ke versi lama (yang sudah terbukti stabil) begitu maintenance dimatikan, **tanpa perlu drop/restore database sama sekali** — karena `pos_retail_db_20260727` tidak pernah disentuh selama proses ini. Versi baru yang bermasalah tetap ada di `BE`/`dist` untuk diperbaiki lebih lanjut kapan saja, lalu diuji ulang lewat `?version=new` sebelum dicoba jadi default lagi.
+Traffic publik otomatis kembali ke versi lama (yang sudah terbukti stabil) begitu maintenance dimatikan, **tanpa perlu drop/restore database sama sekali** — karena `pos_retail_db_20260727` tidak pernah disentuh selama proses ini. Versi baru yang bermasalah tetap ada di `/opt/pos-mahenz/BE` & `dist` untuk diperbaiki lebih lanjut kapan saja, lalu diuji ulang lewat `?version=new` sebelum dicoba jadi default lagi.
 
 ---
 
 ## Membersihkan Arsip Lama
 
-Folder & database bertanggal (`BE_20260727`, `FE_20260727`, `dist_20260727`, `pos_retail_db_20260727`) **sengaja dibiarkan** di server sebagai rollback point, tidak dihapus otomatis oleh langkah-langkah di atas. Kalau sudah yakin tidak diperlukan lagi (biasanya setelah beberapa hari/minggu aplikasi baru terbukti stabil), hapus manual:
+Folder & database bertanggal (`/opt/pos-mahenz_20260727`, `dist_20260727`, `pos_retail_db_20260727`) **sengaja dibiarkan** di server sebagai rollback point, tidak dihapus otomatis oleh langkah-langkah di atas. Kalau sudah yakin tidak diperlukan lagi (biasanya setelah beberapa hari/minggu aplikasi baru terbukti stabil), hapus manual:
 
 ```bash
 # Kalau sempat pakai Mode B, matikan dulu service lama kalau masih hidup
@@ -405,7 +404,7 @@ sudo systemctl disable pos-backend-old 2>/dev/null || true
 sudo rm -f /etc/systemd/system/pos-backend-old.service
 sudo systemctl daemon-reload
 
-sudo rm -rf /opt/pos-mahenz/BE_20260727 /opt/pos-mahenz/FE_20260727
+sudo rm -rf /opt/pos-mahenz_20260727
 sudo rm -rf /var/www/pos-web/dist_20260727
 sudo rm -rf /var/log/pos-backend-old
 ```

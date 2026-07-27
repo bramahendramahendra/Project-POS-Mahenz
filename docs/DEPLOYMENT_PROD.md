@@ -281,8 +281,8 @@ telnet IP_SERVER_ANDA 3306   # atau: nc -zv IP_SERVER_ANDA 3306
 
 ```bash
 sudo mkdir -p /opt/pos-mahenz
-sudo chown -R $USER:$USER /opt/pos-mahenz
 git clone <URL_REPO_ANDA> /opt/pos-mahenz
+sudo chown -R $USER:$USER /opt/pos-mahenz
 cd /opt/pos-mahenz/BE
 ```
 
