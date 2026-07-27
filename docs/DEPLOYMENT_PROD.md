@@ -225,7 +225,7 @@ Sesuaikan perintah dengan varian yang tadi dipakai — dengan IP tertentu atau t
 sudo ufw status numbered          # lihat nomor aturan 3306 yang aktif
 sudo ufw delete allow from 203.0.113.10 to any port 3306   # kalau tadi pakai IP tertentu
 # ATAU, kalau tadi pakai varian tanpa IP:
-sudo ufw delete allow 3306/tcp
+sudo ufw delete allow 3306
 sudo ufw status   # pastikan aturan 3306 sudah hilang
 
 # 2. Kembalikan bind-address MySQL ke localhost saja
@@ -240,6 +240,14 @@ mysql -u root -p
 DROP USER 'pos_user'@'203.0.113.10';   -- atau: DROP USER 'pos_user'@'%';
 FLUSH PRIVILEGES;
 ```
+
+Jika tidak pakai IP 
+
+```sql
+DROP USER 'pos_user'@'%';
+FLUSH PRIVILEGES;
+```
+
 
 Verifikasi sudah tertutup dari luar (jalankan dari komputer Anda, bukan dari server):
 ```bash
