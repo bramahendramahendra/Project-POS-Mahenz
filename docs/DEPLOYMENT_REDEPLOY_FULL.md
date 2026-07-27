@@ -245,7 +245,7 @@ Ide utamanya: **versi lama tidak pernah benar-benar dimatikan** selama masa test
 |---|---|---|
 | Database | `pos_retail_db_20260727` (arsip, **tidak diubah**, hasil duplicate seperti Mode A langkah 2) | `pos_retail_db` (di-reset kosong, migrasi ulang) |
 | Backend | Service **baru** `pos-backend-old`, `WorkingDirectory=/opt/pos-mahenz_20260727/BE`, port **8081** | Service `pos-backend` seperti biasa, `WorkingDirectory=/opt/pos-mahenz/BE`, port 8080 |
-| Frontend (hasil build) | `/var/www/pos-web/dist_20260727` | `/var/www/pos-web/dist` |
+| Frontend (hasil build) | `/var/www/pos-web/dist_old` (nama tetap, bukan bertanggal — lihat langkah 7) | `/var/www/pos-web/dist` |
 | Cara akses | Cookie `ver_bypass=old` (didapat lewat URL bypass dengan `&version=old`) | Default — tidak perlu cookie tambahan apa pun |
 
 ### Persiapan (sama seperti Mode A langkah 1–3)
@@ -312,78 +312,32 @@ sudo systemctl status pos-backend-old   # pastikan "active (running)" di port 80
 
 > Service ini **sengaja tidak** di-`enable` (auto-start saat reboot) — service ini bersifat sementara selama masa testing, bukan bagian permanen dari infrastruktur.
 
-**7. Setup FE baru** — identik dengan Mode A langkah 6, tapi folder lama `dist` di-rename jadi `dist_20260727` dan **tetap ada** (tidak dihapus) supaya bisa disajikan Nginx untuk jalur `old`.
+**7. Setup FE baru, siapkan FE lama dengan nama tetap `dist_old`**
 
-### Tambahan konfigurasi Nginx untuk routing dua versi
+```bash
+cd /opt/pos-mahenz/FE
+sudo cp /opt/pos-mahenz_20260727/FE/.env.production .env.production
 
-Edit `nginx.conf` yang aktif di server (`/etc/nginx/sites-available/pos-web`). Tambahkan dua blok `map` **di luar** (sebelum) blok `server { ... }`:
+npm install
+npm run type-check
+npm run lint
+npm run build
 
-```nginx
-# Pilih backend & folder statis berdasarkan cookie ver_bypass (di-set lewat /maintenance-bypass?...&version=old)
-map $cookie_ver_bypass $backend_port {
-    default 8080;
-    old     8081;
-}
-map $cookie_ver_bypass $spa_root {
-    default /var/www/pos-web/dist;
-    old     /var/www/pos-web/dist_20260727;
-}
-
-server {
-    ...
-}
+# Folder lama JANGAN dinamai bertanggal di sini — beri nama tetap "dist_old" supaya cocok
+# dengan mapping $spa_root di nginx.conf (lihat catatan di bawah), tidak perlu edit nginx.conf tiap redeploy
+sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_old
+sudo cp -r dist /var/www/pos-web/
+sudo chown -R www-data:www-data /var/www/pos-web
 ```
 
-Di dalam `server { ... }`, ubah `location = /maintenance-bypass` supaya juga bisa men-set cookie versi:
+### Konfigurasi Nginx untuk routing dua versi (sudah baku di `FE/nginx.conf`)
 
-```nginx
-location = /maintenance-bypass {
-    if ($maintenance_token = "") {
-        return 403;
-    }
-    if ($arg_token != $maintenance_token) {
-        return 403;
-    }
-    add_header Set-Cookie "mnt_bypass=$maintenance_token; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax" always;
-    add_header Set-Cookie "ver_bypass=$arg_version; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax" always;
-    return 302 /;
-}
-```
+`FE/nginx.conf` di repo **sudah menyertakan** mapping `$backend_port`/`$spa_root` berbasis cookie `ver_bypass` (map `default` → 8080/`dist`, `old` → 8081/`dist_old`) beserta `location = /maintenance-bypass` yang bisa men-set cookie itu lewat parameter `&version=old`. Jadi **tidak perlu edit `nginx.conf` manual** setiap kali menjalankan Mode B — asalkan:
 
-Lalu ganti `root` statis dan `proxy_pass` di `location /` & `location /api` supaya memakai variabel `$spa_root` dan `$backend_port` alih-alih path/port tetap:
+1. Server sudah memakai `nginx.conf` versi yang sudah menyertakan bagian ini (cek dengan `grep spa_root /etc/nginx/sites-available/pos-web` — kalau kosong, berarti server masih pakai versi lama dan perlu di-`cp` ulang dari repo).
+2. Folder FE lama dinamai **tepat** `dist_old` (langkah 7 di atas), dan backend lama dijalankan **tepat** di port `8081` (langkah 6 di atas) — sesuai nilai yang di-hardcode di `map`.
 
-```nginx
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        if ($maintenance = 1) {
-            return 503;
-        }
-        root $spa_root;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location / {
-        if ($maintenance = 1) {
-            return 503;
-        }
-        root $spa_root;
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api {
-        if ($maintenance = 1) {
-            return 503;
-        }
-        proxy_pass http://127.0.0.1:$backend_port;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-```
-
-> Root global di awal `server { root /var/www/pos-web/dist; }` boleh tetap ada sebagai fallback, tapi karena setiap `location` yang relevan sudah punya `root $spa_root;` sendiri, itu yang akan dipakai.
-
-Test & reload:
+Kalau kedua syarat itu terpenuhi, langsung lanjut cek konfigurasi:
 ```bash
 sudo nginx -t
 sudo systemctl reload nginx
@@ -422,15 +376,18 @@ Lanjut ke [Membersihkan Arsip Lama](#membersihkan-arsip-lama) untuk folder & dat
 
 **B. Versi baru bermasalah → alihkan balik ke versi lama (rollback cepat, tanpa restore database)**
 
-Karena versi lama **masih hidup penuh** dengan datanya sendiri, rollback di sini cuma soal mengubah **default** routing Nginx — jauh lebih cepat dibanding Mode A:
+Karena versi lama **masih hidup penuh** dengan datanya sendiri, rollback di sini cuma soal mengubah **default** routing Nginx — jauh lebih cepat dibanding Mode A. Bedanya dengan konfigurasi baku di `FE/nginx.conf`: untuk kasus darurat ini, edit **langsung di file aktif server** (`/etc/nginx/sites-available/pos-web`), sementara — nilai `default`/`old` di dua `map` dibalik urutannya:
 
+```bash
+sudo nano /etc/nginx/sites-available/pos-web
+```
 ```nginx
 map $cookie_ver_bypass $backend_port {
     default 8081;   # dibalik: default sekarang ke versi LAMA
     new     8080;   # versi baru sekarang jadi opsional, diakses lewat ?version=new
 }
 map $cookie_ver_bypass $spa_root {
-    default /var/www/pos-web/dist_20260727;
+    default /var/www/pos-web/dist_old;
     new     /var/www/pos-web/dist;
 }
 ```
@@ -441,13 +398,13 @@ sudo systemctl reload nginx
 sudo maintenance-off.sh
 ```
 
-Traffic publik otomatis kembali ke versi lama (yang sudah terbukti stabil) begitu maintenance dimatikan, **tanpa perlu drop/restore database sama sekali** — karena `pos_retail_db_20260727` tidak pernah disentuh selama proses ini. Versi baru yang bermasalah tetap ada di `/opt/pos-mahenz/BE` & `dist` untuk diperbaiki lebih lanjut kapan saja, lalu diuji ulang lewat `?version=new` sebelum dicoba jadi default lagi.
+Traffic publik otomatis kembali ke versi lama (yang sudah terbukti stabil) begitu maintenance dimatikan, **tanpa perlu drop/restore database sama sekali** — karena `pos_retail_db_20260727` tidak pernah disentuh selama proses ini. Versi baru yang bermasalah tetap ada di `/opt/pos-mahenz/BE` & `dist` untuk diperbaiki lebih lanjut kapan saja, lalu diuji ulang lewat `?version=new` sebelum dicoba jadi default lagi. Setelah versi baru akhirnya diperbaiki dan siap dicoba lagi, **kembalikan dulu** `nginx.conf` server ke isi baku `FE/nginx.conf` di repo (`default`→8080/`dist`, `old`→8081/`dist_old`) sebelum mengulang proses testing.
 
 ---
 
 ## Membersihkan Arsip Lama
 
-Folder & database bertanggal (`/opt/pos-mahenz_20260727`, `dist_20260727`, `pos_retail_db_20260727`) **sengaja dibiarkan** di server sebagai rollback point, tidak dihapus otomatis oleh langkah-langkah di atas. Kalau sudah yakin tidak diperlukan lagi (biasanya setelah beberapa hari/minggu aplikasi baru terbukti stabil), hapus manual:
+Folder & database arsip (`/opt/pos-mahenz_20260727`, `/var/www/pos-web/dist_old`, `pos_retail_db_20260727`) **sengaja dibiarkan** di server sebagai rollback point, tidak dihapus otomatis oleh langkah-langkah di atas. Kalau sudah yakin tidak diperlukan lagi (biasanya setelah beberapa hari/minggu aplikasi baru terbukti stabil), hapus manual:
 
 ```bash
 # Kalau sempat pakai Mode B, matikan dulu service lama kalau masih hidup
@@ -457,7 +414,7 @@ sudo rm -f /etc/systemd/system/pos-backend-old.service
 sudo systemctl daemon-reload
 
 sudo rm -rf /opt/pos-mahenz_20260727
-sudo rm -rf /var/www/pos-web/dist_20260727
+sudo rm -rf /var/www/pos-web/dist_old
 sudo rm -rf /var/log/pos-backend-old
 ```
 
@@ -465,6 +422,6 @@ sudo rm -rf /var/log/pos-backend-old
 DROP DATABASE pos_retail_db_20260727;
 ```
 
-Kalau tadinya sempat menambahkan blok `map` & routing dua-versi di `nginx.conf` (Mode B), bersihkan juga baris-baris itu supaya config kembali sederhana seperti semula, lalu `nginx -t` dan `systemctl reload nginx`.
+`map`/routing dua-versi di `nginx.conf` **tidak perlu dibersihkan** — bagian itu sudah baku di `FE/nginx.conf` dan aman dibiarkan permanen: tanpa cookie `ver_bypass=old` dan tanpa folder `dist_old`/service `pos-backend-old`, jalur "old" itu memang tidak pernah tersentuh siapa pun. Kecuali Anda sempat melakukan edit manual darurat (rollback Mode B di atas) yang belum dikembalikan ke baku — cek dulu `grep spa_root /etc/nginx/sites-available/pos-web` sebelum lanjut.
 
 > Pantau juga penggunaan disk (`df -h`) kalau proses redeploy total ini dilakukan berkala — arsip yang menumpuk tanpa pernah dibersihkan lama-lama bisa memenuhi storage server, terutama untuk database yang besar.
