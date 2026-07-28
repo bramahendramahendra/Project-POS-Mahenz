@@ -293,9 +293,19 @@ FROM roles r
 JOIN menus m ON m.key_name = 'beranda.dashboard'
 WHERE r.name = 'kasir';
 
--- KASIR: kasir dan kas saya (perlu can_create — transaksi & buka kas)
+-- KASIR: penjualan.kasir (perlu can_create — transaksi)
 INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 SELECT r.id, m.id, 1, 1, 0, 0
 FROM roles r
-JOIN menus m ON m.key_name IN ('penjualan.kasir', 'keuangan.kas_saya')
+JOIN menus m ON m.key_name = 'penjualan.kasir'
+WHERE r.name = 'kasir';
+
+-- KASIR: keuangan.kas_saya (perlu can_create — buka kas, DAN can_edit — tutup
+-- kas/update sales/update expenses, semua aksi self-service kas milik sendiri;
+-- lihat cash_drawer_routes.go yang menggembok endpoint open/close/update-* ke
+-- permission menu ini, kepemilikan tetap divalidasi di service layer)
+INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
+SELECT r.id, m.id, 1, 1, 1, 0
+FROM roles r
+JOIN menus m ON m.key_name = 'keuangan.kas_saya'
 WHERE r.name = 'kasir';
