@@ -20,15 +20,18 @@ func TransactionRoutes(r *gin.RouterGroup) {
 	transactionHandler := transaction_handler.NewTransactionHandler(transactionService)
 
 	svc := newAccessService()
-	perm := func(action string) gin.HandlerFunc {
+	permTransaksi := func(action string) gin.HandlerFunc {
 		return middleware.PermissionMiddleware(svc, "penjualan.transaksi", action)
+	}
+	permKasir := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "penjualan.kasir", action)
 	}
 
 	g := r.Group("/transactions")
 	{
-		g.POST("/list", perm("can_view"), transactionHandler.GetAll)
+		g.POST("/list", permTransaksi("can_view"), transactionHandler.GetAll)
 		g.POST("/detail/:id", transactionHandler.GetByID)
-		g.POST("/create", perm("can_create"), transactionHandler.Create)
-		g.POST("/void/:id", perm("can_delete"), transactionHandler.Void)
+		g.POST("/create", permKasir("can_create"), transactionHandler.Create)
+		g.POST("/void/:id", permTransaksi("can_delete"), transactionHandler.Void)
 	}
 }
