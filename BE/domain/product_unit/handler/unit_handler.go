@@ -21,6 +21,7 @@ func NewUnitHandler(service service.UnitServiceInterface) *UnitHandler {
 	return &UnitHandler{service: service}
 }
 
+// POST /units/list
 func (h *UnitHandler) GetAll(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
@@ -48,6 +49,7 @@ func (h *UnitHandler) GetAll(c *gin.Context) {
 	})
 }
 
+// POST /units/options
 func (h *UnitHandler) GetOptions(c *gin.Context) {
 	data, err := h.service.GetOptions()
 	if err != nil {
@@ -63,6 +65,7 @@ func (h *UnitHandler) GetOptions(c *gin.Context) {
 	})
 }
 
+// POST /units/detail/:id
 func (h *UnitHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
@@ -89,6 +92,7 @@ func (h *UnitHandler) GetByID(c *gin.Context) {
 	})
 }
 
+// POST /units/create
 func (h *UnitHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
@@ -115,6 +119,7 @@ func (h *UnitHandler) Create(c *gin.Context) {
 	})
 }
 
+// POST /units/update/:id
 func (h *UnitHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
@@ -148,6 +153,7 @@ func (h *UnitHandler) Update(c *gin.Context) {
 	})
 }
 
+// POST /units/delete/:id
 func (h *UnitHandler) Delete(c *gin.Context) {
 	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
@@ -172,6 +178,7 @@ func (h *UnitHandler) Delete(c *gin.Context) {
 	})
 }
 
+// POST /units/toggle-status/:id
 func (h *UnitHandler) ToggleStatus(c *gin.Context) {
 	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {

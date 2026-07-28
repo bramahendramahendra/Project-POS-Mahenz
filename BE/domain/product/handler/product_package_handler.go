@@ -21,6 +21,7 @@ func NewProductPackageHandler(service service.ProductServiceInterface) *ProductP
 	return &ProductPackageHandler{service: service}
 }
 
+// POST /products/:id/packages/list
 func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
 	req, err := binder.BindURI[dto.PackageByProductRequest](c)
 	if err != nil {
@@ -47,6 +48,7 @@ func (h *ProductPackageHandler) GetPackagesByProduct(c *gin.Context) {
 	})
 }
 
+// POST /products/:id/packages/create
 func (h *ProductPackageHandler) CreatePackage(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.PackageByProductRequest](c)
 	if err != nil {
@@ -80,6 +82,7 @@ func (h *ProductPackageHandler) CreatePackage(c *gin.Context) {
 	})
 }
 
+// POST /products/:id/packages/update/:package_id
 func (h *ProductPackageHandler) UpdatePackage(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.PackageUriRequest](c)
 	if err != nil {
@@ -114,6 +117,7 @@ func (h *ProductPackageHandler) UpdatePackage(c *gin.Context) {
 	})
 }
 
+// POST /products/:id/packages/delete/:package_id
 func (h *ProductPackageHandler) DeletePackage(c *gin.Context) {
 	req, err := binder.BindURI[dto.DeletePackageRequest](c)
 	if err != nil {

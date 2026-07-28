@@ -22,6 +22,7 @@ func ProductUnitRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/units")
 	{
+		// Unit Handler
 		g.POST("/list", unitHandler.GetAll)
 		g.POST("/options", unitHandler.GetOptions)
 		g.POST("/detail/:id", unitHandler.GetByID)

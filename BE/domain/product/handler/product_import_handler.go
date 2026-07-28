@@ -212,10 +212,6 @@ func (h *ProductImportHandler) DownloadImportTemplate(c *gin.Context) {
 	sheetGrosir := "Grosir"
 	f.NewSheet(sheetGrosir)
 
-	// Qty & Qty Acuan sama seperti form manual: "Qty x Satuan = Qty Acuan x Satuan Dasar
-	// produk" — dua kolom (bukan satu "Konversi") supaya import juga bisa menambahkan
-	// satuan yang LEBIH KECIL dari satuan dasar (mis. Qty=12 Batang = Qty Acuan=1 Pack),
-	// bukan cuma lebih besar seperti sebelumnya.
 	grosirHeaders := []string{"No Produk", "Nama Paket", "Satuan", "Qty", "Qty Acuan", "Ref Harga Beli", "Harga Beli", "Ref Harga Jual", "Harga Jual"}
 	grosirExample := []any{0, "1 Dus", "Dus", 1, 12, "", 55000, "", 75000}
 

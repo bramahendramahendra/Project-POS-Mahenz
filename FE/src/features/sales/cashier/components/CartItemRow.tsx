@@ -221,30 +221,30 @@ export function CartItemRow({ item }: CartItemRowProps) {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Row 3: Qty controls */}
+      {/* Row 3: Qty controls — target tap diperbesar (min ~36px) untuk kecepatan kasir di tablet/mobile */}
       <div className="flex items-center gap-1.5">
         <Button
           variant="outline"
           size="icon"
-          className="h-6 w-6 shrink-0"
+          className="h-9 w-9 shrink-0"
           onClick={() => updateQty(item.product_id, item.unit_id, item.qty - 1)}
         >
-          <Minus size={10} />
+          <Minus size={14} />
         </Button>
         <Input
           type="number"
           value={item.qty}
           onChange={(e) => handleQtyChange(e.target.value)}
-          className="h-6 w-14 text-center text-sm px-1"
+          className="h-9 w-16 text-center text-sm px-1"
           min={1}
         />
         <Button
           variant="outline"
           size="icon"
-          className="h-6 w-6 shrink-0"
+          className="h-9 w-9 shrink-0"
           onClick={() => updateQty(item.product_id, item.unit_id, item.qty + 1)}
         >
-          <Plus size={10} />
+          <Plus size={14} />
         </Button>
       </div>
 

@@ -21,6 +21,7 @@ func NewProductGenerateHandler(service service.ProductServiceInterface) *Product
 	return &ProductGenerateHandler{service: service}
 }
 
+// POST /products/generate-barcode
 func (h *ProductGenerateHandler) GenerateBarcode(c *gin.Context) {
 	data, err := h.service.GenerateBarcode()
 	if err != nil {
@@ -36,6 +37,7 @@ func (h *ProductGenerateHandler) GenerateBarcode(c *gin.Context) {
 	})
 }
 
+// POST /products/generate-sku
 func (h *ProductGenerateHandler) GenerateSku(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GenerateSkuRequest](c)
 	if err != nil {

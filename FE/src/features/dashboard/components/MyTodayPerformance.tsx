@@ -11,9 +11,9 @@ export function MyTodayPerformance() {
   return (
     <div className="grid grid-cols-2 gap-3">
       <Card>
-        <CardContent className="pt-4 pb-4 space-y-1">
-          <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <ShoppingBag size={15} />
+        <CardContent className="p-4 space-y-1">
+          <div className="flex items-start gap-2 text-gray-500 text-sm">
+            <ShoppingBag size={15} className="shrink-0 mt-0.5" />
             <span>Transaksi Saya Hari Ini</span>
           </div>
           {isLoading ? (
@@ -24,9 +24,9 @@ export function MyTodayPerformance() {
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="pt-4 pb-4 space-y-1">
-          <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <Banknote size={15} />
+        <CardContent className="p-4 space-y-1">
+          <div className="flex items-start gap-2 text-gray-500 text-sm">
+            <Banknote size={15} className="shrink-0 mt-0.5" />
             <span>Penjualan Saya Hari Ini</span>
           </div>
           {isLoading ? (

@@ -110,9 +110,9 @@ export function SummaryPanel() {
             <span>+{formatRupiah(summary.taxAmount)}</span>
           </div>
         )}
-        <div className="flex justify-between border-t pt-2 font-bold text-gray-900 text-base">
-          <span>TOTAL</span>
-          <span>{formatRupiah(summary.grandTotal)}</span>
+        <div className="flex justify-between items-baseline border-t pt-2 font-bold text-gray-900">
+          <span className="text-sm">TOTAL</span>
+          <span className="text-xl">{formatRupiah(summary.grandTotal)}</span>
         </div>
       </div>
 

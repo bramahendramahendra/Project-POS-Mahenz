@@ -21,6 +21,7 @@ func NewProductHandler(service service.ProductServiceInterface) *ProductHandler 
 	return &ProductHandler{service: service}
 }
 
+// POST /products/list
 func (h *ProductHandler) GetAll(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
@@ -48,6 +49,7 @@ func (h *ProductHandler) GetAll(c *gin.Context) {
 	})
 }
 
+// POST /products/options
 func (h *ProductHandler) GetOptions(c *gin.Context) {
 	data, err := h.service.GetOptions()
 	if err != nil {
@@ -63,6 +65,7 @@ func (h *ProductHandler) GetOptions(c *gin.Context) {
 	})
 }
 
+// POST /products/search
 func (h *ProductHandler) Search(c *gin.Context) {
 	req, err := binder.BindJSON[dto.SearchRequest](c)
 	if err != nil {
@@ -89,6 +92,7 @@ func (h *ProductHandler) Search(c *gin.Context) {
 	})
 }
 
+// POST /products/detail/:id
 func (h *ProductHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
@@ -115,6 +119,7 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 	})
 }
 
+// POST /products/by-barcode/:barcode
 func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByBarcodeRequest](c)
 	if err != nil {
@@ -141,6 +146,7 @@ func (h *ProductHandler) GetByBarcode(c *gin.Context) {
 	})
 }
 
+// POST /products/create
 func (h *ProductHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
@@ -167,6 +173,7 @@ func (h *ProductHandler) Create(c *gin.Context) {
 	})
 }
 
+// POST /products/update/:id
 func (h *ProductHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
@@ -200,6 +207,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 	})
 }
 
+// POST /products/delete/:id
 func (h *ProductHandler) Delete(c *gin.Context) {
 	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
@@ -224,6 +232,7 @@ func (h *ProductHandler) Delete(c *gin.Context) {
 	})
 }
 
+// POST /products/toggle-status/:id
 func (h *ProductHandler) ToggleStatus(c *gin.Context) {
 	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {

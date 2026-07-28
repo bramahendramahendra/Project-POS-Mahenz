@@ -21,6 +21,7 @@ func NewProductPriceHandler(service service.ProductServiceInterface) *ProductPri
 	return &ProductPriceHandler{service: service}
 }
 
+// POST /products/:id/prices/list
 func (h *ProductPriceHandler) GetPricesByProduct(c *gin.Context) {
 	req, err := binder.BindURI[dto.PriceByProductRequest](c)
 	if err != nil {

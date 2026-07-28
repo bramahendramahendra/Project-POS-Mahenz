@@ -21,6 +21,7 @@ func NewCategoryHandler(service service.CategoryServiceInterface) *CategoryHandl
 	return &CategoryHandler{service: service}
 }
 
+// POST /categories/list
 func (h *CategoryHandler) GetAll(c *gin.Context) {
 	req, err := binder.BindJSON[dto.GetAllRequest](c)
 	if err != nil {
@@ -48,6 +49,7 @@ func (h *CategoryHandler) GetAll(c *gin.Context) {
 	})
 }
 
+// POST /categories/options
 func (h *CategoryHandler) GetOptions(c *gin.Context) {
 	data, err := h.service.GetOptions()
 	if err != nil {
@@ -63,6 +65,7 @@ func (h *CategoryHandler) GetOptions(c *gin.Context) {
 	})
 }
 
+// POST /categories/detail/:id
 func (h *CategoryHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {
@@ -89,6 +92,7 @@ func (h *CategoryHandler) GetByID(c *gin.Context) {
 	})
 }
 
+// POST /categories/create
 func (h *CategoryHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {
@@ -115,6 +119,7 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 	})
 }
 
+// POST /categories/update/:id
 func (h *CategoryHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
@@ -148,6 +153,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 	})
 }
 
+// POST /categories/delete/:id
 func (h *CategoryHandler) Delete(c *gin.Context) {
 	req, err := binder.BindURI[dto.DeleteRequest](c)
 	if err != nil {
@@ -172,6 +178,7 @@ func (h *CategoryHandler) Delete(c *gin.Context) {
 	})
 }
 
+// POST /categories/toggle-status/:id
 func (h *CategoryHandler) ToggleStatus(c *gin.Context) {
 	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
 	if err != nil {

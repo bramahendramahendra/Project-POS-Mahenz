@@ -31,6 +31,7 @@ func ProductRoutes(r *gin.RouterGroup) {
 
 	g := r.Group("/products")
 	{
+		// Product Handler
 		g.POST("/list", productHandler.GetAll)
 		g.POST("/options", productHandler.GetOptions)
 		g.POST("/search", productHandler.Search)
@@ -41,18 +42,22 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/delete/:id", perm("can_delete"), productHandler.Delete)
 		g.POST("/toggle-status/:id", perm("can_edit"), productHandler.ToggleStatus)
 
+		// Product Import Handler
 		g.POST("/import-preview", perm("can_create"), productImportHandler.ImportPreview)
 		g.POST("/import-bulk", perm("can_create"), productImportHandler.ImportBulk)
 		g.POST("/import-template", perm("can_view"), productImportHandler.DownloadImportTemplate)
 
+		// Product Generate Handler
 		g.POST("/generate-barcode", perm("can_create"), productGenerateHandler.GenerateBarcode)
 		g.POST("/generate-sku", perm("can_create"), productGenerateHandler.GenerateSku)
 
+		// Product Package Handler
 		g.POST("/:id/packages/list", productPackageHandler.GetPackagesByProduct)
 		g.POST("/:id/packages/create", perm("can_edit"), productPackageHandler.CreatePackage)
 		g.POST("/:id/packages/update/:package_id", perm("can_edit"), productPackageHandler.UpdatePackage)
 		g.POST("/:id/packages/delete/:package_id", perm("can_delete"), productPackageHandler.DeletePackage)
 
+		// Product Price Handler
 		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)
 	}
 }
