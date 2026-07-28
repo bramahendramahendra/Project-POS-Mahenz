@@ -6,8 +6,6 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   partial: 'Bayar Sebagian',
 }
 
-// Status keberlakuan PO — terpisah dari PaymentStatus (status bayar).
-// 'void' berarti PO dibatalkan; tidak bisa lagi di-edit/dihapus/dibayar/ditambah item.
 export type PurchaseStatus = 'active' | 'void'
 
 export interface PurchaseItemExpiryBatch {
@@ -81,13 +79,11 @@ export interface ExpiryBatchDraftPayload {
 
 export interface CreatePurchaseItemPayload {
   product_id: number
-  /** Id product_packages yang dipilih — dipakai server untuk resolve conversion_qty terkini. */
   package_id?: number
   quantity: number
   purchase_price: number
   unit: string
   conversion_qty: number
-  /** Opsional — diisi hanya kalau staf mencentang "Produk ini ada tanggal expired". */
   expiry_batches?: ExpiryBatchDraftPayload[]
 }
 

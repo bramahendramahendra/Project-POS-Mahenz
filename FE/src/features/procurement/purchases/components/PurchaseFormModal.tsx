@@ -467,8 +467,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         delete next[index]
         return next
       })
+      // Harga SENGAJA tidak diisi otomatis — sama seperti konsep "Ref. Harga" di form
+      // Produk: nilai referensi cuma dipakai kalau user klik chip-nya sendiri.
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
-      setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
+      setValue(`items.${index}.price`, 0)
       setValue(`items.${index}.conversion_qty`, 1)
     }
   }
@@ -480,7 +482,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemSelectedPackageId((prev) => ({ ...prev, [index]: id }))
     setItemRefPurchasePrice((prev) => ({ ...prev, [index]: pkg.purchase_price }))
     setValue(`items.${index}.unit`, pkg.unit_name)
-    setValue(`items.${index}.price`, pkg.purchase_price)
+    // Harga TIDAK ikut di-auto-isi di sini — biarkan kosong/apa adanya sampai user klik
+    // chip Ref. Harga Beli (sama seperti form Produk).
     setValue(`items.${index}.conversion_qty`, pkg.resolved_factor ?? 1)
   }
 
@@ -783,10 +786,22 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                           watchItems[index]?.unit || '-'
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs text-gray-400">
-                        {itemRefPurchasePrice[index] != null
-                          ? formatRupiah(itemRefPurchasePrice[index])
-                          : '-'}
+                      <td className="px-3 py-2 text-right">
+                        {itemRefPurchasePrice[index] != null ? (
+                          <button
+                            type="button"
+                            onClick={() => setValue(`items.${index}.price`, itemRefPurchasePrice[index])}
+                            className="group inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white pl-2 pr-1 py-0.5 text-[11px] text-gray-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
+                            title="Klik untuk memakai nilai ini sebagai Harga"
+                          >
+                            <span className="font-semibold text-indigo-700">{formatRupiah(itemRefPurchasePrice[index])}</span>
+                            <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-medium text-white group-hover:bg-indigo-700">
+                              Pakai
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <Controller
