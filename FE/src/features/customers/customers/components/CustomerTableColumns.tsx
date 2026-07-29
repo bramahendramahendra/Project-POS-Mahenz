@@ -3,6 +3,7 @@ import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
+import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Customer } from '../customers.types'
@@ -52,6 +53,18 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
       cell: (row) =>
         row.address ? (
           <span className="text-sm text-gray-600">{row.address}</span>
+        ) : (
+          <span className="text-gray-400 text-sm">—</span>
+        ),
+    },
+    {
+      key: 'credit_limit',
+      header: 'Limit Kredit',
+      align: 'right',
+      sortable: true,
+      cell: (row) =>
+        row.credit_limit > 0 ? (
+          <span className="text-sm font-medium text-gray-700">{formatRupiah(row.credit_limit)}</span>
         ) : (
           <span className="text-gray-400 text-sm">—</span>
         ),

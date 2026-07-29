@@ -178,7 +178,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -220,6 +220,10 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
                   Tambah Item
                 </Button>
               </div>
+
+              <p className="text-[11px] text-gray-400 sm:hidden">
+                ← Geser tabel ke samping untuk lihat kolom Satuan, Harga, dan Subtotal →
+              </p>
 
               <div className="rounded-lg border overflow-x-auto">
                 <table className="w-full min-w-[700px] text-sm">

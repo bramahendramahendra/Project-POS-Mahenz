@@ -83,7 +83,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
             {!purchase.items || purchase.items.length === 0 ? (
               <p className="text-xs text-gray-400 py-2">Tidak ada item.</p>
             ) : (
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
@@ -132,7 +132,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
             {!payments || payments.length === 0 ? (
               <p className="text-xs text-gray-400 py-2">Belum ada pembayaran yang dicatat.</p>
             ) : (
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>

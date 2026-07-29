@@ -97,7 +97,7 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
                 {supplier.purchase_history.length === 0 ? (
                   <p className="text-xs text-gray-400 py-2">Belum ada riwayat pembelian.</p>
                 ) : (
-                  <div className="rounded-md border overflow-hidden">
+                  <div className="rounded-md border overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50">
                         <tr>
@@ -132,7 +132,7 @@ export function SupplierDetailModal({ open, onOpenChange, supplierId }: Supplier
                 {supplier.return_history.length === 0 ? (
                   <p className="text-xs text-gray-400 py-2">Belum ada riwayat retur.</p>
                 ) : (
-                  <div className="rounded-md border overflow-hidden">
+                  <div className="rounded-md border overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50">
                         <tr>

@@ -716,6 +716,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             </Button>
           </div>
 
+          <p className="text-[11px] text-gray-400 sm:hidden">
+            ← Geser tabel ke samping untuk lihat kolom Satuan, Harga, dan Subtotal →
+          </p>
+
           <div className="rounded-lg border overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-gray-50 border-b">

@@ -122,7 +122,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
           {grosirUnits.length > 0 && (
             <div className="space-y-2 border-t pt-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Grosiran / Satuan Lain</p>
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
@@ -154,7 +154,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
           {expiryHistory.length > 0 && (
             <div className="space-y-2 border-t pt-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Batch Expired</p>
-              <div className="rounded-md border overflow-hidden">
+              <div className="rounded-md border overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>

@@ -63,7 +63,13 @@ export function SalesChart({ data, isLoading }: SalesChartProps) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis dataKey="label" tickFormatter={formatDateLabel} tick={{ fontSize: 12 }} />
+        <XAxis
+          dataKey="label"
+          tickFormatter={formatDateLabel}
+          tick={{ fontSize: 12 }}
+          interval="preserveStartEnd"
+          minTickGap={24}
+        />
         <YAxis tickFormatter={formatShort} tick={{ fontSize: 11 }} width={70} />
         <Tooltip content={<CustomTooltip />} />
         <Area

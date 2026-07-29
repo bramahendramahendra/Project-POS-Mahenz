@@ -18,10 +18,10 @@ interface SummaryCardProps {
 function SummaryCard({ title, value, valueClass = '', isLoading }: SummaryCardProps) {
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="p-4 pb-1.5">
         <CardTitle className="text-sm font-medium text-gray-500">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         {isLoading ? (
           <div className="h-6 w-32 animate-pulse rounded bg-gray-200" />
         ) : (

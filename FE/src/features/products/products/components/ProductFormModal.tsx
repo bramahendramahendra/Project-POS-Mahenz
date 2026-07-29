@@ -362,6 +362,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
           </div>
         ) : (
           <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Informasi Dasar
+            </p>
+
             {/* Nama Produk */}
             <div className="space-y-1.5">
               <Label htmlFor="name">
@@ -514,6 +518,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
               </div>
             </div>
 
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 border-t pt-4">
+              Harga &amp; Stok
+            </p>
+
             {/* Harga Beli + Harga Jual + Margin */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
@@ -639,7 +647,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
               </div>
 
               {isEdit && nonDefaultPackages.length > 0 && (
-                <div className="rounded-md border text-xs overflow-hidden">
+                <div className="rounded-md border text-xs overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
@@ -688,7 +696,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
               )}
 
               {!isEdit && grosirDrafts.length > 0 && (
-                <div className="rounded-md border text-xs overflow-hidden">
+                <div className="rounded-md border text-xs overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
