@@ -30,5 +30,10 @@
 
   "CorsAllowOrigins": [
     "http://139.180.214.187"
-  ]
+  ],
+
+  "Backup": {
+    "MysqldumpBin": "mysqldump",
+    "MysqlBin": "mysql"
+  }
 }

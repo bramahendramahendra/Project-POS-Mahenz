@@ -41,7 +41,7 @@ func (s *backupService) CreateBackup() (*dto.BackupInfo, error) {
 	filename := fmt.Sprintf("backup_%s.sql", time.Now().Format("20060102_150405"))
 	backupPath := filepath.Join(backupDir, filename)
 
-	cmd := exec.Command("mysqldump", dbConnArgs()...)
+	cmd := exec.Command(config.Cfg.Backup.MysqldumpBin, dbConnArgs()...)
 
 	outFile, err := os.Create(backupPath)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *backupService) RestoreBackup(file *multipart.FileHeader) error {
 	}
 	defer sqlFile.Close()
 
-	cmd := exec.Command("mysql", dbConnArgs()...)
+	cmd := exec.Command(config.Cfg.Backup.MysqlBin, dbConnArgs()...)
 	cmd.Stdin = sqlFile
 
 	if err := cmd.Run(); err != nil {

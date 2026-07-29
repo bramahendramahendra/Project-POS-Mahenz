@@ -161,7 +161,7 @@ export function PrinterSettingsTab() {
   }
 
   return (
-    <div className="flex gap-8 items-start">
+    <div className="flex flex-col lg:flex-row gap-8 lg:items-start">
       <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-sm space-y-6 shrink-0">
         <div className="rounded-lg border bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700">Konfigurasi Struk</h3>

@@ -70,7 +70,7 @@ export function BackupTab() {
           <strong className="text-red-600">menimpa seluruh data yang ada sekarang</strong> — gunakan
           dengan sangat hati-hati.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <RoleGuard menuKey="sistem.backup" action="can_delete">
             <input
               ref={fileInputRef}
@@ -102,8 +102,12 @@ export function BackupTab() {
       ) : files.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-400">Belum ada backup yang dibuat</p>
       ) : (
-        <div className="rounded-lg border bg-white overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-gray-400 sm:hidden">
+            ← Geser tabel ke samping untuk lihat semua kolom →
+          </p>
+          <div className="rounded-lg border bg-white overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Nama File</th>
@@ -147,7 +151,8 @@ export function BackupTab() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 

@@ -50,6 +50,16 @@ type LogConfig struct {
 	MaxAgeDays int    `json:"MaxAgeDays"`
 }
 
+// BackupConfig menyimpan path binary mysqldump/mysql yang dipakai fitur
+// Backup & Restore. Diisi per environment (lihat config_dev.json vs
+// config_prod.json) karena lokasi binary ini beda-beda tergantung cara MySQL
+// diinstal (mis. WAMPP di lokal punya path panjang, sedangkan di server
+// biasanya sudah ada di PATH sehingga cukup nama command polos).
+type BackupConfig struct {
+	MysqldumpBin string `json:"MysqldumpBin"`
+	MysqlBin     string `json:"MysqlBin"`
+}
+
 type Config struct {
 	Timezone                   string         `json:"Timezone"`
 	SecretKey                  string         `json:"SecretKey"`
@@ -61,6 +71,7 @@ type Config struct {
 	Log                        LogConfig      `json:"Log"`
 	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
+	Backup                     BackupConfig   `json:"Backup"`
 }
 
 var (
@@ -128,6 +139,10 @@ func initConfig(releaseMode string) {
 			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
 		},
 		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
+		Backup: BackupConfig{
+			MysqldumpBin: v.GetString("Backup.MysqldumpBin"),
+			MysqlBin:     v.GetString("Backup.MysqlBin"),
+		},
 	}
 
 	// SecretKey wajib disuplai lewat environment variable SECRETKEY (viper.AutomaticEnv()

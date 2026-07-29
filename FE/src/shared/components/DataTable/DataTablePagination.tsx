@@ -84,24 +84,34 @@ export function DataTablePagination({
           <ChevronLeft size={14} />
         </Button>
 
+        {/* Nomor halaman disembunyikan di mobile — dengan banyak halaman
+            (mis. 38 data / 10 per halaman = 4 tombol) totalnya melebihi
+            lebar viewport 375px dan meluap horizontal. Diganti indikator
+            "halaman X / Y" yang ringkas untuk layar sempit. */}
+        <span className="text-sm text-gray-500 px-1 sm:hidden">
+          {page} / {totalPages}
+        </span>
+
         {/* Page numbers */}
-        {pageNumbers.map((p, i) =>
-          p === '...' ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400">
-              ...
-            </span>
-          ) : (
-            <Button
-              key={p}
-              variant={p === page ? 'default' : 'outline'}
-              size="icon"
-              className="h-8 w-8 text-sm"
-              onClick={() => onPageChange(p)}
-            >
-              {p}
-            </Button>
-          )
-        )}
+        <div className="hidden sm:flex items-center gap-2">
+          {pageNumbers.map((p, i) =>
+            p === '...' ? (
+              <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400">
+                ...
+              </span>
+            ) : (
+              <Button
+                key={p}
+                variant={p === page ? 'default' : 'outline'}
+                size="icon"
+                className="h-8 w-8 text-sm"
+                onClick={() => onPageChange(p)}
+              >
+                {p}
+              </Button>
+            )
+          )}
+        </div>
 
         {/* Next */}
         <Button

@@ -10,6 +10,11 @@ import { ROUTES } from '@/shared/constants/routes'
 import { useRoleDetailQuery, useRoleMenuAccessQuery, useSetRoleAccessMutation } from './roles.api'
 import type { RoleMenuAccessItem } from './roles.types'
 
+// Referensi stabil untuk fallback query — literal `[]` baru di tiap render akan
+// selalu !== state sebelumnya (lihat pola sync-saat-render di bawah), memicu
+// infinite render loop ("Too many re-renders") selama data belum termuat.
+const EMPTY_ACCESS_ITEMS: RoleMenuAccessItem[] = []
+
 interface AccessState {
   [menuId: number]: {
     can_view: boolean
@@ -31,7 +36,7 @@ interface CheckboxCellProps {
 function CheckboxCell({ menuId, field, accessState, onToggle }: CheckboxCellProps) {
   const checked = accessState[menuId]?.[field] ?? false
   return (
-    <td className="text-center px-3 py-2.5">
+    <td className="w-[87px] text-center px-3 py-2.5">
       <Checkbox
         checked={checked}
         onCheckedChange={() => onToggle(menuId, field)}
@@ -50,8 +55,14 @@ interface AccessRowProps {
 
 function AccessRow({ item, isChild = false, accessState, onToggle }: AccessRowProps) {
   return (
-    <tr key={item.menu_id} className="border-b last:border-0 hover:bg-gray-50">
-      <td className="px-4 py-2.5">
+    <tr key={item.menu_id} className="group border-b last:border-0 hover:bg-gray-50">
+      {/* Kolom Menu dibuat sticky di kiri — supaya di layar sempit, saat user
+          scroll horizontal untuk menjangkau kolom checkbox, nama menu yang
+          sedang di-toggle tetap terlihat (bukan cuma checkbox tanpa konteks).
+          Lebar dibatasi w-[210px] (efektif hanya saat table-fixed di mobile,
+          lihat className <table> di bawah) — tanpa ini, di layout auto browser
+          melebarkan kolom Menu sampai nyaris menutupi kolom checkbox lain. */}
+      <td className="sticky left-0 z-10 w-[210px] bg-white px-4 py-2.5 group-hover:bg-gray-50">
         <span className={`${isChild ? 'ml-6 text-gray-600' : 'font-medium'} text-sm`}>
           {isChild && <span className="text-gray-300 mr-2">└</span>}
           {item.label}
@@ -72,7 +83,7 @@ export function RoleAccessPage() {
   const navigate = useNavigate()
 
   const { data: role } = useRoleDetailQuery(roleId)
-  const { data: accessItems = [], isLoading } = useRoleMenuAccessQuery(roleId)
+  const { data: accessItems = EMPTY_ACCESS_ITEMS, isLoading } = useRoleMenuAccessQuery(roleId)
   const { mutate: saveAccess, isPending: isSaving } = useSetRoleAccessMutation(roleId)
 
   const [accessState, setAccessState] = useState<AccessState>({})
@@ -147,15 +158,23 @@ export function RoleAccessPage() {
         }
       />
 
-      <div className="rounded-lg border bg-white overflow-hidden">
-        <table className="w-full text-sm">
+      <p className="text-[11px] text-gray-400 sm:hidden">
+        ← Geser tabel ke samping untuk lihat semua kolom izin akses →
+      </p>
+
+      <div className="rounded-lg border bg-white overflow-x-auto">
+        {/* table-fixed di mobile supaya lebar kolom (w-[210px]/w-[87px] di tiap
+            sel) benar-benar ditegakkan — tanpa ini kolom Menu melebar otomatis
+            dan menutupi kolom checkbox saat digeser. Kembali ke table-auto
+            mulai breakpoint sm supaya desktop tetap leluasa seperti semula. */}
+        <table className="w-full min-w-[560px] table-fixed text-sm sm:table-auto">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Menu</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600">Lihat</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600">Tambah</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600">Edit</th>
-              <th className="text-center px-3 py-3 font-medium text-gray-600">Hapus</th>
+              <th className="sticky left-0 z-10 w-[210px] bg-gray-50 text-left px-4 py-3 font-medium text-gray-600">Menu</th>
+              <th className="w-[87px] text-center px-3 py-3 font-medium text-gray-600">Lihat</th>
+              <th className="w-[87px] text-center px-3 py-3 font-medium text-gray-600">Tambah</th>
+              <th className="w-[87px] text-center px-3 py-3 font-medium text-gray-600">Edit</th>
+              <th className="w-[87px] text-center px-3 py-3 font-medium text-gray-600">Hapus</th>
             </tr>
           </thead>
           <tbody>
