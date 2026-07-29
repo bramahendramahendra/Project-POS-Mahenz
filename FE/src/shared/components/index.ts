@@ -1,4 +1,5 @@
 export { DataTable } from './DataTable'
+export { ScrollableTable } from './ScrollableTable'
 export { DataTablePagination, DataTableEmpty, DataTableSkeleton } from './DataTable'
 export type {
   ColumnDef,

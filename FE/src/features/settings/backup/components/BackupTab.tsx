@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Database, Download, RotateCcw, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { RoleGuard } from '@/shared/components'
+import { RoleGuard, ScrollableTable } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
 import {
@@ -102,58 +102,51 @@ export function BackupTab() {
       ) : files.length === 0 ? (
         <p className="py-8 text-center text-sm text-gray-400">Belum ada backup yang dibuat</p>
       ) : (
-        <div className="space-y-1.5">
-          <p className="text-[11px] text-gray-400 sm:hidden">
-            ← Geser tabel ke samping untuk lihat semua kolom →
-          </p>
-          <div className="rounded-lg border bg-white overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Nama File</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Ukuran</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Dibuat</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">Aksi</th>
+        <ScrollableTable minWidth={560}>
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">Nama File</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">Ukuran</th>
+              <th className="px-4 py-3 text-left font-medium text-gray-600">Dibuat</th>
+              <th className="px-4 py-3 text-right font-medium text-gray-600">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {files.map((f) => (
+              <tr key={f.filename} className="border-b last:border-0 hover:bg-gray-50">
+                <td className="px-4 py-3 font-mono text-xs text-gray-700">{f.filename}</td>
+                <td className="px-4 py-3 text-gray-500">{f.size}</td>
+                <td className="px-4 py-3 text-gray-500">{formatDate(f.created_at)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <RoleGuard menuKey="sistem.backup" action="can_view">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 h-8"
+                        onClick={() => handleDownload(f.filename)}
+                      >
+                        <Download size={13} />
+                        Download
+                      </Button>
+                    </RoleGuard>
+                    <RoleGuard menuKey="sistem.backup" action="can_delete">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setRestoreTarget(f)}
+                      >
+                        <RotateCcw size={13} />
+                        Restore
+                      </Button>
+                    </RoleGuard>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {files.map((f) => (
-                <tr key={f.filename} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-xs text-gray-700">{f.filename}</td>
-                  <td className="px-4 py-3 text-gray-500">{f.size}</td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(f.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <RoleGuard menuKey="sistem.backup" action="can_view">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 h-8"
-                          onClick={() => handleDownload(f.filename)}
-                        >
-                          <Download size={13} />
-                          Download
-                        </Button>
-                      </RoleGuard>
-                      <RoleGuard menuKey="sistem.backup" action="can_delete">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => setRestoreTarget(f)}
-                        >
-                          <RotateCcw size={13} />
-                          Restore
-                        </Button>
-                      </RoleGuard>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            </table>
-          </div>
-        </div>
+            ))}
+          </tbody>
+        </ScrollableTable>
       )}
 
       <RestoreConfirmDialog
