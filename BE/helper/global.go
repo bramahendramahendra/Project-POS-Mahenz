@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/http"
 	"pos_api/config"
+	time_helper "pos_api/helper/time"
 	"regexp"
 	"strconv"
 	"strings"
@@ -120,7 +121,7 @@ func GenerateCustomID(prefix string) string {
 	mu.Lock()
 	defer mu.Unlock()
 
-	now := time.Now().Format("20060102150405")
+	now := time_helper.GetTimeNow().Format("20060102150405")
 	if now == lastTime {
 		counter++
 	} else {
@@ -240,7 +241,7 @@ func GenerateReferenceNumber(length int) string {
 }
 
 func GetMaxBackdateBrifaktur(day int) (time.Time, error) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	year, month := now.Year(), now.Month()
 
 	// validate day, get last day of month
@@ -342,7 +343,7 @@ func GenerateNomorFaktur(regionCode, branchCode string, isWapu bool, counter int
 		formattedBranchCode = formattedBranchCode[:4]
 	}
 
-	currentYear := time.Now().Year() % 100
+	currentYear := time_helper.GetTimeNow().Year() % 100
 	yearCode := fmt.Sprintf("%02d", currentYear)
 
 	sequentialNumber := fmt.Sprintf("%07d", counter)

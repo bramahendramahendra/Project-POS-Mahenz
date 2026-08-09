@@ -2,13 +2,12 @@ package service
 
 import (
 	dto "pos_api/domain/business_summary/dto"
+	time_helper "pos_api/helper/time"
 	"time"
 )
 
-// periodToDateRange menerjemahkan periode ("today"/"week"/"month") menjadi
-// rentang tanggal (format YYYY-MM-DD, tanpa komponen jam — dibandingkan via DATE(...) di repo).
 func periodToDateRange(period string) (startDate, endDate string) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	end := now.Format("2006-01-02")
 	switch period {
 	case "week":
@@ -36,11 +35,12 @@ func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, er
 	todayStats.TotalExpenses = todayExpenses
 	todayStats.GrossProfit = todayStats.TotalSales - todayExpenses
 
-	monthStats, err := s.repo.GetMonthStats()
+	now := time_helper.GetTimeNow()
+	monthStats, err := s.repo.GetMonthStats(int(now.Month()), now.Year())
 	if err != nil {
 		return nil, err
 	}
-	monthExpenses, err := s.repo.GetMonthExpenses()
+	monthExpenses, err := s.repo.GetMonthExpenses(int(now.Month()), now.Year())
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (s *businessSummaryService) GetSalesTrend(period string) ([]dto.SalesTrendI
 	case "12months":
 		days = 365
 	}
-	items, err := s.repo.GetSalesTrend(days)
+	items, err := s.repo.GetSalesTrend(days, time_helper.GetTimeNow())
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (s *businessSummaryService) GetTopCategories(filter dto.DateRangeFilter) ([
 }
 
 func (s *businessSummaryService) GetSummaryExtra(period string) (*dto.SummaryExtraResponse, error) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	var startDate, endDate string
 
 	switch period {

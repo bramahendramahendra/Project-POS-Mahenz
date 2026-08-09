@@ -9,9 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// nearExpiryDays: jendela "mendekati expired" — batch dengan expired_date dalam
-// rentang [hari ini, hari ini + nearExpiryDays] dianggap severity "near", lewat dari
-// hari ini dianggap "expired". Lihat catatan desain di migrasi 003_expiry_batch.sql.
 const nearExpiryDays = 7
 
 const (
@@ -20,7 +17,7 @@ const (
 		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
 		FROM product_expiry_batches eb
 		LEFT JOIN products p ON eb.product_id = p.id
-		WHERE eb.status = 'active' AND eb.expired_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+		WHERE eb.status = 'active' AND eb.expired_date <= DATE_ADD(?, INTERVAL ? DAY)
 	`
 	getWarningsSearchClause = ` AND p.name LIKE ?`
 	getWarningsOrderClause  = ` ORDER BY eb.expired_date ASC`
@@ -44,24 +41,24 @@ const (
 
 	confirmExpiryBatchQuery = `
 		UPDATE product_expiry_batches
-		SET status = 'cleared', resolved_by = ?, resolved_at = ?, notes = ?, updated_at = NOW()
+		SET status = 'cleared', resolved_by = ?, resolved_at = ?, notes = ?, updated_at = ?
 		WHERE id = ?
 	`
 
 	writeOffExpiryBatchQuery = `
 		UPDATE product_expiry_batches
-		SET status = 'written_off', resolved_by = ?, resolved_at = ?, notes = ?, updated_at = NOW()
+		SET status = 'written_off', resolved_by = ?, resolved_at = ?, notes = ?, updated_at = ?
 		WHERE id = ?
 	`
 
 	getProductStockForWriteOffQuery = `SELECT stock FROM products WHERE id = ? FOR UPDATE`
-	deductStockForWriteOffQuery     = `UPDATE products SET stock = GREATEST(stock - ?, 0), updated_at = NOW() WHERE id = ?`
+	deductStockForWriteOffQuery     = `UPDATE products SET stock = GREATEST(stock - ?, 0), updated_at = ? WHERE id = ?`
 	createExpiredStockMutationQuery = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, 'expired', ?, ?, ?, 'expiry_batch', ?, ?, ?)`
 )
 
 func (r *expiryBatchRepo) GetWarnings(search string) ([]*model.ExpiryBatch, error) {
 	query := getWarningsQuery
-	args := []any{nearExpiryDays}
+	args := []any{time_helper.ToSQLDate(time_helper.GetTimeNow()), nearExpiryDays}
 	if search != "" {
 		query += getWarningsSearchClause
 		args = append(args, "%"+search+"%")
@@ -97,10 +94,11 @@ func (r *expiryBatchRepo) GetByID(id int) (*model.ExpiryBatch, error) {
 
 func (r *expiryBatchRepo) Confirm(id, userID int, notes string) error {
 	now := time_helper.GetTimeNow()
-	return r.db.Exec(confirmExpiryBatchQuery, userID, now, notes, id).Error
+	return r.db.Exec(confirmExpiryBatchQuery, userID, now, notes, now, id).Error
 }
 
 func (r *expiryBatchRepo) WriteOff(id, userID int, notes string) error {
+	now := time_helper.GetTimeNow()
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		batch, err := r.byIDForUpdate(tx, id)
 		if err != nil {
@@ -112,7 +110,7 @@ func (r *expiryBatchRepo) WriteOff(id, userID int, notes string) error {
 			return err
 		}
 
-		if err := tx.Exec(deductStockForWriteOffQuery, batch.Qty, batch.ProductID).Error; err != nil {
+		if err := tx.Exec(deductStockForWriteOffQuery, batch.Qty, now, batch.ProductID).Error; err != nil {
 			return err
 		}
 		stockAfter := stockBefore - batch.Qty
@@ -127,8 +125,7 @@ func (r *expiryBatchRepo) WriteOff(id, userID int, notes string) error {
 			return err
 		}
 
-		now := time_helper.GetTimeNow()
-		return tx.Exec(writeOffExpiryBatchQuery, userID, now, notes, id).Error
+		return tx.Exec(writeOffExpiryBatchQuery, userID, now, notes, now, id).Error
 	})
 }
 

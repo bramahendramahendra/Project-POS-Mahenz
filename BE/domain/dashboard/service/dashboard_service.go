@@ -2,7 +2,7 @@ package service
 
 import (
 	dto "pos_api/domain/dashboard/dto"
-	"time"
+	time_helper "pos_api/helper/time"
 )
 
 func (s *dashboardService) GetRecentTransactions(userID int, limit int) ([]dto.RecentTransactionItem, error) {
@@ -17,6 +17,6 @@ func (s *dashboardService) GetRecentTransactions(userID int, limit int) ([]dto.R
 }
 
 func (s *dashboardService) GetTodaySummary(userID int) (*dto.TodaySummaryResponse, error) {
-	today := time.Now().Format("2006-01-02")
+	today := time_helper.ToSQLDate(time_helper.GetTimeNow())
 	return s.repo.GetTodaySummary(userID, today)
 }

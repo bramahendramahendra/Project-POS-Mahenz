@@ -14,6 +14,23 @@ func GetTimeWithFormat() string {
 	return GetTimeNow().Format(config.FormatTime)
 }
 
+// StartOfDay mengembalikan jam 00:00:00 WIB dari tanggal t.
+func StartOfDay(t time.Time) time.Time {
+	t = t.In(config.Location)
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, config.Location)
+}
+
+// EndOfDay mengembalikan jam 23:59:59 WIB dari tanggal t.
+func EndOfDay(t time.Time) time.Time {
+	t = t.In(config.Location)
+	return time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, config.Location)
+}
+
+// ToSQLDate memformat t menjadi "2006-01-02" (WIB) untuk dipakai sebagai parameter query MySQL.
+func ToSQLDate(t time.Time) string {
+	return t.In(config.Location).Format("2006-01-02")
+}
+
 func GetEndTime(timeString string) string {
 	now, err := time.ParseInLocation(config.FormatTime, timeString, config.Location)
 	if err != nil {

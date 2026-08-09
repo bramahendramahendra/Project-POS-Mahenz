@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import { getWIBNow } from '@/shared/utils/date'
 
 import type {
   DashboardPeriod,
@@ -18,20 +19,11 @@ function periodToTrendParam(period: DashboardPeriod): string {
 }
 
 function periodToDateRange(period: DashboardPeriod): { start_date: string; end_date: string } {
-  const now = new Date()
-  const end = now.toISOString().split('T')[0]
-  let start: string
-  if (period === 'week') {
-    const d = new Date(now)
-    d.setDate(d.getDate() - 6)
-    start = d.toISOString().split('T')[0]
-  } else if (period === 'month') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-  } else {
-    const d = new Date(now)
-    d.setDate(d.getDate() - 6)
-    start = d.toISOString().split('T')[0]
-  }
+  const now = getWIBNow()
+  const end = now.format('YYYY-MM-DD')
+  const start = period === 'month'
+    ? now.startOf('month').format('YYYY-MM-DD')
+    : now.subtract(6, 'day').format('YYYY-MM-DD')
   return { start_date: start, end_date: end }
 }
 

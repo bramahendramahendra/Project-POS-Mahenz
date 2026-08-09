@@ -4,6 +4,7 @@ import (
 	dto "pos_api/domain/supplier/dto"
 	model "pos_api/domain/supplier/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -18,16 +19,12 @@ const (
 	checkSupplierCodeExistsQuery     = `SELECT id FROM suppliers WHERE supplier_code = ? LIMIT 1`
 	checkSupplierNameExistsQuery     = `SELECT id FROM suppliers WHERE name = ? AND id != ? LIMIT 1`
 	countPurchasesBySupplierQuery    = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ?`
-	// status != 'void' wajib ada di sini — PO yang sudah di-void tidak lagi punya
-	// tagihan aktif (remaining_amount digugurkan ke 0 saat void) meskipun
-	// payment_status historisnya masih 'unpaid'/'partial' (sengaja dipertahankan
-	// sebagai jejak audit, lihat purchase_repo.go Void).
-	countActiveDebtBySupplierQuery = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ? AND payment_status != 'paid' AND status != 'void'`
-	createSupplierQuery            = `INSERT INTO suppliers (supplier_code, name, address, phone, email, contact_person, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	getLastSupplierInsertIDQuery   = `SELECT LAST_INSERT_ID()`
-	updateSupplierQuery            = `UPDATE suppliers SET name=?, address=?, phone=?, email=?, contact_person=?, notes=?, updated_at=NOW() WHERE id=?`
-	deleteSupplierQuery            = `DELETE FROM suppliers WHERE id = ?`
-	toggleSupplierStatusQuery      = `UPDATE suppliers SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	countActiveDebtBySupplierQuery   = `SELECT COUNT(*) FROM purchases WHERE supplier_id = ? AND payment_status != 'paid' AND status != 'void'`
+	createSupplierQuery              = `INSERT INTO suppliers (supplier_code, name, address, phone, email, contact_person, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	getLastSupplierInsertIDQuery     = `SELECT LAST_INSERT_ID()`
+	updateSupplierQuery              = `UPDATE suppliers SET name=?, address=?, phone=?, email=?, contact_person=?, notes=?, updated_at=? WHERE id=?`
+	deleteSupplierQuery              = `DELETE FROM suppliers WHERE id = ?`
+	toggleSupplierStatusQuery        = `UPDATE suppliers SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 )
 
 func (r *supplierRepo) GetAll(req *dto.GetAllRequest) ([]*model.Supplier, int64, error) {
@@ -116,7 +113,7 @@ func (r *supplierRepo) Create(req *dto.CreateRequest, code string) (int64, error
 }
 
 func (r *supplierRepo) Update(req *dto.UpdateRequest) error {
-	err := r.db.Exec(updateSupplierQuery, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes, req.ID).Error
+	err := r.db.Exec(updateSupplierQuery, req.Name, req.Address, req.Phone, req.Email, req.ContactPerson, req.Notes, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 
@@ -126,7 +123,7 @@ func (r *supplierRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *supplierRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	err := r.db.Exec(toggleSupplierStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleSupplierStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 

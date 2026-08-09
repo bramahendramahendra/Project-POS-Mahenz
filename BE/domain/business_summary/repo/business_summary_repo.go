@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"time"
 
 	dto "pos_api/domain/business_summary/dto"
 )
@@ -23,19 +24,19 @@ const (
 
 	monthStatsQuery = `
 		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales
-		FROM transactions WHERE MONTH(transaction_date) = MONTH(NOW())
-		AND YEAR(transaction_date) = YEAR(NOW()) AND status = 'completed'`
+		FROM transactions WHERE MONTH(transaction_date) = ?
+		AND YEAR(transaction_date) = ? AND status = 'completed'`
 
 	monthExpensesQuery = `
 		SELECT COALESCE(SUM(amount),0) as total FROM expenses
-		WHERE MONTH(expense_date) = MONTH(NOW()) AND YEAR(expense_date) = YEAR(NOW())`
+		WHERE MONTH(expense_date) = ? AND YEAR(expense_date) = ?`
 
 	salesTrendQuery = `
 		SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as label,
 		       COALESCE(SUM(total_amount),0) as total_sales,
 		       COUNT(*) as total_transactions
 		FROM transactions
-		WHERE transaction_date >= DATE_SUB(NOW(), INTERVAL ? DAY) AND status = 'completed'
+		WHERE transaction_date >= DATE_SUB(?, INTERVAL ? DAY) AND status = 'completed'
 		GROUP BY DATE(transaction_date) ORDER BY label`
 
 	topProductsQuery = `
@@ -137,18 +138,18 @@ func (r *businessSummaryRepo) GetExpensesByRange(startDate, endDate string) (flo
 	return total, nil
 }
 
-func (r *businessSummaryRepo) GetMonthStats() (*dto.MonthStats, error) {
+func (r *businessSummaryRepo) GetMonthStats(month int, year int) (*dto.MonthStats, error) {
 	var result dto.MonthStats
-	row := r.db.Raw(monthStatsQuery).Row()
+	row := r.db.Raw(monthStatsQuery, month, year).Row()
 	if err := row.Scan(&result.TotalTransactions, &result.TotalSales); err != nil {
 		return nil, fmt.Errorf("GetMonthStats: %w", err)
 	}
 	return &result, nil
 }
 
-func (r *businessSummaryRepo) GetMonthExpenses() (float64, error) {
+func (r *businessSummaryRepo) GetMonthExpenses(month int, year int) (float64, error) {
 	var total float64
-	row := r.db.Raw(monthExpensesQuery).Row()
+	row := r.db.Raw(monthExpensesQuery, month, year).Row()
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("GetMonthExpenses: %w", err)
 	}
@@ -173,8 +174,8 @@ func (r *businessSummaryRepo) GetOpenReceivablesCount() (int64, error) {
 	return count, nil
 }
 
-func (r *businessSummaryRepo) GetSalesTrend(days int) ([]dto.SalesTrendItem, error) {
-	rows, err := r.db.Raw(salesTrendQuery, days).Rows()
+func (r *businessSummaryRepo) GetSalesTrend(days int, now time.Time) ([]dto.SalesTrendItem, error) {
+	rows, err := r.db.Raw(salesTrendQuery, now, days).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("GetSalesTrend: %w", err)
 	}

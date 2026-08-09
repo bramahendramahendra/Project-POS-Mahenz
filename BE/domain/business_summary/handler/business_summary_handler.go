@@ -2,13 +2,13 @@ package handler
 
 import (
 	"strconv"
-	"time"
 
 	dto "pos_api/domain/business_summary/dto"
 	"pos_api/domain/business_summary/service"
 	global_dto "pos_api/dto"
 	"pos_api/helper"
 	response_helper "pos_api/helper/response"
+	time_helper "pos_api/helper/time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -55,7 +55,7 @@ func (h *BusinessSummaryHandler) GetSalesTrend(c *gin.Context) {
 
 // GET /api/reports/business-summary/top-products
 func (h *BusinessSummaryHandler) GetTopProducts(c *gin.Context) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	startDate := c.DefaultQuery("start_date", now.AddDate(0, -1, 0).Format("2006-01-02"))
 	endDate := c.DefaultQuery("end_date", now.Format("2006-01-02"))
 	sortBy := c.DefaultQuery("sort_by", "quantity")
@@ -86,7 +86,7 @@ func (h *BusinessSummaryHandler) GetTopProducts(c *gin.Context) {
 
 // GET /api/reports/business-summary/top-categories
 func (h *BusinessSummaryHandler) GetTopCategories(c *gin.Context) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	startDate := c.DefaultQuery("start_date", now.AddDate(0, -1, 0).Format("2006-01-02"))
 	endDate := c.DefaultQuery("end_date", now.Format("2006-01-02"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
@@ -131,7 +131,7 @@ func (h *BusinessSummaryHandler) GetSummaryExtra(c *gin.Context) {
 
 // GET /api/reports/business-summary/payment-methods
 func (h *BusinessSummaryHandler) GetPaymentMethods(c *gin.Context) {
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	startDate := c.DefaultQuery("start_date", now.AddDate(0, -1, 0).Format("2006-01-02"))
 	endDate := c.DefaultQuery("end_date", now.Format("2006-01-02"))
 

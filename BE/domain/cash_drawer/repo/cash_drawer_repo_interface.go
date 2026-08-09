@@ -3,6 +3,7 @@ package repo
 import (
 	dto "pos_api/domain/cash_drawer/dto"
 	model "pos_api/domain/cash_drawer/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -12,16 +13,16 @@ type (
 		GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error)
 		GetOpenCashDrawer(userID int) (*model.CashDrawer, error)
 		GetByID(id int) (*model.CashDrawer, error)
-		GetDetailByID(id int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
+		GetDetailByID(id int, now time.Time) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
 		GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDrawerHistoryResponse, int64, error)
-		Open(userID int, shiftID *int, openingBalance float64, notes string) (int64, error)
-		Close(id int, closingBalance, expectedBalance, difference float64, notes string) error
-		UpdateSales(id int, totalSales, totalCashSales float64) error
-		UpdateExpenses(id int, totalExpenses float64) error
-		GetMyCash(userID int) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
-		GetNonCashSales(userID int, openTime string, closeTime *string) ([]dto.NonCashSaleItem, error)
-		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string) ([]model.CashDrawerNonCashTransactionItem, error)
-		AutoCloseYesterday() (int, error)
+		Open(userID int, shiftID *int, openingBalance float64, notes string, openTime time.Time) (int64, error)
+		Close(id int, closingBalance, expectedBalance, difference float64, notes string, closeTime time.Time) error
+		UpdateSales(id int, totalSales, totalCashSales float64, updatedAt time.Time) error
+		UpdateExpenses(id int, totalExpenses float64, updatedAt time.Time) error
+		GetMyCash(userID int, now time.Time) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
+		GetNonCashSales(userID int, openTime string, closeTime *string, now time.Time) ([]dto.NonCashSaleItem, error)
+		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string, now time.Time) ([]model.CashDrawerNonCashTransactionItem, error)
+		AutoCloseYesterday(now time.Time) (int, error)
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 		GetKasirOptions() ([]dto.KasirOptionResponse, error)
 

@@ -3,8 +3,10 @@ package service
 import (
 	"time"
 
+	"pos_api/config"
 	dto "pos_api/domain/supplier_return/dto"
 	"pos_api/errors"
+	time_helper "pos_api/helper/time"
 )
 
 func (s *supplierReturnService) GetAll(req *dto.SupplierReturnListRequest) (data []dto.SupplierReturnResponse, total int64, err error) {
@@ -73,11 +75,11 @@ func (s *supplierReturnService) GetByID(id int) (data dto.SupplierReturnResponse
 }
 
 func (s *supplierReturnService) Create(req *dto.CreateSupplierReturnRequest) (data dto.SupplierReturnResponse, err error) {
-	returnDate, err := time.Parse("2006-01-02", req.ReturnDate)
+	returnDate, err := time.ParseInLocation("2006-01-02", req.ReturnDate, config.Location)
 	if err != nil {
 		return data, &errors.BadRequestError{Message: "Format tanggal retur tidak valid"}
 	}
-	if returnDate.After(time.Now().Truncate(24 * time.Hour)) {
+	if returnDate.After(time_helper.StartOfDay(time_helper.GetTimeNow())) {
 		return data, &errors.BadRequestError{Message: "Tanggal retur tidak boleh lebih dari hari ini"}
 	}
 

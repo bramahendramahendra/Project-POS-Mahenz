@@ -3,6 +3,7 @@ package service
 import (
 	dto "pos_api/domain/expense/dto"
 	"pos_api/errors"
+	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
 )
@@ -73,7 +74,7 @@ func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.Ex
 				return err
 			}
 			if cd != nil && cd.Status == "open" {
-				if err := cashDrawerRepo.UpdateExpenses(cd.ID, req.Amount); err != nil {
+				if err := cashDrawerRepo.UpdateExpenses(cd.ID, req.Amount, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}
@@ -83,7 +84,7 @@ func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.Ex
 				return err
 			}
 			if openCashDrawer != nil {
-				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, req.Amount); err != nil {
+				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, req.Amount, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}
@@ -146,7 +147,7 @@ func (s *expenseService) Update(req *dto.UpdateRequest, requestingUserID int, ro
 				return err
 			}
 			if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
-				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, delta); err != nil {
+				if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, delta, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}
@@ -181,7 +182,7 @@ func (s *expenseService) Delete(req *dto.DeleteRequest, requestingUserID int, ro
 			return err
 		}
 		if openCashDrawer != nil && openCashDrawer.OpenTime.Local().Format("2006-01-02") <= existing.ExpenseDate {
-			if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, -existing.Amount); err != nil {
+			if err := cashDrawerRepo.UpdateExpenses(openCashDrawer.ID, -existing.Amount, time_helper.GetTimeNow()); err != nil {
 				return err
 			}
 		}

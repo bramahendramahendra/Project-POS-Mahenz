@@ -1,31 +1,28 @@
 package repo
 
 import (
-	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/product_unit/dto"
 	model "pos_api/domain/product_unit/model"
+	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
-	countUnitsQuery = `SELECT COUNT(*) FROM units WHERE 1=1`
-	getAllUnitsQuery = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
+	countUnitsQuery                = `SELECT COUNT(*) FROM units WHERE 1=1`
+	getAllUnitsQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE 1=1`
 	getAllUnitOptionsQuery         = `SELECT id, name, abbreviation FROM units WHERE is_active = 1 ORDER BY name`
 	getUnitByIDQuery               = `SELECT id, name, abbreviation, is_active, created_at FROM units WHERE id = ? LIMIT 1`
 	checkUnitNameQuery             = `SELECT id FROM units WHERE name = ? AND id != ? LIMIT 1`
 	checkUnitAbbreviationQuery     = `SELECT id FROM units WHERE abbreviation = ? AND id != ? LIMIT 1`
-	// checkUnitUsedQuery: satuan bisa dipakai sebagai unit_id anchor produk (products.unit_id)
-	// ATAU sebagai satuan salah satu paket/grosir produk (product_packages.unit_id — FK-nya
-	// ON DELETE RESTRICT). Dulu cuma cek products.unit_id, jadi hapus satuan yang cuma dipakai
-	// di product_packages lolos pre-check ini lalu gagal di DELETE dengan error FK mentah.
-	checkUnitUsedQuery = `SELECT (SELECT COUNT(*) FROM products WHERE unit_id = ?) + (SELECT COUNT(*) FROM product_packages WHERE unit_id = ?)`
+	checkUnitUsedQuery             = `SELECT (SELECT COUNT(*) FROM products WHERE unit_id = ?) + (SELECT COUNT(*) FROM product_packages WHERE unit_id = ?)`
 	checkActiveProductsByUnitQuery = `SELECT
 		(SELECT COUNT(*) FROM products WHERE unit_id = ? AND is_active = 1)
 		+ (SELECT COUNT(*) FROM product_packages pp JOIN products p ON p.id = pp.product_id WHERE pp.unit_id = ? AND p.is_active = 1)`
-	createUnitQuery                = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
-	getLastInsertIDQuery           = `SELECT LAST_INSERT_ID()`
-	updateUnitQuery                = `UPDATE units SET name = ?, abbreviation = ?, updated_at = NOW() WHERE id = ?`
-	deleteUnitQuery                = `DELETE FROM units WHERE id = ?`
-	toggleUnitStatusQuery          = `UPDATE units SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	createUnitQuery       = `INSERT INTO units (name, abbreviation) VALUES (?, ?)`
+	getLastInsertIDQuery  = `SELECT LAST_INSERT_ID()`
+	updateUnitQuery       = `UPDATE units SET name = ?, abbreviation = ?, updated_at = ? WHERE id = ?`
+	deleteUnitQuery       = `DELETE FROM units WHERE id = ?`
+	toggleUnitStatusQuery = `UPDATE units SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 )
 
 func (r *unitRepo) GetAll(req *dto.GetAllRequest) ([]*model.Unit, int64, error) {
@@ -110,7 +107,7 @@ func (r *unitRepo) Create(req *dto.CreateRequest) (int64, error) {
 }
 
 func (r *unitRepo) Update(req *dto.UpdateRequest) error {
-	err := r.db.Exec(updateUnitQuery, req.Name, req.Abbreviation, req.ID).Error
+	err := r.db.Exec(updateUnitQuery, req.Name, req.Abbreviation, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 
@@ -120,7 +117,7 @@ func (r *unitRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *unitRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	err := r.db.Exec(toggleUnitStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleUnitStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 

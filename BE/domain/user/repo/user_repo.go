@@ -4,6 +4,7 @@ import (
 	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/user/dto"
 	model "pos_api/domain/user/model"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -12,10 +13,10 @@ const (
 	getUserByIDQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
 	getUserByUsernameQuery = `SELECT u.id FROM users u WHERE u.username = ? AND u.id != ? LIMIT 1`
 	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
-	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = NOW() WHERE id = ?`
-	updatePasswordQuery    = `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`
+	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = ? WHERE id = ?`
+	updatePasswordQuery    = `UPDATE users SET password = ?, updated_at = ? WHERE id = ?`
 	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
-	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	deleteSessionQuery     = `DELETE FROM sessions WHERE user_id = ?`
 	countActiveAdminsQuery = `SELECT COUNT(*) FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE r.name IN ('owner', 'admin') AND u.is_active = 1 AND u.id != ?`
 )
@@ -104,11 +105,11 @@ func (r *userRepo) Create(user *model.User) (int64, error) {
 }
 
 func (r *userRepo) Update(id int, req *dto.UpdateRequest) error {
-	return r.db.Exec(updateUserQuery, req.FullName, req.RoleID, id).Error
+	return r.db.Exec(updateUserQuery, req.FullName, req.RoleID, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *userRepo) UpdatePassword(id int, hashedPassword string) error {
-	return r.db.Exec(updatePasswordQuery, hashedPassword, id).Error
+	return r.db.Exec(updatePasswordQuery, hashedPassword, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *userRepo) Delete(id int) error {
@@ -116,7 +117,7 @@ func (r *userRepo) Delete(id int) error {
 }
 
 func (r *userRepo) ToggleStatus(id int) error {
-	return r.db.Exec(toggleUserStatusQuery, id).Error
+	return r.db.Exec(toggleUserStatusQuery, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *userRepo) DeleteSessionByUserID(userID int) error {

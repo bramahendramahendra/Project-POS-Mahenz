@@ -3,6 +3,7 @@ package service
 import (
 	dto "pos_api/domain/cash_drawer/dto"
 	"pos_api/errors"
+	time_helper "pos_api/helper/time"
 )
 
 func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
@@ -10,7 +11,8 @@ func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerRespon
 }
 
 func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
-	dataDB, transactions, expenses, err := s.repo.GetMyCash(userID)
+	now := time_helper.GetTimeNow()
+	dataDB, transactions, expenses, err := s.repo.GetMyCash(userID, now)
 	if err != nil {
 		return nil, err
 	}
@@ -25,12 +27,12 @@ func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
 	}
 
 	openTimeStr := dataDB.OpenTime.String()
-	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, nil)
+	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, nil, now)
 	if err != nil {
 		return nil, err
 	}
 
-	nonCashTrxDB, err := s.repo.GetNonCashTransactions(dataDB.UserID, openTimeStr, nil, nil)
+	nonCashTrxDB, err := s.repo.GetNonCashTransactions(dataDB.UserID, openTimeStr, nil, nil, now)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +87,8 @@ func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
 }
 
 func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (*dto.CashDrawerDetailResponse, error) {
-	dataDB, transactions, expenses, err := s.repo.GetDetailByID(id)
+	now := time_helper.GetTimeNow()
+	dataDB, transactions, expenses, err := s.repo.GetDetailByID(id, now)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +105,7 @@ func (s *cashDrawerService) GetByID(id int, requestingUserID int, role string) (
 		s := dataDB.CloseTime.String()
 		closeTimeStr = &s
 	}
-	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, closeTimeStr)
+	nonCashSales, err := s.repo.GetNonCashSales(dataDB.UserID, openTimeStr, closeTimeStr, now)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +172,7 @@ func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenRes
 		return nil, &errors.BadRequestError{Message: "Sudah ada kas yang terbuka"}
 	}
 
-	id, err := s.repo.Open(userID, req.ShiftID, req.OpeningBalance, req.Notes)
+	id, err := s.repo.Open(userID, req.ShiftID, req.OpeningBalance, req.Notes, time_helper.GetTimeNow())
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +201,7 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 	expected := current.ExpectedBalance
 	difference := req.ClosingBalance - expected
 
-	if err := s.repo.Close(id, req.ClosingBalance, expected, difference, req.Notes); err != nil {
+	if err := s.repo.Close(id, req.ClosingBalance, expected, difference, req.Notes, time_helper.GetTimeNow()); err != nil {
 		return nil, err
 	}
 
@@ -224,11 +227,11 @@ func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, req
 		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
 	}
 
-	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales)
+	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales, time_helper.GetTimeNow())
 }
 
 func (s *cashDrawerService) AutoCloseYesterday() (int, error) {
-	return s.repo.AutoCloseYesterday()
+	return s.repo.AutoCloseYesterday(time_helper.GetTimeNow())
 }
 
 func (s *cashDrawerService) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error) {
@@ -254,5 +257,5 @@ func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesReques
 		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
 	}
 
-	return s.repo.UpdateExpenses(id, req.TotalExpenses)
+	return s.repo.UpdateExpenses(id, req.TotalExpenses, time_helper.GetTimeNow())
 }

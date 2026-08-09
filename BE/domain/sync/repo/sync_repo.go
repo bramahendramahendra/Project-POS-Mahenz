@@ -7,18 +7,19 @@ import (
 	"pos_api/domain/sync/dto"
 	"pos_api/domain/sync/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
 	getConflictsQuery      = `SELECT id, entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time, status, created_at FROM sync_conflicts WHERE 1=1`
 	countConflictsBase     = `SELECT COUNT(*) FROM sync_conflicts WHERE 1=1`
 	getConflictByIDQuery   = `SELECT id, entity_type, entity_id, desktop_data, online_data, desktop_time, online_time, status, resolved_by, resolution, resolved_at FROM sync_conflicts WHERE id = ?`
-	resolveConflictQuery   = `UPDATE sync_conflicts SET status='resolved', resolved_by=?, resolved_action=?, resolved_at=NOW() WHERE id=?`
-	createConflictQuery    = `INSERT INTO sync_conflicts (entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`
+	resolveConflictQuery   = `UPDATE sync_conflicts SET status='resolved', resolved_by=?, resolved_action=?, resolved_at=? WHERE id=?`
+	createConflictQuery    = `INSERT INTO sync_conflicts (entity_type, entity_id, local_id, device_id, desktop_data, online_data, desktop_time, online_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	getQueueQuery          = `SELECT id, device_id, entity_type, entity_id, action, status, retry_count, created_at FROM sync_queue WHERE 1=1`
 	countQueueBase         = `SELECT COUNT(*) FROM sync_queue WHERE 1=1`
 	createQueueItemQuery   = `INSERT INTO sync_queue (device_id, local_id, entity_type, entity_id, action, payload, status) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	updateQueueStatusQuery = `UPDATE sync_queue SET status=?, synced_at=CASE WHEN ? = 'synced' THEN NOW() ELSE NULL END, error_message=? WHERE id=?`
+	updateQueueStatusQuery = `UPDATE sync_queue SET status=?, synced_at=CASE WHEN ? = 'synced' THEN ? ELSE NULL END, error_message=? WHERE id=?`
 	insertHistoryQuery     = `INSERT INTO sync_history (device_id, device_type, total_items, synced_items, conflict_items, failed_items, pending_items, duration_ms, status, started_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	getHistoryQuery        = `SELECT id, device_id, device_type, total_items, synced_items, conflict_items, failed_items, pending_items, duration_ms, status, DATE_FORMAT(started_at,'%Y-%m-%dT%H:%i:%sZ'), DATE_FORMAT(finished_at,'%Y-%m-%dT%H:%i:%sZ') FROM sync_history WHERE 1=1`
 	countHistoryBase       = `SELECT COUNT(*) FROM sync_history WHERE 1=1`
@@ -86,17 +87,18 @@ func (r *syncRepo) CountPendingConflicts() (int, error) {
 }
 
 func (r *syncRepo) ResolveConflict(id, userID int, action string) error {
-	return r.db.Exec(resolveConflictQuery, userID, action, id).Error
+	return r.db.Exec(resolveConflictQuery, userID, action, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *syncRepo) MarkResolved(id, resolvedBy int, action string) error {
-	return r.db.Exec(resolveConflictQuery, resolvedBy, action, id).Error
+	return r.db.Exec(resolveConflictQuery, resolvedBy, action, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *syncRepo) CreateConflict(deviceID string, item *dto.SyncItem, onlineData string) (int, error) {
+	now := time_helper.GetTimeNow()
 	result := r.db.Exec(createConflictQuery,
 		item.EntityType, item.ServerID, item.LocalID, deviceID,
-		item.Payload, onlineData,
+		item.Payload, onlineData, now, now,
 	)
 	if result.Error != nil {
 		return 0, result.Error
@@ -262,7 +264,7 @@ func (r *syncRepo) CreateQueueItem(deviceID string, item *dto.SyncItem, status s
 }
 
 func (r *syncRepo) UpdateQueueStatus(id int, status, errMsg string) error {
-	return r.db.Exec(updateQueueStatusQuery, status, status, errMsg, id).Error
+	return r.db.Exec(updateQueueStatusQuery, status, status, time_helper.GetTimeNow(), errMsg, id).Error
 }
 
 func (r *syncRepo) InsertHistory(h model.SyncHistory) error {

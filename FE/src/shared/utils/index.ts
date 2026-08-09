@@ -9,6 +9,8 @@ export {
   todayStr,
   monthStart,
   weekStart,
+  getWIBNow,
+  APP_TIMEZONE,
 } from './date'
 export { truncate, capitalize, slugify } from './string'
 export { clamp, roundTo, percentage } from './number'

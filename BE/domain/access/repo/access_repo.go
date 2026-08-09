@@ -3,6 +3,7 @@ package repo
 import (
 	"pos_api/domain/access/dto"
 	"pos_api/domain/access/model"
+	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
 )
@@ -45,7 +46,7 @@ ON DUPLICATE KEY UPDATE
     can_create = VALUES(can_create),
     can_edit   = VALUES(can_edit),
     can_delete = VALUES(can_delete),
-    updated_at = NOW()
+    updated_at = ?
 `
 
 const deleteRoleAccessQuery = `DELETE FROM role_menu_access WHERE role_id = ?`
@@ -74,9 +75,10 @@ func (r *accessRepo) SetRoleAccess(roleID int, accesses []dto.SetAccessItem) err
 		if err != nil {
 			return err
 		}
+		now := time_helper.GetTimeNow()
 		for _, a := range accesses {
 			err := tx.Exec(upsertAccessQuery,
-				roleID, a.MenuID, a.CanView, a.CanCreate, a.CanEdit, a.CanDelete,
+				roleID, a.MenuID, a.CanView, a.CanCreate, a.CanEdit, a.CanDelete, now,
 			).Error
 			if err != nil {
 				return err

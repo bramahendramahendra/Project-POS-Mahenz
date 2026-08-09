@@ -11,6 +11,7 @@ import (
 	"pos_api/domain/sync/model"
 	"pos_api/errors"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 	"pos_api/pkg/pricing"
 	"pos_api/pkg/syncmap"
 )
@@ -20,11 +21,6 @@ func (s *syncService) detectConflict(item *dto.SyncItem) (bool, string, error) {
 		return false, "", nil
 	}
 
-	// cash_drawer sengaja dilewati di sini: updated_at-nya berubah terus lewat aktivitas
-	// normal (tiap penjualan tunai memicu UpdateSales, lihat ApplySyncTransaction), jadi
-	// perbandingan timestamp generik ini akan salah-positif mendeteksi konflik untuk setiap
-	// batch offline yang berisi transaksi lalu tutup-kas. Deteksi konflik nyata untuk
-	// cash_drawer ditangani terpisah di applySyncCashDrawer berdasarkan perbandingan nilai.
 	if item.EntityType == "cash_drawer" {
 		return false, "", nil
 	}
@@ -52,7 +48,7 @@ func (s *syncService) detectConflict(item *dto.SyncItem) (bool, string, error) {
 }
 
 func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse, error) {
-	startedAt := time.Now()
+	startedAt := time_helper.GetTimeNow()
 	processed, conflicts, failed, pending := 0, 0, 0, 0
 	results := make([]dto.SyncItemResult, 0, len(req.Items))
 
@@ -97,9 +93,6 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 				}
 				continue
 			}
-			// Tetap dicatat ke sync_queue untuk jejak audit (sebelumnya transaksi sama
-			// sekali tidak tercatat di sini), walau penerapannya sudah terjadi langsung
-			// di atas (bukan ditunda) — makanya statusnya langsung 'synced', bukan 'pending'.
 			_, _ = s.repo.CreateQueueItem(req.DeviceID, item, "synced")
 
 			processed++
@@ -131,10 +124,6 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 			continue
 		}
 
-		// Apply-logic untuk entity non-transaksi (product/customer/stock, dst) belum
-		// diimplementasikan. Item disimpan di sync_queue dengan status default 'pending'
-		// (bukan ditandai 'synced') supaya client tidak menganggap perubahan sudah
-		// diterapkan ke tabel target padahal belum ada kode yang menerapkannya.
 		pending++
 		results = append(results, dto.SyncItemResult{
 			LocalID:  item.LocalID,
@@ -157,10 +146,6 @@ func (s *syncService) PushSync(req *dto.PushSyncRequest) (*dto.PushSyncResponse,
 	return resp, nil
 }
 
-// recalculateSyncTransactionPayload menghitung ulang subtotal/total transaksi dari payload
-// sync offline menggunakan harga produk asli di master data (bukan nilai mentah dari
-// client), lalu mengembalikan payload JSON yang sudah diperbarui untuk diteruskan ke
-// ApplySyncTransaction. Reuse logic yang sama dengan checkout langsung (pkg/pricing).
 func (s *syncService) recalculateSyncTransactionPayload(payload string) (string, error) {
 	var tx dto.SyncTransactionPayload
 	if err := json.Unmarshal([]byte(payload), &tx); err != nil {
@@ -197,10 +182,6 @@ func (s *syncService) recalculateSyncTransactionPayload(payload string) (string,
 	return string(updated), nil
 }
 
-// applySyncCashDrawer menerapkan item sync entity_type="cash_drawer". ShiftID di payload
-// selalu berupa ID shift master data yang sudah pasti valid (shift tidak pernah dibuat
-// offline), jadi tidak perlu resolve-ID lintas-entity — hanya dedupe/idempotency biasa
-// lewat sync_id_map (pola yang sama dengan transaksi).
 func (s *syncService) applySyncCashDrawer(deviceID string, item *dto.SyncItem) (*dto.SyncItemResult, error) {
 	var payload dto.SyncCashDrawerPayload
 	if err := json.Unmarshal([]byte(item.Payload), &payload); err != nil {
@@ -247,10 +228,6 @@ func (s *syncService) applySyncCashDrawer(deviceID string, item *dto.SyncItem) (
 			return nil, closeErr
 		}
 
-		// Kas sudah ditutup -- bisa jadi retry (idempotent, aman) ATAU kas yang sama
-		// ditutup device lain dengan data berbeda (konflik nyata, bukan sekadar retry).
-		// Dibedakan dengan membandingkan closing_balance yang tersimpan vs yang dikirim
-		// ulang -- BUKAN pakai timestamp (lihat alasan di sync_repo.go entityTable()).
 		current, err := s.cashDrawerRepo.GetByID(targetID)
 		if err != nil || current == nil {
 			return nil, fmt.Errorf("kas harian tidak ditemukan setelah gagal ditutup")
@@ -302,7 +279,7 @@ func (s *syncService) saveSyncHistory(deviceID, deviceType string, results []dto
 		deviceType = "desktop"
 	}
 
-	now := time.Now()
+	now := time_helper.GetTimeNow()
 	_ = s.repo.InsertHistory(model.SyncHistory{
 		DeviceID:      deviceID,
 		DeviceType:    deviceType,

@@ -3,13 +3,13 @@ package repo
 import (
 	stderrors "errors"
 	"fmt"
-	"time"
 
 	model_product "pos_api/domain/product/model"
 	dto "pos_api/domain/supplier_purchase/dto"
 	model "pos_api/domain/supplier_purchase/model"
 	"pos_api/errors"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
@@ -17,12 +17,6 @@ import (
 
 const (
 	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	// Dihitung dari AWALAN KODE itu sendiri (bukan kolom purchase_date) — purchase_date
-	// adalah tanggal transaksi bisnis yang bebas dipilih user (bisa dimundurkan), sedangkan
-	// kode PO selalu memakai tanggal sistem saat dibuat (time.Now()). Kalau count dihitung
-	// dari purchase_date, PO yang purchase_date-nya beda dari tanggal pembuatan kodenya
-	// (mis. data seed historis) tidak ikut terhitung padahal kodenya sudah memakai awalan
-	// tanggal itu — menyebabkan nomor urut baru menabrak kode yang sudah dipakai.
 	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
 	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
@@ -45,22 +39,12 @@ const (
 	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
 	getExpiryBatchesByPurchaseItemQuery = `SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = ? ORDER BY expired_date ASC`
 
-	getPurchaseForVoidQuery = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
-	// voidPurchaseQuery: remaining_amount digugurkan ke 0 karena void artinya "tidak
-	// ada lagi yang perlu ditagih/dibayar sejak sekarang". paid_amount & payment_status
-	// SENGAJA tidak disentuh — itu fakta historis (mis. "PO ini sempat Lunas sebelum
-	// dibatalkan"), tetap ditampilkan berdampingan dengan badge void di detail PO. Kalau
-	// PO sudah pernah dibayar sebagian/lunas, uang yang sudah keluar TIDAK otomatis
-	// di-refund oleh sistem ini — itu proses manual di luar sistem.
+	getPurchaseForVoidQuery   = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
 	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
 	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
 	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
 
-// insertExpiryBatches menyimpan rincian tanggal expired (opsional) untuk 1 baris item
-// PO yang baru saja di-insert — dipanggil setelah ID baris purchase_items itu didapat.
-// Sum qty-nya sudah divalidasi sama dengan qty item di service (validateExpiryBatches),
-// di sini tinggal insert apa adanya.
 func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID int, batches []dto.ExpiryBatchDraft) error {
 	for _, b := range batches {
 		if err := tx.Exec(createExpiryBatchQuery, productID, purchaseItemID, b.Qty, b.ExpiredDate).Error; err != nil {
@@ -70,11 +54,6 @@ func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID int, batches []d
 	return nil
 }
 
-// resolveConversionQty menghitung ulang faktor konversi dari server berdasarkan PackageID
-// yang dipilih user (menelusuri rantai ref_package_id sampai ke paket anchor), bukan
-// percaya ConversionQty yang dikirim klien — supaya rasio yang sudah berubah di produk
-// tidak bisa dieksploitasi lewat payload yang usang. ConversionQty klien cuma jadi
-// fallback kalau PackageID tidak dikirim (kompatibilitas alur lama).
 func resolveConversionQty(tx *gorm.DB, productID int, packageID *int, fallback float64) float64 {
 	if fallback <= 0 {
 		fallback = 1
@@ -95,8 +74,6 @@ func resolveConversionQty(tx *gorm.DB, productID int, packageID *int, fallback f
 	return factor
 }
 
-// calculateTotal menghitung subtotal & total dari daftar item pembelian.
-// Diekstrak dari Create/Update supaya tidak duplikasi logic (dan dipakai juga oleh AddItems).
 func calculateTotal(items []dto.PurchaseRequest, discountAmount float64) (subtotal float64, totalAmount float64) {
 	for _, item := range items {
 		subtotal += item.PurchasePrice * item.Quantity
@@ -130,11 +107,6 @@ func (r *purchaseRepo) GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int
 		args = append(args, *req.SupplierID)
 	}
 	if req.PaymentStatus != "" {
-		// status != 'void' wajib ikut di sini — payment_status PO yang sudah di-void
-		// SENGAJA dipertahankan sebagai histori (lihat purchase_repo.go Void()), jadi
-		// tanpa ini PO yang sudah dibatalkan tapi payment_status lamanya masih
-		// 'partial'/'unpaid' akan ikut nongol saat difilter tab Sebagian/Hutang,
-		// padahal badge status-nya sendiri sudah menampilkan "Dibatalkan".
 		conditions += " AND p.payment_status = ? AND p.status != 'void'"
 		args = append(args, req.PaymentStatus)
 	}
@@ -243,8 +215,6 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 	}
 	rows.Close()
 
-	// Rincian expired diambil per item SETELAH rows di atas ditutup (bukan di dalam loop
-	// yang sama) supaya tidak ada query bersarang di koneksi yang masih dipakai rows.Next().
 	for i := range items {
 		batches, err := r.getExpiryBatchesByPurchaseItem(items[i].ID)
 		if err != nil {
@@ -286,7 +256,7 @@ func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, err
 }
 
 func (r *purchaseRepo) GenerateCode() (string, error) {
-	todayCode := time.Now().Format("20060102")
+	todayCode := time_helper.GetTimeNow().Format("20060102")
 	var count int
 	if err := r.db.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
 		return "", err
@@ -294,11 +264,6 @@ func (r *purchaseRepo) GenerateCode() (string, error) {
 	return fmt.Sprintf("PO-%s-%03d", todayCode, count+1), nil
 }
 
-// isDuplicatePurchaseCodeError mendeteksi MySQL error 1062 (duplicate entry) pada
-// kolom purchase_code — bisa terjadi kalau 2 request Create() berjalan bersamaan
-// dan sama-sama menghitung count+1 yang sama sebelum salah satunya sempat commit
-// (generatePurchaseCodeQuery pakai COUNT(*), bukan sequence atomik). Dulu error ini
-// lolos mentah sebagai 500 Internal Server Error ke klien; sekarang di-retry otomatis.
 func isDuplicatePurchaseCodeError(err error) bool {
 	var mysqlErr *mysql.MySQLError
 	return stderrors.As(err, &mysqlErr) && mysqlErr.Number == 1062
@@ -324,7 +289,7 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 
 func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		todayCode := time.Now().Format("20060102")
+		todayCode := time_helper.GetTimeNow().Format("20060102")
 		var count int
 		if err := tx.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
 			return err
@@ -360,7 +325,7 @@ func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error
 		if paidAmount > 0 {
 			paymentDate := req.PurchaseDate
 			if paymentDate == "" {
-				paymentDate = time.Now().Format("2006-01-02")
+				paymentDate = time_helper.GetTimeNow().Format("2006-01-02")
 			}
 			if err := tx.Exec(createPaymentQuery,
 				*purchaseID, paymentDate, paidAmount, req.PaymentMethod, req.Notes, req.UserID,
@@ -414,12 +379,6 @@ func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error
 	})
 }
 
-// Update mengedit PO — item/qty/harga/diskon boleh diubah bebas terlepas dari status
-// pembayaran (lihat purchase_service.go Update()). Urutan kerja SENGAJA: hitung &
-// validasi semuanya dulu (total baru vs paid_amount, dan keamanan stok tiap produk
-// yang dihapus/diganti dari daftar) SEBELUM satupun query mutasi (rollback stok,
-// hapus item lama, insert item baru) dieksekusi — supaya kalau validasi gagal,
-// transaksi di-abort tanpa mengubah apapun sama sekali, bukan "setengah ke-update".
 func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		oldItems, err := r.GetItems(req.ID)
@@ -440,10 +399,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			)}
 		}
 
-		// payment_status akhir TIDAK dipercaya dari req.PaymentStatus — dihitung ulang murni
-		// dari paidAmount vs totalAmount, supaya PO "Lunas" yang totalnya naik otomatis
-		// balik jadi "Bayar Sebagian", dan tidak ada celah payment_status tidak sinkron
-		// dengan angka aslinya.
 		var paymentStatus string
 		switch {
 		case paidAmount <= 0:
@@ -454,16 +409,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			paymentStatus = "partial"
 		}
 
-		// Validasi stok: hitung PERUBAHAN BERSIH (net) stok per produk antara item lama
-		// vs item baru, lalu pastikan stok produk itu SETELAH perubahan tidak minus.
-		//
-		// Ini SENGAJA dihitung per produk (bukan per baris item) dan mencakup SEMUA
-		// produk yang terlibat — baik yang dihapus/diganti dari daftar maupun yang cuma
-		// qty-nya dikurangi untuk produk yang SAMA. Awalnya kami kira kasus qty-dikurangi
-		// (produk sama) selalu aman secara matematis (rollback lama + tambah baru selalu
-		// netral), tapi itu keliru: kalau sebagian stok dari pembelian ini sudah terjual
-		// lewat jalur lain (mis. Kasir) SEBELUM diedit, mengurangi qty terlalu banyak
-		// tetap bisa bikin stok jadi minus — persis seperti kasus produk diganti/dihapus.
 		type stockDelta struct {
 			productName string
 			oldQty      float64
@@ -529,10 +474,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
-		// payment_method punya FK constraint ke payment_methods(code) — kolom ini NOT NULL
-		// DEFAULT 'cash' di skema, tapi UPDATE eksplisit tidak otomatis jatuh ke default itu
-		// seperti INSERT yang mengosongkan kolom. Default manual di sini supaya konsisten
-		// dengan Create() dan tidak pernah kirim string kosong ke kolom ber-FK.
 		paymentMethod := req.PaymentMethod
 		if paymentMethod == "" {
 			paymentMethod = "cash"
@@ -580,10 +521,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 	return r.GetByID(req.ID)
 }
 
-// Delete membersihkan PO secara permanen — TIDAK melakukan rollback stok karena
-// service.Delete menjamin PO yang sampai ke sini sudah berstatus "void", yang
-// artinya stoknya sudah pernah dikembalikan oleh Void(). Rollback kedua di sini
-// akan mengurangi stok dua kali untuk item yang sama.
 func (r *purchaseRepo) Delete(id int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(deleteStockMutationsQuery, id).Error; err != nil {
@@ -614,7 +551,7 @@ func (r *purchaseRepo) Pay(req *dto.PayRequest) error {
 
 		paymentDate := req.PaymentDate
 		if paymentDate == "" {
-			paymentDate = time.Now().Format("2006-01-02")
+			paymentDate = time_helper.GetTimeNow().Format("2006-01-02")
 		}
 		return tx.Exec(createPaymentQuery, req.ID, paymentDate, req.Amount, req.PaymentMethod, req.Notes, req.UserID).Error
 	})
@@ -628,12 +565,6 @@ func (r *purchaseRepo) CountReturnsByPurchaseID(purchaseID int) (int64, error) {
 	return count, nil
 }
 
-// Void mengunci baris PO (FOR UPDATE), menandai status void beserta menggugurkan
-// remaining_amount ke 0, lalu mengembalikan stok tiap item ke produk dan mencatat
-// mutasi stok baru (tidak menghapus histori lama), meniru pola transaction_repo.go
-// Void. Boleh dipanggil untuk PO di status pembayaran manapun (unpaid/partial/paid) —
-// lihat komentar di voidPurchaseQuery soal kenapa paid_amount/payment_status sengaja
-// tidak diubah.
 func (r *purchaseRepo) Void(id int, userID int) error {
 	var lockData struct {
 		Status string
@@ -642,9 +573,6 @@ func (r *purchaseRepo) Void(id int, userID int) error {
 		return err
 	}
 
-	// Re-cek di dalam row lock supaya aman dari race condition (mis. dua klik void
-	// bersamaan): request kedua baru bisa lanjut setelah request pertama commit,
-	// dan pada titik itu status sudah 'void' sehingga ditolak di sini.
 	if lockData.Status == "void" {
 		return &errors.BadRequestError{Message: "PO sudah di-void"}
 	}
@@ -687,9 +615,6 @@ func (r *purchaseRepo) Void(id int, userID int) error {
 	return nil
 }
 
-// AddItems menambahkan item baru ke PO yang sudah ada pembayaran, tanpa mengubah
-// item lama. Total dihitung ulang (total lama + subtotal item baru) dan payment_status
-// disesuaikan otomatis (paid_amount tetap).
 func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		var current struct {

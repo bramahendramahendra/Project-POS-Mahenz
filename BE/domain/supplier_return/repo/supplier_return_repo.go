@@ -2,12 +2,12 @@ package repo
 
 import (
 	"fmt"
-	"time"
 
 	dto "pos_api/domain/supplier_return/dto"
 	model "pos_api/domain/supplier_return/model"
 	custom_errors "pos_api/errors"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
 )
@@ -141,12 +141,12 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 	var returnID int
 
 	if err := r.db.Transaction(func(tx *gorm.DB) error {
-		today := time.Now().Format("2006-01-02")
+		now := time_helper.GetTimeNow()
 		var count int
-		if err := tx.Raw(generateReturnCodeQuery, today).Scan(&count).Error; err != nil {
+		if err := tx.Raw(generateReturnCodeQuery, now.Format("2006-01-02")).Scan(&count).Error; err != nil {
 			return err
 		}
-		code := fmt.Sprintf("RTR-%s-%03d", time.Now().Format("20060102"), count+1)
+		code := fmt.Sprintf("RTR-%s-%03d", now.Format("20060102"), count+1)
 
 		var totalAmount float64
 		for _, item := range req.Items {

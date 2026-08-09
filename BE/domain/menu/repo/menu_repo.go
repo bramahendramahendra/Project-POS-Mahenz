@@ -4,6 +4,7 @@ import (
 	dto "pos_api/domain/menu/dto"
 	model "pos_api/domain/menu/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -13,13 +14,10 @@ const (
 	getMenuByIDQuery        = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE id = ? LIMIT 1`
 	getMenuByKeyNameQuery   = `SELECT id, parent_id, key_name, label, icon, path, order_index, is_active, created_at, updated_at FROM menus WHERE key_name = ? LIMIT 1`
 	createMenuQuery         = `INSERT INTO menus (parent_id, key_name, label, icon, path, order_index) VALUES (?, ?, ?, ?, ?, ?)`
-	updateMenuQuery         = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = NOW() WHERE id = ?`
+	updateMenuQuery         = `UPDATE menus SET parent_id = ?, label = ?, icon = ?, path = ?, order_index = ?, updated_at = ? WHERE id = ?`
 	deleteMenuQuery         = `DELETE FROM menus WHERE id = ?`
-	updateOrderQuery        = `UPDATE menus SET order_index = ?, updated_at = NOW() WHERE id = ?`
-	// LEFT JOIN dengan semua menu aktif (bukan hanya yang punya can_view=1) supaya kategori induk
-	// tanpa izin langsung tetap ikut terbawa sebagai node struktural saat ada anak yang punya akses.
-	// Filtering item yang benar-benar tidak boleh dilihat dilakukan belakangan oleh pruneTree().
-	getMyMenusQuery = `
+	updateOrderQuery        = `UPDATE menus SET order_index = ?, updated_at = ? WHERE id = ?`
+	getMyMenusQuery         = `
 		SELECT
 			m.id,
 			m.parent_id,
@@ -175,7 +173,7 @@ func (r *menuRepo) Update(id int, req *dto.UpdateRequest) error {
 	if req.Path != "" {
 		path = &req.Path
 	}
-	return r.db.Exec(updateMenuQuery, req.ParentID, req.Label, icon, path, req.OrderIndex, id).Error
+	return r.db.Exec(updateMenuQuery, req.ParentID, req.Label, icon, path, req.OrderIndex, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *menuRepo) Delete(id int) error {
@@ -183,8 +181,9 @@ func (r *menuRepo) Delete(id int) error {
 }
 
 func (r *menuRepo) Reorder(items []dto.ReorderItem) error {
+	now := time_helper.GetTimeNow()
 	for _, item := range items {
-		if err := r.db.Exec(updateOrderQuery, item.OrderIndex, item.ID).Error; err != nil {
+		if err := r.db.Exec(updateOrderQuery, item.OrderIndex, now, item.ID).Error; err != nil {
 			return err
 		}
 	}

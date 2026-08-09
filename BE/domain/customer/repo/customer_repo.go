@@ -4,6 +4,7 @@ import (
 	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/customer/dto"
 	model "pos_api/domain/customer/model"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -14,9 +15,9 @@ const (
 	checkCustomerHasReceivable = `SELECT COUNT(*) FROM receivables WHERE customer_id = ? AND status != 'paid'`
 	generateCustomerCodeQuery  = `SELECT COUNT(*) FROM customers`
 	createCustomerQuery        = `INSERT INTO customers (customer_code, name, phone, address, credit_limit, notes) VALUES (?, ?, ?, ?, ?, ?)`
-	updateCustomerQuery        = `UPDATE customers SET name=?, phone=?, address=?, credit_limit=?, notes=?, updated_at=NOW() WHERE id=?`
+	updateCustomerQuery        = `UPDATE customers SET name=?, phone=?, address=?, credit_limit=?, notes=?, updated_at=? WHERE id=?`
 	deleteCustomerQuery        = `DELETE FROM customers WHERE id = ?`
-	toggleCustomerStatusQuery  = `UPDATE customers SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	toggleCustomerStatusQuery  = `UPDATE customers SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	getLastCustomerInsertID    = `SELECT LAST_INSERT_ID()`
 )
 
@@ -117,7 +118,7 @@ func (r *customerRepo) Create(req *dto.CreateRequest, code string) (int64, error
 }
 
 func (r *customerRepo) Update(req *dto.UpdateRequest) error {
-	err := r.db.Exec(updateCustomerQuery, req.Name, req.Phone, req.Address, req.CreditLimit, req.Notes, req.ID).Error
+	err := r.db.Exec(updateCustomerQuery, req.Name, req.Phone, req.Address, req.CreditLimit, req.Notes, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 
@@ -127,6 +128,6 @@ func (r *customerRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *customerRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	err := r.db.Exec(toggleCustomerStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleCustomerStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }

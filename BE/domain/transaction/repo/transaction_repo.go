@@ -3,7 +3,6 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
 	model_product "pos_api/domain/product/model"
@@ -11,6 +10,7 @@ import (
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 	"pos_api/pkg/syncmap"
 
 	"gorm.io/gorm"
@@ -18,15 +18,15 @@ import (
 
 const (
 	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = CURDATE() AND device_source = ?`
+	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
 	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductStockQuery      = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ? AND (stock - reserved_qty) >= ?`
+	updateProductStockQuery      = `UPDATE products SET stock = stock - ?, updated_at = ? WHERE id = ? AND (stock - reserved_qty) >= ?`
 	createStockMutationQuery     = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = NOW() WHERE id = ?`
-	restoreStockQuery            = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = ? WHERE id = ?`
+	restoreStockQuery            = `UPDATE products SET stock = stock + ?, updated_at = ? WHERE id = ?`
 	createReceivableQuery        = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
-	updateReceivableVoidQuery    = `UPDATE receivables SET status = 'void', updated_at = NOW() WHERE transaction_id = ?`
+	updateReceivableVoidQuery    = `UPDATE receivables SET status = 'void', updated_at = ? WHERE transaction_id = ?`
 	getProductStockQuery         = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	getProductPurchasePriceQuery = `SELECT purchase_price FROM products WHERE id = ? LIMIT 1`
 	getTransactionItemsQuery     = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
@@ -180,21 +180,21 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
 	var resp dto.CreateTransactionResponse
 
-	// 1. Generate transaction_code
+	now := time_helper.GetTimeNow()
+
 	prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
 	prefix, ok := prefixMap[req.DeviceSource]
 	if !ok {
 		prefix = "POS"
 	}
 	var count int
-	if err := r.db.Raw(generateTransactionCodeQuery, req.DeviceSource).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
 		return nil, err
 	}
-	code := fmt.Sprintf("%s-%s-%03d", prefix, time.Now().Format("20060102"), count+1)
+	code := fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
 
-	// 2. Simpan header transaksi
 	if err := r.db.Exec(createTransactionQuery,
-		code, userID, req.ShiftID, time.Now(),
+		code, userID, req.ShiftID, now,
 		req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
 		req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
 		req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
@@ -207,12 +207,7 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 		return nil, err
 	}
 
-	// 3. Loop items
 	for _, item := range req.Items {
-		// Resolve conversion_qty (faktor ke satuan anchor) dan unit_name dari
-		// product_packages — selalu dihitung ulang di server (bukan percaya kiriman
-		// klien) dengan menelusuri rantai ref_package_id, supaya rasio yang berubah
-		// tidak bisa disalahgunakan lewat payload yang sudah usang.
 		conversionQty := item.ConversionQty
 		unitName := item.Unit
 		if item.UnitID != nil && *item.UnitID > 0 {
@@ -233,24 +228,19 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			conversionQty = 1
 		}
 
-		// Stok yang dikurangi = qty Ã— conversion_qty (konversi ke satuan dasar)
 		stockDeduct := item.Quantity * conversionQty
 
-		// Ambil stok sebelumnya
 		var stockBefore float64
 		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
 			return nil, err
 		}
 
-		// Snapshot harga beli produk saat ini agar laporan laba rugi historis tidak berubah
-		// jika harga beli produk diedit di kemudian hari
 		var purchasePrice float64
 		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&purchasePrice).Error; err != nil {
 			return nil, err
 		}
 
-		// Kurangi stok (atomic dengan cek stok >= qty dalam satuan dasar)
-		result := r.db.Exec(updateProductStockQuery, stockDeduct, item.ProductID, stockDeduct)
+		result := r.db.Exec(updateProductStockQuery, stockDeduct, now, item.ProductID, stockDeduct)
 		if result.Error != nil {
 			return nil, result.Error
 		}
@@ -258,7 +248,6 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			return nil, fmt.Errorf("stok_insufficient:%s", item.ProductName)
 		}
 
-		// Simpan item dengan unit_name dari master dan conversion_qty yang benar
 		if err := r.db.Exec(createTransactionItemQuery,
 			transactionID, item.ProductID, item.ProductName,
 			item.Quantity, unitName, item.Price, purchasePrice, item.Subtotal,
@@ -267,7 +256,6 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			return nil, err
 		}
 
-		// Catat mutasi stok (dalam satuan dasar)
 		stockAfter := stockBefore - stockDeduct
 		notes := fmt.Sprintf("Transaksi %s", code)
 		if err := r.db.Exec(createStockMutationQuery,
@@ -278,7 +266,6 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 		}
 	}
 
-	// 4. Jika kredit â†’ buat piutang
 	if req.IsCredit && req.CustomerID != nil {
 		if err := r.db.Exec(createReceivableQuery,
 			transactionID, *req.CustomerID, req.TotalAmount, req.TotalAmount,
@@ -291,7 +278,7 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 	resp.TransactionCode = code
 	resp.UserID = userID
 	resp.ShiftID = req.ShiftID
-	resp.TransactionDate = time.Now()
+	resp.TransactionDate = now
 	resp.Subtotal = req.Subtotal
 	resp.Discount = req.Discount
 	resp.Tax = req.Tax
@@ -322,6 +309,8 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 }
 
 func (r *transactionRepo) Void(id, userID int) error {
+	now := time_helper.GetTimeNow()
+
 	// 0. Kunci baris transaksi (FOR UPDATE) untuk mencegah race condition saat void bersamaan.
 	var voidData struct {
 		UserID        int
@@ -333,7 +322,7 @@ func (r *transactionRepo) Void(id, userID int) error {
 	}
 
 	// 1. Update status void
-	if err := r.db.Exec(voidTransactionQuery, id).Error; err != nil {
+	if err := r.db.Exec(voidTransactionQuery, now, id).Error; err != nil {
 		return err
 	}
 
@@ -356,7 +345,7 @@ func (r *transactionRepo) Void(id, userID int) error {
 		}
 		stockRestore := item.Quantity * convQty
 
-		if err := r.db.Exec(restoreStockQuery, stockRestore, item.ProductID).Error; err != nil {
+		if err := r.db.Exec(restoreStockQuery, stockRestore, now, item.ProductID).Error; err != nil {
 			return err
 		}
 
@@ -371,7 +360,7 @@ func (r *transactionRepo) Void(id, userID int) error {
 	}
 
 	// 4. Jika ada piutang â†’ update status void
-	if err := r.db.Exec(updateReceivableVoidQuery, id).Error; err != nil {
+	if err := r.db.Exec(updateReceivableVoidQuery, now, id).Error; err != nil {
 		return err
 	}
 
@@ -400,12 +389,6 @@ func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, 
 	return items, nil
 }
 
-// ApplySyncTransaction menerapkan transaksi offline secara atomik dengan SELECT FOR UPDATE.
-// Jika stok produk mana pun tidak mencukupi, seluruh transaksi di-rollback dan error dikembalikan.
-//
-// Idempotent berdasarkan (deviceID, localID): kalau kombinasi ini sudah pernah diterapkan
-// sebelumnya (misal push di-retry karena network flaky), fungsi ini langsung mengembalikan
-// ID transaksi yang sudah ada tanpa membuat transaksi baru atau memotong stok lagi.
 func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, localID string, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface) (int, error) {
 	var tx dto_sync.SyncTransactionPayload
 	if err := json.Unmarshal([]byte(payload), &tx); err != nil {
@@ -431,21 +414,21 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 			}
 		}
 
-		// 2. Generate kode transaksi
+		now := time_helper.GetTimeNow()
 		prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
 		prefix, ok := prefixMap[tx.DeviceSource]
 		if !ok {
 			prefix = "DSK"
 		}
 		var count int
-		if err := db.Raw(generateTransactionCodeQuery, tx.DeviceSource).Scan(&count).Error; err != nil {
+		if err := db.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), tx.DeviceSource).Scan(&count).Error; err != nil {
 			return err
 		}
-		code := fmt.Sprintf("%s-%s-%03d", prefix, time.Now().Format("20060102"), count+1)
+		code := fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
 
 		// 3. Insert header transaksi
 		if err := db.Exec(createTransactionQuery,
-			code, tx.UserID, tx.ShiftID, time.Now(),
+			code, tx.UserID, tx.ShiftID, now,
 			tx.Subtotal, tx.Discount, tx.Tax, tx.TotalAmount,
 			tx.PaymentMethod, tx.PaymentAmount, tx.ChangeAmount,
 			tx.CustomerID, tx.IsCredit, "completed", tx.DeviceSource,
@@ -474,7 +457,7 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 				return err
 			}
 
-			if err := db.Exec(updateProductStockQuery, item.Quantity, item.ProductID, item.Quantity).Error; err != nil {
+			if err := db.Exec(updateProductStockQuery, item.Quantity, now, item.ProductID, item.Quantity).Error; err != nil {
 				return err
 			}
 
@@ -503,11 +486,6 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 			}
 		}
 
-		// 6. Update total penjualan kas harian yang sedang terbuka milik kasir ini, kalau
-		// pembayarannya tunai — persis seperti yang dilakukan transaction_service.Create()
-		// di jalur checkout online. Tanpa ini, transaksi yang masuk lewat sync offline tidak
-		// pernah menambah total penjualan di kas harian manapun (bug yang sudah ada sejak
-		// sebelum sync_id_map dibuat, baru ketahuan saat merancang sync kas harian).
 		if cashDrawerRepo != nil && tx.PaymentMethod == "cash" {
 			cashDrawerTx := cashDrawerRepo.WithTx(db)
 			drawer, err := cashDrawerTx.GetOpenCashDrawer(tx.UserID)
@@ -515,7 +493,7 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 				return err
 			}
 			if drawer != nil {
-				if err := cashDrawerTx.UpdateSales(drawer.ID, tx.TotalAmount, tx.TotalAmount); err != nil {
+				if err := cashDrawerTx.UpdateSales(drawer.ID, tx.TotalAmount, tx.TotalAmount, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}
@@ -528,9 +506,8 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 	return serverID, err
 }
 
-// ReturnStockForRejectSync mengembalikan stok setiap item transaksi yang ditolak
-// dan mencatat mutasi REJECT_SYNC sebagai audit trail.
 func (r *transactionRepo) ReturnStockForRejectSync(transactionID, resolvedBy int) error {
+	now := time_helper.GetTimeNow()
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		items, err := r.GetItems(transactionID)
 		if err != nil {
@@ -543,7 +520,7 @@ func (r *transactionRepo) ReturnStockForRejectSync(transactionID, resolvedBy int
 				return err
 			}
 
-			if err := tx.Exec(restoreStockQuery, item.Quantity, item.ProductID).Error; err != nil {
+			if err := tx.Exec(restoreStockQuery, item.Quantity, now, item.ProductID).Error; err != nil {
 				return err
 			}
 
@@ -561,8 +538,6 @@ func (r *transactionRepo) ReturnStockForRejectSync(transactionID, resolvedBy int
 	})
 }
 
-// UpdateFromSync menerapkan data desktop ke tabel transactions saat konflik di-approve.
-// Hanya field yang aman di-overwrite; id/transaction_code/created_at tidak disentuh.
 func (r *transactionRepo) UpdateFromSync(id int, data map[string]interface{}) error {
 	allowed := []string{
 		"subtotal", "discount", "tax", "total_amount",
@@ -578,6 +553,6 @@ func (r *transactionRepo) UpdateFromSync(id int, data map[string]interface{}) er
 	if len(updates) == 0 {
 		return nil
 	}
-	updates["updated_at"] = "NOW()"
+	updates["updated_at"] = time_helper.GetTimeNow()
 	return r.db.Table("transactions").Where("id = ?", id).Updates(updates).Error
 }

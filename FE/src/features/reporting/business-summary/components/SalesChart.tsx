@@ -8,6 +8,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+import dayjs from 'dayjs'
+
 import { formatDateShort } from '@/shared/utils'
 
 import type { SalesTrendItem } from '../business-summary.types'
@@ -24,9 +26,8 @@ function formatShort(value: number): string {
 }
 
 function formatDateLabel(label: string): string {
-  const date = new Date(label)
-  if (isNaN(date.getTime())) return label
-  return formatDateShort(date)
+  if (!label || !dayjs(label).isValid()) return label
+  return formatDateShort(label)
 }
 
 function CustomTooltip({

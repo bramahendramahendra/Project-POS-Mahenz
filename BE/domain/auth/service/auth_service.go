@@ -29,7 +29,8 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
 	}
 
-	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
+	now := time_helper.GetTimeNow()
+	expiresAt := now.Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
 
 	claims := map[string]any{
 		"user_id":   user.ID,
@@ -61,6 +62,7 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		DeviceInfo:   req.DeviceInfo,
 		IPAddress:    ip,
 		ExpiresAt:    expiresAt,
+		CreatedAt:    now,
 	}
 	if err := s.repo.CreateSession(session); err != nil {
 		return nil, err
@@ -104,7 +106,8 @@ func (s *authService) RefreshToken(refreshToken string) (*dto.RefreshResponse, e
 		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
 	}
 
-	expiresAt := time_helper.GetTimeNow().Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
+	now := time_helper.GetTimeNow()
+	expiresAt := now.Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
 
 	claims := map[string]any{
 		"user_id":   user.ID,
@@ -135,6 +138,7 @@ func (s *authService) RefreshToken(refreshToken string) (*dto.RefreshResponse, e
 		RefreshToken: newRefreshToken,
 		DeviceInfo:   session.DeviceInfo,
 		ExpiresAt:    expiresAt,
+		CreatedAt:    now,
 	}
 	if err := s.repo.CreateSession(newSession); err != nil {
 		return nil, err

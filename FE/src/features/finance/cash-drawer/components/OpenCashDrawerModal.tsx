@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { useShiftOptionsQuery } from '@/features/operational/shifts'
+import { getWIBNow } from '@/shared/utils/date'
 
 import { useOpenCashDrawerMutation } from '../cash-drawer.api'
 import { openCashDrawerSchema, type OpenCashDrawerFormValues } from '../cash-drawer.schema'
@@ -21,8 +22,8 @@ import { openCashDrawerSchema, type OpenCashDrawerFormValues } from '../cash-dra
 function detectShiftId(shifts: { id: number; start_time: string; end_time: string }[]): number | undefined {
   if (!shifts.length) return undefined
 
-  const now = new Date()
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const now = getWIBNow()
+  const currentMinutes = now.hour() * 60 + now.minute()
 
   const toMinutes = (time: string) => {
     const [h, m] = time.split(':').map(Number)

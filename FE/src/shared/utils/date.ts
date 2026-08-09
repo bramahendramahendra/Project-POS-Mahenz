@@ -1,3 +1,22 @@
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+
+export const APP_TIMEZONE = 'Asia/Jakarta'
+
+/** Mengembalikan waktu sekarang sebagai objek dayjs yang sudah di-set ke WIB (Asia/Jakarta). */
+export function getWIBNow() {
+  return dayjs().tz(APP_TIMEZONE)
+}
+
+/** Mem-parse value ke objek dayjs yang di-anchor ke WIB, dipakai untuk parsing DAN formatting. */
+function toWIB(date: string | Date) {
+  return dayjs(date).tz(APP_TIMEZONE)
+}
+
 const MONTHS_SHORT = [
   'Jan',
   'Feb',
@@ -13,31 +32,27 @@ const MONTHS_SHORT = [
   'Des',
 ]
 
-function toDate(date: string | Date): Date {
-  return typeof date === 'string' ? new Date(date) : date
-}
-
 export function formatDate(date: string | Date): string {
-  const d = toDate(date)
-  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`
+  const d = toWIB(date)
+  return `${d.date()} ${MONTHS_SHORT[d.month()]} ${d.year()}`
 }
 
 export function formatDateShort(date: string | Date): string {
-  const d = toDate(date)
-  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
+  const d = toWIB(date)
+  return `${d.date()} ${MONTHS_SHORT[d.month()]}`
 }
 
 export function formatDateTime(date: string | Date): string {
-  const d = toDate(date)
-  const hours = String(d.getHours()).padStart(2, '0')
-  const minutes = String(d.getMinutes()).padStart(2, '0')
-  return `${formatDate(d)}, ${hours}:${minutes}`
+  const d = toWIB(date)
+  const hours = String(d.hour()).padStart(2, '0')
+  const minutes = String(d.minute()).padStart(2, '0')
+  return `${formatDate(date)}, ${hours}:${minutes}`
 }
 
 export function formatRelative(date: string | Date): string {
-  const d = toDate(date)
-  const now = new Date()
-  const diffMs = now.getTime() - d.getTime()
+  const d = toWIB(date)
+  const now = getWIBNow()
+  const diffMs = now.valueOf() - d.valueOf()
   const diffSeconds = Math.floor(diffMs / 1000)
   const diffMinutes = Math.floor(diffSeconds / 60)
   const diffHours = Math.floor(diffMinutes / 60)
@@ -47,27 +62,23 @@ export function formatRelative(date: string | Date): string {
   if (diffMinutes < 60) return `${diffMinutes} menit yang lalu`
   if (diffHours < 24) return `${diffHours} jam yang lalu`
   if (diffDays === 1) return 'kemarin'
-  return formatDate(d)
+  return formatDate(date)
 }
 
 export function toISODate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return toWIB(date).format('YYYY-MM-DD')
 }
 
 export function todayStr(): string {
-  return toISODate(new Date())
+  return getWIBNow().format('YYYY-MM-DD')
 }
 
 export function monthStart(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  return getWIBNow().startOf('month').format('YYYY-MM-DD')
 }
 
 export function weekStart(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - d.getDay() + 1)
-  return toISODate(d)
+  const now = getWIBNow()
+  const dayOfWeek = now.day() // 0 = Minggu ... 6 = Sabtu
+  return now.subtract(dayOfWeek - 1, 'day').format('YYYY-MM-DD')
 }

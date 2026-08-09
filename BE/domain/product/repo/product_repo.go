@@ -6,6 +6,7 @@ import (
 	dto "pos_api/domain/product/dto"
 	model "pos_api/domain/product/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
 )
@@ -66,11 +67,11 @@ const (
 	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	insertAnchorPackageOnCreate = `INSERT INTO product_packages (product_id, unit_id, purchase_price, selling_price, is_default) VALUES (?, ?, ?, ?, 1)`
 	getLastProductInsertIDQuery = `SELECT LAST_INSERT_ID()`
-	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, updated_at=NOW() WHERE id=?`
-	updateAnchorPackagePrice    = `UPDATE product_packages SET purchase_price=?, selling_price=?, updated_at=NOW() WHERE product_id=? AND is_default=1`
+	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, updated_at=? WHERE id=?`
+	updateAnchorPackagePrice    = `UPDATE product_packages SET purchase_price=?, selling_price=?, updated_at=? WHERE product_id=? AND is_default=1`
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
-	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
-	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
+	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = ? WHERE id = ?`
 	getAllProductsDefaultOrder  = ` ORDER BY p.name ASC`
 	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
 )
@@ -261,19 +262,17 @@ func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
 	return id, nil
 }
 
-// Update menyimpan perubahan produk sekaligus menyelaraskan harga di paket anchor-nya
-// (satuan pencatatan stok) — supaya harga di paket anchor tidak pernah drift dari harga
-// dasar produk yang ditampilkan di form.
 func (r *productRepo) Update(req *dto.UpdateRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		now := time_helper.GetTimeNow()
 		if err := tx.Exec(updateProductQuery,
 			req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-			req.SellingPrice, req.Stock, req.MinStock, req.ID,
+			req.SellingPrice, req.Stock, req.MinStock, now, req.ID,
 		).Error; err != nil {
 			return err
 		}
 
-		return tx.Exec(updateAnchorPackagePrice, req.PurchasePrice, req.SellingPrice, req.ID).Error
+		return tx.Exec(updateAnchorPackagePrice, req.PurchasePrice, req.SellingPrice, now, req.ID).Error
 	})
 }
 
@@ -283,11 +282,11 @@ func (r *productRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *productRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	err := r.db.Exec(toggleProductStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleProductStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 
 func (r *productRepo) UpdateStock(id int, delta float64) error {
-	err := r.db.Exec(updateProductStockQuery, delta, id).Error
+	err := r.db.Exec(updateProductStockQuery, delta, time_helper.GetTimeNow(), id).Error
 	return err
 }

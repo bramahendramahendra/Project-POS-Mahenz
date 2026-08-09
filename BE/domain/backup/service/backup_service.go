@@ -13,6 +13,7 @@ import (
 	"pos_api/config"
 	"pos_api/domain/backup/dto"
 	"pos_api/errors"
+	time_helper "pos_api/helper/time"
 )
 
 const backupDir = "backups"
@@ -38,7 +39,7 @@ func (s *backupService) CreateBackup() (*dto.BackupInfo, error) {
 		return nil, &errors.InternalServerError{Message: "Gagal membuat folder backup"}
 	}
 
-	filename := fmt.Sprintf("backup_%s.sql", time.Now().Format("20060102_150405"))
+	filename := fmt.Sprintf("backup_%s.sql", time_helper.GetTimeNow().Format("20060102_150405"))
 	backupPath := filepath.Join(backupDir, filename)
 
 	cmd := exec.Command(config.Cfg.Backup.MysqldumpBin, dbConnArgs()...)

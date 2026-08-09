@@ -4,6 +4,7 @@ import (
 	dto "pos_api/domain/shift/dto"
 	model "pos_api/domain/shift/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -15,9 +16,9 @@ const (
 	checkShiftUsedQuery    = `SELECT COUNT(*) FROM cash_drawer WHERE shift_id = ? AND status = 'open'`
 	createShiftQuery       = `INSERT INTO shifts (name, start_time, end_time) VALUES (?, ?, ?)`
 	getLastInsertIDQuery   = `SELECT LAST_INSERT_ID()`
-	updateShiftQuery       = `UPDATE shifts SET name=?, start_time=?, end_time=?, updated_at=NOW() WHERE id=?`
+	updateShiftQuery       = `UPDATE shifts SET name=?, start_time=?, end_time=?, updated_at=? WHERE id=?`
 	deleteShiftQuery       = `DELETE FROM shifts WHERE id = ?`
-	toggleShiftStatusQuery = `UPDATE shifts SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	toggleShiftStatusQuery = `UPDATE shifts SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	getShiftSummaryQuery   = `SELECT cd.shift_id, s.name as shift_name, COUNT(t.id) as total_transactions, SUM(t.total_amount) as total_sales, SUM(CASE WHEN t.payment_method='cash' THEN t.total_amount ELSE 0 END) as total_cash, SUM(CASE WHEN t.payment_method!='cash' THEN t.total_amount ELSE 0 END) as total_non_cash FROM cash_drawer cd LEFT JOIN shifts s ON cd.shift_id = s.id LEFT JOIN transactions t ON DATE(t.transaction_date) = DATE(cd.open_time) WHERE 1=1 GROUP BY cd.shift_id, s.name`
 )
 
@@ -100,7 +101,7 @@ func (r *shiftRepo) Create(req *dto.CreateRequest) (int64, error) {
 }
 
 func (r *shiftRepo) Update(req *dto.UpdateRequest) error {
-	return r.db.Exec(updateShiftQuery, req.Name, req.StartTime, req.EndTime, req.ID).Error
+	return r.db.Exec(updateShiftQuery, req.Name, req.StartTime, req.EndTime, time_helper.GetTimeNow(), req.ID).Error
 }
 
 func (r *shiftRepo) Delete(req *dto.DeleteRequest) error {
@@ -108,7 +109,7 @@ func (r *shiftRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *shiftRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	return r.db.Exec(toggleShiftStatusQuery, req.ID).Error
+	return r.db.Exec(toggleShiftStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 }
 
 func (r *shiftRepo) GetSummary() ([]*dto.ShiftSummaryResponse, error) {

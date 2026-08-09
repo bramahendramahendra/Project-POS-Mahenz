@@ -3,6 +3,7 @@ package repo
 import (
 	dto_product "pos_api/domain/product/dto"
 	model_product "pos_api/domain/product/model"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 		JOIN units u ON u.id = pp.unit_id
 		WHERE pp.product_id = ?`
 	insertProductPackageQuery       = `INSERT INTO product_packages (product_id, unit_id, package_name, ref_package_id, qty, ref_qty, purchase_price, selling_price, is_default) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`
-	updateProductPackageQuery       = `UPDATE product_packages SET unit_id = ?, package_name = ?, ref_package_id = ?, qty = ?, ref_qty = ?, purchase_price = ?, selling_price = ?, updated_at = NOW() WHERE id = ? AND product_id = ? AND is_default = 0`
+	updateProductPackageQuery       = `UPDATE product_packages SET unit_id = ?, package_name = ?, ref_package_id = ?, qty = ?, ref_qty = ?, purchase_price = ?, selling_price = ?, updated_at = ? WHERE id = ? AND product_id = ? AND is_default = 0`
 	deleteProductPackageByIDQuery   = `DELETE FROM product_packages WHERE id = ? AND product_id = ? AND is_default = 0`
 	countPackagesReferencingIDQuery = `SELECT COUNT(*) FROM product_packages WHERE ref_package_id = ?`
 )
@@ -55,7 +56,7 @@ func (r *productRepo) UpdatePackage(id, productID int, req *dto_product.UpdatePa
 	}
 
 	return r.db.Exec(updateProductPackageQuery,
-		req.UnitID, pkgName, req.RefPackageID, req.Qty, req.RefQty, req.PurchasePrice, req.SellingPrice, id, productID,
+		req.UnitID, pkgName, req.RefPackageID, req.Qty, req.RefQty, req.PurchasePrice, req.SellingPrice, time_helper.GetTimeNow(), id, productID,
 	).Error
 }
 

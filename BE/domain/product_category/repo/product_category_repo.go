@@ -4,6 +4,7 @@ import (
 	dto "pos_api/domain/product_category/dto"
 	model "pos_api/domain/product_category/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -20,9 +21,9 @@ const (
 	checkCategoryActiveProductsQuery = `SELECT COUNT(*) FROM products WHERE category_id = ? AND is_active = 1`
 	createCategoryQuery              = `INSERT INTO categories (name, code, description) VALUES (?, ?, ?)`
 	getLastInsertIDQuery             = `SELECT LAST_INSERT_ID()`
-	updateCategoryQuery              = `UPDATE categories SET name = ?, description = ?, updated_at = NOW() WHERE id = ?`
+	updateCategoryQuery              = `UPDATE categories SET name = ?, description = ?, updated_at = ? WHERE id = ?`
 	deleteCategoryQuery              = `DELETE FROM categories WHERE id = ?`
-	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	toggleCategoryStatusQuery        = `UPDATE categories SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 )
 
 func (r *categoryRepo) GetAll(req *dto.GetAllRequest) ([]*model.Category, int64, error) {
@@ -102,7 +103,7 @@ func (r *categoryRepo) Create(req *dto.CreateRequest) (int64, error) {
 }
 
 func (r *categoryRepo) Update(req *dto.UpdateRequest) error {
-	err := r.db.Exec(updateCategoryQuery, req.Name, req.Description, req.ID).Error
+	err := r.db.Exec(updateCategoryQuery, req.Name, req.Description, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 
@@ -112,7 +113,7 @@ func (r *categoryRepo) Delete(req *dto.DeleteRequest) error {
 }
 
 func (r *categoryRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
-	err := r.db.Exec(toggleCategoryStatusQuery, req.ID).Error
+	err := r.db.Exec(toggleCategoryStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 	return err
 }
 

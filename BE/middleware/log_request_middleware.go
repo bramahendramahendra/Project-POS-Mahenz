@@ -71,7 +71,7 @@ func saveLogRequest(c *gin.Context, reqId, reqBodyStr string, blw *bodyLogWriter
 	statusCode := c.Writer.Status()
 	resBodyStr := blw.body.String()
 	ipAddress := c.ClientIP()
-	createdAt := time.Now()
+	createdAt := time_helper.GetTimeNow()
 
 	var userId *int
 	if id, exists := c.Get("user_id"); exists {

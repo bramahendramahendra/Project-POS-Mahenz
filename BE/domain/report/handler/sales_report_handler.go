@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"time"
 
 	"pos_api/domain/report/dto"
 	"pos_api/domain/report/service"
@@ -11,6 +10,7 @@ import (
 	"pos_api/helper"
 	request_helper "pos_api/helper/request"
 	response_helper "pos_api/helper/response"
+	time_helper "pos_api/helper/time"
 	binder "pos_api/pkg/binder"
 
 	"github.com/gin-gonic/gin"
@@ -25,8 +25,9 @@ func NewReportHandler(svc service.ReportServiceInterface) *ReportHandler {
 }
 
 func parseFilterParams(c *gin.Context) dto.FilterParams {
-	dateFrom := c.DefaultQuery("date_from", time.Now().Format("2006-01-02")+" 00:00:00")
-	dateTo := c.DefaultQuery("date_to", time.Now().Format("2006-01-02")+" 23:59:59")
+	today := time_helper.GetTimeNow().Format("2006-01-02")
+	dateFrom := c.DefaultQuery("date_from", today+" 00:00:00")
+	dateTo := c.DefaultQuery("date_to", today+" 23:59:59")
 	// Jika dikirim tanpa komponen jam (mis. dari <input type="date"> yang formatnya YYYY-MM-DD),
 	// lengkapi dengan awal/akhir hari supaya rentang tanggal mencakup seluruh hari itu.
 	if len(dateFrom) == len("2006-01-02") {

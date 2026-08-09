@@ -3,7 +3,7 @@ import { Banknote } from 'lucide-react'
 import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
-import { formatRupiah } from '@/shared/utils'
+import { formatDate, formatRupiah, getWIBNow } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Receivable } from '../receivables.types'
@@ -14,15 +14,7 @@ interface ReceivableColumnHandlers {
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false
-  return new Date(dueDate) < new Date()
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
+  return getWIBNow().isAfter(dueDate)
 }
 
 export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): ColumnDef<Receivable>[] {

@@ -4,6 +4,7 @@ import { CheckCircle2, Trash2, TriangleAlert } from 'lucide-react'
 import { ConfirmDialog, ExtendedConfirmDialog, FormModal, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Textarea } from '@/shared/components/ui/textarea'
+import { formatDate } from '@/shared/utils'
 
 import {
   useConfirmExpiryBatchMutation,
@@ -16,10 +17,6 @@ import type { Product } from '../products.types'
 interface ExpiryWarningModalProps {
   product: Product | null
   onOpenChange: (open: boolean) => void
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 
 function daysLeftLabel(warning: ExpiryWarning): string {

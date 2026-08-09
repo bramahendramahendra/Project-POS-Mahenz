@@ -4,6 +4,7 @@ import (
 	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/role/dto"
 	model "pos_api/domain/role/model"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -13,9 +14,9 @@ const (
 	getRoleByIDQuery     = `SELECT id, name, display_name, description, is_system, is_active, created_at, updated_at FROM roles WHERE id = ? LIMIT 1`
 	getRoleByNameQuery   = `SELECT id, name, display_name, description, is_system, is_active, created_at, updated_at FROM roles WHERE name = ? LIMIT 1`
 	createRoleQuery      = `INSERT INTO roles (name, display_name, description) VALUES (?, ?, ?)`
-	updateRoleQuery      = `UPDATE roles SET display_name = ?, description = ?, updated_at = NOW() WHERE id = ?`
+	updateRoleQuery      = `UPDATE roles SET display_name = ?, description = ?, updated_at = ? WHERE id = ?`
 	deleteRoleQuery      = `DELETE FROM roles WHERE id = ?`
-	toggleRoleQuery      = `UPDATE roles SET is_active = NOT is_active, updated_at = NOW() WHERE id = ?`
+	toggleRoleQuery      = `UPDATE roles SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 )
 
 func (r *roleRepo) GetAll(req *dto.GetAllRequest) ([]*model.Role, int64, error) {
@@ -101,7 +102,7 @@ func (r *roleRepo) Update(id int, req *dto.UpdateRequest) error {
 	if req.Description != "" {
 		desc = &req.Description
 	}
-	return r.db.Exec(updateRoleQuery, req.DisplayName, desc, id).Error
+	return r.db.Exec(updateRoleQuery, req.DisplayName, desc, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *roleRepo) Delete(id int) error {
@@ -109,5 +110,5 @@ func (r *roleRepo) Delete(id int) error {
 }
 
 func (r *roleRepo) ToggleStatus(id int) error {
-	return r.db.Exec(toggleRoleQuery, id).Error
+	return r.db.Exec(toggleRoleQuery, time_helper.GetTimeNow(), id).Error
 }

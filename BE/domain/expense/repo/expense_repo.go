@@ -4,6 +4,7 @@ import (
 	dto "pos_api/domain/expense/dto"
 	model "pos_api/domain/expense/model"
 	request_helper "pos_api/helper/request"
+	time_helper "pos_api/helper/time"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 	getExpenseByIDQuery        = `SELECT e.id, e.expense_date, e.category, e.description, e.amount, e.payment_method, e.user_id, COALESCE(u.full_name, '') as user_name, e.notes FROM expenses e LEFT JOIN users u ON e.user_id = u.id WHERE e.id = ? LIMIT 1`
 	createExpenseQuery         = `INSERT INTO expenses (expense_date, category, description, amount, payment_method, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	getLastExpenseID           = `SELECT LAST_INSERT_ID()`
-	updateExpenseQuery         = `UPDATE expenses SET expense_date=?, category=?, description=?, amount=?, payment_method=?, notes=?, updated_at=NOW() WHERE id=?`
+	updateExpenseQuery         = `UPDATE expenses SET expense_date=?, category=?, description=?, amount=?, payment_method=?, notes=?, updated_at=? WHERE id=?`
 	deleteExpenseQuery         = `DELETE FROM expenses WHERE id = ?`
 )
 
@@ -90,7 +91,7 @@ func (r *expenseRepo) Create(req *dto.CreateRequest, userID int) (int64, error) 
 func (r *expenseRepo) Update(req *dto.UpdateRequest) error {
 	return r.db.Exec(updateExpenseQuery,
 		req.ExpenseDate, req.Category, req.Description,
-		req.Amount, req.PaymentMethod, req.Notes, req.ID,
+		req.Amount, req.PaymentMethod, req.Notes, time_helper.GetTimeNow(), req.ID,
 	).Error
 }
 
@@ -109,6 +110,6 @@ func (r *expenseRepo) UpdateFromSync(id int, data map[string]interface{}) error 
 	if len(updates) == 0 {
 		return nil
 	}
-	updates["updated_at"] = "NOW()"
+	updates["updated_at"] = time_helper.GetTimeNow()
 	return r.db.Table("expenses").Where("id = ?", id).Updates(updates).Error
 }

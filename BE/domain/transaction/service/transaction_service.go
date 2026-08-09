@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"pos_api/domain/transaction/dto"
+	time_helper "pos_api/helper/time"
 	"pos_api/pkg/pricing"
 
 	"pos_api/errors"
@@ -49,8 +50,6 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil, err
 	}
 
-	// Transaksi kredit (piutang) boleh dibayar sebagian/tidak sama sekali di muka —
-	// sisanya tercatat sebagai piutang. Transaksi non-kredit wajib lunas saat itu juga.
 	if !req.IsCredit && req.PaymentAmount < req.TotalAmount {
 		return nil, &errors.BadRequestError{Message: "Jumlah pembayaran kurang dari total transaksi"}
 	}
@@ -77,7 +76,7 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 				return err
 			}
 			if drawer != nil {
-				if err := cashDrawerRepo.UpdateSales(drawer.ID, req.TotalAmount, req.TotalAmount); err != nil {
+				if err := cashDrawerRepo.UpdateSales(drawer.ID, req.TotalAmount, req.TotalAmount, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}
@@ -95,8 +94,6 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 	return resp, nil
 }
 
-// recalculateTotals menghitung ulang subtotal/diskon/pajak/total transaksi di server
-// berdasarkan harga produk asli, mengabaikan nilai price/subtotal/total_amount dari client.
 func (s *transactionService) recalculateTotals(req *dto.CreateTransactionRequest) error {
 	items := make([]pricing.Item, len(req.Items))
 	for i, item := range req.Items {
@@ -149,7 +146,7 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 				return err
 			}
 			if drawer != nil {
-				if err := cashDrawerRepo.UpdateSales(drawer.ID, -t.TotalAmount, -t.TotalAmount); err != nil {
+				if err := cashDrawerRepo.UpdateSales(drawer.ID, -t.TotalAmount, -t.TotalAmount, time_helper.GetTimeNow()); err != nil {
 					return err
 				}
 			}

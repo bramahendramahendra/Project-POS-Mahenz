@@ -2,6 +2,7 @@ package repo
 
 import (
 	"pos_api/domain/business_summary/dto"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -12,11 +13,11 @@ type (
 		GetTodayExpenses(date string) (float64, error)
 		GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error)
 		GetExpensesByRange(startDate, endDate string) (float64, error)
-		GetMonthStats() (*dto.MonthStats, error)
-		GetMonthExpenses() (float64, error)
+		GetMonthStats(month int, year int) (*dto.MonthStats, error)
+		GetMonthExpenses(month int, year int) (float64, error)
 		GetLowStockCount() (int64, error)
 		GetOpenReceivablesCount() (int64, error)
-		GetSalesTrend(days int) ([]dto.SalesTrendItem, error)
+		GetSalesTrend(days int, now time.Time) ([]dto.SalesTrendItem, error)
 		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
 		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
 		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)

@@ -9,6 +9,7 @@ import (
 	cash_drawer_service "pos_api/domain/cash_drawer/service"
 	"pos_api/helper"
 	log_helper "pos_api/helper/log"
+	time_helper "pos_api/helper/time"
 	"pos_api/model"
 	"pos_api/repository"
 )
@@ -74,7 +75,7 @@ func saveLogScheduler(schedulerName, status, message string, durationMs int64) {
 		Status:        status,
 		Message:       &msg,
 		DurationMs:    &durationMs,
-		ExecutedAt:    time.Now(),
+		ExecutedAt:    time_helper.GetTimeNow(),
 	}
 	if err := repository.LogSchedulerRepo.InsertLogScheduler(logData); err != nil {
 		entry := log_helper.FromBackground("Scheduler", schedulerName, "Gagal menyimpan log scheduler ke database")

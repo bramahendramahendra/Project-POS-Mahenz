@@ -2,7 +2,7 @@ package repository
 
 import (
 	"pos_api/model"
-	"time"
+	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
 )
@@ -29,7 +29,7 @@ func NewLogSchedulerRepository(db *gorm.DB) *logSchedulerRepository {
 
 func (r *logSchedulerRepository) InsertLogScheduler(data *model.LogSchedulerModel) error {
 	if data.ExecutedAt.IsZero() {
-		data.ExecutedAt = time.Now()
+		data.ExecutedAt = time_helper.GetTimeNow()
 	}
 	return r.Db.Exec(insertLogScheduler,
 		data.Id,
