@@ -4,6 +4,7 @@ type TodayStats struct {
 	TotalTransactions int64   `json:"total_transactions"`
 	TotalSales        float64 `json:"total_sales"`
 	TotalDiscount     float64 `json:"total_discount"`
+	TotalCOGS         float64 `json:"total_cogs"`
 	TotalExpenses     float64 `json:"total_expenses"`
 	GrossProfit       float64 `json:"gross_profit"`
 }
@@ -11,6 +12,7 @@ type TodayStats struct {
 type MonthStats struct {
 	TotalTransactions int64   `json:"total_transactions"`
 	TotalSales        float64 `json:"total_sales"`
+	TotalCOGS         float64 `json:"total_cogs"`
 	TotalExpenses     float64 `json:"total_expenses"`
 	GrossProfit       float64 `json:"gross_profit"`
 }

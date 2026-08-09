@@ -1,6 +1,7 @@
 export interface FinanceSummary {
   total_income: number
   total_expense: number
+  total_cogs: number
   net_profit: number
   total_receivable: number
   period_label: string

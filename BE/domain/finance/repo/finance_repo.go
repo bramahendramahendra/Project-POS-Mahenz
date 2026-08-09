@@ -11,6 +11,14 @@ const (
 	getTotalIncomeQuery    = `SELECT COALESCE(SUM(total_amount), 0) FROM transactions WHERE status = 'completed' AND DATE(transaction_date) BETWEEN ? AND ?`
 	getTotalExpenseQuery   = `SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE expense_date BETWEEN ? AND ?`
 	getTotalReceivableQuery = `SELECT COALESCE(SUM(remaining_amount), 0) FROM receivables WHERE status != 'paid'`
+	// HPP dihitung dari ti.purchase_price (snapshot harga beli saat transaksi terjadi), pola
+	// identik dengan profitLossQuery di report_repo.go -- "Laba" di sini adalah laba BERSIH
+	// (Pendapatan - HPP - Pengeluaran), jadi HPP wajib ikut dikurangkan, bukan cuma Pengeluaran.
+	getTotalCOGSQuery = `
+		SELECT COALESCE(SUM(ti.quantity * ti.purchase_price), 0)
+		FROM transaction_items ti
+		JOIN transactions t ON ti.transaction_id = t.id
+		WHERE t.status = 'completed' AND DATE(t.transaction_date) BETWEEN ? AND ?`
 
 	countCashflowQuery = `
 		SELECT COUNT(*) FROM (
@@ -60,6 +68,11 @@ func (r *financeRepo) GetSummary(req *dto.GetSummaryRequest) (*dto.SummaryRespon
 		return nil, err
 	}
 
+	var totalCOGS float64
+	if err := r.db.Raw(getTotalCOGSQuery, dateFrom, dateTo).Scan(&totalCOGS).Error; err != nil {
+		return nil, err
+	}
+
 	var totalReceivable float64
 	if err := r.db.Raw(getTotalReceivableQuery).Scan(&totalReceivable).Error; err != nil {
 		return nil, err
@@ -70,7 +83,8 @@ func (r *financeRepo) GetSummary(req *dto.GetSummaryRequest) (*dto.SummaryRespon
 	return &dto.SummaryResponse{
 		TotalIncome:     totalIncome,
 		TotalExpense:    totalExpense,
-		NetProfit:       totalIncome - totalExpense,
+		TotalCOGS:       totalCOGS,
+		NetProfit:       totalIncome - totalCOGS - totalExpense,
 		TotalReceivable: totalReceivable,
 		PeriodLabel:     periodLabel,
 	}, nil

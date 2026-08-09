@@ -1,5 +1,7 @@
 # Rencana Migrasi Timezone → Asia/Jakarta (WIB) Penuh
 
+> **STATUS: ✅ SELESAI (9 Agustus 2026)** — Fase 0–8 seluruhnya tuntas dan diverifikasi (build, lint, test, browser). Lihat ringkasan penutup di paling bawah dokumen ini.
+
 > Dasar: `TIMEZONE_AUDIT.md`
 > Tujuan akhir: **satu aturan tunggal** — semua tanggal/jam di BE dan FE dihitung/ditampilkan dalam Asia/Jakarta (WIB), tidak ada lagi campuran jam MySQL / jam OS server Go / jam device browser.
 > Sifat pekerjaan: **bukan bug fix darurat** — ini pekerjaan konsistensi menyeluruh, dikerjakan bertahap per fase supaya bisa diverifikasi satu-satu.
@@ -408,11 +410,33 @@ Laporkan hasil lengkap dengan checklist semua menu yang sudah dites. Ini fase te
 
 ## Checklist Akhir (setelah Fase 8 selesai)
 
-- [ ] Tidak ada lagi `time.Now()` mentah untuk tanggal kalender di BE (kecuali kasus relative-duration yang sudah di-review sengaja dipertahankan)
-- [ ] Tidak ada lagi `NOW()`/`CURDATE()` di SQL untuk perbandingan/logic bisnis (boleh tetap di `DEFAULT CURRENT_TIMESTAMP` skema sebagai fallback)
-- [ ] Tidak ada lagi `new Date()`/`Date.now()` mentah di FE untuk kebutuhan bisnis (kosmetik seperti nama file export boleh dikecualikan)
-- [ ] Semua 19 file konsumen `date.ts` otomatis WIB-consistent karena helper pusatnya sudah diperbaiki
-- [ ] `go build ./...`, `go test ./...` lulus
-- [ ] `npm run type-check`, `npm run lint`, `npm run build` lulus
-- [ ] Smoke test manual browser di seluruh menu utama tidak menemukan regresi
-- [ ] Reproduksi kasus bug asli (kas "kebawa nginap") sudah tidak terjadi lagi
+- [x] Tidak ada lagi `time.Now()` mentah untuk tanggal kalender di BE (kecuali kasus relative-duration yang sudah di-review sengaja dipertahankan)
+- [x] Tidak ada lagi `NOW()`/`CURDATE()` di SQL untuk perbandingan/logic bisnis (boleh tetap di `DEFAULT CURRENT_TIMESTAMP` skema sebagai fallback)
+- [x] Tidak ada lagi `new Date()`/`Date.now()` mentah di FE untuk kebutuhan bisnis (kosmetik seperti nama file export boleh dikecualikan)
+- [x] Semua 19 file konsumen `date.ts` otomatis WIB-consistent karena helper pusatnya sudah diperbaiki
+- [x] `go build ./...` lulus. `go test ./...` — 2 kegagalan pre-existing tidak terkait (dikonfirmasi tidak ada perubahan di file terkait): `pkg/binder` (bug overflow angka besar) dan `pos_api/helper` (masalah cwd `.env` saat test, bukan regresi)
+- [x] `npm run type-check`, `npm run lint`, `npm run build` lulus
+- [x] Smoke test manual browser di seluruh menu utama tidak menemukan regresi (23 halaman dicek di Fase 8)
+- [x] Reproduksi kasus bug asli (kas "kebawa nginap") sudah tidak terjadi lagi — dibuktikan via API dan browser
+
+---
+
+## ✅ Ringkasan Penutup — Migrasi Selesai (9 Agustus 2026)
+
+Semua 9 fase (Fase 0–8) sudah dikerjakan dan diverifikasi, masing-masing dengan testing browser nyata (bukan cuma build/lint):
+
+| Fase | Domain | Testing browser |
+|---|---|---|
+| 0 | Persiapan (helper WIB BE + dayjs FE) | — (fondasi, tidak ada UI) |
+| 1 | Kas (cash_drawer) — **bug asli** | ✅ Reproduksi bug asli via API + screenshot Dashboard/Kas Saya/Kas Harian sebelum-sesudah fix |
+| 2 | Transaksi | ✅ Buat transaksi berturutan via API, cek kode & tanggal konsisten |
+| 3 | Dashboard | ✅ Screenshot header lintas timezone (Jakarta vs New York) |
+| 4 | Business Summary | ✅ Screenshot + response API lintas timezone, termasuk fix grafik |
+| 5 | Laporan + refactor pusat `date.ts` | ✅ 9 halaman discreenshot lintas timezone (Jakarta vs Auckland), termasuk seed data manual untuk halaman yang butuh prasyarat |
+| 6 | Auth/Session | ✅ Query database langsung, verifikasi selisih `created_at`/`expires_at` |
+| 7 | Pembelian/Retur/Piutang | ✅ Validasi tanggal via API + badge overdue lintas 3 timezone |
+| 8 | Sapu bersih seluruh sisa file | ✅ Smoke test 23 halaman + spot-check update produk/customer/unit |
+
+**Root cause asli** (`getMyCashQuery` punya syarat `DATE(open_time) = CURDATE()` yang tidak ada di `getCurrentCashDrawerQuery`) — sudah diperbaiki di Fase 1, dan seluruh pola serupa di aplikasi (campuran jam MySQL/Go raw/browser) sudah disapu bersih di fase-fase berikutnya.
+
+Dokumen ini dan `TIMEZONE_AUDIT.md` bisa dijadikan referensi historis — tidak perlu tindakan lebih lanjut kecuali ditemukan regresi baru.

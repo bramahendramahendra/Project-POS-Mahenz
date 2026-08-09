@@ -15,6 +15,8 @@ type (
 		GetExpensesByRange(startDate, endDate string) (float64, error)
 		GetMonthStats(month int, year int) (*dto.MonthStats, error)
 		GetMonthExpenses(month int, year int) (float64, error)
+		GetCOGSByRange(startDate, endDate string) (float64, error)
+		GetMonthCOGS(month int, year int) (float64, error)
 		GetLowStockCount() (int64, error)
 		GetOpenReceivablesCount() (int64, error)
 		GetSalesTrend(days int, now time.Time) ([]dto.SalesTrendItem, error)

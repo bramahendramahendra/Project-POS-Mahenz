@@ -32,8 +32,18 @@ func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, er
 	if err != nil {
 		return nil, err
 	}
+	todayCOGS, err := s.repo.GetCOGSByRange(startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
 	todayStats.TotalExpenses = todayExpenses
-	todayStats.GrossProfit = todayStats.TotalSales - todayExpenses
+	todayStats.TotalCOGS = todayCOGS
+	// Laba Kotor = Pendapatan - HPP, SELARAS dengan definisi "Laba Kotor" di Laporan Laba
+	// Rugi (report_service.go: grossProfit = totalRevenue - totalCOGS). Pengeluaran
+	// operasional (expense) SENGAJA tidak dikurangkan di sini -- itu baru mengurangi Laba
+	// Bersih, bukan Laba Kotor. TotalExpenses tetap disimpan di response untuk transparansi,
+	// tapi tidak ikut dalam GrossProfit.
+	todayStats.GrossProfit = todayStats.TotalSales - todayCOGS
 
 	now := time_helper.GetTimeNow()
 	monthStats, err := s.repo.GetMonthStats(int(now.Month()), now.Year())
@@ -44,8 +54,13 @@ func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, er
 	if err != nil {
 		return nil, err
 	}
+	monthCOGS, err := s.repo.GetMonthCOGS(int(now.Month()), now.Year())
+	if err != nil {
+		return nil, err
+	}
 	monthStats.TotalExpenses = monthExpenses
-	monthStats.GrossProfit = monthStats.TotalSales - monthExpenses
+	monthStats.TotalCOGS = monthCOGS
+	monthStats.GrossProfit = monthStats.TotalSales - monthCOGS
 
 	lowStock, err := s.repo.GetLowStockCount()
 	if err != nil {

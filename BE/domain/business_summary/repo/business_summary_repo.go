@@ -31,6 +31,21 @@ const (
 		SELECT COALESCE(SUM(amount),0) as total FROM expenses
 		WHERE MONTH(expense_date) = ? AND YEAR(expense_date) = ?`
 
+	// HPP dihitung dari ti.purchase_price (snapshot harga beli saat transaksi terjadi),
+	// pola identik dengan profitLossQuery di report_repo.go -- supaya "Laba Kotor" di sini
+	// dan di Laporan Laba Rugi sama-sama Pendapatan - HPP, bukan Pendapatan - Pengeluaran.
+	rangeCOGSQuery = `
+		SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs
+		FROM transaction_items ti
+		JOIN transactions t ON ti.transaction_id = t.id
+		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'`
+
+	monthCOGSQuery = `
+		SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs
+		FROM transaction_items ti
+		JOIN transactions t ON ti.transaction_id = t.id
+		WHERE MONTH(t.transaction_date) = ? AND YEAR(t.transaction_date) = ? AND t.status = 'completed'`
+
 	salesTrendQuery = `
 		SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as label,
 		       COALESCE(SUM(total_amount),0) as total_sales,
@@ -152,6 +167,24 @@ func (r *businessSummaryRepo) GetMonthExpenses(month int, year int) (float64, er
 	row := r.db.Raw(monthExpensesQuery, month, year).Row()
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("GetMonthExpenses: %w", err)
+	}
+	return total, nil
+}
+
+func (r *businessSummaryRepo) GetCOGSByRange(startDate, endDate string) (float64, error) {
+	var total float64
+	row := r.db.Raw(rangeCOGSQuery, startDate, endDate).Row()
+	if err := row.Scan(&total); err != nil {
+		return 0, fmt.Errorf("GetCOGSByRange: %w", err)
+	}
+	return total, nil
+}
+
+func (r *businessSummaryRepo) GetMonthCOGS(month int, year int) (float64, error) {
+	var total float64
+	row := r.db.Raw(monthCOGSQuery, month, year).Row()
+	if err := row.Scan(&total); err != nil {
+		return 0, fmt.Errorf("GetMonthCOGS: %w", err)
 	}
 	return total, nil
 }

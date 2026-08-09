@@ -4,6 +4,7 @@ export interface TodayStats {
   total_transactions: number
   total_sales: number
   total_discount: number
+  total_cogs: number
   total_expenses: number
   gross_profit: number
 }
@@ -11,6 +12,7 @@ export interface TodayStats {
 export interface MonthStats {
   total_transactions: number
   total_sales: number
+  total_cogs: number
   total_expenses: number
   gross_profit: number
 }

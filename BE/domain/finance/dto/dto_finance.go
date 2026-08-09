@@ -19,6 +19,7 @@ type (
 	SummaryResponse struct {
 		TotalIncome     float64 `json:"total_income"`
 		TotalExpense    float64 `json:"total_expense"`
+		TotalCOGS       float64 `json:"total_cogs"`
 		NetProfit       float64 `json:"net_profit"`
 		TotalReceivable float64 `json:"total_receivable"`
 		PeriodLabel     string  `json:"period_label"`
