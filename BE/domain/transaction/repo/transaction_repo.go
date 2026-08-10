@@ -235,10 +235,11 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			return nil, err
 		}
 
-		var purchasePrice float64
-		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&purchasePrice).Error; err != nil {
+		var basePurchasePrice float64
+		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&basePurchasePrice).Error; err != nil {
 			return nil, err
 		}
+		purchasePrice := basePurchasePrice * conversionQty
 
 		result := r.db.Exec(updateProductStockQuery, stockDeduct, now, item.ProductID, stockDeduct)
 		if result.Error != nil {
