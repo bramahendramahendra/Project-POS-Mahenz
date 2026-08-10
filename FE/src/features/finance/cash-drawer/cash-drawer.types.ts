@@ -86,6 +86,12 @@ export interface CloseCashDrawerBody {
   notes?: string
 }
 
+export interface CloseCashDrawerResult {
+  expected_balance: number
+  closing_balance: number
+  difference: number
+}
+
 export interface OpenCashDrawerPayload {
   shift_id: number
   opening_balance: number

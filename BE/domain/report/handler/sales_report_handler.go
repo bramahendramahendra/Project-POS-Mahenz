@@ -28,8 +28,6 @@ func parseFilterParams(c *gin.Context) dto.FilterParams {
 	today := time_helper.GetTimeNow().Format("2006-01-02")
 	dateFrom := c.DefaultQuery("date_from", today+" 00:00:00")
 	dateTo := c.DefaultQuery("date_to", today+" 23:59:59")
-	// Jika dikirim tanpa komponen jam (mis. dari <input type="date"> yang formatnya YYYY-MM-DD),
-	// lengkapi dengan awal/akhir hari supaya rentang tanggal mencakup seluruh hari itu.
 	if len(dateFrom) == len("2006-01-02") {
 		dateFrom += " 00:00:00"
 	}

@@ -9,6 +9,7 @@ import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 
 import { useCloseCashDrawerMutation } from '../cash-drawer.api'
 import { closeCashDrawerSchema, type CloseCashDrawerFormValues } from '../cash-drawer.schema'
+import type { CloseCashDrawerResult } from '../cash-drawer.types'
 
 const defaultValues: CloseCashDrawerFormValues = {
   closing_balance: 0,
@@ -19,9 +20,10 @@ interface CloseCashDrawerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   cashDrawerId: number | null
+  onClosed?: (result: CloseCashDrawerResult) => void
 }
 
-export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: CloseCashDrawerModalProps) {
+export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId, onClosed }: CloseCashDrawerModalProps) {
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingValues, setPendingValues] = useState<CloseCashDrawerFormValues | null>(null)
 
@@ -65,7 +67,10 @@ export function CloseCashDrawerModal({ open, onOpenChange, cashDrawerId }: Close
         notes: pendingValues.notes || undefined,
       },
       {
-        onSuccess: () => handleClose(),
+        onSuccess: (result) => {
+          onClosed?.(result)
+          handleClose()
+        },
       }
     )
   }

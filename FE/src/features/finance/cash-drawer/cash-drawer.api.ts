@@ -11,6 +11,7 @@ import type {
   CashDrawerListFilter,
   CashDrawerSummary,
   CloseCashDrawerBody,
+  CloseCashDrawerResult,
   CurrentCashDrawer,
   KasirOption,
   OpenCashDrawerPayload,
@@ -55,7 +56,7 @@ export function useCloseCashDrawerMutation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, closing_balance, notes }: CloseCashDrawerBody & { id: number }) =>
-      api.post<void>(`/cash-drawer/close/${id}`, { closing_balance, notes }),
+      api.post<CloseCashDrawerResult>(`/cash-drawer/close/${id}`, { closing_balance, notes }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })

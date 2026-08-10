@@ -8,6 +8,7 @@ import { formatRupiah } from '@/shared/utils'
 import { OpenCashDrawerModal } from '@/features/finance/cash-drawer/components/OpenCashDrawerModal'
 import { CloseCashDrawerModal } from '@/features/finance/cash-drawer/components/CloseCashDrawerModal'
 import { useCashDrawerPrerequisites } from '@/features/finance/cash-drawer/hooks/useCashDrawerPrerequisites'
+import type { CloseCashDrawerResult } from '@/features/finance/cash-drawer/cash-drawer.types'
 
 import type { MyCashData } from '../my-cash.types'
 
@@ -36,6 +37,7 @@ function StatBox({
 export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
   const [openModalOpen, setOpenModalOpen] = useState(false)
   const [closeModalOpen, setCloseModalOpen] = useState(false)
+  const [lastCloseResult, setLastCloseResult] = useState<CloseCashDrawerResult | null>(null)
   const { items: prerequisiteItems, isLoading: prerequisiteLoading } = useCashDrawerPrerequisites()
 
   const isOpen = data?.status === 'open'
@@ -59,6 +61,7 @@ export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
   }
 
   if (!isOpen) {
+    const diff = lastCloseResult?.difference ?? 0
     return (
       <PrerequisiteGuard
         isLoading={prerequisiteLoading}
@@ -67,11 +70,42 @@ export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
         items={prerequisiteItems}
       >
         <Card>
-          <CardContent className="pt-4 pb-4 flex items-center justify-between">
-            <Badge variant="secondary">● Tutup</Badge>
-            <Button size="sm" onClick={() => setOpenModalOpen(true)}>
-              Buka Kas
-            </Button>
+          <CardContent className="pt-4 pb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Badge variant="secondary">● Tutup</Badge>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setLastCloseResult(null)
+                  setOpenModalOpen(true)
+                }}
+              >
+                Buka Kas
+              </Button>
+            </div>
+
+            {lastCloseResult && (
+              <div className="rounded-lg bg-gray-50 px-4 py-3 space-y-2">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Ringkasan Penutupan Terakhir
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <StatBox
+                    label="Saldo Ekspektasi"
+                    value={formatRupiah(lastCloseResult.expected_balance)}
+                  />
+                  <StatBox
+                    label="Saldo Akhir Tunai"
+                    value={formatRupiah(lastCloseResult.closing_balance)}
+                  />
+                  <StatBox
+                    label="Selisih"
+                    value={`${diff >= 0 ? '+' : ''}${formatRupiah(diff)}`}
+                    valueClass={diff === 0 ? 'text-gray-500' : diff > 0 ? 'text-green-600' : 'text-red-600'}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -156,6 +190,7 @@ export function MyCashStatusCard({ data, isLoading }: MyCashStatusCardProps) {
         open={closeModalOpen}
         onOpenChange={setCloseModalOpen}
         cashDrawerId={data?.id ?? null}
+        onClosed={setLastCloseResult}
       />
     </>
   )
