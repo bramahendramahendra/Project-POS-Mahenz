@@ -1,4 +1,4 @@
-export type ReceivableStatus = 'unpaid' | 'partial' | 'paid'
+export type ReceivableStatus = 'unpaid' | 'partial' | 'paid' | 'void'
 
 export interface ReceivablePayment {
   id: number

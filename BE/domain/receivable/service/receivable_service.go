@@ -48,6 +48,9 @@ func (s *receivableService) Pay(req *dto.PayRequest) (*dto.PayResponse, error) {
 	if rec.Status == "paid" {
 		return nil, &errors.BadRequestError{Message: "Piutang sudah lunas"}
 	}
+	if rec.Status == "void" {
+		return nil, &errors.BadRequestError{Message: "Piutang ini sudah dibatalkan (transaksi induk di-void)"}
+	}
 	if req.Amount > rec.RemainingAmount {
 		return nil, &errors.BadRequestError{
 			Message: fmt.Sprintf("Jumlah bayar (%.0f) melebihi sisa piutang (%.0f)", req.Amount, rec.RemainingAmount),

@@ -64,6 +64,7 @@ export function ReceivableFilterBar({ filter, onChange, onReset }: ReceivableFil
           <SelectItem value="unpaid">Belum Lunas</SelectItem>
           <SelectItem value="partial">Sebagian</SelectItem>
           <SelectItem value="paid">Lunas</SelectItem>
+          <SelectItem value="void">Dibatalkan</SelectItem>
         </SelectContent>
       </Select>
       <Button variant="outline" size="sm" className="h-9" onClick={handleReset}>

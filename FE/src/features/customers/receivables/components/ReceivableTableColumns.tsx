@@ -70,13 +70,13 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
         row.due_date ? (
           <span
             className={
-              isOverdue(row.due_date) && row.status !== 'paid'
+              isOverdue(row.due_date) && row.status !== 'paid' && row.status !== 'void'
                 ? 'text-red-600 font-medium'
                 : 'text-gray-600'
             }
           >
             {formatDate(row.due_date)}
-            {isOverdue(row.due_date) && row.status !== 'paid' && ' ⚠'}
+            {isOverdue(row.due_date) && row.status !== 'paid' && row.status !== 'void' && ' ⚠'}
           </span>
         ) : (
           <span className="text-gray-400 text-sm">—</span>
@@ -88,7 +88,7 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
       align: 'center',
       width: '80px',
       cell: (row) =>
-        row.status !== 'paid' ? (
+        row.status !== 'paid' && row.status !== 'void' ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
