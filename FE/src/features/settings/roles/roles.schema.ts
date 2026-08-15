@@ -4,7 +4,7 @@ export const createRoleSchema = z.object({
   name: z
     .string()
     .min(2, 'Minimal 2 karakter')
-    .regex(/^[a-z0-9_]+$/, 'Hanya huruf kecil, angka, dan underscore'),
+    .regex(/^[a-z0-9]+$/, 'Hanya huruf kecil dan angka'),
   display_name: z.string().min(1, 'Label wajib diisi'),
   description: z.string().optional(),
 })

@@ -103,7 +103,7 @@ func (s *supplierReturnService) Create(req *dto.CreateSupplierReturnRequest) (da
 		return data, &errors.BadRequestError{Message: "PO ini sudah di-void, tidak bisa dibuatkan retur"}
 	}
 
-	purchaseDate, err := time.Parse("2006-01-02", purchaseDateStr[:10])
+	purchaseDate, err := time.ParseInLocation("2006-01-02", purchaseDateStr[:10], config.Location)
 	if err != nil {
 		return data, err
 	}

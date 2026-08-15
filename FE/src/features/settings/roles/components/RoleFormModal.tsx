@@ -65,7 +65,7 @@ function CreateRoleForm({
             className={errors.name ? 'border-red-500' : ''}
           />
           {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
-          <p className="text-xs text-gray-400">Hanya huruf kecil, angka, dan underscore. Tidak bisa diubah setelah dibuat.</p>
+          <p className="text-xs text-gray-400">Hanya huruf kecil dan angka. Tidak bisa diubah setelah dibuat.</p>
         </div>
 
         <div className="space-y-1.5">
