@@ -5,7 +5,7 @@ import { formatDate, formatRupiah } from '@/shared/utils'
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
 import { useExpiryBatchHistoryQuery } from '../expiry-batches.api'
 import type { ExpiryBatchStatus } from '../expiry-batches.types'
-import { calcMargin } from '../products.utils'
+import { calcMargin, formatStockBreakdown } from '../products.utils'
 
 const EXPIRY_STATUS_LABEL: Record<ExpiryBatchStatus, { label: string; className: string }> = {
   active: { label: 'Perlu Dicek', className: 'bg-amber-100 text-amber-700' },
@@ -99,7 +99,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                       : 'text-gray-800'
                 }`}
               >
-                {product.stock}
+                {formatStockBreakdown(product.stock, units)}
               </span>
             </DetailField>
             <DetailField label="Stok Minimum" value={String(product.min_stock)} />
@@ -108,11 +108,13 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
           {product.reserved_qty > 0 && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailField label="Stok Direservasi">
-                <span className="font-medium text-amber-600">{product.reserved_qty}</span>
+                <span className="font-medium text-amber-600">
+                  {formatStockBreakdown(product.reserved_qty, units)}
+                </span>
               </DetailField>
               <DetailField label="Stok Tersedia">
                 <span className="font-medium text-gray-800">
-                  {product.stock - product.reserved_qty}
+                  {formatStockBreakdown(product.stock - product.reserved_qty, units)}
                 </span>
               </DetailField>
             </div>
