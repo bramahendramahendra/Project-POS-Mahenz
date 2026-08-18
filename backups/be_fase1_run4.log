@@ -1,0 +1,693 @@
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:99
+[0m[33m[0.517ms] [34;1m[rows:0][0m CREATE TABLE IF NOT EXISTS migrations_history (
+		id          INT AUTO_INCREMENT PRIMARY KEY,
+		filename    VARCHAR(255) UNIQUE NOT NULL,
+		executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	) DEFAULT CHARSET=utf8
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:27
+[0m[33m[0.507ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:28
+[0m[33m[0.650ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.576ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '001_init_schema.sql'
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.566ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '002_seed_data.sql'
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '003_fix_receivables_status_enum.sql'
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '004_stock_per_package_level.sql'
+
+2026/08/16 12:16:41 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[27.658ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN stock DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN reserved_qty DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[119.192ms] [34;1m[rows:321][0m ALTER TABLE product_packages
+  ADD CONSTRAINT chk_product_packages_stock_nonneg CHECK (stock >= 0),
+  ADD CONSTRAINT chk_product_packages_reserved_nonneg CHECK (reserved_qty >= 0)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[106.511ms] [34;1m[rows:195][0m ALTER TABLE products
+  ADD CONSTRAINT chk_products_min_stock_nonneg CHECK (min_stock >= 0)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[32.391ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN is_default_flag INT GENERATED ALWAYS AS (IF(is_default = 1, product_id, NULL)) VIRTUAL
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[34.498ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD UNIQUE KEY uq_product_default (is_default_flag)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[19.796ms] [34;1m[rows:0][0m ALTER TABLE units
+  ADD COLUMN is_continuous TINYINT(1) NOT NULL DEFAULT 0
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[52.460ms] [34;1m[rows:0][0m ALTER TABLE products
+  ADD COLUMN needs_stock_review TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN stock_review_note TEXT NULL
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[80.648ms] [34;1m[rows:0][0m ALTER TABLE supplier_return_items
+  ADD COLUMN package_id INT NULL,
+  ADD CONSTRAINT fk_supplier_return_items_package FOREIGN KEY (package_id) REFERENCES product_packages(id)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[76.485ms] [34;1m[rows:2][0m ALTER TABLE product_expiry_batches
+  ADD COLUMN package_id INT NULL,
+  ADD CONSTRAINT fk_expiry_batches_package FOREIGN KEY (package_id) REFERENCES product_packages(id)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[92.296ms] [34;1m[rows:489][0m ALTER TABLE stock_mutations
+  ADD COLUMN package_id INT NULL,
+  ADD CONSTRAINT fk_stock_mutations_package FOREIGN KEY (package_id) REFERENCES product_packages(id)
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[3.449ms] [34;1m[rows:4][0m UPDATE units SET is_continuous = 1 WHERE name IN ('Kilogram', 'Gram', 'Galon', 'Gelas')
+
+2026/08/16 12:16:42 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:109
+[0m[33m[1.606ms] [34;1m[rows:1][0m INSERT INTO migrations_history (filename) VALUES ('004_stock_per_package_level.sql')
+2026/08/16 12:16:42 [37mServer running on port[0m :8080
+2026/08/16 12:16:42 [37mRoutes:[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/detail/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/delete/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/generate-code        [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GenerateCode-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/list                 [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/create               [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/update/:id           [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/pay/:id              [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Pay-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/void/:id             [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).Void-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/:id/payments         [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).GetPayments-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-purchases/:id/add-items        [0m   [37mpos_api/domain/supplier_purchase/handler.(*PurchaseHandler).AddItems-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-returns/detail/:id             [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-returns/delete/:id             [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-returns/list                   [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-returns/create                 [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/supplier-returns/update-status/:id      [0m   [37mpos_api/domain/supplier_return/handler.(*SupplierReturnHandler).UpdateStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/detail/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetDetail-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/delete/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/list                          [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/options                       [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/create                        [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/update/:id                    [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/suppliers/toggle-status/:id             [0m   [37mpos_api/domain/supplier/handler.(*SupplierHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/detail/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/delete/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/list                             [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/active                           [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/summary                          [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).GetSummary-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/create                           [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/update/:id                       [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/shifts/toggle-status/:id                [0m   [37mpos_api/domain/shift/handler.(*ShiftHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/settings                                [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).Save-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/settings/reset                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).Reset-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/settings/store                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).UpdateStoreProfile-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/settings/printer                        [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).UpdatePrinterSettings-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/stock-mutations/list                    [0m   [37mpos_api/domain/stock_mutation/handler.(*StockMutationHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/stock-mutations/product/:product_id     [0m   [37mpos_api/domain/stock_mutation/handler.(*StockMutationHandler).GetByProduct-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/sync/conflicts/:id/resolve              [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).ResolveConflict-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/sync/push                               [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).PushSync-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/import-preview                 [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).ImportPreview-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/import-bulk                    [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).ImportBulk-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/import-template                [0m   [37mpos_api/domain/product/handler.(*ProductImportHandler).DownloadImportTemplate-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/detail/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/delete/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/generate-barcode               [0m   [37mpos_api/domain/product/handler.(*ProductGenerateHandler).GenerateBarcode-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/generate-sku                   [0m   [37mpos_api/domain/product/handler.(*ProductGenerateHandler).GenerateSku-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/list                           [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/options                        [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/search                         [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Search-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/by-barcode/:barcode            [0m   [37mpos_api/domain/product/handler.(*ProductHandler).GetByBarcode-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/create                         [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/update/:id                     [0m   [37mpos_api/domain/product/handler.(*ProductHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/toggle-status/:id              [0m   [37mpos_api/domain/product/handler.(*ProductHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/:id/packages/list              [0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).GetPackagesByProduct-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/:id/packages/create            [0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).CreatePackage-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/:id/packages/update/:package_id[0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).UpdatePackage-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/:id/packages/delete/:package_id[0m   [37mpos_api/domain/product/handler.(*ProductPackageHandler).DeletePackage-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/products/:id/prices/list                [0m   [37mpos_api/domain/product/handler.(*ProductPriceHandler).GetPricesByProduct-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/pin/set                                 [0m   [37mpos_api/domain/pin/handler.(*PinHandler).SetPin-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/pin/verify                              [0m   [37mpos_api/domain/pin/handler.(*PinHandler).VerifyPin-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/pin/change                              [0m   [37mpos_api/domain/pin/handler.(*PinHandler).ChangePin-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/payment-statuses/list                   [0m   [37mpos_api/domain/payment_status/handler.(*PaymentStatusHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/payment-methods/list                    [0m   [37mpos_api/domain/payment_method/handler.(*PaymentMethodHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/current                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetCurrent-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/close/:id                   [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).Close-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/update-sales/:id            [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).UpdateSales-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/update-expenses/:id         [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).UpdateExpenses-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/my-cash                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetMyCash-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/list                        [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetHistory-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/summary                     [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetSummary-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/kasir-options               [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetKasirOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/detail/:id                  [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/cash-drawer/open                        [0m   [37mpos_api/domain/cash_drawer/handler.(*CashDrawerHandler).Open-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/detail/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/delete/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/list                         [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/options                      [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/create                       [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/update/:id                   [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/categories/toggle-status/:id            [0m   [37mpos_api/domain/product_category/handler.(*CategoryHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/detail/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/delete/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/list                          [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/active                        [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/create                        [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/update/:id                    [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/customers/toggle-status/:id             [0m   [37mpos_api/domain/customer/handler.(*CustomerHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/sales/list                      [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesList-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/sales/summary                   [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesSummaryData-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/stock/list                      [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockList-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/stock/summary                   [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockSummaryData-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/profit-loss/data                [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetProfitLossData-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/reports/cashier/list                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetCashierList-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/receivables/payments/:id                [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetPayments-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/receivables/pay/:id                     [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).Pay-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/receivables/list                        [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/receivables/summary                     [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetSummary-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/receivables/detail/:id                  [0m   [37mpos_api/domain/receivable/handler.(*ReceivableHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/restore                                 [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Restore-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/detail/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/delete/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/list                              [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/options                           [0m   [37mpos_api/domain/role/handler.(*RoleHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/create                            [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/update/:id                        [0m   [37mpos_api/domain/role/handler.(*RoleHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/toggle-status/:id                 [0m   [37mpos_api/domain/role/handler.(*RoleHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/:id/menus/list                    [0m   [37mpos_api/domain/access/handler.(*AccessHandler).GetByRoleID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/roles/:id/menus/set                     [0m   [37mpos_api/domain/access/handler.(*AccessHandler).SetRoleAccess-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/route-registry/options                  [0m   [37mpos_api/domain/route_registry/handler.(*RouteRegistryHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/create                            [0m   [37mpos_api/domain/user/handler.(*UserHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/change-password/:id               [0m   [37mpos_api/domain/user/handler.(*UserHandler).ChangePassword-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/detail/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/delete/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/list                              [0m   [37mpos_api/domain/user/handler.(*UserHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/update/:id                        [0m   [37mpos_api/domain/user/handler.(*UserHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/users/toggle-status/:id                 [0m   [37mpos_api/domain/user/handler.(*UserHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/detail/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/delete/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/list                              [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/options                           [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/create                            [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/update/:id                        [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/units/toggle-status/:id                 [0m   [37mpos_api/domain/product_unit/handler.(*UnitHandler).ToggleStatus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expenses/detail/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expenses/delete/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expenses/list                           [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expenses/create                         [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expenses/update/:id                     [0m   [37mpos_api/domain/expense/handler.(*ExpenseHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expiry-batches/warnings                 [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).GetWarnings-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expiry-batches/write-off/:id            [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).WriteOff-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expiry-batches/product/:id              [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).GetByProduct-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/expiry-batches/confirm/:id              [0m   [37mpos_api/domain/expiry_batch/handler.(*ExpiryBatchHandler).Confirm-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/detail/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/delete/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Delete-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/my                                [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetMyMenus-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/options                           [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetOptions-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/list                              [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/create                            [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/update/:id                        [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Update-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/menus/reorder                           [0m   [37mpos_api/domain/menu/handler.(*MenuHandler).Reorder-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/auth/login                              [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).Login-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/auth/logout                             [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).Logout-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/auth/refresh                            [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).RefreshToken-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/auth/verify-token                       [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).VerifyToken-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/auth/me                                 [0m   [37mpos_api/domain/auth/handler.(*AuthHandler).GetMe-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/transactions/list                       [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/transactions/detail/:id                 [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).GetByID-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/transactions/create                     [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/transactions/void/:id                   [0m   [37mpos_api/domain/transaction/handler.(*TransactionHandler).Void-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/finance/summary                         [0m   [37mpos_api/domain/finance/handler.(*FinanceHandler).GetSummary-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/finance/cashflow                        [0m   [37mpos_api/domain/finance/handler.(*FinanceHandler).GetCashflow-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/version/list                            [0m   [37mpos_api/domain/version/handler.(*VersionHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/version/android                         [0m   [37mpos_api/domain/version/handler.(*VersionHandler).UpdateAndroidVersion-fm[0m
+2026/08/16 12:16:42 [32mPOST[0m   [34m/api/backup                                  [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Create-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/stats          [0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetStats-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/sales-trend    [0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetSalesTrend-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/summary-extra  [0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetSummaryExtra-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/top-products   [0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetTopProducts-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/top-categories [0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetTopCategories-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/business-summary/payment-methods[0m   [37mpos_api/domain/business_summary/handler.(*BusinessSummaryHandler).GetPaymentMethods-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/sales                           [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/sales/chart                     [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetSalesChart-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/sales/export                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportSalesReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/stock                           [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetStockReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/stock/export                    [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportStockReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/profit-loss                     [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetProfitLoss-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/profit-loss/export              [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportProfitLoss-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/cashier                         [0m   [37mpos_api/domain/report/handler.(*ReportHandler).GetCashierReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/reports/cashier/export                  [0m   [37mpos_api/domain/report/handler.(*ReportHandler).ExportCashierReport-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/settings                                [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetAll-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/settings/store                          [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetStoreProfile-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/settings/printer                        [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetPrinterSettings-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/settings/:key                           [0m   [37mpos_api/domain/setting/handler.(*SettingHandler).GetByKey-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/sync/conflicts                          [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetConflicts-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/sync/conflicts/count                    [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetConflictCount-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/sync/queue                              [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetQueue-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/sync/history                            [0m   [37mpos_api/domain/sync/handler.(*SyncHandler).GetHistory-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/dashboard/recent-transactions           [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetRecentTransactions-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/dashboard/today-summary                 [0m   [37mpos_api/domain/dashboard/handler.(*DashboardHandler).GetTodaySummary-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/backup/list                             [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).GetList-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/backup/download/:filename               [0m   [37mpos_api/domain/backup/handler.(*BackupHandler).Download-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/version/android                         [0m   [37mpos_api/domain/version/handler.(*VersionHandler).CheckAndroid-fm[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/health                                  [0m   [37mpos_api/routes.publicRoutes.func1[0m
+2026/08/16 12:16:42 [32mGET [0m   [34m/api/pin/check                               [0m   [37mpos_api/domain/pin/handler.(*PinHandler).CheckPin-fm[0m
+[GIN] 2026/08/16 - 12:16:50 | 200 |            0s |             ::1 | GET      "/api/health"
+
+2026/08/16 12:16:50 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.269ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('33be3474-68da-417c-a574-d0a64c522e1f', 'GET', '/api/health', 200, '', '{"code":"00","data":null,"message":"OK","status":true}', NULL, 0, '::1', NULL, '2026-08-16 12:16:50.934')
+
+2026/08/16 12:55:35 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:17
+[0m[33m[3.350ms] [34;1m[rows:1][0m SELECT u.id, u.username, u.password, u.full_name, u.role_id, r.name AS role_name, u.is_active FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.username = 'admin' LIMIT 1
+
+2026/08/16 12:55:35 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:67
+[0m[33m[1.535ms] [34;1m[rows:0][0m DELETE FROM sessions WHERE user_id = 5
+
+2026/08/16 12:55:35 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:38
+[0m[33m[2.974ms] [34;1m[rows:1][0m INSERT INTO sessions (user_id, user_role, token, refresh_token, device_info, ip_address, expires_at, created_at) VALUES (5, 'admin', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0', 'd7ee62047c68217a4e4622800d4263a1c899cddd32899b80bf918705a87c7144', '', '::1', '2026-08-23 12:55:35.788', '2026-08-16 12:55:35.788') ON DUPLICATE KEY UPDATE user_role=VALUES(user_role), token=VALUES(token), refresh_token=VALUES(refresh_token), device_info=VALUES(device_info), ip_address=VALUES(ip_address), expires_at=VALUES(expires_at), created_at=VALUES(created_at)
+[GIN] 2026/08/16 - 12:55:35 | 200 |    109.9065ms |             ::1 | POST     "/api/auth/login"
+
+2026/08/16 12:55:35 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[5.155ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('00a1c038-9555-4849-b0b4-12017e6d71f8', 'POST', '/api/auth/login', 200, '{"username":"admin","password":"admin123"}', '{"code":"00","status":true,"message":"Login berhasil","data":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0","refresh_token":"d7ee62047c68217a4e4622800d4263a1c899cddd32899b80bf918705a87c7144","expires_at":"2026-08-23T12:55:35.7885292+07:00","user":{"id":5,"username":"admin","full_name":"Admin","role_id":2,"role_name":"admin"}}}', NULL, 109, '::1', NULL, '2026-08-16 12:55:35.794')
+
+2026/08/16 12:55:43 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.274ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:55:43 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:101
+[0m[33m[1.270ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM products p WHERE 1=1 AND (p.name LIKE '%Djarum Super Kretek%' OR p.barcode LIKE '%Djarum Super Kretek%')
+
+2026/08/16 12:55:43 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:120
+[0m[33m[4.588ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE 1=1 AND (p.name LIKE '%Djarum Super Kretek%' OR p.barcode LIKE '%Djarum Super Kretek%') ORDER BY p.name ASC LIMIT 5 OFFSET 0
+[GIN] 2026/08/16 - 12:55:43 | 200 |      7.8832ms |             ::1 | POST     "/api/products/list"
+
+2026/08/16 12:55:43 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.061ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('96ae6897-5b76-4246-b175-d3a88255e90d', 'POST', '/api/products/list', 200, '{"page":1,"limit":5,"search":"Djarum Super Kretek"}', '{"code":"00","status":true,"message":"Daftar produk","data":[{"id":197,"barcode":"8998453416467","sku":"ROK-0018","name":"Djarum Super Kretek 12","category_id":1,"category_name":"Rokok (isi 12)","purchase_price":16000,"selling_price":18000,"stock":1,"reserved_qty":0,"min_stock":5,"unit_id":2,"unit_name":"Pack","unit_abbreviation":"Pck","is_active":true,"extra_packages":2,"price_tiers_count":0}],"pagination":{"page":1,"per_page":5,"total":1,"total_pages":1}}', 5, 7, '::1', NULL, '2026-08-16 12:55:43.724')
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.606ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:137
+[0m[33m[0.522ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 197 LIMIT 1
+[GIN] 2026/08/16 - 12:55:52 | 200 |      1.8305ms |             ::1 | POST     "/api/products/detail/197"
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[5.380ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('8fd82787-26fa-483b-b257-bf3d1df796da', 'POST', '/api/products/detail/197', 200, '', '{"code":"00","status":true,"message":"Detail produk","data":{"id":197,"barcode":"8998453416467","sku":"ROK-0018","name":"Djarum Super Kretek 12","category_id":1,"category_name":"Rokok (isi 12)","purchase_price":16000,"selling_price":18000,"stock":1,"reserved_qty":0,"min_stock":5,"unit_id":2,"unit_name":"Pack","unit_abbreviation":"Pck","is_active":true,"extra_packages":2,"price_tiers_count":0}}', 5, 1, '::1', NULL, '2026-08-16 12:55:52.373')
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.043ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier/repo/supplier_repo.go:45
+[0m[33m[1.300ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM suppliers WHERE 1=1
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier/repo/supplier_repo.go:68
+[0m[33m[0.506ms] [34;1m[rows:3][0m SELECT id, supplier_code, name, address, phone, email, contact_person, notes, is_active, created_at FROM suppliers WHERE 1=1 ORDER BY name ASC LIMIT 3 OFFSET 0
+[GIN] 2026/08/16 - 12:55:52 | 200 |      2.8497ms |             ::1 | POST     "/api/suppliers/list"
+
+2026/08/16 12:55:52 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.822ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('ceb05b78-643a-437e-9819-0368b8e635c1', 'POST', '/api/suppliers/list', 200, '{"page":1,"limit":3}', '{"code":"00","status":true,"message":"Daftar supplier","data":[{"id":31,"supplier_code":"SUP-031","name":"Air ABCD","address":"","phone":"","email":"","contact_person":"","notes":"","is_active":true,"created_at":"2026-08-09T04:18:36+07:00"},{"id":7,"supplier_code":"SUP-007","name":"Air Ampo","address":"Kalisat - Ajung","phone":"","email":"","contact_person":"","notes":"","is_active":true,"created_at":"2026-08-01T04:35:33+07:00"},{"id":15,"supplier_code":"SUP-015","name":"Al- Qodiri air","address":"","phone":"082228254843","email":"","contact_person":"Mbak Wardah Alqodiri","notes":"","is_active":true,"created_at":"2026-08-05T04:59:41+07:00"}],"pagination":{"page":1,"per_page":3,"total":35,"total_pages":12}}', 5, 2, '::1', NULL, '2026-08-16 12:55:52.802')
+
+2026/08/16 12:55:59 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.343ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:55:59 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:137
+[0m[33m[1.491ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 197 LIMIT 1
+[GIN] 2026/08/16 - 12:55:59 | 200 |      3.3729ms |             ::1 | POST     "/api/products/detail/197"
+
+2026/08/16 12:55:59 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.190ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('ab8d6d49-94a7-4c1c-8277-4f4c3283aff4', 'POST', '/api/products/detail/197', 200, '', '{"code":"00","status":true,"message":"Detail produk","data":{"id":197,"barcode":"8998453416467","sku":"ROK-0018","name":"Djarum Super Kretek 12","category_id":1,"category_name":"Rokok (isi 12)","purchase_price":16000,"selling_price":18000,"stock":1,"reserved_qty":0,"min_stock":5,"unit_id":2,"unit_name":"Pack","unit_abbreviation":"Pck","is_active":true,"extra_packages":2,"price_tiers_count":0}}', 5, 3, '::1', NULL, '2026-08-16 12:55:59.279')
+
+2026/08/16 12:56:08 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.542ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:56:08 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_repo.go:137
+[0m[33m[0.639ms] [34;1m[rows:1][0m 
+		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
+		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
+		       p.is_active, p.created_at, p.updated_at,
+		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
+		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.id = 197 LIMIT 1
+
+2026/08/16 12:56:08 [32mD:/Develop/Project_pos_mahenz/BE/domain/product/repo/product_package_repo.go:24
+[0m[33m[1.249ms] [34;1m[rows:3][0m 
+		SELECT pp.id, pp.product_id, pp.unit_id, COALESCE(u.name, '') AS unit_name, COALESCE(u.abbreviation, '') AS abbreviation,
+		       COALESCE(pp.package_name, '') AS package_name, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, pp.selling_price, pp.is_default
+		FROM product_packages pp
+		JOIN units u ON u.id = pp.unit_id
+		WHERE pp.product_id = 197
+[GIN] 2026/08/16 - 12:56:08 | 200 |      2.4294ms |             ::1 | POST     "/api/products/197/packages/list"
+
+2026/08/16 12:56:08 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.943ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('44a4edad-7be3-4efd-9f04-f4b1946d781d', 'POST', '/api/products/197/packages/list', 200, '', '{"code":"00","status":true,"message":"Daftar paket produk","data":[{"id":323,"product_id":197,"unit_id":2,"unit_name":"Pack","abbreviation":"Pck","package_name":"","ref_package_id":null,"qty":1,"ref_qty":null,"resolved_factor":1,"purchase_price":16000,"selling_price":18000,"is_default":true},{"id":324,"product_id":197,"unit_id":1,"unit_name":"Pieces","abbreviation":"Pcs","package_name":"","ref_package_id":323,"qty":12,"ref_qty":1,"resolved_factor":0.08333333333333333,"purchase_price":1333,"selling_price":2000,"is_default":false},{"id":325,"product_id":197,"unit_id":15,"unit_name":"Sachet","abbreviation":"Sac","package_name":"","ref_package_id":324,"qty":1,"ref_qty":3,"resolved_factor":0.25,"purchase_price":3999,"selling_price":5000,"is_default":false}]}', 5, 2, '::1', NULL, '2026-08-16 12:56:08.9')
+[GIN] 2026/08/16 - 12:56:23 | 400 |      1.2412ms |             ::1 | POST     "/api/purchases/create"
+Error #01: Route not found
+
+2026/08/16 12:56:23 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[4.391ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('5e198732-8a82-4b99-ae55-b8a927429134', 'POST', '/api/purchases/create', 400, '{
+  "invoice_number": "TESTBACKFILL-INV-001",
+  "supplier_id": 7,
+  "purchase_date": "2026-08-16",
+  "discount_amount": 0,
+  "payment_status": "lunas",
+  "paid_amount": 32000,
+  "payment_method": "cash",
+  "notes": "test data backfill Fase 3",
+  "items": [
+    {"product_id": 197, "package_id": 323, "quantity": 2, "unit": "Pack", "conversion_qty": 1, "purchase_price": 16000}
+  ]
+}', '{"code":"40","status":false,"message":"Route not found","data":null}', NULL, 0, '::1', 'Route not found', '2026-08-16 12:56:23.188')
+
+2026/08/16 12:56:36 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[1.030ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:56:36 [32mD:/Develop/Project_pos_mahenz/BE/domain/access/repo/access_repo.go:56
+[0m[33m[1.664ms] [34;1m[rows:38][0m 
+SELECT
+    m.key_name,
+    COALESCE(rma.can_view,   0) AS can_view,
+    COALESCE(rma.can_create, 0) AS can_create,
+    COALESCE(rma.can_edit,   0) AS can_edit,
+    COALESCE(rma.can_delete, 0) AS can_delete
+FROM menus m
+LEFT JOIN role_menu_access rma ON rma.menu_id = m.id
+    AND rma.role_id = (SELECT id FROM roles WHERE name = 'admin' AND is_active = 1 LIMIT 1)
+WHERE m.is_active = 1
+ORDER BY m.id ASC
+
+2026/08/16 12:56:36 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:540
+[0m[33m[1.330ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM payment_methods WHERE code = 'cash' AND is_active = 1
+
+2026/08/16 12:56:36 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:294
+[0m[33m[2.138ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', '20260816', '-%')
+
+2026/08/16 12:56:36 [31;1mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:314 [35;1mError 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`pos_retail_db`.`purchases`, CONSTRAINT `purchases_ibfk_3` FOREIGN KEY (`payment_status`) REFERENCES `payment_statuses` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT)
+[0m[33m[1.912ms] [34;1m[rows:0][0m INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES ('PO-20260816-001', 'TESTBACKFILL-INV-001', 7, '2026-08-16', 0, 32000, 'lunas', 32000, 0, 5, 'test data backfill Fase 3')
+[GIN] 2026/08/16 - 12:56:36 | 500 |     12.4178ms |             ::1 | POST     "/api/supplier-purchases/create"
+Error #01: Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`pos_retail_db`.`purchases`, CONSTRAINT `purchases_ibfk_3` FOREIGN KEY (`payment_status`) REFERENCES `payment_statuses` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT)
+
+2026/08/16 12:56:36 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[1.952ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('42ebb03c-0d7b-4c5b-9416-d7501651e7ec', 'POST', '/api/supplier-purchases/create', 500, '{
+  "invoice_number": "TESTBACKFILL-INV-001",
+  "supplier_id": 7,
+  "purchase_date": "2026-08-16",
+  "discount_amount": 0,
+  "payment_status": "lunas",
+  "paid_amount": 32000,
+  "payment_method": "cash",
+  "notes": "test data backfill Fase 3",
+  "items": [
+    {"product_id": 197, "package_id": 323, "quantity": 2, "unit": "Pack", "conversion_qty": 1, "purchase_price": 16000}
+  ]
+}', '{"code":"50","status":false,"trace_id":"42ebb03c-0d7b-4c5b-9416-d7501651e7ec","message":"Internal Server Error","data":null}', 5, 12, '::1', 'Error 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`pos_retail_db`.`purchases`, CONSTRAINT `purchases_ibfk_3` FOREIGN KEY (`payment_status`) REFERENCES `payment_statuses` (`code`) ON DELETE RESTRICT ON UPDATE RESTRICT)', '2026-08-16 12:56:36.619')
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.530ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:540
+[0m[33m[0.543ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM payment_methods WHERE code = 'cash' AND is_active = 1
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:294
+[0m[33m[1.208ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', '20260816', '-%')
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:314
+[0m[33m[0.830ms] [34;1m[rows:1][0m INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES ('PO-20260816-001', 'TESTBACKFILL-INV-001', 7, '2026-08-16', 0, 32000, 'paid', 32000, 0, 5, 'test data backfill Fase 3')
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:321
+[0m[33m[0.507ms] [34;1m[rows:1][0m SELECT LAST_INSERT_ID()
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:330
+[0m[33m[0.567ms] [34;1m[rows:1][0m INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (130, '2026-08-16', 32000, 'cash', 'test data backfill Fase 3', 5)
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:66
+[0m[33m[0.603ms] [34;1m[rows:3][0m SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = 197
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:342
+[0m[33m[1.546ms] [34;1m[rows:1][0m INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (130, 197, 2, 'Pack', 1, 16000, 32000)
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:360
+[0m[33m[0.559ms] [34;1m[rows:1][0m SELECT stock FROM products WHERE id = 197 LIMIT 1
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:364
+[0m[33m[0.751ms] [34;1m[rows:1][0m UPDATE products SET stock = stock + 2, updated_at = NOW() WHERE id = 197
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:370
+[0m[33m[0.587ms] [34;1m[rows:1][0m INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (197, 'in', 2, 1, 3, 'purchase', 130, 'Purchase Order PO-20260816-001', 5)
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:157
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = 130
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:199
+[0m[33m[0.000ms] [34;1m[rows:-][0m SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = 130
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:231
+[0m[33m[0.558ms] [34;1m[rows:0][0m SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = 221 ORDER BY expired_date ASC
+[GIN] 2026/08/16 - 12:56:54 | 201 |     18.0754ms |             ::1 | POST     "/api/supplier-purchases/create"
+
+2026/08/16 12:56:54 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[3.081ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('4ca283d9-dc1b-4a1f-b38e-737d789667d4', 'POST', '/api/supplier-purchases/create', 201, '{
+  "invoice_number": "TESTBACKFILL-INV-001",
+  "supplier_id": 7,
+  "purchase_date": "2026-08-16",
+  "discount_amount": 0,
+  "payment_status": "paid",
+  "paid_amount": 32000,
+  "payment_method": "cash",
+  "notes": "test data backfill Fase 3",
+  "items": [
+    {"product_id": 197, "package_id": 323, "quantity": 2, "unit": "Pack", "conversion_qty": 1, "purchase_price": 16000}
+  ]
+}', '{"code":"21","status":true,"message":"Purchase order berhasil dibuat","data":{"id":130,"purchase_code":"PO-20260816-001","invoice_number":"TESTBACKFILL-INV-001","supplier_id":7,"supplier_name":"Air Ampo","purchase_date":"2026-08-16T00:00:00+07:00","discount_amount":0,"total_amount":32000,"payment_status":"paid","paid_amount":32000,"remaining_amount":0,"status":"active","user_name":"Admin","notes":"test data backfill Fase 3","items":[{"id":221,"product_id":197,"product_name":"Djarum Super Kretek 12","quantity":2,"unit":"Pack","conversion_qty":1,"purchase_price":16000,"subtotal":32000}]}}', 5, 18, '::1', NULL, '2026-08-16 12:56:54.062')
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.514ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:124
+[0m[33m[0.905ms] [34;1m[rows:1][0m SELECT purchase_date FROM purchases WHERE id = 130 LIMIT 1
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:133
+[0m[33m[0.538ms] [34;1m[rows:1][0m SELECT status FROM purchases WHERE id = 130 LIMIT 1
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:146
+[0m[33m[0.621ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM supplier_returns WHERE DATE(return_date) = '2026-08-16'
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:156
+[0m[33m[0.675ms] [34;1m[rows:1][0m INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES ('RTR-20260816-001', 130, 7, 'Air Ampo', '2026-08-16', 16000, 'test data backfill Fase 3', 'pending', 5, 'test')
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:164
+[0m[33m[0.526ms] [34;1m[rows:1][0m SELECT LAST_INSERT_ID()
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:170
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT quantity FROM purchase_items WHERE id = 221 AND purchase_id = 130 LIMIT 1 FOR UPDATE
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:175
+[0m[33m[1.044ms] [34;1m[rows:1][0m SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = 221 AND sr.status IN ('pending', 'approved')
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:187
+[0m[33m[0.530ms] [34;1m[rows:1][0m INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, quantity, unit, purchase_price, subtotal) VALUES (1, 221, 197, 'Djarum Super Kretek 12', 1, 'Pack', 16000, 16000)
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:195
+[0m[33m[1.069ms] [34;1m[rows:1][0m UPDATE products SET reserved_qty = reserved_qty + 1, updated_at = NOW() WHERE id = 197
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:89
+[0m[33m[0.823ms] [34;1m[rows:1][0m SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = 1
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:116
+[0m[33m[1.135ms] [34;1m[rows:1][0m SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = 1
+[GIN] 2026/08/16 - 12:57:14 | 201 |     18.1837ms |             ::1 | POST     "/api/supplier-returns/create"
+
+2026/08/16 12:57:14 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[4.265ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('3a32f9c9-f9b3-4f9b-8958-f39f22f390d4', 'POST', '/api/supplier-returns/create', 201, '{
+  "purchase_id": 130,
+  "supplier_id": 7,
+  "supplier_name": "Air Ampo",
+  "return_date": "2026-08-16",
+  "reason": "test data backfill Fase 3",
+  "notes": "test",
+  "items": [
+    {"purchase_item_id": 221, "product_id": 197, "product_name": "Djarum Super Kretek 12", "quantity": 1, "unit": "Pack", "purchase_price": 16000}
+  ]
+}', '{"code":"21","status":true,"message":"Retur supplier berhasil dibuat","data":{"id":1,"return_code":"RTR-20260816-001","purchase_id":130,"supplier_id":7,"supplier_name":"Air Ampo","return_date":"2026-08-16T00:00:00+07:00","total_return_amount":16000,"reason":"test data backfill Fase 3","status":"pending","user_name":"Admin","notes":"test","items":[{"id":1,"product_id":197,"product_name":"Djarum Super Kretek 12","quantity":1,"unit":"Pack","purchase_price":16000,"subtotal":16000}]}}', 5, 18, '::1', NULL, '2026-08-16 12:57:14.845')
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.984ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:107
+[0m[33m[0.800ms] [34;1m[rows:1][0m SELECT status FROM supplier_returns WHERE id = 1
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:215
+[0m[33m[0.712ms] [34;1m[rows:1][0m UPDATE supplier_returns SET status = 'approved', updated_at = NOW() WHERE id = 1
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:221
+[0m[33m[0.965ms] [34;1m[rows:1][0m SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = 1
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:116
+[0m[33m[3.197ms] [34;1m[rows:1][0m SELECT sri.id, sri.product_id, sri.product_name, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = 1
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:233
+[0m[33m[0.544ms] [34;1m[rows:1][0m SELECT stock FROM products WHERE id = 197 LIMIT 1 FOR UPDATE
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:244
+[0m[33m[0.536ms] [34;1m[rows:1][0m UPDATE products SET stock = stock - 1, updated_at = NOW() WHERE id = 197
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:249
+[0m[33m[1.145ms] [34;1m[rows:1][0m UPDATE products SET reserved_qty = GREATEST(reserved_qty - 1, 0), updated_at = NOW() WHERE id = 197
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:255
+[0m[33m[0.541ms] [34;1m[rows:1][0m INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (197, 'return', 1, 3, 2, 'supplier_return', 1, 'Supplier Return #1', 5)
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_return/repo/supplier_return_repo.go:264
+[0m[33m[0.751ms] [34;1m[rows:1][0m UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - 16000, 0), payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = 130
+[GIN] 2026/08/16 - 12:57:24 | 200 |     14.8744ms |             ::1 | POST     "/api/supplier-returns/update-status/1"
+
+2026/08/16 12:57:24 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[1.857ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('14e06fb5-b86a-4b16-b199-3f6d9533585a', 'POST', '/api/supplier-returns/update-status/1', 200, '{"status":"approved","notes":"test approve backfill data"}', '{"code":"00","status":true,"message":"Status retur supplier berhasil diperbarui","data":null}', 5, 14, '::1', NULL, '2026-08-16 12:57:24.577')
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.533ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:540
+[0m[33m[1.103ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM payment_methods WHERE code = 'cash' AND is_active = 1
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:294
+[0m[33m[1.648ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', '20260816', '-%')
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:314
+[0m[33m[0.544ms] [34;1m[rows:1][0m INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES ('PO-20260816-002', 'TESTBACKFILL-INV-002', 7, '2026-08-16', 0, 16000, 'paid', 16000, 0, 5, 'test data backfill Fase 3 - expiry')
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:321
+[0m[33m[0.551ms] [34;1m[rows:1][0m SELECT LAST_INSERT_ID()
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:330
+[0m[33m[0.797ms] [34;1m[rows:1][0m INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (131, '2026-08-16', 16000, 'cash', 'test data backfill Fase 3 - expiry', 5)
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:66
+[0m[33m[1.074ms] [34;1m[rows:3][0m SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = 197
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:342
+[0m[33m[0.737ms] [34;1m[rows:1][0m INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (131, 197, 1, 'Pack', 1, 16000, 16000)
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:351
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT LAST_INSERT_ID()
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:50
+[0m[33m[0.602ms] [34;1m[rows:1][0m INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (197, 222, 1, '2026-08-01')
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:360
+[0m[33m[0.714ms] [34;1m[rows:1][0m SELECT stock FROM products WHERE id = 197 LIMIT 1
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:364
+[0m[33m[0.798ms] [34;1m[rows:1][0m UPDATE products SET stock = stock + 1, updated_at = NOW() WHERE id = 197
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:370
+[0m[33m[0.571ms] [34;1m[rows:1][0m INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (197, 'in', 1, 2, 3, 'purchase', 131, 'Purchase Order PO-20260816-002', 5)
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:157
+[0m[33m[0.815ms] [34;1m[rows:-][0m SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = 131
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:199
+[0m[33m[0.591ms] [34;1m[rows:-][0m SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = 131
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/domain/supplier_purchase/repo/purchase_repo.go:231
+[0m[33m[0.625ms] [34;1m[rows:1][0m SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = 222 ORDER BY expired_date ASC
+[GIN] 2026/08/16 - 12:57:48 | 201 |      18.842ms |             ::1 | POST     "/api/supplier-purchases/create"
+
+2026/08/16 12:57:48 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.748ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('1c25d82b-f413-4d80-ad4d-b4b0f9be4e1f', 'POST', '/api/supplier-purchases/create', 201, '{
+  "invoice_number": "TESTBACKFILL-INV-002",
+  "supplier_id": 7,
+  "purchase_date": "2026-08-16",
+  "discount_amount": 0,
+  "payment_status": "paid",
+  "paid_amount": 16000,
+  "payment_method": "cash",
+  "notes": "test data backfill Fase 3 - expiry",
+  "items": [
+    {"product_id": 197, "package_id": 323, "quantity": 1, "unit": "Pack", "conversion_qty": 1, "purchase_price": 16000,
+     "expiry_batches": [{"qty": 1, "expired_date": "2026-08-01"}]}
+  ]
+}', '{"code":"21","status":true,"message":"Purchase order berhasil dibuat","data":{"id":131,"purchase_code":"PO-20260816-002","invoice_number":"TESTBACKFILL-INV-002","supplier_id":7,"supplier_name":"Air Ampo","purchase_date":"2026-08-16T00:00:00+07:00","discount_amount":0,"total_amount":16000,"payment_status":"paid","paid_amount":16000,"remaining_amount":0,"status":"active","user_name":"Admin","notes":"test data backfill Fase 3 - expiry","items":[{"id":222,"product_id":197,"product_name":"Djarum Super Kretek 12","quantity":1,"unit":"Pack","conversion_qty":1,"purchase_price":16000,"subtotal":16000,"expiry_batches":[{"qty":1,"expired_date":"2026-08-01"}]}]}}', 5, 18, '::1', NULL, '2026-08-16 12:57:48.378')
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/auth/repo/auth_repo.go:46
+[0m[33m[0.617ms] [34;1m[rows:1][0m SELECT id, user_id, user_role, token, device_info, expires_at FROM sessions WHERE token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBzIjoiIiwiZXhwIjoxNzg2ODg4NTM1LCJmdWxsX25hbWUiOiJBZG1pbiIsInJvbGUiOiJhZG1pbiIsInVzZXJfaWQiOjUsInVzZXJuYW1lIjoiYWRtaW4ifQ.LgtA4JW-4mzziykoe4b_An8iu-hgCSHSlqiEopgSIz0' LIMIT 1
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:85
+[0m[33m[0.818ms] [34;1m[rows:1][0m 
+		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
+		FROM product_expiry_batches eb
+		LEFT JOIN products p ON eb.product_id = p.id
+		WHERE eb.id = 4
+	
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:134
+[0m[33m[0.768ms] [34;1m[rows:1][0m 
+		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
+		FROM product_expiry_batches eb
+		LEFT JOIN products p ON eb.product_id = p.id
+		WHERE eb.id = 4
+	 FOR UPDATE
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:109
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT stock FROM products WHERE id = 197 FOR UPDATE
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:113
+[0m[33m[0.607ms] [34;1m[rows:1][0m UPDATE products SET stock = GREATEST(stock - 1, 0), updated_at = '2026-08-16 12:58:01.037' WHERE id = 197
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:122
+[0m[33m[0.516ms] [34;1m[rows:1][0m INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (197, 'expired', 1, 3, 2, 'expiry_batch', 4, 'Write-off batch expired 2026-08-01', 5)
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/domain/expiry_batch/repo/expiry_batch_repo.go:128
+[0m[33m[0.602ms] [34;1m[rows:1][0m 
+		UPDATE product_expiry_batches
+		SET status = 'written_off', resolved_by = 5, resolved_at = '2026-08-16 12:58:01.037', notes = 'test write-off backfill Fase 3', updated_at = '2026-08-16 12:58:01.037'
+		WHERE id = 4
+	
+[GIN] 2026/08/16 - 12:58:01 | 200 |      6.9708ms |             ::1 | POST     "/api/expiry-batches/write-off/4"
+
+2026/08/16 12:58:01 [32mD:/Develop/Project_pos_mahenz/BE/repository/log_request_repository.go:32
+[0m[33m[2.685ms] [34;1m[rows:1][0m INSERT INTO log_requests (id, method, endpoint, status_code, request_body, response_body, user_id, duration_ms, ip_address, error_message, created_at) VALUES ('8a1ad2ec-79b2-46f2-a820-7ec61069a7b0', 'POST', '/api/expiry-batches/write-off/4', 200, '{"notes":"test write-off backfill Fase 3"}', '{"code":"00","status":true,"message":"Stok expired berhasil dimusnahkan","data":null}', 5, 6, '::1', NULL, '2026-08-16 12:58:01.043')
+exit status 0xffffffff

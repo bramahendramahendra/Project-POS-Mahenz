@@ -23,67 +23,28 @@ export function formatProductPackage(pkg: ProductPackage): string {
   return pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
 }
 
-/**
- * resolved_factor bisa berupa hasil pembagian panjang (mis. 1/120 = 0.008333...) —
- * dibulatkan ke 4 desimal & trailing zero dibuang supaya enak dibaca, tanpa
- * menyembunyikan presisi yang masih berarti untuk satuan yang jauh lebih kecil.
- */
 export function formatResolvedFactor(factor: number): string {
   return Number(factor.toFixed(4)).toString()
 }
 
-export interface StockBreakdownLevel {
-  unit_name: string
-  qty: number
+export function formatStockNumber(value: number): string {
+  return Number(value.toFixed(3)).toString()
 }
 
-/**
- * Pecah angka stok (desimal, satuan anchor) jadi kombinasi satuan yang lebih kecil
- * mengikuti resolved_factor tiap paket (sudah dihitung server, sudah menangani rantai
- * konversi berjenjang). Level diurutkan dari satuan fisik terbesar ke terkecil; semua
- * level KECUALI yang terkecil dibulatkan ke bawah (sisa pecahannya "diteruskan" ke level
- * berikutnya) — level terkecil boleh tetap desimal kalau stok tidak habis pas di situ
- * (relevan untuk produk berbasis berat/volume). Level bernilai 0 disaring oleh caller
- * (lihat formatStockBreakdown), bukan di sini, supaya breakdownStock tetap dipakai ulang
- * untuk kebutuhan lain yang butuh angka mentah per level.
- */
-export function breakdownStock(stock: number, packages: ProductPackage[]): StockBreakdownLevel[] {
-  if (packages.length === 0) return []
+export function formatPackageBreakdown(
+  packages: ProductPackage[],
+  valueOf: (pkg: ProductPackage) => number = (p) => p.stock
+): string {
+  const active = packages.filter((p) => p.is_active)
+  if (active.length === 0) return '0'
 
-  const sorted = [...packages].sort((a, b) => b.resolved_factor - a.resolved_factor)
-  const EPSILON = 1e-9
-  let remaining = stock
-  const levels: StockBreakdownLevel[] = []
-
-  sorted.forEach((pkg, i) => {
-    const isLast = i === sorted.length - 1
-    const countInThisUnit = remaining / pkg.resolved_factor
-    if (isLast) {
-      levels.push({ unit_name: pkg.unit_name, qty: countInThisUnit })
-    } else {
-      const qty = Math.floor(countInThisUnit + EPSILON)
-      levels.push({ unit_name: pkg.unit_name, qty })
-      remaining -= qty * pkg.resolved_factor
-    }
-  })
-
-  return levels
-}
-
-/**
- * Format hasil breakdownStock jadi teks siap-tampil, mis. "5 Pack" atau "1 Krak 5 Pieces".
- * Level bernilai 0 disembunyikan (di posisi manapun — depan/tengah/akhir); kalau semua
- * level 0 (stok benar-benar habis), tampilkan level terkecil saja dengan angka 0 supaya
- * tidak kosong.
- */
-export function formatStockBreakdown(stock: number, packages: ProductPackage[]): string {
-  const levels = breakdownStock(stock, packages)
-  if (levels.length === 0) return String(stock)
+  const sorted = [...active].sort((a, b) => b.resolved_factor - a.resolved_factor)
+  const levels = sorted.map((pkg) => ({ unit_name: pkg.unit_name, qty: valueOf(pkg) }))
 
   const nonZero = levels.filter((l) => l.qty !== 0)
   const toShow = nonZero.length > 0 ? nonZero : [levels[levels.length - 1]]
 
-  return toShow.map((l) => `${formatResolvedFactor(l.qty)} ${l.unit_name}`).join(' ')
+  return toShow.map((l) => `${formatStockNumber(l.qty)} ${l.unit_name}`).join(' ')
 }
 
 export function getDisplayPrice(product: Product): number {

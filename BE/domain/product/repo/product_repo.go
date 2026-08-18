@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"sort"
 
 	dto "pos_api/domain/product/dto"
 	model "pos_api/domain/product/model"
@@ -12,11 +13,16 @@ import (
 )
 
 const (
+	// Fase 8: p.stock/p.reserved_qty (kolom lama) DIHAPUS dari sini -- semua
+	// query di bawah cuma ambil field non-stok, angka stok final SELALU diisi
+	// di lapisan Go lewat attachStockSummaries (agregasi product_packages,
+	// Fase 5), termasuk fallback untuk produk yang gagal dianalisis (celah
+	// #10/#20 -- lihat BuildStockSummaries di stock_read_repo.go).
 	getAllProductsBase = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       p.purchase_price, p.selling_price, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
-		       p.is_active,
+		       p.is_active, p.needs_stock_review, COALESCE(p.stock_review_note, '') as stock_review_note,
 		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
 		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
 		FROM products p
@@ -26,9 +32,9 @@ const (
 
 	getProductByIDQuery = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       p.purchase_price, p.selling_price, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
-		       p.is_active, p.created_at, p.updated_at,
+		       p.is_active, p.needs_stock_review, COALESCE(p.stock_review_note, '') as stock_review_note, p.created_at, p.updated_at,
 		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
 		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
 		FROM products p
@@ -38,9 +44,9 @@ const (
 
 	getProductByBarcodeQuery = `
 		SELECT p.id, p.barcode, COALESCE(p.sku, '') as sku, p.name, p.category_id, COALESCE(c.name, '') as category_name,
-		       p.purchase_price, p.selling_price, p.stock, p.reserved_qty, p.min_stock,
+		       p.purchase_price, p.selling_price, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name, COALESCE(u.abbreviation, '') as unit_abbreviation,
-		       p.is_active, p.created_at, p.updated_at,
+		       p.is_active, p.needs_stock_review, COALESCE(p.stock_review_note, '') as stock_review_note, p.created_at, p.updated_at,
 		       (SELECT COUNT(*) FROM product_packages pp WHERE pp.product_id = p.id AND pp.is_default = 0) AS extra_packages,
 		       (SELECT COUNT(*) FROM product_prices pr WHERE pr.product_id = p.id) AS price_tiers_count
 		FROM products p
@@ -49,32 +55,66 @@ const (
 		WHERE p.barcode = ? LIMIT 1`
 
 	searchProductsQuery = `
-		SELECT p.id, p.barcode, p.name, p.selling_price, (p.stock - p.reserved_qty) as stock, p.min_stock,
+		SELECT p.id, p.barcode, p.name, p.selling_price, p.min_stock,
 		       COALESCE(p.unit_id, 0) as unit_id, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?)`
 
-	getLowStockQuery = `
-		SELECT p.id, p.name, (p.stock - p.reserved_qty) as stock, p.min_stock, COALESCE(u.name, '') as unit_name
+	// getAllActiveProductsForLowStockQuery -- perbandingan "stok menipis"
+	// TIDAK dilakukan di SQL (anchor-vs-anchor, celah #12 -- salah alarm
+	// begitu sisa < 1 unit anchor). Cuma ambil kandidat (semua produk aktif)
+	// plus min_stock, perbandingan sebenarnya dilakukan di Go pakai
+	// ComputeStockSummary (satuan terkecil) -- lihat GetLowStock().
+	getAllActiveProductsForLowStockQuery = `
+		SELECT p.id, p.name, p.min_stock, p.needs_stock_review, COALESCE(u.name, '') as unit_name
 		FROM products p
 		LEFT JOIN units u ON u.id = p.unit_id
-		WHERE (p.stock - p.reserved_qty) <= p.min_stock AND p.is_active = 1`
+		WHERE p.is_active = 1`
 
 	getProductOptionsQuery      = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
 	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
 	checkProductPurchasedQuery  = `SELECT COUNT(*) FROM purchase_items WHERE product_id = ?`
-	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, stock, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createProductQuery          = `INSERT INTO products (barcode, sku, name, category_id, purchase_price, selling_price, min_stock, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	insertAnchorPackageOnCreate = `INSERT INTO product_packages (product_id, unit_id, purchase_price, selling_price, is_default) VALUES (?, ?, ?, ?, 1)`
 	getLastProductInsertIDQuery = `SELECT LAST_INSERT_ID()`
-	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, stock=?, min_stock=?, updated_at=? WHERE id=?`
+	updateProductQuery          = `UPDATE products SET barcode=?, sku=?, name=?, category_id=?, purchase_price=?, selling_price=?, min_stock=?, updated_at=? WHERE id=?`
+	getAnchorPackageForUpdateQuery = `SELECT id, stock FROM product_packages WHERE product_id = ? AND is_default = 1 LIMIT 1`
 	updateAnchorPackagePrice    = `UPDATE product_packages SET purchase_price=?, selling_price=?, updated_at=? WHERE product_id=? AND is_default=1`
 	deleteProductQuery          = `DELETE FROM products WHERE id = ?`
 	toggleProductStatusQuery    = `UPDATE products SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
-	updateProductStockQuery     = `UPDATE products SET stock = stock + ?, updated_at = ? WHERE id = ?`
+	markStockReviewedQuery      = `UPDATE products SET needs_stock_review = 0, stock_review_note = NULL, updated_at = ? WHERE id = ?`
 	getAllProductsDefaultOrder  = ` ORDER BY p.name ASC`
 	countProductsBase           = `SELECT COUNT(*) FROM products p WHERE 1=1`
 )
+
+// attachStockSummaries mengisi Stock/ReservedQty/IsLowStock tiap produk dari
+// agregasi product_packages (Fase 5, celah #12) -- SATU-SATUNYA sumber sejak
+// Fase 8 (kolom products.stock/reserved_qty sudah dihapus). Produk yang
+// gagal dianalisis penuh (rantai bercabang dkk, celah #10/#20) tetap dapat
+// entri di BuildStockSummaries lewat fallback baris anchor apa adanya --
+// lihat komentar BuildStockSummaries di stock_read_repo.go.
+func attachStockSummaries(db *gorm.DB, products []*model.Product) error {
+	if len(products) == 0 {
+		return nil
+	}
+	minStockByProduct := make(map[int]float64, len(products))
+	for _, p := range products {
+		minStockByProduct[p.ID] = p.MinStock
+	}
+	summaries, err := BuildStockSummaries(db, minStockByProduct)
+	if err != nil {
+		return err
+	}
+	for _, p := range products {
+		if s, ok := summaries[p.ID]; ok {
+			p.Stock = s.AnchorStock
+			p.ReservedQty = s.AnchorReserved
+			p.IsLowStock = s.IsLowStock
+		}
+	}
+	return nil
+}
 
 func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, error) {
 	var args []any
@@ -93,8 +133,61 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 		conditions += ` AND p.is_active = ?`
 		args = append(args, *req.IsActive)
 	}
-	if req.LowStock {
-		conditions += ` AND (p.stock - p.reserved_qty) <= p.min_stock`
+
+	allowedSortFields := map[string]string{
+		"name":           "p.name",
+		"selling_price":  "p.selling_price",
+		"purchase_price": "p.purchase_price",
+		"is_active":      "p.is_active",
+	}
+	orderClause := request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllProductsDefaultOrder)
+
+	// Fase 5/8 (celah #12): "stok menipis" DAN sortir berdasarkan stok TIDAK
+	// BISA lagi dilakukan di SQL -- angka stok sekarang cuma ada lewat
+	// agregasi product_packages (Fase 8: kolom products.stock sudah dihapus).
+	// Kalau salah satu aktif, muat SEMUA kandidat yang cocok filter lain
+	// (tanpa LIMIT/OFFSET), hitung di Go, baru filter+sortir+paginasi di
+	// memori -- dataset produk cukup kecil (~ratusan) untuk ini aman.
+	needsInMemory := req.LowStock || req.SortBy == "stock"
+	if needsInMemory {
+		var all []*model.Product
+		query := getAllProductsBase + conditions + orderClause
+		if err := r.db.Raw(query, args...).Scan(&all).Error; err != nil {
+			return nil, 0, err
+		}
+		if err := attachStockSummaries(r.db, all); err != nil {
+			return nil, 0, err
+		}
+
+		if req.SortBy == "stock" {
+			sort.Slice(all, func(i, j int) bool {
+				if req.SortOrder == "desc" {
+					return all[i].Stock > all[j].Stock
+				}
+				return all[i].Stock < all[j].Stock
+			})
+		}
+
+		filtered := all
+		if req.LowStock {
+			filtered = make([]*model.Product, 0, len(all))
+			for _, p := range all {
+				if p.IsLowStock {
+					filtered = append(filtered, p)
+				}
+			}
+		}
+
+		_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
+		total := int64(len(filtered))
+		if offset >= len(filtered) {
+			return []*model.Product{}, total, nil
+		}
+		end := offset + limit
+		if end > len(filtered) {
+			end = len(filtered)
+		}
+		return filtered[offset:end], total, nil
 	}
 
 	var total int64
@@ -104,20 +197,14 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 
 	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
-	allowedSortFields := map[string]string{
-		"name":           "p.name",
-		"selling_price":  "p.selling_price",
-		"purchase_price": "p.purchase_price",
-		"stock":          "p.stock",
-		"is_active":      "p.is_active",
-	}
-	query := getAllProductsBase + conditions
-	query += request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, getAllProductsDefaultOrder)
-	query += " LIMIT ? OFFSET ?"
-	args = append(args, limit, offset)
+	query := getAllProductsBase + conditions + orderClause + " LIMIT ? OFFSET ?"
+	pagedArgs := append(append([]any{}, args...), limit, offset)
 
 	var dataDB []*model.Product
-	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
+	if err := r.db.Raw(query, pagedArgs...).Scan(&dataDB).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := attachStockSummaries(r.db, dataDB); err != nil {
 		return nil, 0, err
 	}
 	return dataDB, total, nil
@@ -141,6 +228,9 @@ func (r *productRepo) GetByID(id int) (*model.Product, error) {
 	if dataDB.ID == 0 {
 		return nil, nil
 	}
+	if err := attachStockSummaries(r.db, []*model.Product{&dataDB}); err != nil {
+		return nil, err
+	}
 	return &dataDB, nil
 }
 
@@ -153,9 +243,15 @@ func (r *productRepo) GetByBarcode(barcode string) (*model.Product, error) {
 	if dataDB.ID == 0 {
 		return nil, nil
 	}
+	if err := attachStockSummaries(r.db, []*model.Product{&dataDB}); err != nil {
+		return nil, err
+	}
 	return &dataDB, nil
 }
 
+// Search dipakai kasir (ProductSearch.tsx) -- dataset hasil selalu kecil
+// (limit <= 50), jadi agregasi per-produk lewat product_packages (bukan lagi
+// products.stock - reserved_qty langsung) di sini murah dilakukan per-row.
 func (r *productRepo) Search(req *dto.SearchRequest) ([]*model.ProductSearchResult, error) {
 	limit := req.Limit
 	if limit <= 0 || limit > 50 {
@@ -172,14 +268,75 @@ func (r *productRepo) Search(req *dto.SearchRequest) ([]*model.ProductSearchResu
 	if err != nil {
 		return nil, err
 	}
+
+	if len(dataDB) > 0 {
+		productIDs := make([]int, len(dataDB))
+		minStockByProduct := make(map[int]float64, len(dataDB))
+		for i, v := range dataDB {
+			productIDs[i] = v.ID
+			minStockByProduct[v.ID] = v.MinStock
+		}
+		summaries, err := BuildStockSummaries(r.db, minStockByProduct)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range dataDB {
+			if s, ok := summaries[v.ID]; ok {
+				v.Stock = s.AnchorStock - s.AnchorReserved
+			}
+		}
+	}
 	return dataDB, nil
 }
 
+// GetLowStock -- Fase 5 (celah #12): dulu perbandingan (stock - reserved_qty)
+// <= min_stock langsung di SQL, anchor-vs-anchor, salah alarm begitu sisa
+// produk < 1 unit anchor penuh (mis. 0 Kardus + 20 Botol dari kapasitas 48).
+// Sekarang perbandingan dilakukan di satuan TERKECIL lewat ComputeStockSummary.
 func (r *productRepo) GetLowStock() ([]*model.LowStockProduct, error) {
-	var dataDB []*model.LowStockProduct
-	err := r.db.Raw(getLowStockQuery).Scan(&dataDB).Error
+	type candidateRow struct {
+		ID               int     `gorm:"column:id"`
+		Name             string  `gorm:"column:name"`
+		MinStock         float64 `gorm:"column:min_stock"`
+		NeedsStockReview bool    `gorm:"column:needs_stock_review"`
+		UnitName         string  `gorm:"column:unit_name"`
+	}
+	var candidates []*candidateRow
+	if err := r.db.Raw(getAllActiveProductsForLowStockQuery).Scan(&candidates).Error; err != nil {
+		return nil, err
+	}
+	if len(candidates) == 0 {
+		return []*model.LowStockProduct{}, nil
+	}
+
+	minStockByProduct := make(map[int]float64, len(candidates))
+	for _, c := range candidates {
+		minStockByProduct[c.ID] = c.MinStock
+	}
+	summaries, err := BuildStockSummaries(r.db, minStockByProduct)
 	if err != nil {
 		return nil, err
+	}
+
+	dataDB := make([]*model.LowStockProduct, 0, len(candidates))
+	for _, c := range candidates {
+		s, ok := summaries[c.ID]
+		if !ok {
+			// Gagal dianalisis (rantai bercabang dkk) -- tidak dimasukkan ke
+			// daftar stok menipis (datanya sendiri meragukan), badge
+			// needs_stock_review di FE (Fase 6) yang memberi tahu admin.
+			continue
+		}
+		if !s.IsLowStock {
+			continue
+		}
+		dataDB = append(dataDB, &model.LowStockProduct{
+			ID:       c.ID,
+			Name:     c.Name,
+			Stock:    s.AnchorStock - s.AnchorReserved,
+			MinStock: c.MinStock,
+			UnitName: c.UnitName,
+		})
 	}
 	return dataDB, nil
 }
@@ -212,7 +369,7 @@ func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(createProductQuery,
 			req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-			req.SellingPrice, req.Stock, req.MinStock, req.UnitID,
+			req.SellingPrice, req.MinStock, req.UnitID,
 		).Error; err != nil {
 			return err
 		}
@@ -227,6 +384,30 @@ func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
 		var anchorID int64
 		if err := tx.Raw(getLastProductInsertIDQuery).Scan(&anchorID).Error; err != nil {
 			return err
+		}
+
+		// Stok awal (kalau diisi admin) HARUS lewat ApplyStockDelta -- bukan
+		// ditulis langsung -- supaya tercatat di stock_mutations & konsisten
+		// dengan satu-satunya sumber kebenaran stok (product_packages), bukan
+		// bergantung pada products.stock (kolom lama, dihapus Fase 8).
+		if req.Stock > 0 {
+			var userID *int
+			if req.UserID > 0 {
+				userID = &req.UserID
+			}
+			if _, err := ApplyStockDelta(tx, ApplyStockDeltaParams{
+				ProductID:     int(id),
+				PackageID:     int(anchorID),
+				Quantity:      req.Stock,
+				Direction:     model.StockIn,
+				MutationType:  "adjustment",
+				ReferenceType: "product_create",
+				ReferenceID:   int(id),
+				Notes:         "Stok awal saat produk dibuat",
+				UserID:        userID,
+			}); err != nil {
+				return WrapStockError(err, int(id))
+			}
 		}
 
 		// tempToReal: peta penanda sementara dari FE (temp_id) ke ID asli product_packages
@@ -262,17 +443,69 @@ func (r *productRepo) Create(req *dto.CreateRequest) (int64, error) {
 	return id, nil
 }
 
+// Update mengubah data produk. PENTING (celah #1 / Aturan Operasional #5):
+// req.Stock TIDAK LAGI ditulis langsung ke products.stock -- dulu ini jalan
+// bypass yang bisa mengubah stok tanpa tercatat di stock_mutations sama
+// sekali (dikonfirmasi lewat testing browser: field "Stok" di form edit bisa
+// diedit bebas, 2 klik dari daftar produk, tanpa jejak audit). Sekarang
+// selisih antara req.Stock dan stok anchor saat ini diterjemahkan jadi
+// delta lewat ApplyStockDelta, supaya tercatat & tervalidasi (mis. tidak
+// bisa dikurangi sampai minus) sama seperti jalur lain.
 func (r *productRepo) Update(req *dto.UpdateRequest) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		now := time_helper.GetTimeNow()
 		if err := tx.Exec(updateProductQuery,
 			req.Barcode, req.SKU, req.Name, req.CategoryID, req.PurchasePrice,
-			req.SellingPrice, req.Stock, req.MinStock, now, req.ID,
+			req.SellingPrice, req.MinStock, now, req.ID,
 		).Error; err != nil {
 			return err
 		}
 
-		return tx.Exec(updateAnchorPackagePrice, req.PurchasePrice, req.SellingPrice, now, req.ID).Error
+		if err := tx.Exec(updateAnchorPackagePrice, req.PurchasePrice, req.SellingPrice, now, req.ID).Error; err != nil {
+			return err
+		}
+
+		var anchor struct {
+			ID    int
+			Stock float64
+		}
+		if err := tx.Raw(getAnchorPackageForUpdateQuery, req.ID).Scan(&anchor).Error; err != nil {
+			return err
+		}
+		if anchor.ID == 0 {
+			return fmt.Errorf("produk %d tidak punya baris satuan anchor", req.ID)
+		}
+
+		delta := req.Stock - anchor.Stock
+		if delta == 0 {
+			return nil
+		}
+		direction := model.StockIn
+		qty := delta
+		if delta < 0 {
+			direction = model.StockOut
+			qty = -delta
+		}
+
+		var userID *int
+		if req.UserID > 0 {
+			userID = &req.UserID
+		}
+		_, err := ApplyStockDelta(tx, ApplyStockDeltaParams{
+			ProductID:     req.ID,
+			PackageID:     anchor.ID,
+			Quantity:      qty,
+			Direction:     direction,
+			MutationType:  "adjustment",
+			ReferenceType: "product_edit",
+			ReferenceID:   req.ID,
+			Notes:         "Edit stok manual lewat form produk",
+			UserID:        userID,
+		})
+		if err != nil {
+			return WrapStockError(err, req.ID)
+		}
+		return nil
 	})
 }
 
@@ -286,7 +519,6 @@ func (r *productRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	return err
 }
 
-func (r *productRepo) UpdateStock(id int, delta float64) error {
-	err := r.db.Exec(updateProductStockQuery, delta, time_helper.GetTimeNow(), id).Error
-	return err
+func (r *productRepo) MarkStockReviewed(id int) error {
+	return r.db.Exec(markStockReviewedQuery, time_helper.GetTimeNow(), id).Error
 }

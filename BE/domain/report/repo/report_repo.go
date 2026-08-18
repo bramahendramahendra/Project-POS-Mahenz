@@ -1,6 +1,9 @@
 package repo
 
 import (
+	"sort"
+
+	product_repo "pos_api/domain/product/repo"
 	dto "pos_api/domain/report/dto"
 	request_helper "pos_api/helper/request"
 	time_helper "pos_api/helper/time"
@@ -52,17 +55,6 @@ const (
 		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?
 		GROUP BY DATE(transaction_date) ORDER BY label`
 
-	// total_revenue diprorata dari diskon level-transaksi (header discount) supaya net dari
-	// SEMUA diskon (item + header), tapi tetap exclude pajak (pajak dititipkan ke negara,
-	// bukan pendapatan bisnis). Basis: ti.subtotal * (t.total_amount - t.tax) / t.subtotal,
-	// yang secara aljabar sama dengan ti.subtotal * (t.subtotal - t.discount) / t.subtotal
-	// karena total_amount = subtotal - discount + tax. NULLIF menghindari divide-by-zero.
-	// HPP dihitung dari ti.purchase_price, yaitu snapshot harga beli produk pada SAAT
-	// transaksi terjadi (dicatat di transaction_items saat checkout), bukan harga beli
-	// produk yang berlaku sekarang. Ini membuat laporan laba rugi historis tetap akurat
-	// walaupun harga beli produk diubah setelahnya. purchase_price yang ditampilkan per
-	// baris adalah rata-rata tertimbang jika produk terjual dengan snapshot harga berbeda
-	// dalam rentang tanggal yang sama.
 	profitLossQuery = `
 		SELECT ti.product_id, p.name as product_name,
 		       SUM(ti.quantity) as qty_sold,
@@ -82,10 +74,8 @@ const (
 
 	stockReportQuery = `
 		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
-		       COALESCE(c.name,'') as category_name, p.stock as current_stock, p.min_stock,
-		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price,
-		       (p.stock * p.purchase_price) as stock_value,
-		       CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END as is_low_stock
+		       COALESCE(c.name,'') as category_name, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN units u ON u.id = p.unit_id
@@ -93,24 +83,15 @@ const (
 
 	stockListBase = `
 		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
-		       COALESCE(c.name,'') as category_name, p.stock as current_stock, p.min_stock,
-		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price,
-		       (p.stock * p.purchase_price) as stock_value,
-		       CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END as is_low_stock
+		       COALESCE(c.name,'') as category_name, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.is_active = 1`
 
-	stockListCountBase = `
-		SELECT COUNT(*) FROM products p
-		LEFT JOIN categories c ON p.category_id = c.id
-		WHERE p.is_active = 1`
-
-	stockSummaryBase = `
-		SELECT COUNT(*) as total_products,
-		       SUM(CASE WHEN p.stock <= p.min_stock THEN 1 ELSE 0 END) as low_stock_count,
-		       COALESCE(SUM(p.stock * p.purchase_price),0) as total_stock_value
+	stockSummaryCandidatesBase = `
+		SELECT p.id, p.min_stock, p.purchase_price as cost_price
 		FROM products p
 		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE p.is_active = 1`
@@ -320,56 +301,67 @@ func (r *reportRepo) GetStockItems() ([]dto.StockItem, error) {
 	var items []dto.StockItem
 	for rows.Next() {
 		var item dto.StockItem
-		var isLowInt int
 		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
-			&item.CurrentStock, &item.MinStock, &item.Unit, &item.CostPrice, &item.StockValue, &isLowInt); err != nil {
+			&item.MinStock, &item.Unit, &item.CostPrice); err != nil {
 			return nil, err
 		}
-		item.IsLowStock = isLowInt == 1
 		items = append(items, item)
 	}
 	if items == nil {
 		items = []dto.StockItem{}
 	}
+	if err := r.attachStockToItems(items); err != nil {
+		return nil, err
+	}
 	return items, nil
+}
+
+func (r *reportRepo) attachStockToItems(items []dto.StockItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	minStockByProduct := make(map[int]float64, len(items))
+	for _, it := range items {
+		minStockByProduct[it.ID] = it.MinStock
+	}
+	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
+	if err != nil {
+		return err
+	}
+	for i := range items {
+		if s, ok := summaries[items[i].ID]; ok {
+			items[i].CurrentStock = s.AnchorStock
+			items[i].StockValue = s.AnchorStock * items[i].CostPrice
+			items[i].IsLowStock = s.IsLowStock
+		}
+	}
+	return nil
 }
 
 func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error) {
 	args := []any{}
 	listConditions := ""
-	countConditions := ""
 
 	if req.Search != "" {
 		listConditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
-		countConditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
 		like := "%" + req.Search + "%"
 		args = append(args, like, like)
 	}
 	if req.CategoryID != nil {
 		listConditions += " AND p.category_id = ?"
-		countConditions += " AND p.category_id = ?"
 		args = append(args, *req.CategoryID)
 	}
-
-	var total int64
-	r.db.Raw(stockListCountBase+countConditions, args...).Scan(&total)
-
-	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
 	allowedStockSortFields := map[string]string{
 		"product_code":  "p.sku",
 		"product_name":  "p.name",
 		"category_name": "c.name",
-		"current_stock": "p.stock",
-		"stock_value":   "(p.stock * p.purchase_price)",
 	}
 	const stockListDefaultOrder = " ORDER BY p.name ASC"
-	listArgs := append(args, limit, offset)
 	query := stockListBase + listConditions +
-		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedStockSortFields, stockListDefaultOrder) +
-		" LIMIT ? OFFSET ?"
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedStockSortFields, stockListDefaultOrder)
 
-	rows, err := r.db.Raw(query, listArgs...).Rows()
+	rows, err := r.db.Raw(query, args...).Rows()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -378,18 +370,46 @@ func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.St
 	var items []dto.StockItem
 	for rows.Next() {
 		var item dto.StockItem
-		var isLowInt int
 		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
-			&item.CurrentStock, &item.MinStock, &item.Unit, &item.CostPrice, &item.StockValue, &isLowInt); err != nil {
+			&item.MinStock, &item.Unit, &item.CostPrice); err != nil {
 			return nil, 0, err
 		}
-		item.IsLowStock = isLowInt == 1
 		items = append(items, item)
 	}
 	if items == nil {
 		items = []dto.StockItem{}
 	}
-	return items, total, nil
+	if err := r.attachStockToItems(items); err != nil {
+		return nil, 0, err
+	}
+
+	switch req.SortBy {
+	case "current_stock":
+		sort.Slice(items, func(i, j int) bool {
+			if req.SortOrder == "desc" {
+				return items[i].CurrentStock > items[j].CurrentStock
+			}
+			return items[i].CurrentStock < items[j].CurrentStock
+		})
+	case "stock_value":
+		sort.Slice(items, func(i, j int) bool {
+			if req.SortOrder == "desc" {
+				return items[i].StockValue > items[j].StockValue
+			}
+			return items[i].StockValue < items[j].StockValue
+		})
+	}
+
+	total := int64(len(items))
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
+	if offset >= len(items) {
+		return []dto.StockItem{}, total, nil
+	}
+	end := offset + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[offset:end], total, nil
 }
 
 func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error) {
@@ -406,9 +426,38 @@ func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*
 		args = append(args, *req.CategoryID)
 	}
 
-	var summary dto.StockSummary
-	if err := r.db.Raw(stockSummaryBase+conditions, args...).Scan(&summary).Error; err != nil {
+	type summaryCandidate struct {
+		ID        int     `gorm:"column:id"`
+		MinStock  float64 `gorm:"column:min_stock"`
+		CostPrice float64 `gorm:"column:cost_price"`
+	}
+	var candidates []*summaryCandidate
+	if err := r.db.Raw(stockSummaryCandidatesBase+conditions, args...).Scan(&candidates).Error; err != nil {
 		return nil, err
+	}
+
+	summary := dto.StockSummary{TotalProducts: len(candidates)}
+	if len(candidates) == 0 {
+		return &summary, nil
+	}
+
+	minStockByProduct := make(map[int]float64, len(candidates))
+	for _, c := range candidates {
+		minStockByProduct[c.ID] = c.MinStock
+	}
+	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range candidates {
+		s, ok := summaries[c.ID]
+		if !ok {
+			continue
+		}
+		summary.TotalStockValue += s.AnchorStock * c.CostPrice
+		if s.IsLowStock {
+			summary.LowStockCount++
+		}
 	}
 	return &summary, nil
 }

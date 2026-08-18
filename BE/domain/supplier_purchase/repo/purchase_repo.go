@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	model_product "pos_api/domain/product/model"
+	product_repo "pos_api/domain/product/repo"
 	dto "pos_api/domain/supplier_purchase/dto"
 	model "pos_api/domain/supplier_purchase/model"
 	"pos_api/errors"
@@ -19,13 +20,13 @@ const (
 	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
 	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
 	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	addStockQuery                       = `UPDATE products SET stock = stock + ?, updated_at = NOW() WHERE id = ?`
+	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, package_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, package_id, qty, expired_date) VALUES (?, ?, ?, ?, ?)`
+	getDefaultPackageIDQuery            = `SELECT id FROM product_packages WHERE product_id = ? AND is_default = 1 LIMIT 1`
 	payPurchaseQuery                    = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getPurchaseItemsQuery               = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
+	getPurchaseItemsQuery               = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.package_id, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
 	createPaymentQuery                  = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
 	getPaymentsQuery                    = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
-	rollbackStockQuery                  = `UPDATE products SET stock = stock - ?, updated_at = NOW() WHERE id = ?`
 	deleteStockMutationsQuery           = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
 	deletePurchaseItemsQuery            = `DELETE FROM purchase_items WHERE purchase_id = ?`
 	deletePurchaseQuery                 = `DELETE FROM purchases WHERE id = ?`
@@ -33,10 +34,7 @@ const (
 	getRawPurchaseByIDQuery             = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
 	getAllPurchasesBase                 = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
 	countPurchasesBase                  = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
-	createStockMutationQuery            = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	getProductStockQuery                = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	validatePaymentMethodQuery          = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
-	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, qty, expired_date) VALUES (?, ?, ?, ?)`
 	getExpiryBatchesByPurchaseItemQuery = `SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = ? ORDER BY expired_date ASC`
 
 	getPurchaseForVoidQuery   = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
@@ -45,9 +43,9 @@ const (
 	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
 
-func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID int, batches []dto.ExpiryBatchDraft) error {
+func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID, packageID int, batches []dto.ExpiryBatchDraft) error {
 	for _, b := range batches {
-		if err := tx.Exec(createExpiryBatchQuery, productID, purchaseItemID, b.Qty, b.ExpiredDate).Error; err != nil {
+		if err := tx.Exec(createExpiryBatchQuery, productID, purchaseItemID, packageID, b.Qty, b.ExpiredDate).Error; err != nil {
 			return err
 		}
 	}
@@ -72,6 +70,17 @@ func resolveConversionQty(tx *gorm.DB, productID int, packageID *int, fallback f
 		return fallback
 	}
 	return factor
+}
+
+func resolvePackageID(tx *gorm.DB, productID int, packageID *int) *int {
+	if packageID != nil && *packageID > 0 {
+		return packageID
+	}
+	var defaultID int
+	if err := tx.Raw(getDefaultPackageIDQuery, productID).Scan(&defaultID).Error; err != nil || defaultID == 0 {
+		return nil
+	}
+	return &defaultID
 }
 
 func calculateTotal(items []dto.PurchaseRequest, discountAmount float64) (subtotal float64, totalAmount float64) {
@@ -205,7 +214,7 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 	for rows.Next() {
 		var item model.PurchaseItem
 		if err := rows.Scan(
-			&item.ID, &item.ProductID, &item.ProductName,
+			&item.ID, &item.ProductID, &item.ProductName, &item.PackageID,
 			&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
 		); err != nil {
 			rows.Close()
@@ -337,10 +346,10 @@ func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			stockAdd := item.Quantity * conversionQty
+			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
 
 			if err := tx.Exec(createPurchaseItemQuery,
-				*purchaseID, item.ProductID,
+				*purchaseID, item.ProductID, resolvedPackageID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
@@ -351,32 +360,47 @@ func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error
 				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
 					return err
 				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
 					return err
 				}
 			}
 
-			var stockBefore float64
-			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
+			if resolvedPackageID == nil {
+				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
 			}
-
-			if err := tx.Exec(addStockQuery, stockAdd, item.ProductID).Error; err != nil {
-				return err
-			}
-
-			stockAfter := stockBefore + stockAdd
 			notes := fmt.Sprintf("Purchase Order %s", code)
-			if err := tx.Exec(createStockMutationQuery,
-				item.ProductID, "in", stockAdd, stockBefore, stockAfter,
-				"purchase", *purchaseID, notes, req.UserID,
-			).Error; err != nil {
-				return err
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     *resolvedPackageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockIn,
+				MutationType:  "in",
+				ReferenceType: "purchase",
+				ReferenceID:   *purchaseID,
+				Notes:         notes,
+				UserID:        &req.UserID,
+			}); err != nil {
+				return wrapStockError(err, item.ProductID)
 			}
 		}
 
 		return nil
 	})
+}
+
+// wrapStockError menerjemahkan error teknis dari ApplyStockDelta jadi pesan
+// yang enak dibaca user, tanpa membuang informasi aslinya.
+func wrapStockError(err error, productID int) error {
+	if stderrors.Is(err, model_product.ErrInsufficientStock) {
+		return &errors.BadRequestError{Message: fmt.Sprintf("Stok produk ID %d tidak mencukupi untuk perubahan ini", productID)}
+	}
+	if stderrors.Is(err, model_product.ErrNeedsStockReview) {
+		return &errors.BadRequestError{Message: fmt.Sprintf("Produk ID %d ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir sampai ditinjau admin", productID)}
+	}
+	if stderrors.Is(err, model_product.ErrBranchingChain) {
+		return &errors.BadRequestError{Message: fmt.Sprintf("Produk ID %d punya struktur satuan bercabang, tidak bisa diproses otomatis -- hubungi admin", productID)}
+	}
+	return err
 }
 
 func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error) {
@@ -409,64 +433,27 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			paymentStatus = "partial"
 		}
 
-		type stockDelta struct {
-			productName string
-			oldQty      float64
-			newQty      float64
-		}
-		deltas := make(map[int]*stockDelta)
-
 		for _, old := range oldItems {
-			convQty := old.ConversionQty
-			if convQty <= 0 {
-				convQty = 1
+			packageID := old.PackageID
+			if packageID == nil {
+				resolved := resolvePackageID(tx, old.ProductID, nil)
+				packageID = resolved
 			}
-			d, ok := deltas[old.ProductID]
-			if !ok {
-				d = &stockDelta{productName: old.ProductName}
-				deltas[old.ProductID] = d
+			if packageID == nil {
+				return fmt.Errorf("produk ID %d (item lama) tidak punya paket satuan yang bisa dipakai buat balikkan stok", old.ProductID)
 			}
-			d.oldQty += old.Quantity * convQty
-		}
-		for _, item := range req.Items {
-			convQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			d, ok := deltas[item.ProductID]
-			if !ok {
-				d = &stockDelta{}
-				deltas[item.ProductID] = d
-			}
-			d.newQty += item.Quantity * convQty
-		}
-
-		for productID, d := range deltas {
-			if d.newQty == d.oldQty {
-				continue // tidak ada perubahan bersih utk produk ini, tidak perlu dicek
-			}
-			var currentStock float64
-			if err := tx.Raw(getProductStockQuery, productID).Scan(&currentStock).Error; err != nil {
-				return err
-			}
-			finalStock := currentStock - d.oldQty + d.newQty
-			if finalStock < 0 {
-				name := d.productName
-				if name == "" {
-					name = fmt.Sprintf("produk ID %d", productID)
-				}
-				return &errors.BadRequestError{Message: fmt.Sprintf(
-					"Perubahan pada produk '%s' membuat stok jadi minus (stok saat ini %.3f, perubahan qty pembelian %.3f)",
-					name, currentStock, d.newQty-d.oldQty,
-				)}
-			}
-		}
-
-		// Validasi lolos semua — baru sekarang boleh mulai mutasi.
-		for _, item := range oldItems {
-			convQty := item.ConversionQty
-			if convQty <= 0 {
-				convQty = 1
-			}
-			if err := tx.Exec(rollbackStockQuery, item.Quantity*convQty, item.ProductID).Error; err != nil {
-				return err
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     old.ProductID,
+				PackageID:     *packageID,
+				Quantity:      old.Quantity,
+				Direction:     model_product.StockOut,
+				MutationType:  "adjustment",
+				ReferenceType: "purchase",
+				ReferenceID:   req.ID,
+				Notes:         fmt.Sprintf("Edit PO ID %d -- balikkan item lama sebelum diganti", req.ID),
+				UserID:        &req.UserID,
+			}); err != nil {
+				return wrapStockError(err, old.ProductID)
 			}
 		}
 
@@ -490,8 +477,9 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
+			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
 			if err := tx.Exec(createPurchaseItemQuery,
-				req.ID, item.ProductID,
+				req.ID, item.ProductID, resolvedPackageID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
@@ -502,13 +490,26 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
 					return err
 				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
 					return err
 				}
 			}
 
-			if err := tx.Exec(addStockQuery, item.Quantity*conversionQty, item.ProductID).Error; err != nil {
-				return err
+			if resolvedPackageID == nil {
+				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
+			}
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     *resolvedPackageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockIn,
+				MutationType:  "adjustment",
+				ReferenceType: "purchase",
+				ReferenceID:   req.ID,
+				Notes:         fmt.Sprintf("Edit PO ID %d -- item baru pengganti", req.ID),
+				UserID:        &req.UserID,
+			}); err != nil {
+				return wrapStockError(err, item.ProductID)
 			}
 		}
 
@@ -521,6 +522,12 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 	return r.GetByID(req.ID)
 }
 
+// Delete menghapus PO permanen. TIDAK membalikkan stok di sini -- service
+// layer (purchase_service.go Delete) mewajibkan PO sudah berstatus 'void'
+// dulu sebelum boleh dihapus, dan Void() sudah membalikkan stok saat itu.
+// Membalikkan lagi di sini akan jadi pengurangan dobel. (Sempat salah
+// ditambahkan saat tinjauan Fase 4 poin 1, langsung dibatalkan setelah
+// ketahuan ada guard "harus di-void dulu" di service layer.)
 func (r *purchaseRepo) Delete(id int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(deleteStockMutationsQuery, id).Error; err != nil {
@@ -566,53 +573,67 @@ func (r *purchaseRepo) CountReturnsByPurchaseID(purchaseID int) (int64, error) {
 }
 
 func (r *purchaseRepo) Void(id int, userID int) error {
-	var lockData struct {
-		Status string
-	}
-	if err := r.db.Raw(getPurchaseForVoidQuery, id).Scan(&lockData).Error; err != nil {
-		return err
-	}
-
-	if lockData.Status == "void" {
-		return &errors.BadRequestError{Message: "PO sudah di-void"}
-	}
-
-	if err := r.db.Exec(voidPurchaseQuery, id).Error; err != nil {
-		return err
-	}
-
-	items, err := r.GetItems(id)
-	if err != nil {
-		return err
-	}
-
-	for _, item := range items {
-		convQty := item.ConversionQty
-		if convQty <= 0 {
-			convQty = 1
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var lockData struct {
+			Status string
 		}
-		stockRestore := item.Quantity * convQty
-
-		var stockBefore float64
-		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
+		if err := tx.Raw(getPurchaseForVoidQuery, id).Scan(&lockData).Error; err != nil {
 			return err
 		}
 
-		if err := r.db.Exec(rollbackStockQuery, stockRestore, item.ProductID).Error; err != nil {
+		if lockData.Status == "void" {
+			return &errors.BadRequestError{Message: "PO sudah di-void"}
+		}
+
+		if err := tx.Exec(voidPurchaseQuery, id).Error; err != nil {
 			return err
 		}
 
-		stockAfter := stockBefore - stockRestore
+		rows, err := tx.Raw(getPurchaseItemsQuery, id).Rows()
+		if err != nil {
+			return err
+		}
+		var items []model.PurchaseItem
+		for rows.Next() {
+			var item model.PurchaseItem
+			if err := rows.Scan(
+				&item.ID, &item.ProductID, &item.ProductName, &item.PackageID,
+				&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
+			); err != nil {
+				rows.Close()
+				return err
+			}
+			items = append(items, item)
+		}
+		rows.Close()
+
 		notes := fmt.Sprintf("Void purchase order ID %d", id)
-		if err := r.db.Exec(createStockMutationQuery,
-			item.ProductID, "void_purchase", stockRestore, stockBefore, stockAfter,
-			"purchase", id, notes, userID,
-		).Error; err != nil {
-			return err
+		for _, item := range items {
+			packageID := item.PackageID
+			if packageID == nil {
+				resolved := resolvePackageID(tx, item.ProductID, nil)
+				packageID = resolved
+			}
+			if packageID == nil {
+				return fmt.Errorf("produk ID %d tidak punya paket satuan yang bisa dipakai buat void", item.ProductID)
+			}
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     *packageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockOut,
+				MutationType:  "void_purchase",
+				ReferenceType: "purchase",
+				ReferenceID:   id,
+				Notes:         notes,
+				UserID:        &userID,
+			}); err != nil {
+				return wrapStockError(err, item.ProductID)
+			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }
 
 func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error) {
@@ -630,10 +651,10 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			stockAdd := item.Quantity * conversionQty
+			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
 
 			if err := tx.Exec(createPurchaseItemQuery,
-				req.ID, item.ProductID, item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
+				req.ID, item.ProductID, resolvedPackageID, item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
 			).Error; err != nil {
 				return err
 			}
@@ -643,27 +664,27 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
 					return err
 				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, item.ExpiryBatches); err != nil {
+				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
 					return err
 				}
 			}
 
-			var stockBefore float64
-			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
+			if resolvedPackageID == nil {
+				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
 			}
-
-			if err := tx.Exec(addStockQuery, stockAdd, item.ProductID).Error; err != nil {
-				return err
-			}
-
-			stockAfter := stockBefore + stockAdd
 			notes := fmt.Sprintf("Tambah item PO ID %d", req.ID)
-			if err := tx.Exec(createStockMutationQuery,
-				item.ProductID, "in", stockAdd, stockBefore, stockAfter,
-				"purchase", req.ID, notes, req.UserID,
-			).Error; err != nil {
-				return err
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     *resolvedPackageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockIn,
+				MutationType:  "in",
+				ReferenceType: "purchase",
+				ReferenceID:   req.ID,
+				Notes:         notes,
+				UserID:        &req.UserID,
+			}); err != nil {
+				return wrapStockError(err, item.ProductID)
 			}
 		}
 

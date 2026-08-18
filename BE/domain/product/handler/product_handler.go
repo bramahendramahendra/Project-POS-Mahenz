@@ -154,6 +154,8 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 
+	req.UserID = helper.GetUserID(c)
+
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
 		return
@@ -187,6 +189,7 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
 
 	if err := validator.Validate.Struct(req); err != nil {
 		c.Error(err)
@@ -254,5 +257,30 @@ func (h *ProductHandler) ToggleStatus(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Status produk berhasil diubah",
+	})
+}
+
+// POST /products/mark-reviewed/:id
+func (h *ProductHandler) MarkStockReviewed(c *gin.Context) {
+	req, err := binder.BindURI[dto.MarkStockReviewedRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.MarkStockReviewed(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Produk ditandai sudah ditinjau",
 	})
 }

@@ -1,0 +1,63 @@
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:99
+[0m[33m[2.096ms] [34;1m[rows:0][0m CREATE TABLE IF NOT EXISTS migrations_history (
+		id          INT AUTO_INCREMENT PRIMARY KEY,
+		filename    VARCHAR(255) UNIQUE NOT NULL,
+		executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	) DEFAULT CHARSET=utf8
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:27
+[0m[33m[0.542ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:28
+[0m[33m[2.525ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.512ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '001_init_schema.sql'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.697ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '002_seed_data.sql'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.643ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '003_fix_receivables_status_enum.sql'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[18.705ms] [34;1m[rows:0][0m ALTER TABLE receivables MODIFY COLUMN status ENUM('unpaid','partial','paid','void') DEFAULT 'unpaid'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[0.507ms] [34;1m[rows:0][0m UPDATE receivables SET status = 'void' WHERE status = ''
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:109
+[0m[33m[2.892ms] [34;1m[rows:1][0m INSERT INTO migrations_history (filename) VALUES ('003_fix_receivables_status_enum.sql')
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.641ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '004_stock_per_package_level.sql'
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[24.097ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN stock DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN reserved_qty DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[82.801ms] [34;1m[rows:321][0m ALTER TABLE product_packages
+  ADD CONSTRAINT chk_product_packages_stock_nonneg CHECK (stock >= 0),
+  ADD CONSTRAINT chk_product_packages_reserved_nonneg CHECK (reserved_qty >= 0)
+
+2026/08/16 12:11:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[137.784ms] [34;1m[rows:195][0m ALTER TABLE products
+  ADD CONSTRAINT chk_products_min_stock_nonneg CHECK (min_stock >= 0)
+
+2026/08/16 12:11:50 [31;1mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121 [35;1mError 1215 (HY000): Cannot add foreign key constraint
+[0m[33m[1.518ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN is_default_flag INT GENERATED ALWAYS AS (IF(is_default = 1, product_id, NULL)) STORED
+panic: {"Context":"Internal Error","Scope":"Migration","RequestId":"b94145ef-e85d-4128-8cf6-6ddf542f1ffc","Message":"execute 004_stock_per_package_level.sql: Error 1215 (HY000): Cannot add foreign key constraint","StartTime":"2026-08-16 12:11:50","EndTime":"2026-08-16 12:11:50","Data":null,"Stacktrace":"File: D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go, Line: 53, Function: pos_api/server.InitializedDB\n"}
+
+goroutine 1 [running]:
+pos_api/server.InitializedDB()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:54 +0x14d
+pos_api/server.Initialized()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:22 +0x1c
+main.main()
+	D:/Develop/Project_pos_mahenz/BE/main.go:30 +0x34
+exit status 2

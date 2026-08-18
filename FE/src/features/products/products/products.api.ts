@@ -217,6 +217,18 @@ export function useToggleProductStatusMutation() {
   })
 }
 
+export function useMarkProductReviewedMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<void>(`/products/mark-reviewed/${id}`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success('Produk ditandai sudah ditinjau')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 // ─── Bulk Toggle Status ───────────────────────────────────────────────────────
 
 export function useBulkToggleProductStatusMutation() {

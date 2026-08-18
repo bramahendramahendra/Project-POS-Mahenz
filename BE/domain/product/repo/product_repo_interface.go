@@ -20,7 +20,7 @@ type ProductRepoInterface interface {
 	Update(req *dto_product.UpdateRequest) error
 	Delete(req *dto_product.DeleteRequest) error
 	ToggleStatus(req *dto_product.ToggleStatusRequest) error
-	UpdateStock(id int, delta float64) error
+	MarkStockReviewed(id int) error
 
 	CheckBarcodeExists(barcode string, excludeID int) (bool, error)
 	CheckSkuExists(sku string, excludeID int) (bool, error)

@@ -14,6 +14,10 @@ export interface ProductPackage {
   purchase_price: number
   selling_price: number
   is_default: boolean
+  /** Stok LEVEL INI SENDIRI (bukan dikonversi ke anchor) — sumber breakdown per-level, Fase 5/6. */
+  stock: number
+  reserved_qty: number
+  is_active: boolean
 }
 
 export interface PriceTier {
@@ -47,6 +51,9 @@ export interface Product {
   prices: PriceTier[]
   extra_packages: number
   price_tiers_count: number
+  is_low_stock: boolean
+  needs_stock_review: boolean
+  stock_review_note: string
 }
 
 export interface ProductListFilter {
@@ -60,14 +67,10 @@ export interface ProductListFilter {
   sort_order?: 'asc' | 'desc'
 }
 
-// PackageDraftPayload: satuan lain yang diisi bersamaan di form Tambah Produk, sebelum
-// produk (dan paket anchor-nya) tersimpan. temp_id/ref_temp_id cuma penanda sementara
-// di sisi FE (bukan ID asli product_packages) — lihat catatan di BE dto.go PackageDraftRequest.
 export interface PackageDraftPayload {
   temp_id: number
   unit_id: number
   package_name?: string
-  /** 0 = merujuk paket dasar (anchor); selain itu wajib temp_id draft lain yang lebih dulu dibuat */
   ref_temp_id: number
   qty: number
   ref_qty: number
@@ -89,8 +92,6 @@ export interface CreateProductPayload {
   packages?: PackageDraftPayload[]
 }
 
-// unit_id sengaja tidak ada — satuan anchor permanen sejak produk dibuat, tidak bisa
-// diubah lewat update biasa (lihat catatan di BE dto_product.go UpdateRequest).
 export type UpdateProductPayload = Partial<Omit<CreateProductPayload, 'unit_id'>>
 
 export interface CreatePackagePayload {

@@ -2,10 +2,12 @@ package repo
 
 import (
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
 	model_product "pos_api/domain/product/model"
+	product_repo "pos_api/domain/product/repo"
 	dto_sync "pos_api/domain/sync/dto"
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
@@ -21,13 +23,9 @@ const (
 	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
 	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateProductStockQuery      = `UPDATE products SET stock = stock - ?, updated_at = ? WHERE id = ? AND (stock - reserved_qty) >= ?`
-	createStockMutationQuery     = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = ? WHERE id = ?`
-	restoreStockQuery            = `UPDATE products SET stock = stock + ?, updated_at = ? WHERE id = ?`
 	createReceivableQuery        = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
 	updateReceivableVoidQuery    = `UPDATE receivables SET status = 'void', updated_at = ? WHERE transaction_id = ?`
-	getProductStockQuery         = `SELECT stock FROM products WHERE id = ? LIMIT 1`
 	getProductPurchasePriceQuery = `SELECT purchase_price FROM products WHERE id = ? LIMIT 1`
 	getTransactionItemsQuery     = `SELECT id, transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id FROM transaction_items WHERE transaction_id = ?`
 	getTransactionForVoidQuery   = `SELECT user_id, payment_method, total_amount FROM transactions WHERE id = ? LIMIT 1 FOR UPDATE`
@@ -208,18 +206,34 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 	}
 
 	for _, item := range req.Items {
+		// Resolusi package_id: pakai yang dikirim FE (item.UnitID -- nama
+		// kolom lama, isinya sebenarnya package_id, lihat komentar di
+		// dto/model), fallback ke paket anchor kalau kosong. Sama pola dgn
+		// celah #15 di purchase_repo.go.
+		packageID := 0
+		if item.UnitID != nil && *item.UnitID > 0 {
+			packageID = *item.UnitID
+		} else if resolved, ok := product_repo.ResolveDefaultPackageID(r.db, item.ProductID); ok {
+			packageID = resolved
+		}
+		if packageID == 0 {
+			return nil, fmt.Errorf("produk %s tidak punya paket satuan yang bisa dipakai buat jual", item.ProductName)
+		}
+
+		// conversion_qty & unitName di sini murni utk kolom informasi/laporan
+		// (purchase_price margin, nama satuan tampilan) -- BUKAN lagi acuan
+		// pengurangan stok, itu tugas ApplyStockDelta di bawah (dihitung
+		// fresh dari package_id, bukan baca balik nilai ini -- celah #21).
 		conversionQty := item.ConversionQty
 		unitName := item.Unit
-		if item.UnitID != nil && *item.UnitID > 0 {
-			var pkgRows []*model_product.ProductPackage
-			if err := r.db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
-				if factor, factorErr := model_product.ResolvePackageFactor(pkgRows, *item.UnitID); factorErr == nil && factor > 0 {
-					conversionQty = factor
-					for _, p := range pkgRows {
-						if p.ID == *item.UnitID {
-							unitName = p.UnitName
-							break
-						}
+		var pkgRows []*model_product.ProductPackage
+		if err := r.db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
+			if factor, factorErr := model_product.ResolvePackageFactor(pkgRows, packageID); factorErr == nil && factor > 0 {
+				conversionQty = factor
+				for _, p := range pkgRows {
+					if p.ID == packageID {
+						unitName = p.UnitName
+						break
 					}
 				}
 			}
@@ -228,42 +242,40 @@ func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) 
 			conversionQty = 1
 		}
 
-		stockDeduct := item.Quantity * conversionQty
-
-		var stockBefore float64
-		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-			return nil, err
-		}
-
 		var basePurchasePrice float64
 		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&basePurchasePrice).Error; err != nil {
 			return nil, err
 		}
 		purchasePrice := basePurchasePrice * conversionQty
 
-		result := r.db.Exec(updateProductStockQuery, stockDeduct, now, item.ProductID, stockDeduct)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		if result.RowsAffected == 0 {
-			return nil, fmt.Errorf("stok_insufficient:%s", item.ProductName)
-		}
-
 		if err := r.db.Exec(createTransactionItemQuery,
 			transactionID, item.ProductID, item.ProductName,
 			item.Quantity, unitName, item.Price, purchasePrice, item.Subtotal,
-			item.DiscountItem, conversionQty, item.UnitID,
+			item.DiscountItem, conversionQty, packageID,
 		).Error; err != nil {
 			return nil, err
 		}
 
-		stockAfter := stockBefore - stockDeduct
 		notes := fmt.Sprintf("Transaksi %s", code)
-		if err := r.db.Exec(createStockMutationQuery,
-			item.ProductID, "out", stockDeduct, stockBefore, stockAfter,
-			"transaction", transactionID, notes, userID,
-		).Error; err != nil {
-			return nil, err
+		if _, err := product_repo.ApplyStockDelta(r.db, product_repo.ApplyStockDeltaParams{
+			ProductID:     item.ProductID,
+			PackageID:     packageID,
+			Quantity:      item.Quantity,
+			Direction:     model_product.StockOut,
+			MutationType:  "out",
+			ReferenceType: "transaction",
+			ReferenceID:   transactionID,
+			Notes:         notes,
+			UserID:        &userID,
+		}); err != nil {
+			// Bug QA Fase A skenario 15: dulu HANYA ErrInsufficientStock yang
+			// diterjemahkan (lewat konvensi prefix string "stok_insufficient:"
+			// yang ditangkap transaction_service.go) -- ErrNeedsStockReview &
+			// ErrBranchingChain bocor sebagai error mentah -> 500 Internal
+			// Server Error, bukan 400 dengan pesan jelas. product_repo.WrapStockError
+			// menangani ketiganya sekaligus, jadi sudah *errors.BadRequestError
+			// yang dikenali (service tinggal pass-through, lihat perbaikan di sana).
+			return nil, product_repo.WrapStockError(err, item.ProductID)
 		}
 	}
 
@@ -333,30 +345,33 @@ func (r *transactionRepo) Void(id, userID int) error {
 		return err
 	}
 
-	// 3. Kembalikan stok & catat mutasi void
+	// 3. Kembalikan stok & catat mutasi void -- lewat ApplyStockDelta,
+	// dihitung fresh dari package_id+quantity asli (celah #21), TIDAK baca
+	// balik item.ConversionQty yang tersimpan (berpotensi sudah kepotong).
+	notes := fmt.Sprintf("Void transaksi ID %d", id)
 	for _, item := range items {
-		var stockBefore float64
-		if err := r.db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-			return err
+		packageID := 0
+		if item.UnitID != nil && *item.UnitID > 0 {
+			packageID = *item.UnitID
+		} else if resolved, ok := product_repo.ResolveDefaultPackageID(r.db, item.ProductID); ok {
+			packageID = resolved
+		}
+		if packageID == 0 {
+			return fmt.Errorf("produk %s tidak punya paket satuan yang bisa dipakai buat void", item.ProductName)
 		}
 
-		convQty := item.ConversionQty
-		if convQty <= 0 {
-			convQty = 1
-		}
-		stockRestore := item.Quantity * convQty
-
-		if err := r.db.Exec(restoreStockQuery, stockRestore, now, item.ProductID).Error; err != nil {
-			return err
-		}
-
-		stockAfter := stockBefore + stockRestore
-		notes := fmt.Sprintf("Void transaksi ID %d", id)
-		if err := r.db.Exec(createStockMutationQuery,
-			item.ProductID, "void", stockRestore, stockBefore, stockAfter,
-			"transaction", id, notes, userID,
-		).Error; err != nil {
-			return err
+		if _, err := product_repo.ApplyStockDelta(r.db, product_repo.ApplyStockDeltaParams{
+			ProductID:     item.ProductID,
+			PackageID:     packageID,
+			Quantity:      item.Quantity,
+			Direction:     model_product.StockIn,
+			MutationType:  "void",
+			ReferenceType: "transaction",
+			ReferenceID:   id,
+			Notes:         notes,
+			UserID:        &userID,
+		}); err != nil {
+			return product_repo.WrapStockError(err, item.ProductID)
 		}
 	}
 
@@ -403,18 +418,6 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 	var serverID int
 
 	err := r.db.Transaction(func(db *gorm.DB) error {
-		// 1. Cek stok semua item dengan SELECT FOR UPDATE (lock baris product)
-		for _, item := range tx.Items {
-			var currentStock float64
-			if err := db.Raw(`SELECT (stock - reserved_qty) FROM products WHERE id = ? FOR UPDATE`, item.ProductID).Scan(&currentStock).Error; err != nil {
-				return fmt.Errorf("stok produk %d tidak ditemukan", item.ProductID)
-			}
-			if currentStock < item.Quantity {
-				return fmt.Errorf("stok produk %d tidak mencukupi (%.2f tersedia, butuh %.2f)",
-					item.ProductID, currentStock, item.Quantity)
-			}
-		}
-
 		now := time_helper.GetTimeNow()
 		prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
 		prefix, ok := prefixMap[tx.DeviceSource]
@@ -446,11 +449,17 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 			return err
 		}
 
-		// 4. Kurangi stok + insert item + catat mutasi SALE
+		// 4. Kurangi stok (lewat ApplyStockDelta, celah #19) + insert item
+		notes := fmt.Sprintf("Sync offline tx %s", localID)
 		for _, item := range tx.Items {
-			var stockBefore float64
-			if err := db.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
+			packageID := 0
+			if item.UnitID != nil && *item.UnitID > 0 {
+				packageID = *item.UnitID
+			} else if resolved, ok := product_repo.ResolveDefaultPackageID(db, item.ProductID); ok {
+				packageID = resolved
+			}
+			if packageID == 0 {
+				return fmt.Errorf("produk %d tidak punya paket satuan yang bisa dipakai buat sync", item.ProductID)
 			}
 
 			var purchasePrice float64
@@ -458,24 +467,29 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 				return err
 			}
 
-			if err := db.Exec(updateProductStockQuery, item.Quantity, now, item.ProductID, item.Quantity).Error; err != nil {
-				return err
-			}
-
 			if err := db.Exec(createTransactionItemQuery,
 				transactionID, item.ProductID, item.ProductName,
 				item.Quantity, item.Unit, item.Price, purchasePrice, item.Subtotal,
-				item.DiscountItem, item.ConversionQty, item.UnitID,
+				item.DiscountItem, item.ConversionQty, packageID,
 			).Error; err != nil {
 				return err
 			}
 
-			stockAfter := stockBefore - item.Quantity
-			notes := fmt.Sprintf("Sync offline tx %s", localID)
-			if err := db.Exec(createStockMutationQuery,
-				item.ProductID, "out", item.Quantity, stockBefore, stockAfter,
-				"transaction", transactionID, notes, tx.UserID,
-			).Error; err != nil {
+			userID := tx.UserID
+			if _, err := product_repo.ApplyStockDelta(db, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     packageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockOut,
+				MutationType:  "out",
+				ReferenceType: "transaction",
+				ReferenceID:   transactionID,
+				Notes:         notes,
+				UserID:        &userID,
+			}); err != nil {
+				if stderrors.Is(err, model_product.ErrInsufficientStock) {
+					return fmt.Errorf("stok produk %d tidak mencukupi", item.ProductID)
+				}
 				return err
 			}
 		}
@@ -507,30 +521,43 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 	return serverID, err
 }
 
+// ReturnStockForRejectSync membalikkan stok saat konflik sync transaksi
+// offline ditolak. Celah #19: dulu punya bug SIMETRIS dengan
+// ApplySyncTransaction (pakai item.Quantity mentah, bukan dikali faktor
+// konversi) DAN memakai mutation_type 'REJECT_SYNC' yang bukan bagian dari
+// enum stock_mutations.mutation_type (enum('in','out','adjustment','void',
+// 'return','void_purchase','expired')) -- diganti 'void' (paling pas secara
+// makna: membatalkan efek stok dari sebuah penjualan).
 func (r *transactionRepo) ReturnStockForRejectSync(transactionID, resolvedBy int) error {
-	now := time_helper.GetTimeNow()
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		items, err := r.GetItems(transactionID)
 		if err != nil {
 			return err
 		}
 
+		notes := fmt.Sprintf("Reject sync konflik transaksi offline ID %d", transactionID)
 		for _, item := range items {
-			var stockBefore float64
-			if err := tx.Raw(getProductStockQuery, item.ProductID).Scan(&stockBefore).Error; err != nil {
-				return err
+			packageID := 0
+			if item.UnitID != nil && *item.UnitID > 0 {
+				packageID = *item.UnitID
+			} else if resolved, ok := product_repo.ResolveDefaultPackageID(tx, item.ProductID); ok {
+				packageID = resolved
+			}
+			if packageID == 0 {
+				return fmt.Errorf("produk %d tidak punya paket satuan yang bisa dipakai buat reject sync", item.ProductID)
 			}
 
-			if err := tx.Exec(restoreStockQuery, item.Quantity, now, item.ProductID).Error; err != nil {
-				return err
-			}
-
-			stockAfter := stockBefore + item.Quantity
-			notes := fmt.Sprintf("Reject sync konflik transaksi offline ID %d", transactionID)
-			if err := tx.Exec(createStockMutationQuery,
-				item.ProductID, "REJECT_SYNC", item.Quantity, stockBefore, stockAfter,
-				"transaction", transactionID, notes, resolvedBy,
-			).Error; err != nil {
+			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+				ProductID:     item.ProductID,
+				PackageID:     packageID,
+				Quantity:      item.Quantity,
+				Direction:     model_product.StockIn,
+				MutationType:  "void",
+				ReferenceType: "transaction",
+				ReferenceID:   transactionID,
+				Notes:         notes,
+				UserID:        &resolvedBy,
+			}); err != nil {
 				return err
 			}
 		}

@@ -20,6 +20,7 @@ type (
 		Update(req *dto.UpdateRequest, role string) (data dto.ProductResponse, err error)
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
+		MarkStockReviewed(req *dto.MarkStockReviewedRequest) error
 
 		ImportPreview(file *multipart.FileHeader) (data dto.ImportPreviewResponse, err error)
 		ImportBulk(req dto.BulkImportRequest) (data dto.BulkImportResult, err error)

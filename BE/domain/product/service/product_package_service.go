@@ -46,6 +46,9 @@ func toPackageResponse(v *model.ProductPackage, factor float64) *dto.PackageResp
 		PurchasePrice:  v.PurchasePrice,
 		SellingPrice:   v.SellingPrice,
 		IsDefault:      v.IsDefault,
+		Stock:          v.Stock,
+		ReservedQty:    v.ReservedQty,
+		IsActive:       v.IsActive,
 	}
 }
 

@@ -129,6 +129,7 @@ func (h *PurchaseHandler) Update(c *gin.Context) {
 		return
 	}
 	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
 
 	if err := validation.Validate.Struct(req); err != nil {
 		c.Error(err)

@@ -12,6 +12,7 @@ import {
   fetchProductPrices,
 } from '@/features/products/products'
 import type { Product, ProductPackage, PriceTier } from '@/features/products/products'
+import { formatPackageBreakdown } from '@/features/products/products'
 
 import { useCashierStore } from '../cashier.store'
 import { getApplicablePrice } from '../cashier.utils'
@@ -178,8 +179,7 @@ export function ProductSearch() {
               // Loading: belum ada di resolvedCards
               const isCardLoading = !resolved
               const isOutOfStock = !isCardLoading && resolved.product.stock <= 0
-              const isLowStock =
-                !isCardLoading && !isOutOfStock && resolved.product.stock < resolved.product.min_stock
+              const isLowStock = !isCardLoading && !isOutOfStock && resolved.product.is_low_stock
 
               return (
                 <div
@@ -210,7 +210,7 @@ export function ProductSearch() {
                   <div className="border-t px-2 py-2">
                     {isLowStock && (
                       <p className="text-center text-[10px] font-medium text-amber-600 mb-1">
-                        Sisa {resolved!.product.stock} — stok menipis
+                        Sisa {formatPackageBreakdown(units)} — stok menipis
                       </p>
                     )}
                     {isCardLoading ? (

@@ -40,6 +40,7 @@ func (s *expiryBatchService) GetWarnings(req *dto.GetWarningsRequest) (data []dt
 			ID:          v.ID,
 			ProductID:   v.ProductID,
 			ProductName: v.ProductName,
+			UnitName:    v.UnitName,
 			Qty:         v.Qty,
 			ExpiredDate: expiredDateStr,
 			Severity:    severity,
@@ -78,6 +79,7 @@ func (s *expiryBatchService) GetByProduct(productID int) (data []dto.BatchHistor
 	for _, v := range dataDB {
 		data = append(data, dto.BatchHistoryResponse{
 			ID:          v.ID,
+			UnitName:    v.UnitName,
 			Qty:         v.Qty,
 			ExpiredDate: v.ExpiredDate.Format("2006-01-02"),
 			Status:      v.Status,

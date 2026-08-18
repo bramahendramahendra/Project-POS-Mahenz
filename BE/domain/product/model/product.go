@@ -22,6 +22,13 @@ type Product struct {
 	PriceTiersCount  int       `gorm:"column:price_tiers_count"`
 	CreatedAt        time.Time `gorm:"column:created_at"`
 	UpdatedAt        time.Time `gorm:"column:updated_at"`
+
+	// Kolom baru Fase 5 (docs/RENCANA_PERBAIKAN_STOK_PRESISI.md, celah #20).
+	NeedsStockReview bool   `gorm:"column:needs_stock_review"`
+	StockReviewNote  string `gorm:"column:stock_review_note"`
+	// IsLowStock: diisi di repo (bukan dari kolom SQL) hasil ComputeStockSummary,
+	// dibandingkan di satuan TERKECIL bukan anchor-vs-anchor (celah #12).
+	IsLowStock bool `gorm:"-"`
 }
 
 type ProductOption struct {

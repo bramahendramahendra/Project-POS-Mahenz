@@ -45,6 +45,7 @@ type SupplierReturnItem struct {
 	PurchaseItemID int     `gorm:"column:purchase_item_id"`
 	ProductID      int     `gorm:"column:product_id"`
 	ProductName    string  `gorm:"column:product_name"`
+	PackageID      *int    `gorm:"column:package_id"`
 	Quantity       float64 `gorm:"column:quantity"`
 	Unit           string  `gorm:"column:unit"`
 	PurchasePrice  float64 `gorm:"column:purchase_price"`

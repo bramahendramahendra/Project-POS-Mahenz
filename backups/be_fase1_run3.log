@@ -1,0 +1,46 @@
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:99
+[0m[33m[1.207ms] [34;1m[rows:0][0m CREATE TABLE IF NOT EXISTS migrations_history (
+		id          INT AUTO_INCREMENT PRIMARY KEY,
+		filename    VARCHAR(255) UNIQUE NOT NULL,
+		executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	) DEFAULT CHARSET=utf8
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:27
+[0m[33m[0.527ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:28
+[0m[33m[0.581ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[1.212ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '001_init_schema.sql'
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.533ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '002_seed_data.sql'
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '003_fix_receivables_status_enum.sql'
+
+2026/08/16 12:16:04 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '004_stock_per_package_level.sql'
+
+2026/08/16 12:16:04 [31;1mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121 [35;1mError 1060 (42S21): Duplicate column name 'stock'
+[0m[33m[1.567ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN stock DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN reserved_qty DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1
+
+2026/08/16 12:16:04 [31;1mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121 [35;1mError 3822 (HY000): Duplicate check constraint name 'chk_product_packages_stock_nonneg'.
+[0m[33m[1.512ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD CONSTRAINT chk_product_packages_stock_nonneg CHECK (stock >= 0),
+  ADD CONSTRAINT chk_product_packages_reserved_nonneg CHECK (reserved_qty >= 0)
+panic: {"Context":"Internal Error","Scope":"Migration","RequestId":"9f431b09-8971-4192-b45e-47203a744ba0","Message":"execute 004_stock_per_package_level.sql: Error 3822 (HY000): Duplicate check constraint name 'chk_product_packages_stock_nonneg'.","StartTime":"2026-08-16 12:16:04","EndTime":"2026-08-16 12:16:04","Data":null,"Stacktrace":"File: D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go, Line: 53, Function: pos_api/server.InitializedDB\n"}
+
+goroutine 1 [running]:
+pos_api/server.InitializedDB()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:54 +0x14d
+pos_api/server.Initialized()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:22 +0x1c
+main.main()
+	D:/Develop/Project_pos_mahenz/BE/main.go:30 +0x34
+exit status 2

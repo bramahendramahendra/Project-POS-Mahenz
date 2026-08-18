@@ -5,6 +5,7 @@ import (
 	"time"
 
 	dto "pos_api/domain/business_summary/dto"
+	product_repo "pos_api/domain/product/repo"
 )
 
 const (
@@ -91,7 +92,7 @@ const (
 		FROM transactions WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
 		GROUP BY payment_method`
 
-	lowStockCountQuery        = `SELECT COUNT(*) FROM products WHERE stock <= min_stock AND is_active = 1`
+	lowStockCandidatesQuery   = `SELECT id, min_stock FROM products WHERE is_active = 1`
 	openReceivablesCountQuery = `SELECT COUNT(*) FROM receivables WHERE status != 'paid'`
 
 	highestTransactionQuery = `
@@ -115,7 +116,6 @@ const (
 		FROM transactions
 		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'`
 )
-
 
 func (r *businessSummaryRepo) GetTodayStats(date string) (*dto.TodayStats, error) {
 	var result dto.TodayStats
@@ -190,10 +190,32 @@ func (r *businessSummaryRepo) GetMonthCOGS(month int, year int) (float64, error)
 }
 
 func (r *businessSummaryRepo) GetLowStockCount() (int64, error) {
-	var count int64
-	row := r.db.Raw(lowStockCountQuery).Row()
-	if err := row.Scan(&count); err != nil {
+	type candidateRow struct {
+		ID       int     `gorm:"column:id"`
+		MinStock float64 `gorm:"column:min_stock"`
+	}
+	var candidates []*candidateRow
+	if err := r.db.Raw(lowStockCandidatesQuery).Scan(&candidates).Error; err != nil {
 		return 0, fmt.Errorf("GetLowStockCount: %w", err)
+	}
+	if len(candidates) == 0 {
+		return 0, nil
+	}
+
+	minStockByProduct := make(map[int]float64, len(candidates))
+	for _, c := range candidates {
+		minStockByProduct[c.ID] = c.MinStock
+	}
+	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
+	if err != nil {
+		return 0, fmt.Errorf("GetLowStockCount: %w", err)
+	}
+
+	var count int64
+	for _, s := range summaries {
+		if s.IsLowStock {
+			count++
+		}
 	}
 	return count, nil
 }

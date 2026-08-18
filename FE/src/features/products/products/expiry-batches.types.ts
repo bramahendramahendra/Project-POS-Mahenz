@@ -4,6 +4,7 @@ export interface ExpiryWarning {
   id: number
   product_id: number
   product_name: string
+  unit_name: string
   qty: number
   expired_date: string
   severity: ExpirySeverity
@@ -25,6 +26,7 @@ export type ExpiryBatchStatus = 'active' | 'cleared' | 'written_off'
 
 export interface ExpiryBatchHistory {
   id: number
+  unit_name: string
   qty: number
   expired_date: string
   status: ExpiryBatchStatus

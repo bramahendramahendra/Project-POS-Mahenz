@@ -6,10 +6,6 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
-	// CreatePackageRequest: paket baru, wajib direferensikan ke paket lain yang sudah ada
-	// (kecuali paket anchor pertama, yang dibuat otomatis saat produk dibuat — lihat
-	// product_service.go Create). RefPackageID di sini selalu wajib diisi karena endpoint
-	// ini cuma dipakai untuk menambah paket grosir/satuan lain, bukan paket anchor.
 	CreatePackageRequest struct {
 		ProductID     int     `json:"-"`
 		UnitID        int     `json:"unit_id" validate:"required,min=1"`
@@ -45,21 +41,21 @@ type (
 
 	// RESPONSE
 	PackageResponse struct {
-		ID           int      `json:"id"`
-		ProductID    int      `json:"product_id"`
-		UnitID       int      `json:"unit_id"`
-		UnitName     string   `json:"unit_name"`
-		Abbreviation string   `json:"abbreviation"`
-		PackageName  string   `json:"package_name"`
-		RefPackageID *int     `json:"ref_package_id"`
-		Qty          float64  `json:"qty"`
-		RefQty       *float64 `json:"ref_qty"`
-		// ResolvedFactor: 1 paket ini = ResolvedFactor x satuan anchor produk. Dihitung
-		// server-side dengan menelusuri rantai ref_package_id, supaya FE (kasir, pembelian,
-		// laporan) tidak perlu tahu struktur pohonnya sama sekali — cukup pakai angka ini.
-		ResolvedFactor float64 `json:"resolved_factor"`
-		PurchasePrice  float64 `json:"purchase_price"`
-		SellingPrice   float64 `json:"selling_price"`
-		IsDefault      bool    `json:"is_default"`
+		ID             int      `json:"id"`
+		ProductID      int      `json:"product_id"`
+		UnitID         int      `json:"unit_id"`
+		UnitName       string   `json:"unit_name"`
+		Abbreviation   string   `json:"abbreviation"`
+		PackageName    string   `json:"package_name"`
+		RefPackageID   *int     `json:"ref_package_id"`
+		Qty            float64  `json:"qty"`
+		RefQty         *float64 `json:"ref_qty"`
+		ResolvedFactor float64  `json:"resolved_factor"`
+		PurchasePrice  float64  `json:"purchase_price"`
+		SellingPrice   float64  `json:"selling_price"`
+		IsDefault      bool     `json:"is_default"`
+		Stock          float64  `json:"stock"`
+		ReservedQty    float64  `json:"reserved_qty"`
+		IsActive       bool     `json:"is_active"`
 	}
 )

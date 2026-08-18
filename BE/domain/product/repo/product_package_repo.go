@@ -9,7 +9,8 @@ import (
 const (
 	getProductPackagesQuery = `
 		SELECT pp.id, pp.product_id, pp.unit_id, COALESCE(u.name, '') AS unit_name, COALESCE(u.abbreviation, '') AS abbreviation,
-		       COALESCE(pp.package_name, '') AS package_name, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, pp.selling_price, pp.is_default
+		       COALESCE(pp.package_name, '') AS package_name, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, pp.selling_price, pp.is_default,
+		       pp.stock, pp.reserved_qty, pp.is_active
 		FROM product_packages pp
 		JOIN units u ON u.id = pp.unit_id
 		WHERE pp.product_id = ?`

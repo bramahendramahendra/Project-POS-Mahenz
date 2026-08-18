@@ -1,7 +1,7 @@
 package service
 
 import (
-	"strings"
+	stderrors "errors"
 
 	"pos_api/domain/transaction/dto"
 	time_helper "pos_api/helper/time"
@@ -84,9 +84,14 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil
 	})
 	if txErr != nil {
-		if strings.HasPrefix(txErr.Error(), "stok_insufficient:") {
-			name := strings.TrimPrefix(txErr.Error(), "stok_insufficient:")
-			return nil, &errors.BadRequestError{Message: "Stok tidak mencukupi untuk " + name}
+		// Bug QA Fase A skenario 15: txErr sudah bisa berupa *errors.BadRequestError
+		// (lihat product_repo.WrapStockError, dipakai transaction_repo.go Create())
+		// -- kalau tetap dipaksa masuk InternalServerError di sini, pesan ramah
+		// dari sana hilang, klien cuma lihat 500 generik. Pass-through kalau
+		// sudah app error yang dikenal, cuma unknown error yang dibungkus 500.
+		var badReq *errors.BadRequestError
+		if stderrors.As(txErr, &badReq) {
+			return nil, badReq
 		}
 		return nil, &errors.InternalServerError{Message: txErr.Error()}
 	}
@@ -154,6 +159,10 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 		return nil
 	})
 	if txErr != nil {
+		var badReq *errors.BadRequestError
+		if stderrors.As(txErr, &badReq) {
+			return badReq
+		}
 		return &errors.InternalServerError{Message: txErr.Error()}
 	}
 	return nil

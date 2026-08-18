@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react'
+
 import { DetailField, FormModal, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { formatDate, formatRupiah } from '@/shared/utils'
@@ -5,7 +7,7 @@ import { formatDate, formatRupiah } from '@/shared/utils'
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
 import { useExpiryBatchHistoryQuery } from '../expiry-batches.api'
 import type { ExpiryBatchStatus } from '../expiry-batches.types'
-import { calcMargin, formatStockBreakdown } from '../products.utils'
+import { calcMargin, formatPackageBreakdown } from '../products.utils'
 
 const EXPIRY_STATUS_LABEL: Record<ExpiryBatchStatus, { label: string; className: string }> = {
   active: { label: 'Perlu Dicek', className: 'bg-amber-100 text-amber-700' },
@@ -54,6 +56,17 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
             </DetailField>
           </div>
 
+          {product.needs_stock_review && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+              <span>
+                <span className="font-semibold">Perlu ditinjau:</span> data stok produk ini belum
+                terverifikasi penuh dari migrasi sistem.
+                {product.stock_review_note ? ` ${product.stock_review_note}` : ''}
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DetailField label="Barcode">
               <code className="text-xs text-gray-700">{product.barcode || '—'}</code>
@@ -94,12 +107,12 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                 className={`font-medium ${
                   product.stock === 0
                     ? 'text-red-600'
-                    : product.stock < product.min_stock
+                    : product.is_low_stock
                       ? 'text-amber-600'
                       : 'text-gray-800'
                 }`}
               >
-                {formatStockBreakdown(product.stock, units)}
+                {formatPackageBreakdown(units)}
               </span>
             </DetailField>
             <DetailField label="Stok Minimum" value={String(product.min_stock)} />
@@ -109,12 +122,12 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DetailField label="Stok Direservasi">
                 <span className="font-medium text-amber-600">
-                  {formatStockBreakdown(product.reserved_qty, units)}
+                  {formatPackageBreakdown(units, (p) => p.reserved_qty)}
                 </span>
               </DetailField>
               <DetailField label="Stok Tersedia">
                 <span className="font-medium text-gray-800">
-                  {formatStockBreakdown(product.stock - product.reserved_qty, units)}
+                  {formatPackageBreakdown(units, (p) => p.stock - p.reserved_qty)}
                 </span>
               </DetailField>
             </div>

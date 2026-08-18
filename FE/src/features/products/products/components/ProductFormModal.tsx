@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Lock, Pencil, Plus, Trash2, Unlock } from 'lucide-react'
+import { Lock, Pencil, Plus, ShieldCheck, Trash2, TriangleAlert, Unlock } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { ConfirmDialog, FormModal } from '@/shared/components'
@@ -26,6 +26,7 @@ import {
   useDeleteProductPackageMutation,
   useGenerateBarcodeQuery,
   useGenerateSkuQuery,
+  useMarkProductReviewedMutation,
   useProductDetailQuery,
   useProductPackagesQuery,
   useUpdateProductMutation,
@@ -52,7 +53,7 @@ function mapProductToForm(product: Product): ProductFormValues {
     category_id: product.category_id ?? 0,
     purchase_price: product.purchase_price,
     selling_price: product.selling_price,
-    stock: product.stock,
+    stock: Number(product.stock.toFixed(3)),
     min_stock: product.min_stock,
     unit_id: product.unit_id ?? 0,
     is_active: product.is_active,
@@ -147,6 +148,7 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
   const { mutate: createPackage, isPending: isCreatingPackage } = useCreateProductPackageMutation(productId ?? 0)
   const { mutate: updatePackage, isPending: isUpdatingPackage } = useUpdateProductPackageMutation(productId ?? 0)
   const { mutate: deletePackage } = useDeleteProductPackageMutation(productId ?? 0)
+  const { mutate: markReviewed, isPending: isMarkingReviewed } = useMarkProductReviewedMutation()
   const isPending = isCreating || isUpdating
   const isSavingPackage = isCreatingPackage || isUpdatingPackage
 
@@ -232,9 +234,6 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
         }
       )
     } else {
-      // Satuan lain yang diisi di form ini (belum tersimpan) dikirim sekaligus bersama
-      // produk, diurutkan dulu supaya tiap paket selalu muncul setelah paket yang
-      // dirujuknya — server memprosesnya dalam satu transaksi (lihat BE product_repo.go Create).
       const packages: PackageDraftPayload[] = topoSortDrafts(grosirDrafts).map((d) => ({
         temp_id: d.tempId,
         unit_id: d.unit_id,
@@ -263,8 +262,6 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
 
   const refOptionsFor = (excludeTempId: number | null): PackageRefOption[] => {
     if (isEdit) {
-      // Anchor selalu ditaruh pertama supaya jadi default pilihan (opsi paling wajar
-      // buat paket baru), tidak tergantung urutan hasil query dari server.
       return [...existingPackages]
         .sort((a, b) => Number(b.is_default) - Number(a.is_default))
         .filter((p) => excludeTempId == null || p.id !== excludeTempId)
@@ -362,6 +359,31 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Celah #20: produk yang gagal dianalisis backfill/migrasi stok. */}
+            {isEdit && detailData?.needs_stock_review && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <p>
+                    <span className="font-semibold">Perlu ditinjau:</span> data stok produk ini belum
+                    terverifikasi penuh dari migrasi sistem.
+                    {detailData.stock_review_note ? ` ${detailData.stock_review_note}` : ''}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 gap-1 border-amber-300 bg-white text-[11px] text-amber-700 hover:bg-amber-100"
+                    disabled={isMarkingReviewed}
+                    onClick={() => productId && markReviewed(productId)}
+                  >
+                    <ShieldCheck size={11} />
+                    {isMarkingReviewed ? 'Menandai...' : 'Tandai Sudah Ditinjau'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
               Informasi Dasar
             </p>

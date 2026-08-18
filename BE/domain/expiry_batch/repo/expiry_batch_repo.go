@@ -1,9 +1,13 @@
 package repo
 
 import (
+	stderrors "errors"
 	"fmt"
 
 	model "pos_api/domain/expiry_batch/model"
+	model_product "pos_api/domain/product/model"
+	product_repo "pos_api/domain/product/repo"
+	custom_errors "pos_api/errors"
 	time_helper "pos_api/helper/time"
 
 	"gorm.io/gorm"
@@ -14,9 +18,12 @@ const nearExpiryDays = 7
 const (
 	getWarningsQuery = `
 		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       COALESCE(u.name, '') as unit_name,
 		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
 		FROM product_expiry_batches eb
 		LEFT JOIN products p ON eb.product_id = p.id
+		LEFT JOIN product_packages pp ON eb.package_id = pp.id
+		LEFT JOIN units u ON pp.unit_id = u.id
 		WHERE eb.status = 'active' AND eb.expired_date <= DATE_ADD(?, INTERVAL ? DAY)
 	`
 	getWarningsSearchClause = ` AND p.name LIKE ?`
@@ -24,18 +31,24 @@ const (
 
 	getByProductQuery = `
 		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       COALESCE(u.name, '') as unit_name,
 		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
 		FROM product_expiry_batches eb
 		LEFT JOIN products p ON eb.product_id = p.id
+		LEFT JOIN product_packages pp ON eb.package_id = pp.id
+		LEFT JOIN units u ON pp.unit_id = u.id
 		WHERE eb.product_id = ?
 		ORDER BY eb.expired_date ASC
 	`
 
 	getExpiryBatchByIDQuery = `
 		SELECT eb.id, eb.product_id, COALESCE(p.name, '') as product_name, eb.purchase_item_id,
+		       COALESCE(u.name, '') as unit_name,
 		       eb.qty, eb.expired_date, eb.status, eb.resolved_by, eb.resolved_at, eb.notes, eb.created_at
 		FROM product_expiry_batches eb
 		LEFT JOIN products p ON eb.product_id = p.id
+		LEFT JOIN product_packages pp ON eb.package_id = pp.id
+		LEFT JOIN units u ON pp.unit_id = u.id
 		WHERE eb.id = ?
 	`
 
@@ -51,9 +64,7 @@ const (
 		WHERE id = ?
 	`
 
-	getProductStockForWriteOffQuery = `SELECT stock FROM products WHERE id = ? FOR UPDATE`
-	deductStockForWriteOffQuery     = `UPDATE products SET stock = GREATEST(stock - ?, 0), updated_at = ? WHERE id = ?`
-	createExpiredStockMutationQuery = `INSERT INTO stock_mutations (product_id, mutation_type, quantity, stock_before, stock_after, reference_type, reference_id, notes, user_id) VALUES (?, 'expired', ?, ?, ?, 'expiry_batch', ?, ?, ?)`
+	getPackageIDFromPurchaseItemQuery = `SELECT package_id FROM purchase_items WHERE id = ?`
 )
 
 func (r *expiryBatchRepo) GetWarnings(search string) ([]*model.ExpiryBatch, error) {
@@ -105,23 +116,37 @@ func (r *expiryBatchRepo) WriteOff(id, userID int, notes string) error {
 			return err
 		}
 
-		var stockBefore float64
-		if err := tx.Raw(getProductStockForWriteOffQuery, batch.ProductID).Scan(&stockBefore).Error; err != nil {
+		var packageIDPtr *int
+		if err := tx.Raw(getPackageIDFromPurchaseItemQuery, batch.PurchaseItemID).Scan(&packageIDPtr).Error; err != nil {
 			return err
 		}
-
-		if err := tx.Exec(deductStockForWriteOffQuery, batch.Qty, now, batch.ProductID).Error; err != nil {
-			return err
+		packageID := 0
+		if packageIDPtr != nil && *packageIDPtr > 0 {
+			packageID = *packageIDPtr
+		} else if resolved, ok := product_repo.ResolveDefaultPackageID(tx, batch.ProductID); ok {
+			packageID = resolved
 		}
-		stockAfter := stockBefore - batch.Qty
-		if stockAfter < 0 {
-			stockAfter = 0
+		if packageID == 0 {
+			return fmt.Errorf("produk %s tidak punya paket satuan yang bisa dipakai buat write-off", batch.ProductName)
 		}
 
 		mutationNotes := fmt.Sprintf("Write-off batch expired %s", batch.ExpiredDate.Format("2006-01-02"))
-		if err := tx.Exec(createExpiredStockMutationQuery,
-			batch.ProductID, batch.Qty, stockBefore, stockAfter, batch.ID, mutationNotes, userID,
-		).Error; err != nil {
+		if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+			ProductID:     batch.ProductID,
+			PackageID:     packageID,
+			Quantity:      batch.Qty,
+			Direction:     model_product.StockOut,
+			MutationType:  "expired",
+			ReferenceType: "expiry_batch",
+			ReferenceID:   batch.ID,
+			Notes:         mutationNotes,
+			UserID:        &userID,
+		}); err != nil {
+			if stderrors.Is(err, model_product.ErrInsufficientStock) {
+				return &custom_errors.BadRequestError{Message: fmt.Sprintf(
+					"Qty write-off (%.3f) melebihi stok %s yang tersedia -- tidak bisa diproses otomatis, periksa data batch ini", batch.Qty, batch.ProductName,
+				)}
+			}
 			return err
 		}
 

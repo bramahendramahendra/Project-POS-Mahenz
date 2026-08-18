@@ -30,9 +30,6 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
   const [writeOffTarget, setWriteOffTarget] = useState<ExpiryWarning | null>(null)
   const [writeOffNotes, setWriteOffNotes] = useState('')
   const [confirmTarget, setConfirmTarget] = useState<ExpiryWarning | null>(null)
-  // Sequential, bukan tumpuk — pola sama seperti FormModal + ConfirmDialog di seluruh
-  // aplikasi (mis. ProductFormModal): modal induk digerbang tertutup selagi dialog
-  // konfirmasi anak (write-off/confirm) tampil, bukan tetap terbuka di belakangnya.
   const isWriteOffConfirming = writeOffTarget !== null
   const isConfirmConfirming = confirmTarget !== null
 
@@ -84,7 +81,9 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
                       size={13}
                       className={w.severity === 'expired' ? 'text-red-500' : 'text-amber-500'}
                     />
-                    <span className="text-sm font-medium">{w.qty} unit</span>
+                    <span className="text-sm font-medium">
+                      {w.qty} {w.unit_name || 'unit'}
+                    </span>
                     <span className="text-xs text-gray-400">· expired {formatDate(w.expired_date)}</span>
                   </div>
                   <span
@@ -144,7 +143,7 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
         onConfirm={handleWriteOffConfirm}
         description={
           writeOffTarget
-            ? `${writeOffTarget.qty} unit dengan expired ${formatDate(writeOffTarget.expired_date)} akan dikurangi dari stok dan tercatat sebagai kerugian. Tindakan ini tidak bisa dibatalkan.`
+            ? `${writeOffTarget.qty} ${writeOffTarget.unit_name || 'unit'} dengan expired ${formatDate(writeOffTarget.expired_date)} akan dikurangi dari stok dan tercatat sebagai kerugian. Tindakan ini tidak bisa dibatalkan.`
             : ''
         }
       >
@@ -166,7 +165,7 @@ export function ExpiryWarningModal({ product, onOpenChange }: ExpiryWarningModal
         onConfirm={handleConfirmBatch}
         description={
           confirmTarget
-            ? `${confirmTarget.qty} unit dengan expired ${formatDate(confirmTarget.expired_date)} akan ditandai sudah dicek dan aman. Pastikan Anda sudah memeriksa fisik rak.`
+            ? `${confirmTarget.qty} ${confirmTarget.unit_name || 'unit'} dengan expired ${formatDate(confirmTarget.expired_date)} akan ditandai sudah dicek dan aman. Pastikan Anda sudah memeriksa fisik rak.`
             : ''
         }
       />

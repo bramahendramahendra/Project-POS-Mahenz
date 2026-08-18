@@ -13,4 +13,7 @@ type ProductPackage struct {
 	PurchasePrice float64  `gorm:"column:purchase_price"`
 	SellingPrice  float64  `gorm:"column:selling_price"`
 	IsDefault     bool     `gorm:"column:is_default"`
+	Stock         float64  `gorm:"column:stock"`
+	ReservedQty   float64  `gorm:"column:reserved_qty"`
+	IsActive      bool     `gorm:"column:is_active"`
 }

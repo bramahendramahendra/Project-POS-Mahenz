@@ -30,6 +30,9 @@ func (s *productService) GetAll(req *dto.GetAllRequest) (data []dto.ProductRespo
 			IsActive:         v.IsActive,
 			ExtraPackages:    v.ExtraPackages,
 			PriceTiersCount:  v.PriceTiersCount,
+			IsLowStock:       v.IsLowStock,
+			NeedsStockReview: v.NeedsStockReview,
+			StockReviewNote:  v.StockReviewNote,
 		})
 	}
 
@@ -102,6 +105,9 @@ func (s *productService) GetByID(id int) (data dto.ProductResponse, err error) {
 		IsActive:         dataDB.IsActive,
 		ExtraPackages:    dataDB.ExtraPackages,
 		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
 	}
 
 	return data, nil
@@ -134,15 +140,15 @@ func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse,
 		IsActive:         dataDB.IsActive,
 		ExtraPackages:    dataDB.ExtraPackages,
 		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
 	}
 
 	return data, nil
 }
 
 func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error) {
-	// Stok awal hanya boleh diisi manual oleh admin — role lain selalu mulai dari 0,
-	// stok berikutnya diisi lewat pembelian atau di-edit admin. Dicek di sini (bukan
-	// cuma FE) supaya tidak bisa dibypass dengan panggil API langsung.
 	if role != "admin" {
 		req.Stock = 0
 	}
@@ -221,6 +227,9 @@ func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.P
 		IsActive:         dataDB.IsActive,
 		ExtraPackages:    dataDB.ExtraPackages,
 		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
 	}
 
 	return data, nil
@@ -235,8 +244,6 @@ func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.P
 		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
 	}
 
-	// Non-admin tidak boleh mengubah stok lewat form produk — nilai stok yang ada
-	// di DB dipertahankan apapun yang dikirim di request.
 	if role != "admin" {
 		req.Stock = existsUpdate.Stock
 	}
@@ -302,6 +309,9 @@ func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.P
 		IsActive:         dataDB.IsActive,
 		ExtraPackages:    dataDB.ExtraPackages,
 		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
 	}
 
 	return data, nil
@@ -349,4 +359,20 @@ func (s *productService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) 
 	}
 
 	return s.repo.ToggleStatus(req)
+}
+
+// MarkStockReviewed -- celah #20 (Fase 6): mematikan needs_stock_review +
+// mengosongkan stock_review_note, dipicu tombol "Tandai sudah ditinjau" di FE
+// setelah admin memverifikasi manual data stok produk yang gagal dianalisis
+// otomatis saat backfill/migrasi (Fase 3).
+func (s *productService) MarkStockReviewed(req *dto.MarkStockReviewedRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	return s.repo.MarkStockReviewed(req.ID)
 }

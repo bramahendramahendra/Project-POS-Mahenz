@@ -30,12 +30,9 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
-	// UnitID sengaja tidak ada di sini — satuan anchor (satuan pencatatan stok)
-	// permanen sejak produk dibuat, tidak pernah diubah lewat update biasa. Ini
-	// menghindari data korup: dulu field ini bisa diedit bebas tanpa menyesuaikan
-	// paket lain atau stok yang sudah tercatat.
 	UpdateRequest struct {
 		ID            int     `json:"-"`
+		UserID        int     `json:"-"`
 		Barcode       string  `json:"barcode" validate:"required,max=100"`
 		SKU           string  `json:"sku" validate:"required,max=50"`
 		Name          string  `json:"name" validate:"required,max=200"`
@@ -51,6 +48,10 @@ type (
 	}
 
 	ToggleStatusRequest struct {
+		ID int `uri:"id" validate:"required,min=1"`
+	}
+
+	MarkStockReviewedRequest struct {
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
@@ -73,6 +74,10 @@ type (
 		IsActive         bool    `json:"is_active"`
 		ExtraPackages    int     `json:"extra_packages"`
 		PriceTiersCount  int     `json:"price_tiers_count"`
+		// Fase 5 (docs/RENCANA_PERBAIKAN_STOK_PRESISI.md, celah #12 & #20).
+		IsLowStock       bool   `json:"is_low_stock"`
+		NeedsStockReview bool   `json:"needs_stock_review"`
+		StockReviewNote  string `json:"stock_review_note"`
 	}
 
 	GetOptionResponse struct {

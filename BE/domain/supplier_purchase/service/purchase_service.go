@@ -1,6 +1,7 @@
 package service
 
 import (
+	stderrors "errors"
 	"fmt"
 	"math"
 
@@ -398,6 +399,14 @@ func (s *purchaseService) Void(id int, userID int) error {
 		return purchaseTx.Void(id, userID)
 	})
 	if txErr != nil {
+		// Bug QA Fase A skenario 15 (pola sama seperti transaction_service.go):
+		// purchase_repo.go Void() sudah bisa mengembalikan *errors.BadRequestError
+		// lewat wrapStockError -- jangan dipaksa jadi 500, pass-through kalau
+		// sudah app error yang dikenal.
+		var badReq *errors.BadRequestError
+		if stderrors.As(txErr, &badReq) {
+			return badReq
+		}
 		return &errors.InternalServerError{Message: txErr.Error()}
 	}
 	return nil

@@ -1,0 +1,82 @@
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:99
+[0m[33m[0.522ms] [34;1m[rows:0][0m CREATE TABLE IF NOT EXISTS migrations_history (
+		id          INT AUTO_INCREMENT PRIMARY KEY,
+		filename    VARCHAR(255) UNIQUE NOT NULL,
+		executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	) DEFAULT CHARSET=utf8
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:27
+[0m[33m[0.505ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:28
+[0m[33m[0.784ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name != 'migrations_history'
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.525ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '001_init_schema.sql'
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.516ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '002_seed_data.sql'
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '003_fix_receivables_status_enum.sql'
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:104
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT COUNT(*) FROM migrations_history WHERE filename = '004_stock_per_package_level.sql'
+
+2026/08/16 12:13:50 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[21.916ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN stock DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN reserved_qty DECIMAL(15,3) NOT NULL DEFAULT 0,
+  ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[122.998ms] [34;1m[rows:321][0m ALTER TABLE product_packages
+  ADD CONSTRAINT chk_product_packages_stock_nonneg CHECK (stock >= 0),
+  ADD CONSTRAINT chk_product_packages_reserved_nonneg CHECK (reserved_qty >= 0)
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[137.467ms] [34;1m[rows:195][0m ALTER TABLE products
+  ADD CONSTRAINT chk_products_min_stock_nonneg CHECK (min_stock >= 0)
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[26.263ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD COLUMN is_default_flag INT GENERATED ALWAYS AS (IF(is_default = 1, product_id, NULL)) VIRTUAL
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[39.400ms] [34;1m[rows:0][0m ALTER TABLE product_packages
+  ADD UNIQUE KEY uq_product_default (is_default_flag)
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[15.181ms] [34;1m[rows:0][0m ALTER TABLE units
+  ADD COLUMN is_continuous TINYINT(1) NOT NULL DEFAULT 0
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[44.596ms] [34;1m[rows:0][0m ALTER TABLE products
+  ADD COLUMN needs_stock_review TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN stock_review_note TEXT NULL
+
+2026/08/16 12:13:51 [32mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121
+[0m[33m[72.813ms] [34;1m[rows:0][0m ALTER TABLE supplier_return_items
+  ADD COLUMN package_id INT NULL,
+  ADD CONSTRAINT fk_supplier_return_items_package FOREIGN KEY (package_id) REFERENCES product_packages(id)
+
+2026/08/16 12:13:51 [31;1mD:/Develop/Project_pos_mahenz/BE/database/migrate.go:121 [35;1mError 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'kalau tidak ada relasinya, biarkan NULL dan tangani
+  -- sebagai kasus "level ti' at line 1
+[0m[33m[0.000ms] [34;1m[rows:0][0m kalau tidak ada relasinya, biarkan NULL dan tangani
+  -- sebagai kasus "level tidak diketahui" di Fase 3/4 (bukan diasumsikan anchor)
+
+-- write-off kadaluarsa punya masalah sama persis (celah #14b)
+ALTER TABLE product_expiry_batches
+  ADD COLUMN package_id INT NULL,
+  ADD CONSTRAINT fk_expiry_batches_package FOREIGN KEY (package_id) REFERENCES product_packages(id)
+panic: {"Context":"Internal Error","Scope":"Migration","RequestId":"ce87e921-6f29-4dd7-bb11-b633e833e429","Message":"execute 004_stock_per_package_level.sql: Error 1064 (42000): You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'kalau tidak ada relasinya, biarkan NULL dan tangani\n  -- sebagai kasus \"level ti' at line 1","StartTime":"2026-08-16 12:13:51","EndTime":"2026-08-16 12:13:51","Data":null,"Stacktrace":"File: D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go, Line: 53, Function: pos_api/server.InitializedDB\n"}
+
+goroutine 1 [running]:
+pos_api/server.InitializedDB()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:54 +0x14d
+pos_api/server.Initialized()
+	D:/Develop/Project_pos_mahenz/BE/server/bootstrap.go:22 +0x1c
+main.main()
+	D:/Develop/Project_pos_mahenz/BE/main.go:30 +0x34
+exit status 2

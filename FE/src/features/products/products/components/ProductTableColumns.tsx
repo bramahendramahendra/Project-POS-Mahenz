@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
-import { calcMargin } from '../products.utils'
+import { calcMargin, formatStockNumber } from '../products.utils'
 import type { Product } from '../products.types'
 import type { ProductExpirySeverity } from '../expiry-batches.types'
 
@@ -34,6 +34,19 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
         return (
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-gray-800">{row.name}</span>
+            {row.needs_stock_review && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                    <TriangleAlert size={10} />
+                    Perlu Ditinjau
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {row.stock_review_note || 'Data stok produk ini belum terverifikasi penuh dari migrasi sistem'}
+                </TooltipContent>
+              </Tooltip>
+            )}
             {expiry && (
               <button
                 type="button"
@@ -135,12 +148,12 @@ export function buildProductColumns(handlers: ProductColumnHandlers): ColumnDef<
           className={`font-medium ${
             row.stock === 0
               ? 'text-red-600'
-              : row.stock < row.min_stock
+              : row.is_low_stock
                 ? 'text-amber-600'
                 : 'text-gray-800'
           }`}
         >
-          {row.stock}
+          {formatStockNumber(row.stock)}
         </span>
       ),
     },

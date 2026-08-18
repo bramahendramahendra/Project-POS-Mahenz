@@ -44,6 +44,7 @@ type PurchaseItem struct {
 	PurchaseID    int     `db:"purchase_id"`
 	ProductID     int     `db:"product_id"`
 	ProductName   string  `db:"product_name"`
+	PackageID     *int    `db:"package_id"`
 	Quantity      float64 `db:"quantity"`
 	Unit          string  `db:"unit"`
 	ConversionQty float64 `db:"conversion_qty"`
@@ -52,8 +53,6 @@ type PurchaseItem struct {
 	ExpiryBatches []PurchaseItemExpiryBatch
 }
 
-// PurchaseItemExpiryBatch: rincian tanggal expired yang diisi staf untuk sebagian qty
-// baris item ini (lihat product_expiry_batches, migrasi 003_expiry_batch.sql).
 type PurchaseItemExpiryBatch struct {
 	Qty         float64   `db:"qty"`
 	ExpiredDate time.Time `db:"expired_date"`

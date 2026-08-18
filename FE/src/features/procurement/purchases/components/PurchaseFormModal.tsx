@@ -22,7 +22,7 @@ import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 import type { SupplierOption } from '@/features/procurement/suppliers'
 import { useProductSearchQuery, fetchProductDetail } from '@/features/products/products'
-import { formatResolvedFactor } from '@/features/products/products/products.utils'
+import { formatResolvedFactor, formatStockNumber } from '@/features/products/products/products.utils'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
@@ -78,10 +78,6 @@ function PurchaseProductCell({
   )
 }
 
-// ExpiryBatchSection: rincian tanggal expired opsional untuk 1 baris item PO. Checkbox
-// dan repeater-nya sengaja disatukan di sini (bukan di komponen utama) karena useFieldArray
-// per baris cuma bisa dipanggil sebagai hook terpisah per index — tidak bisa dipanggil
-// dinamis di dalam .map() komponen induk.
 function ExpiryBatchSection({
   control,
   index,
@@ -600,7 +596,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             <Info size={14} className="mt-0.5 shrink-0" />
             <span>
               Perubahan pada produk &quot;{w.name}&quot; membuat stok jadi minus — sebagian stoknya sudah terjual di
-              jalur lain (sisa stok {w.currentStock}, perubahan qty pembelian {w.changeQty}). Kurangi perubahan pada
+              jalur lain (sisa stok {formatStockNumber(w.currentStock)}, perubahan qty pembelian {w.changeQty}). Kurangi perubahan pada
               produk ini untuk melanjutkan.
             </span>
           </div>

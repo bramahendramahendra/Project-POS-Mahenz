@@ -1,5 +1,6 @@
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
+import { formatStockNumber } from '@/features/products/products'
 
 import type { StockReport } from '../stock.types'
 
@@ -38,10 +39,10 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
       sortable: true,
       cell: (r) => (
         <div className="flex items-center justify-end gap-2">
-          <span className={`text-sm font-semibold ${r.current_stock < r.min_stock ? 'text-red-600' : ''}`}>
-            {r.current_stock}
+          <span className={`text-sm font-semibold ${r.is_low_stock ? 'text-red-600' : ''}`}>
+            {formatStockNumber(r.current_stock)}
           </span>
-          {r.current_stock < r.min_stock && (
+          {r.is_low_stock && (
             <span className="inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
               Stok Rendah
             </span>
