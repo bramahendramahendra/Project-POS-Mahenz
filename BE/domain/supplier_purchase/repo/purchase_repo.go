@@ -18,7 +18,7 @@ import (
 
 const (
 	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generatePurchaseCodeQuery           = `SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
+	generatePurchaseCodeQuery           = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(purchase_code, '-', -1) AS UNSIGNED)), 0) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
 	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, package_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	createExpiryBatchQuery              = `INSERT INTO product_expiry_batches (product_id, purchase_item_id, package_id, qty, expired_date) VALUES (?, ?, ?, ?, ?)`
@@ -266,11 +266,11 @@ func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, err
 
 func (r *purchaseRepo) GenerateCode() (string, error) {
 	todayCode := time_helper.GetTimeNow().Format("20060102")
-	var count int
-	if err := r.db.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
+	var maxSuffix int
+	if err := r.db.Raw(generatePurchaseCodeQuery, todayCode).Scan(&maxSuffix).Error; err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("PO-%s-%03d", todayCode, count+1), nil
+	return fmt.Sprintf("PO-%s-%03d", todayCode, maxSuffix+1), nil
 }
 
 func isDuplicatePurchaseCodeError(err error) bool {
@@ -299,11 +299,11 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		todayCode := time_helper.GetTimeNow().Format("20060102")
-		var count int
-		if err := tx.Raw(generatePurchaseCodeQuery, todayCode).Scan(&count).Error; err != nil {
+		var maxSuffix int
+		if err := tx.Raw(generatePurchaseCodeQuery, todayCode).Scan(&maxSuffix).Error; err != nil {
 			return err
 		}
-		code := fmt.Sprintf("PO-%s-%03d", todayCode, count+1)
+		code := fmt.Sprintf("PO-%s-%03d", todayCode, maxSuffix+1)
 
 		_, totalAmount := calculateTotal(req.Items, req.DiscountAmount)
 
@@ -433,6 +433,11 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			paymentStatus = "partial"
 		}
 
+		type stockKey struct {
+			productID int
+			packageID int
+		}
+		oldQty := make(map[stockKey]float64)
 		for _, old := range oldItems {
 			packageID := old.PackageID
 			if packageID == nil {
@@ -442,19 +447,7 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			if packageID == nil {
 				return fmt.Errorf("produk ID %d (item lama) tidak punya paket satuan yang bisa dipakai buat balikkan stok", old.ProductID)
 			}
-			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
-				ProductID:     old.ProductID,
-				PackageID:     *packageID,
-				Quantity:      old.Quantity,
-				Direction:     model_product.StockOut,
-				MutationType:  "adjustment",
-				ReferenceType: "purchase",
-				ReferenceID:   req.ID,
-				Notes:         fmt.Sprintf("Edit PO ID %d -- balikkan item lama sebelum diganti", req.ID),
-				UserID:        &req.UserID,
-			}); err != nil {
-				return wrapStockError(err, old.ProductID)
-			}
+			oldQty[stockKey{old.ProductID, *packageID}] += old.Quantity
 		}
 
 		if err := tx.Exec(deletePurchaseItemsQuery, req.ID).Error; err != nil {
@@ -474,10 +467,14 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			return err
 		}
 
+		newQty := make(map[stockKey]float64)
 		for _, item := range req.Items {
 			subtotal := item.PurchasePrice * item.Quantity
 			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
 			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
+			if resolvedPackageID == nil {
+				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
+			}
 			if err := tx.Exec(createPurchaseItemQuery,
 				req.ID, item.ProductID, resolvedPackageID,
 				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
@@ -495,21 +492,45 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 				}
 			}
 
-			if resolvedPackageID == nil {
-				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
+			newQty[stockKey{item.ProductID, *resolvedPackageID}] += item.Quantity
+		}
+
+		// Terapkan hanya SELISIH bersih per (produk, paket), bukan reverse-semua-lalu-reapply-semua.
+		// Kalau qty item lama & baru sama persis (item lain yang diubah/dihapus), delta = 0, stok
+		// produk itu sama sekali tidak disentuh -- jadi tidak bisa gagal gara-gara stok riilnya
+		// sudah berkurang oleh transaksi lain sejak PO ini dibuat.
+		keys := make(map[stockKey]struct{}, len(oldQty)+len(newQty))
+		for k := range oldQty {
+			keys[k] = struct{}{}
+		}
+		for k := range newQty {
+			keys[k] = struct{}{}
+		}
+		for k := range keys {
+			delta := newQty[k] - oldQty[k]
+			if delta == 0 {
+				continue
+			}
+			direction := model_product.StockIn
+			qty := delta
+			notes := fmt.Sprintf("Edit PO ID %d -- penyesuaian stok (selisih item baru vs lama)", req.ID)
+			if delta < 0 {
+				direction = model_product.StockOut
+				qty = -delta
+				notes = fmt.Sprintf("Edit PO ID %d -- balikkan sebagian item lama (selisih)", req.ID)
 			}
 			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
-				ProductID:     item.ProductID,
-				PackageID:     *resolvedPackageID,
-				Quantity:      item.Quantity,
-				Direction:     model_product.StockIn,
+				ProductID:     k.productID,
+				PackageID:     k.packageID,
+				Quantity:      qty,
+				Direction:     direction,
 				MutationType:  "adjustment",
 				ReferenceType: "purchase",
 				ReferenceID:   req.ID,
-				Notes:         fmt.Sprintf("Edit PO ID %d -- item baru pengganti", req.ID),
+				Notes:         notes,
 				UserID:        &req.UserID,
 			}); err != nil {
-				return wrapStockError(err, item.ProductID)
+				return wrapStockError(err, k.productID)
 			}
 		}
 

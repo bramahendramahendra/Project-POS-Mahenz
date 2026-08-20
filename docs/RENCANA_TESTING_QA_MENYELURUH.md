@@ -317,6 +317,7 @@ TUGAS — Kerjakan FASE G (Lintas Modul) sebagai senior QA / bug hunter:
 - **Hasil yang diharapkan**: Pesan error jelas dalam Bahasa Indonesia menjelaskan stok tidak cukup, HTTP 400.
 - **Perbaikan**: Ditambahkan `product_repo.WrapStockError()` (fungsi baru, `stock_delta_repo.go`, di-export supaya bisa dipakai lintas domain) yang menerjemahkan `ErrInsufficientStock`/`ErrNeedsStockReview`/`ErrBranchingChain` jadi `*errors.BadRequestError` dengan pesan spesifik. Dipakai di `product_repo.go` `Update()` dan `Create()` (defensif, untuk stok awal produk baru).
 - **Status**: ✅ Diperbaiki & diverifikasi ulang — sekarang muncul "Stok produk ID 197 tidak mencukupi untuk perubahan ini (kemungkinan sebagian sedang ditahan retur/reservasi lain)", HTTP 400.
+- **Contoh sederhana**: Bayangkan sebuah toko punya 5 botol kecap di rak, tapi 1 botol sudah "dipesan" pelanggan lewat sistem retur (jadi cuma 4 botol yang benar-benar bebas dijual/diubah). Kalau admin buka form Edit Produk dan set stok jadi 0 begitu saja, sistem seharusnya bilang "tidak bisa, ada 1 botol yang masih ditahan retur" — sebelum perbaikan, sistem malah "ngambek" dan nampilin pesan error generik yang bikin bingung ("Internal Server Error"), padahal errornya sudah dideteksi dengan benar di baliknya, cuma pesannya tidak pernah disampaikan ke layar.
 
 #### [MAYOR] Jual produk `needs_stock_review=true` → 500, bukan pesan jelas (celah #20 seharusnya menolak eksplisit tapi malah crash)
 - **Lokasi**: `POST /transactions/create` (checkout Kasir)
@@ -325,6 +326,7 @@ TUGAS — Kerjakan FASE G (Lintas Modul) sebagai senior QA / bug hunter:
 - **Hasil yang diharapkan**: Pesan jelas menolak transaksi karena produk perlu ditinjau dulu, HTTP 400.
 - **Perbaikan**: `transaction_repo.go` `Create()`/`Void()` diganti pakai `product_repo.WrapStockError()` (menggantikan konvensi prefix string lama). `transaction_service.go` & `purchase_service.go` diperbaiki supaya pass-through `*errors.BadRequestError` yang sudah dikenal, bukan dipaksa jadi 500.
 - **Status**: ✅ Diperbaiki & diverifikasi ulang — sekarang muncul "Produk ID 53 ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir sampai ditinjau admin", HTTP 400.
+- **Contoh sederhana**: Anggap ada produk yang datanya "mencurigakan" (mis. hasil migrasi lama yang stoknya tidak jelas asal-usulnya), lalu ditandai "perlu ditinjau admin dulu sebelum dipakai transaksi" — semacam label "jangan dijual dulu, cek manual". Kalau kasir coba jual produk berlabel itu, sistem SEHARUSNYA menolak dengan pesan jelas "produk ini perlu ditinjau dulu". Sebelum perbaikan, sistem malah crash dengan pesan generik yang tidak menjelaskan apa-apa ke kasir — padahal aturan penolakannya sendiri sudah benar, cuma pesannya "hilang di jalan" sebelum sampai ke layar pengguna.
 - **Catatan terkait (belum diperbaiki, prioritas rendah)**: Jalur sync/offline (`ApplySyncTransaction`) punya pola serupa tapi TIDAK crash (error cuma dicocokkan via `strings.Contains(err.Error(), "stok produk")` di `sync_service.go` untuk membedakan status "conflict" vs "failed", tidak lewat middleware HTTP) — kalau error-nya `ErrNeedsStockReview` bukan `ErrInsufficientStock`, akan salah masuk kategori "failed" padahal seharusnya "conflict". Tidak diperbaiki sekarang karena berisiko mengubah teks pesan yang jadi andalan pencocokan string itu tanpa waktu cukup untuk verifikasi menyeluruh — dicatat untuk Fase G atau sesi terpisah.
 
 ### Temuan minor (dicatat, tidak diperbaiki — kosmetik/tidak berisiko data)
@@ -364,4 +366,105 @@ TUGAS — Kerjakan FASE G (Lintas Modul) sebagai senior QA / bug hunter:
 **Console browser**: 0 JavaScript error/warning ditemukan di seluruh skenario (hanya network 400/500 yang memang diharapkan sebagai bagian pengujian negatif, bukan JS exception).
 
 **Rekomendasi**: lanjut ke Fase B. Dua bug mayor yang ditemukan (500 seharusnya 400) berpotensi memengaruhi Fase B & C juga (sama-sama lewat `ApplyStockDelta`) — sudah diperbaiki secara terpusat (`WrapStockError`) jadi kemungkinan besar jalur lain (retur, write-off) yang sudah punya pembungkus sendiri tidak terpengaruh, tapi tetap perlu diverifikasi ulang di fase masing-masing.
+```
+
+---
+
+**Fase B (Modul Pembelian) — ✅ SELESAI (24/25), 1 skenario butuh keputusan user** (18 Agu 2026): dijalankan lewat browser sungguhan (Playwright) untuk alur create/edit/void/delete PO, dikombinasikan dengan verifikasi state lewat API langsung (produk & PO yang sama dipakai form-nya) untuk memastikan angka stok presisi sebelum/sesudah tiap aksi. Data uji: PO berprefix `QATEST-B*` / `PO-20260818-00x` (id 142-151), produk `88 Hitam 12` (29), `88 Kretek 12` (9), `Djarum Super Kretek 12` (197, rasio non-bulat Pack/Pieces/Sachet). Semua data uji dibiarkan di DB dev.
+
+### Bug ditemukan & diperbaiki
+
+#### [MAYOR] Edit PO — hapus 1 item dari PO multi-item gagal karena item LAIN yang tidak diubah ikut "direverse penuh"
+- **Lokasi**: `PurchaseRepo.Update()` (`purchase_repo.go`)
+- **Langkah reproduksi**: 1. PO 142 punya 2 item: produk 29 (qty 5) & produk 9 (qty 6). 2. Sejak PO dibuat, sebagian stok produk 29 sudah terjual lewat Kasir sampai stok riil tinggal 3. 3. Buka Edit PO, hapus item produk 9 saja (qty produk 29 tidak disentuh sama sekali). 4. Simpan Perubahan.
+- **Hasil aktual (sebelum fix)**: HTTP 400 "Stok produk ID 29 tidak mencukupi untuk perubahan ini" — padahal produk 29 bukan yang diubah. Root cause: `Update()` memakai strategi "reverse SEMUA item lama secara penuh, baru reapply SEMUA item baru secara penuh" (bukan hitung selisih per produk). Reversal penuh utk produk 29 (kurangi 5 dari stok riil 3) gagal duluan sebelum sempat tahu bahwa net effect utk produk 29 seharusnya nol.
+- **Hasil yang diharapkan**: Menghapus/mengubah item lain seharusnya tidak memengaruhi validasi stok produk yang qty-nya tidak berubah.
+- **Perbaikan**: `Update()` diubah untuk menghitung **selisih bersih (net delta) per (produk, paket)** antara qty lama vs qty baru, lalu HANYA memanggil `ApplyStockDelta` untuk selisihnya (delta 0 = tidak disentuh sama sekali). Kalau produk yang sama muncul di 2 paket berbeda (before/after), masing-masing key paket dihitung terpisah sehingga tetap benar.
+- **Status**: ✅ Diperbaiki & diverifikasi ulang (via API langsung ke endpoint yang sama dipakai form Edit PO) — hapus item produk 9 dari PO 142 sekarang berhasil, stok produk 29 (tidak diubah) tetap 3 tidak tersentuh, stok produk 9 (dihapus) benar-benar kembali ke 0 (reversal penuh utk item yang memang dihapus).
+- **Contoh sederhana**: Bayangkan sebuah nota belanja 2 baris: "Kecap 5 botol" dan "Saus 6 botol". Sejak nota itu dibuat, sebagian kecap sudah terjual ke pelanggan lain, sisa di rak cuma 3 botol. Sekarang admin cuma mau HAPUS baris "Saus" dari nota itu (baris "Kecap" tidak disentuh sama sekali, tetap 5). Cara lama sistem kerja: "batalkan DULU seluruh nota (tarik balik 5 kecap + 6 saus dari rak), baru catat ulang sisanya (5 kecap saja)". Masalahnya, menarik balik 5 kecap dari rak yang cuma berisi 3 itu MUSTAHIL (3-5 = minus) — padahal kecapnya sendiri sama sekali tidak diubah! Ini seperti kasir dipaksa mengembalikan barang yang sudah lama terjual cuma karena mau menghapus baris LAIN di nota yang sama. Perbaikannya: sistem sekarang cuma menghitung baris mana yang BENAR-BENAR berubah (di sini cuma baris Saus, dari 6 jadi 0) dan cuma menyentuh itu — baris Kecap yang tidak berubah sama sekali tidak pernah "ditarik dulu lalu dipasang lagi", jadi tidak pernah gagal gara-gara stoknya sudah berkurang di tempat lain.
+
+### Keputusan desain (didiskusikan & dikonfirmasi user)
+
+- **[Skenario 20] Void PO yang sebagian stoknya sudah terjual sejak PO dibuat, sampai reversal penuh bikin stok jadi minus** — perilaku aktual: **void DITOLAK** dengan pesan bersih "Stok produk ID 29 tidak mencukupi untuk perubahan ini" (HTTP 400, tidak crash, tidak ada drift data — ini perilaku lama, `Void()` tidak diubah di sesi ini). Ditelusuri sampai ke `stock_mutations`: penyebabnya murni riwayat transaksi test (bukan bug migrasi/stok-koma) — PO menambah 5 unit, lalu ada penjualan besar (27 unit) yang menghabiskan sebagian besar stok, sehingga reversal PO ini butuh lebih banyak stok daripada yang tersisa.
+  - **Diskusi**: kasus "salah catat" (harga beli, supplier, kuantitas kelebihan/kekurangan) semuanya sudah tuntas dihandle oleh **Edit** tanpa risiko minus (kuantitas kelebihan → Edit turunkan, ditolak bersih kalau stoknya sudah kepakai, sama seperti skenario 15; kuantitas kekurangan → Edit naikkan, tidak ada risiko sama sekali). Kasus "salah nama produk" praktis tidak mungkin karena ada bukti fisik barang yang diterima & terjual. Yang tersisa untuk Void murni kasus "PO seharusnya tidak pernah ada" (duplikat input, supplier batal kirim) — kalau kasus itu bentrok dengan stok yang sudah terjual, itu justru sinyal ada yang perlu ditelusuri manual, bukan sesuatu yang harus dimuluskan otomatis.
+  - **Keputusan**: perilaku sekarang (tolak bersih, admin benerin stok dulu baru void) **sudah tepat, tidak perlu diubah**.
+  - **Contoh sederhana**: PO beli 5 botol kecap, ditambahkan ke rak. Setelah itu ada penjualan besar yang menghabiskan sebagian besar rak, sisa cuma 1 botol. Sekarang admin mau BATALKAN TOTAL pembelian itu (bukan cuma edit sebagian) — artinya sistem harus menarik balik 5 botol yang katanya "tidak seharusnya pernah masuk rak". Tapi raknya cuma ada 1 botol sekarang, tidak mungkin narik 5. Sistem menolak dan bilang "stok kurang, benerin dulu". Ini beda dari kasus Edit di atas: di sini memang SELURUH pembelian itu yang mau dianggap tidak pernah terjadi, jadi wajar kalau sistem minta memastikan dulu stoknya cukup untuk benar-benar "menghapus jejak" pembelian itu — bukan cuma menyesuaikan sebagian.
+
+### Semua 25 skenario — ringkasan hasil
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | PO baru, 1 item, 1 satuan, lunas | ✅ PASS |
+| 2 | PO baru, multi item, campuran satuan | ✅ PASS |
+| 3 | PO produk dengan hanya 1 satuan (fallback anchor) | ✅ PASS |
+| 4 | Qty desimal untuk satuan diskrit | ✅ PASS (diverifikasi perilaku aktual, tidak crash) |
+| 5 | Qty 0/negatif | ✅ PASS (ditolak validasi form, 3 field diblokir tetap di form + pesan error) |
+| 6 | Harga beli 0/negatif | ✅ PASS (`RupiahInput` strip karakter non-digit, minus tidak bisa diketik sama sekali) |
+| 7 | Expired date, total qty alokasi ≠ qty item | ✅ PASS (diblokir sebelum dialog konfirmasi muncul) |
+| 8 | Expired date di masa lalu | ✅ PASS (diizinkan, sesuai kasus nyata) |
+| 9 | Batal pilih supplier lalu submit | ✅ PASS (supplier tidak ke-reset kosong, validasi tetap jalan) |
+| 10 | Status Lunas — paid_amount otomatis = total | ✅ PASS |
+| 11 | Status Sebagian — sisa hutang & badge benar | ✅ PASS |
+| 12 | Status Hutang — sisa hutang = total | ✅ PASS |
+| 13 | Bayar PO Hutang/Sebagian via tombol bayar terpisah | ✅ PASS |
+| 14 | Edit PO — qty naik, stok bertambah sesuai delta | ✅ PASS |
+| 15 | Edit PO — qty turun sampai bikin stok minus | ✅ PASS (ditolak bersih, sudah diverifikasi ulang tetap benar setelah fix net-delta) |
+| 16 | Edit PO — tambah item baru (AddItems) | ✅ PASS |
+| 17 | Edit PO — hapus 1 item dari PO existing | ✅ PASS setelah fix (lihat bug MAYOR di atas) |
+| 18 | Void PO Lunas — semua stok kembali persis (rasio non-bulat) | ✅ PASS (13.75 → 14 → 13.75 persis, tidak ada drift) |
+| 19 | Void PO yang sudah di-void (double-void) | ✅ PASS (FE sembunyikan tombol Void, BE tolak bersih HTTP 400 "PO sudah di-void") |
+| 20 | Void PO yang sebagian stoknya sudah terjual sejak dibuat | ✅ PASS (ditolak bersih, dikonfirmasi ini perilaku yang diinginkan — lihat keputusan desain di atas) |
+| 21 | Void PO yang sebagian item-nya sudah kena write-off expired | ⏭️ BELUM DIUJI (skip karena kompleksitas setup fixture, direkomendasikan lanjutan terpisah) |
+| 22 | Hapus PO berstatus active (belum di-void) | ✅ PASS (ditolak, "PO harus di-void terlebih dahulu sebelum bisa dihapus") |
+| 23 | Hapus PO yang sudah di-void | ✅ PASS |
+| 24 | Generate kode PO — race condition 2 tab bersamaan | ✅ PASS di ronde 1-2, ❌ GAGAL di ronde 3 (bug MAYOR ditemukan & diperbaiki — lihat bagian "Ronde ke-3" di bawah), ✅ PASS setelah fix |
+| 25 | Filter/sort kombinasi (tanggal, status, supplier, sort) | ✅ PASS |
+
+### Temuan minor (dicatat, tidak diperbaiki — kosmetik/tidak berisiko data)
+
+- **[MINOR] Endpoint preview `generate-code` tidak aman dari race condition** — 3 request konkuren ke `POST /supplier-purchases/generate-code` semua mengembalikan kode sama (`PO-20260818-006`). **Tidak berisiko data** karena `Create()` yang sesungguhnya TIDAK memercayai kode hasil preview ini — ia generate ulang kode secara transaksional dan retry otomatis kalau kena duplicate-key (constraint UNIQUE di kolom `purchase_code`, terbukti lewat 3 create konkuren nyata yang menghasilkan 3 kode berbeda). Cuma berpotensi bikin kode yang DITAMPILKAN di form (sebelum submit) beda dengan kode yang benar-benar tersimpan kalau 2 user buka form nyaris bersamaan — bukan bug fungsional.
+
+**Console browser**: 0 JavaScript error/warning ditemukan di seluruh skenario (hanya network 400 yang memang diharapkan sebagai bagian pengujian negatif).
+
+**Rekomendasi**: Fase B tuntas — 24/25 PASS, 1 bug mayor diperbaiki (skenario 17), skenario 20 sudah didiskusikan & dikonfirmasi sebagai perilaku yang diinginkan (tidak ada perubahan kode). Skenario 21 (void dengan write-off) direkomendasikan diuji terpisah kalau Fase E (Write-off Kadaluarsa) sudah jalan, supaya fixture-nya lebih natural. Lanjut ke Fase C.
+
+### Re-test menyeluruh 25 skenario (18 Agu 2026, sesi lanjutan setelah diskusi skenario 20)
+
+Setelah keputusan skenario 20 dikonfirmasi, user minta **re-run penuh 25 skenario** dari awal — bukan cuma verifikasi bug fix, tapi validasi ulang seluruh modul dengan data fixture baru (prefix `QATEST-B2-*`, PO id 161-173). Semua aksi utama lewat browser sungguhan (Playwright); verifikasi angka presisi (stok, `stock_mutations`, total/paid/remaining) lewat API langsung.
+
+**Hasil**: 24/25 PASS (identik dengan ronde pertama), skenario 21 tetap di-skip (alasan sama — lebih baik nunggu Fase E). Temuan tambahan dari re-test ini (bukan bug baru, cuma verifikasi lebih dalam):
+
+- **Skenario 4** disempurnakan: field qty MEMANG menerima ketikan "2.5" secara visual, tapi submit-nya ditolak bersih dengan pesan **"Qty harus bilangan bulat"** untuk produk satuan diskrit — validasi penuh terjadi di titik submit, bukan cuma saat mengetik.
+- **Skenario 15** ternyata punya lapisan proteksi lebih baik dari yang terlihat sebelumnya: FE secara proaktif **menonaktifkan tombol "Simpan Perubahan"** (bukan menunggu response 400 dari server) begitu perubahan qty terdeteksi akan bikin stok minus, dengan pesan spesifik: *"Perubahan pada produk membuat stok jadi minus — sebagian stoknya sudah terjual di jalur lain (sisa stok 1, perubahan qty pembelian -6). Kurangi perubahan pada produk ini untuk melanjutkan."* — PO tidak pernah sempat submit ke server, jadi tidak ada risiko tersimpan setengah jalan.
+- **Skenario 14** (edit qty naik) diverifikasi sampai ke `stock_mutations`: entry `adjustment +2` dengan notes "penyesuaian stok (selisih item baru vs lama)" — mengonfirmasi fix net-delta skenario 17 dipakai konsisten juga untuk kasus qty naik, bukan cuma turun/hapus.
+- **Skenario 16 & 17** diverifikasi round-trip penuh: tambah item baru (AddItems) lalu hapus lagi (Edit) pada PO yang sama — hasil akhir persis kembali ke state semula (`total_amount` balik ke nilai awal, cuma 1 item tersisa), tidak ada sisa artefak.
+- **Skenario 18** diverifikasi dengan angka presisi penuh: stok produk rasio non-bulat (`Djarum Super Kretek 12`) sebelum PO = 14,25 → setelah PO Lunas = 14,5 → setelah void = **14,25 tepat**, tidak ada drift.
+
+Semua data uji baru dibiarkan di DB dev sesuai aturan proyek. **Fase B dinyatakan tuntas dan stabil setelah dua ronde pengujian.**
+
+### Ronde ke-3: bug baru ditemukan & diperbaiki (20 Agu 2026)
+
+User minta re-run penuh SEKALI LAGI (ronde ke-3, data fixture baru prefix `QATEST-B3-*`, PO id 175-208). 24 skenario pertama hasilnya identik dengan dua ronde sebelumnya (termasuk presisi stok exact sampai digit terakhir: `14.416666666666666` sebelum PO → sama persis setelah void). Tapi **skenario 24 (generate kode PO / race condition) kali ini GAGAL** — beda dari dua ronde sebelumnya.
+
+#### [MAYOR] Generate kode PO memakai `COUNT(*)`, rusak permanen begitu ada PO yang dihapus (bukan cuma soal race condition)
+- **Lokasi**: `purchase_repo.go`, fungsi `GenerateCode()` dan `createOnce()`, query `generatePurchaseCodeQuery`
+- **Langkah reproduksi**: 1. Beberapa PO dibuat hari itu (kode 001-009), 2. Salah satu PO yang sudah di-void DIHAPUS lewat fitur Hapus (skenario 23 — ini aksi normal & sah, kodenya jadi hilang dari tabel, misal kode 010 hilang tapi PO dengan kode 011 masih ada/aktif), 3. Coba buat PO baru — SEKALIPUN cuma 1 request biasa, sekuensial, bukan race sama sekali.
+- **Hasil aktual (sebelum fix)**: HTTP 500 Internal Server Error, `Error 1062: Duplicate entry 'PO-20260820-011'`. Root cause: `generatePurchaseCodeQuery` pakai `SELECT COUNT(*) FROM purchases WHERE purchase_code LIKE 'PO-tgl-%'` lalu kode baru = `count+1`. Begitu ada 1 PO dihapus (row hilang dari tabel), COUNT jadi lebih kecil dari nomor urut tertinggi yang sebenarnya masih dipakai — jadi `count+1` menghasilkan nomor yang SUDAH ADA (bukan nomor baru). Parahnya, mekanisme retry 5x yang sudah ada (dari perbaikan sebelumnya) TIDAK MENOLONG sama sekali di kasus ini, karena tiap retry menjalankan query COUNT yang sama persis dan menghasilkan angka yang sama persis juga — jadi 5 percobaan gagal identik, bukan cuma race condition sesaat tapi **kondisi permanen**: TIDAK ADA PO baru yang bisa dibuat hari itu sampai ada intervensi manual.
+- **Hasil yang diharapkan**: Kode PO baru harus selalu lebih besar dari nomor tertinggi yang pernah dipakai hari itu, terlepas dari ada tidaknya PO yang sudah dihapus.
+- **Perbaikan**: Query diubah dari `COUNT(*)` jadi `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(purchase_code, '-', -1) AS UNSIGNED)), 0), ...` — ambil nomor urut TERTINGGI yang pernah dipakai (bukan hitung jumlah baris), baru +1. Mekanisme retry-on-duplicate-key yang sudah ada tetap dipertahankan sebagai pengaman untuk race condition murni (2 request betul-betul bersamaan).
+- **Status**: ✅ Diperbaiki & diverifikasi — create sekuensial setelah fix langsung berhasil dengan kode yang benar (melompati gap), dan 3 create konkuren tetap menghasilkan 3 kode berbeda tanpa collision (retry-on-duplicate masih berfungsi sebagai lapis kedua).
+- **Kenapa tidak ketemu di 2 ronde sebelumnya**: kedua ronde sebelumnya juga menjalankan skenario 23 (hapus PO voided), tapi PO yang dihapus itu SELALU merupakan kode urutan TERAKHIR/TERTINGGI hari itu (tidak ada PO lain dengan kode lebih tinggi yang masih aktif) — jadi COUNT kebetulan tetap benar. Di ronde ke-3, urutan kejadiannya beda: skenario 20 (fixture) membuat PO dengan kode LEBIH TINGGI dari PO yang nantinya dihapus di skenario 23, sehingga gap-nya baru kena celah setelah dihapus. Ini murni soal urutan eksekusi test yang kebetulan berbeda, bukan berarti bug-nya baru muncul — bug-nya sudah ada sejak awal, cuma skenario pengujian sebelumnya tidak kebetulan memicu kondisi spesifiknya.
+- **Contoh sederhana**: Bayangkan nomor antrian di loket. Sudah ada 9 tiket tercetak: `001` sampai `009`, plus 1 tiket tambahan `011` (nomor `010` sengaja dilewati karena alasan lain). Total ada 10 tiket. Petugas loket lalu MEMBUANG tiket `009` yang sudah tidak dipakai (dibatalkan). Sekarang tersisa 9 tiket di kotak: `001-008, 011`. Ketika pelanggan baru datang, petugas menentukan nomor berikutnya dengan cara **menghitung berapa tiket yang ada di kotak** (9 tiket) lalu +1 = tiket nomor `010`. Tapi coba hitung ulang: sebenarnya nomor tertinggi yang PERNAH dicetak adalah `011`, jadi nomor berikutnya seharusnya `012`, bukan `010`. Kalau kebetulan `010` belum pernah dipakai, mungkin tidak masalah — tapi begitu kasus persis seperti bug ini (tiket yang dibuang itu justru yang BUKAN nomor tertinggi, dan nomor yang dihitung ulang jadi menabrak tiket yang MASIH ADA), maka setiap pelanggan baru dikasih nomor yang sudah dipegang orang lain, dan ini terjadi terus-menerus sampai ada yang membetulkan cara hitungnya. Perbaikannya: petugas sekarang tidak lagi "menghitung jumlah tiket di kotak", tapi "melihat langsung angka tertinggi yang pernah dicetak" lalu +1 — jadi tidak peduli berapa banyak tiket yang sudah dibuang, nomor berikutnya dijamin selalu lebih besar dari semua yang pernah ada.
+
+**Console browser**: 0 error baru di 24 skenario lainnya.
+
+**Kesimpulan**: Fase B tetap dinyatakan tuntas setelah bug ini diperbaiki — total sekarang **2 bug MAYOR ditemukan & diperbaiki sepanjang 3 ronde** (skenario 17: net-delta Edit PO; skenario 24: generate kode pakai MAX bukan COUNT), keduanya murni bug kode (bukan keputusan bisnis), keduanya sudah diverifikasi ulang setelah fix.
+
+### Ronde ke-4: konfirmasi fix stabil (20 Agu 2026)
+
+User minta re-run penuh sekali lagi (ronde ke-4, data fixture baru prefix `QATEST-B4-*`, PO id 209-223). Kali ini skenario 22-24 SENGAJA direplikasi dengan urutan PERSIS sama seperti yang memicu bug ronde ke-3: buat PO A (kode lebih rendah), buat PO B (kode lebih tinggi, tetap aktif), lalu hapus PO A yang sudah di-void — supaya betul-betul menguji apakah fix `MAX(nomor)+1` tahan terhadap skenario pemicu bug yang sama persis, bukan cuma kasus yang berbeda.
+
+**Hasil**: Semua 24 skenario (kecuali 21, tetap di-skip) PASS, termasuk skenario 24 yang di ronde sebelumnya gagal. Create PO sekuensial setelah gap sengaja dibuat (kode 025 dihapus, kode 026 masih aktif) langsung berhasil dapat kode 027 tanpa collision — dan 3 create konkuren setelahnya tetap dapat kode berbeda (028/029/030). Presisi stok non-bulat juga tetap exact di ronde ini (14.583333333333334 sebelum & sesudah void, tanpa drift).
+
+**Fase B dinyatakan final tuntas setelah 4 ronde pengujian** — 2 bug MAYOR ditemukan & diperbaiki, fix untuk keduanya sudah diverifikasi ulang termasuk direplikasi persis kondisi pemicunya.
 ```
