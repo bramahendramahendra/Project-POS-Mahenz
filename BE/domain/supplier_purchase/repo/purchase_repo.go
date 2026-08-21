@@ -281,10 +281,29 @@ func isDuplicatePurchaseCodeError(err error) bool {
 func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error) {
 	var purchaseID int
 
+	// GET_LOCK per tanggal (bukan cuma retry-on-duplicate) -- lihat komentar
+	// panjang di transaction_repo.go's createOnce(): retry SENDIRIAN terbukti
+	// nyata BELUM cukup di bawah 2 request yang benar-benar konkuren (retry bisa
+	// berkali-kali membaca MAX yang sama, bukan otomatis dapat data terbaru).
+	// Lock diserialkan di SATU koneksi (r.db.Connection) supaya request kedua
+	// betul-betul MENUNGGU request pertama commit, baru baca MAX yang sudah pasti
+	// ter-update -- bukan cuma "coba lagi" tanpa jaminan urutan.
+	lockName := fmt.Sprintf("pocode:%s", time_helper.GetTimeNow().Format("20060102"))
+
 	const maxCodeRetries = 5
 	var err error
 	for attempt := 0; attempt < maxCodeRetries; attempt++ {
-		err = r.createOnce(req, &purchaseID)
+		err = r.db.Connection(func(conn *gorm.DB) error {
+			var locked int
+			if err := conn.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
+				return err
+			}
+			if locked != 1 {
+				return fmt.Errorf("gagal mendapatkan lock generate kode PO (timeout)")
+			}
+			defer conn.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
+			return r.createOnce(conn, req, &purchaseID)
+		})
 		if err == nil || !isDuplicatePurchaseCodeError(err) {
 			break
 		}
@@ -296,8 +315,8 @@ func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error
 	return r.GetByID(purchaseID)
 }
 
-func (r *purchaseRepo) createOnce(req *dto.CreateRequest, purchaseID *int) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *purchaseRepo) createOnce(conn *gorm.DB, req *dto.CreateRequest, purchaseID *int) error {
+	return conn.Transaction(func(tx *gorm.DB) error {
 		todayCode := time_helper.GetTimeNow().Format("20060102")
 		var maxSuffix int
 		if err := tx.Raw(generatePurchaseCodeQuery, todayCode).Scan(&maxSuffix).Error; err != nil {

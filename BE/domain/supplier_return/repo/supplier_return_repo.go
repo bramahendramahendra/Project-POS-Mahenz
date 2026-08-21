@@ -167,12 +167,27 @@ func isDuplicateReturnCodeError(err error) bool {
 }
 
 func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
+	// GET_LOCK per tanggal -- lihat komentar panjang di transaction_repo.go's
+	// createOnce(): retry-on-duplicate-key SENDIRIAN terbukti nyata belum cukup
+	// di bawah 2 request yang benar-benar konkuren.
+	lockName := fmt.Sprintf("returncode:%s", time_helper.GetTimeNow().Format("2006-01-02"))
+
 	const maxCodeRetries = 5
 	var returnID int
 	var err error
 	for attempt := 0; attempt < maxCodeRetries; attempt++ {
 		returnID = 0
-		err = r.createOnce(req, &returnID)
+		err = r.db.Connection(func(conn *gorm.DB) error {
+			var locked int
+			if err := conn.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
+				return err
+			}
+			if locked != 1 {
+				return fmt.Errorf("gagal mendapatkan lock generate kode retur (timeout)")
+			}
+			defer conn.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
+			return r.createOnce(conn, req, &returnID)
+		})
 		if err == nil || !isDuplicateReturnCodeError(err) {
 			break
 		}
@@ -184,8 +199,8 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 	return data, err
 }
 
-func (r *supplierReturnRepo) createOnce(req *dto.CreateSupplierReturnRequest, returnID *int) error {
-	return r.db.Transaction(func(tx *gorm.DB) error {
+func (r *supplierReturnRepo) createOnce(conn *gorm.DB, req *dto.CreateSupplierReturnRequest, returnID *int) error {
+	return conn.Transaction(func(tx *gorm.DB) error {
 		now := time_helper.GetTimeNow()
 		var count int
 		if err := tx.Raw(generateReturnCodeQuery, now.Format("2006-01-02")).Scan(&count).Error; err != nil {

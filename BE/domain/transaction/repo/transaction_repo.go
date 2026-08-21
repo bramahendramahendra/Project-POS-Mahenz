@@ -204,23 +204,47 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 	if !ok {
 		prefix = "POS"
 	}
-	var count int
-	if err := r.db.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
-		return nil, err
-	}
-	code := fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
 
-	if err := r.db.Exec(createTransactionQuery,
-		code, userID, req.ShiftID, now,
-		req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
-		req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
-		req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
-	).Error; err != nil {
-		return nil, err
-	}
-
+	// Retry-on-duplicate-key SENDIRIAN ternyata tidak cukup di sini: dites nyata
+	// dengan 2 request BENAR-BENAR konkuren (2 goroutine terpisah), retry-nya jalan
+	// tapi SELECT MAX() di setiap percobaan retry masih membaca angka yang sama
+	// persis berkali-kali (rows:0 x5 dengan kode identik) -- goroutine kedua tidak
+	// langsung melihat commit dari goroutine pertama meski secara teori seharusnya
+	// sudah ter-commit duluan. Makanya generate kode + insert sekarang diserialkan
+	// pakai MySQL named lock (GET_LOCK/RELEASE_LOCK, scoped per tanggal+device_source)
+	// di SATU koneksi terkunci (r.db.Connection) -- ini menghilangkan race di
+	// sumbernya, bukan cuma mencoba lagi setelah tabrakan. Retry-on-duplicate di
+	// Create() tetap dipertahankan sebagai lapis kedua (mis. kalau GET_LOCK timeout).
+	lockName := fmt.Sprintf("txcode:%s:%s", time_helper.ToSQLDate(now), req.DeviceSource)
+	var code string
 	var transactionID int
-	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error; err != nil {
+	if err := r.db.Connection(func(conn *gorm.DB) error {
+		var locked int
+		if err := conn.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
+			return err
+		}
+		if locked != 1 {
+			return fmt.Errorf("gagal mendapatkan lock generate kode transaksi (timeout)")
+		}
+		defer conn.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
+
+		var count int
+		if err := conn.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
+			return err
+		}
+		code = fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
+
+		if err := conn.Exec(createTransactionQuery,
+			code, userID, req.ShiftID, now,
+			req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
+			req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
+			req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
+		).Error; err != nil {
+			return err
+		}
+
+		return conn.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error
+	}); err != nil {
 		return nil, err
 	}
 
@@ -434,13 +458,24 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 		return existingID, nil
 	}
 
+	lockName := fmt.Sprintf("txcode:%s:%s", time_helper.ToSQLDate(time_helper.GetTimeNow()), tx.DeviceSource)
 	var serverID int
 	var err error
 	const maxCodeRetries = 5
 	for attempt := 0; attempt < maxCodeRetries; attempt++ {
 		serverID = 0
-		err = r.db.Transaction(func(db *gorm.DB) error {
-			return r.applySyncTransactionOnce(db, tx, deviceID, localID, cashDrawerRepo, &serverID)
+		err = r.db.Connection(func(conn *gorm.DB) error {
+			var locked int
+			if err := conn.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
+				return err
+			}
+			if locked != 1 {
+				return fmt.Errorf("gagal mendapatkan lock generate kode sync transaksi (timeout)")
+			}
+			defer conn.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
+			return conn.Transaction(func(db *gorm.DB) error {
+				return r.applySyncTransactionOnce(db, tx, deviceID, localID, cashDrawerRepo, &serverID)
+			})
 		})
 		if err == nil || !isDuplicateTransactionCodeError(err) {
 			break
