@@ -107,6 +107,7 @@ export function ProductSearch() {
       unit_id: pkg.id,
       unit_name: label,
       conversion_qty: Number(pkg.resolved_factor ?? 1),
+      is_continuous: Boolean(pkg.is_continuous),
       qty: 1,
       price,
       subtotal: price,

@@ -16,4 +16,5 @@ type ProductPackage struct {
 	Stock         float64  `gorm:"column:stock"`
 	ReservedQty   float64  `gorm:"column:reserved_qty"`
 	IsActive      bool     `gorm:"column:is_active"`
+	IsContinuous  bool     `gorm:"column:is_continuous"`
 }

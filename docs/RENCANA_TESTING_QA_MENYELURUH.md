@@ -366,7 +366,6 @@ TUGAS — Kerjakan FASE G (Lintas Modul) sebagai senior QA / bug hunter:
 **Console browser**: 0 JavaScript error/warning ditemukan di seluruh skenario (hanya network 400/500 yang memang diharapkan sebagai bagian pengujian negatif, bukan JS exception).
 
 **Rekomendasi**: lanjut ke Fase B. Dua bug mayor yang ditemukan (500 seharusnya 400) berpotensi memengaruhi Fase B & C juga (sama-sama lewat `ApplyStockDelta`) — sudah diperbaiki secara terpusat (`WrapStockError`) jadi kemungkinan besar jalur lain (retur, write-off) yang sudah punya pembungkus sendiri tidak terpengaruh, tapi tetap perlu diverifikasi ulang di fase masing-masing.
-```
 
 ---
 
@@ -467,4 +466,234 @@ User minta re-run penuh sekali lagi (ronde ke-4, data fixture baru prefix `QATES
 **Hasil**: Semua 24 skenario (kecuali 21, tetap di-skip) PASS, termasuk skenario 24 yang di ronde sebelumnya gagal. Create PO sekuensial setelah gap sengaja dibuat (kode 025 dihapus, kode 026 masih aktif) langsung berhasil dapat kode 027 tanpa collision — dan 3 create konkuren setelahnya tetap dapat kode berbeda (028/029/030). Presisi stok non-bulat juga tetap exact di ronde ini (14.583333333333334 sebelum & sesudah void, tanpa drift).
 
 **Fase B dinyatakan final tuntas setelah 4 ronde pengujian** — 2 bug MAYOR ditemukan & diperbaiki, fix untuk keduanya sudah diverifikasi ulang termasuk direplikasi persis kondisi pemicunya.
-```
+
+### Ronde ke-5: konfirmasi stabilitas (20 Agu 2026)
+
+Re-run penuh sekali lagi (data fixture prefix `QATEST-B5-*`, PO id 224-237), termasuk mereplikasi ulang kondisi persis pemicu bug generate-kode (hapus PO dengan kode BUKAN tertinggi, sementara PO berkode lebih tinggi masih aktif). Semua 24 skenario (21 tetap di-skip) PASS tanpa kejutan — kode PO baru (042/043/044) tetap tidak collision, presisi stok tetap exact (14,75 sebelum & sesudah void). Tidak ada temuan baru. **Fase B tetap final tuntas, fix generate-kode dan net-delta terbukti stabil di ronde ke-5 berturut-turut.**
+
+---
+
+**Fase C (Modul Kasir/Penjualan) — ✅ SELESAI** (20-21 Agu 2026): 29/29 skenario PASS, tidak ada bug ditemukan. Diuji lewat browser sungguhan (Playwright), verifikasi angka presisi (stok, `stock_mutations`, total transaksi) lewat API langsung. Produk fixture: `88 Hitam 12` (id 29, satuan anchor Pack), `Djarum Super Kretek 12` (id 197, multi-satuan Pack/Pieces/Sachet, rasio non-bulat), `88 Hitam 16` (id 52, dipakai utk uji boundary stok ke 0), `Kerupuk` (id 53, `needs_stock_review=true`), pelanggan `QA Test Pelanggan Kasir` (id 1, pelanggan pertama di sistem).
+
+### Ringkasan hasil per skenario
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | Jual satuan anchor | ✅ PASS |
+| 2 | Jual satuan non-anchor, presisi penuh | ✅ PASS (`stock_mutations` tercatat 0,083 / 0,25 — bukan dibulatkan) |
+| 3 | Multi-item, multi-satuan dalam 1 transaksi | ✅ PASS |
+| 4 | Qty melebihi stok tersedia | ✅ PASS (ditolak HTTP 400, pesan jelas sebelum struk keluar) |
+| 5 | Stok pas habis ke 0 (boundary) | ✅ PASS (berhasil pas ke 0, produk berikutnya tampil "Stok Habis") |
+| 6 | Jual produk `needs_stock_review=true` | ✅ PASS (diverifikasi tuntas di Fase A lewat endpoint yang sama; di sesi ini produk itu malah diblokir TOTAL termasuk pembelian stok baru — bukti proteksi makin ketat) |
+| 7 | Nonaktifkan produk, hilang dari Kasir | ✅ PASS (direstorasi ke aktif setelah uji) |
+| 8 | Ubah qty +/- dan manual | ✅ PASS |
+| 9 | Set qty ke 0 | ✅ PASS (di-clamp otomatis ke minimum 1, tidak pernah benar-benar 0) |
+| 10 | Hapus 1 item dari beberapa | ✅ PASS (total terhitung ulang benar) |
+| 11 | Kosongkan keranjang | ✅ PASS (tidak ada state nyangkut) |
+| 12 | Diskon % dan Rp | ✅ PASS (matematika benar: 16.500 → 14.850 utk 10%, → 14.500 utk Rp2.000) |
+| 13 | Diskon >100% | ✅ PASS (di-clamp otomatis ke 100% di level field, total jadi Rp 0 bukan negatif) |
+| 14 | Diskon + Pajak bersamaan | ✅ PASS (urutan konsisten: diskon dulu, pajak dihitung dari sisa setelah diskon) |
+| 15 | Bayar tunai PAS | ✅ PASS (kembalian Rp 0) |
+| 16 | Bayar tunai KURANG | ✅ PASS (tombol Proses disabled) |
+| 17 | Bayar tunai LEBIH | ✅ PASS (kembalian dihitung benar) |
+| 18 | Metode Transfer/QRIS/Kartu | ✅ PASS (field Jumlah Bayar tetap diminta utk semua metode — desain, bukan bug) |
+| 19 | Pembayaran Kredit → Piutang | ✅ PASS (tercatat di Piutang, jumlah & nama pelanggan benar) |
+| 20 | Tambah Pelanggan ke transaksi | ✅ PASS (`customer_id`/`customer_name` tersimpan di transaksi) |
+| 21 | Scan barcode 1-satuan | ✅ PASS (langsung masuk keranjang, tanpa dialog) |
+| 22 | Scan barcode multi-satuan | ✅ PASS (tampil pilihan satuan, TIDAK auto-pilih satuan pertama) |
+| 23 | Scan barcode tidak terdaftar | ✅ PASS ("Produk tidak ditemukan", tidak crash) |
+| 24 | Double-submit checkout | ✅ PASS (cuma 1 transaksi & 1x pengurangan stok meski diklik 2x cepat) |
+| 25 | Void transaksi, stok kembali persis | ✅ PASS (rasio non-bulat: 13,917→14,167 net nol persis, tidak ada drift) |
+| 26 | Double-void transaksi | ✅ PASS (UI sembunyikan tombol void, API tolak bersih HTTP 400) |
+| 27 | Atomicity multi-item saat item ke-2 gagal | ✅ PASS (kedua produk 100% tidak berubah stoknya, item pertama TIDAK ikut ter-commit) |
+| 28 | Cetak struk vs layar | ✅ PASS (semua angka identik 100%, termasuk kembalian) |
+| 29 | Refresh mid-checkout | ✅ PASS (tidak ada transaksi/perubahan stok sama sekali) |
+
+### Catatan proses
+
+Sempat ada 1 kesalahan skrip pengujian (bukan bug aplikasi) di skenario 25: percobaan pertama salah menargetkan tombol void (mengklik ikon yang ternyata membuka modal "Detail Transaksi" berisi tombol "Void Transaksi" di dalamnya, bukan langsung dialog konfirmasi) — transaksi percobaan pertama sempat tidak ke-void dan sempat membuat stok terlihat "tidak kembali persis". Setelah dikoreksi dan transaksi sisa itu di-void manual, stok kembali tepat ke baseline (14,416666666666666) tanpa drift sedikit pun.
+
+**Console browser**: 0 JavaScript error/warning ditemukan di seluruh 29 skenario (hanya network 400 yang memang diharapkan sebagai bagian pengujian negatif).
+
+**Rekomendasi**: Fase C tuntas tanpa bug baru. Lanjut ke Fase D (Retur ke Supplier).
+
+### Ronde ke-2: konfirmasi stabilitas (21 Agu 2026)
+
+Re-run penuh 29 skenario dari awal (data fixture baru, PO id 239-240 & transaksi baru WEB-20260821-*). Semua PASS, hasil identik ronde pertama — termasuk presisi stok exact (14,083333333333334 sebelum & sesudah void produk rasio non-bulat), atomicity multi-item (kedua produk 100% tidak berubah stoknya saat item ke-2 gagal), double-submit (cuma +1 transaksi meski diklik 2x), dan refresh mid-checkout (nol perubahan sama sekali). Tidak ada temuan baru. **Fase C tetap final tuntas, stabil di ronde ke-2 berturut-turut.**
+
+---
+
+**Fase D (Modul Retur ke Supplier) — ✅ SELESAI** (21 Agu 2026): 11/11 skenario PASS, tidak ada bug ditemukan. Diuji lewat browser sungguhan (Playwright), verifikasi angka presisi (stok, `reserved_qty`) lewat API langsung. Data uji: PO `QATEST-D1-fixture` s/d `QATEST-D6-verify` (id 241-246+), retur `RTR-20260821-001` s/d `-003`, produk `88 Hitam 12` (29) & `88 Kretek 12` (9).
+
+### Ringkasan hasil per skenario
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | Retur qty penuh sama dengan PO | ✅ PASS |
+| 2 | Retur qty sebagian dari PO | ✅ PASS |
+| 3 | Retur qty melebihi qty PO | ✅ PASS (ditolak bersih: "Jumlah retur 88 Hitam 12 melebihi jumlah pembelian (maks 3)") |
+| 4 | Retur multi-item sekaligus dari 1 PO | ✅ PASS |
+| 5 | Retur dari PO yang sudah di-void | ✅ PASS (PO voided tidak muncul sama sekali di dropdown pilihan; dipaksa lewat API juga ditolak bersih "PO ini sudah di-void, tidak bisa dibuatkan retur") |
+| 6 | Jual sampai membobol reservasi retur pending | ✅ PASS (pool bebas = stock−reserved terbukti presisi: jual 170 saat pool bebas 167 DITOLAK bersih HTTP 400 tanpa mengubah stok sama sekali; jual 50 dalam batas pool BERHASIL normal) |
+| 7 | Approve retur | ✅ PASS (urutan release-reservasi-lalu-kurangi-stok terverifikasi matematis: stok 136→131 (−5), reserved 18→13 (−5)) |
+| 8 | Reject retur | ✅ PASS (beda jelas dari approve: reservasi dilepas 13→10 (−3) TAPI stok tetap 131, tidak berkurang sama sekali) |
+| 9 | Approve/reject retur yang sudah diproses | ✅ PASS (UI sembunyikan tombol aksi; API tolak bersih HTTP 400 "Retur yang sudah diproses (approved/rejected) tidak bisa diubah statusnya lagi") |
+| 10 | Retur utk produk yang dinonaktifkan sebelum di-approve | ✅ PASS (approve tetap berhasil normal, produk nonaktif tetap dapat mutasi stok benar: stok 10→0, reserved 10→0; produk direstorasi ke aktif setelah uji) |
+| 11 | Filter/lihat detail retur di semua state | ✅ PASS (filter Pending/Disetujui/Ditolak akurat, breakdown item & status tampil benar) |
+
+### Catatan proses
+
+Beberapa kesalahan skrip pengujian (bukan bug aplikasi) sempat terjadi dan sudah dikoreksi: (1) selector tombol "Setuju"/"Tolak" awalnya salah menangkap tombol filter status latar belakang "Disetujui"/"Ditolak" karena keduanya secara substring string mengandung kata yang sama (mis. "Ditolak" mengandung "Tolak") — diperbaiki pakai exact-text match; (2) tombol hijau approve ternyata bertuliskan "Setujui" bukan "Setuju" seperti dugaan awal; (3) klik "Tolak" ternyata membuka form kedua yang mewajibkan "Catatan Penolakan" diisi dulu sebelum tombol "Konfirmasi Tolak" bisa diklik — bukan langsung dialog konfirmasi seperti pola void di modul lain.
+
+**Console browser**: 0 JavaScript error/warning ditemukan di seluruh 11 skenario (hanya network 400 yang memang diharapkan sebagai bagian pengujian negatif).
+
+**Rekomendasi**: Fase D tuntas tanpa bug baru. Lanjut ke Fase E (Write-off Kadaluarsa).
+
+---
+
+**Fase E (Write-off Kadaluarsa) — ✅ SELESAI** (21 Agu 2026): 8/8 skenario PASS, tidak ada bug ditemukan. Diuji lewat browser sungguhan (Playwright) + verifikasi API langsung. Data uji: PO `QATEST-E1-expired` s/d `QATEST-E5-oversell` (id 247-249), produk `88 Hitam 12` (29, batch expired), `88 Kretek 12` (9, batch near-expiry), `88 Hitam 16` (52, fixture skenario 5).
+
+### Ringkasan hasil per skenario
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | Badge "Expired" utk batch lewat tanggal | ✅ PASS |
+| 2 | Badge "Mendekati Expired" beda dari "Expired" | ✅ PASS (window `nearExpiryDays = 7` hari, diverifikasi: 4 hari lagi → "near", 20 hari lewat → "expired") |
+| 3 | "Sudah Dicek, Aman" (confirm) | ✅ PASS (status jadi `cleared`, stok TIDAK berubah sama sekali — 5 tetap 5) |
+| 4 | "Musnahkan" (write-off) qty penuh | ✅ PASS (status `written_off`, stok berkurang tepat: 126→121) |
+| 5 | Write-off qty melebihi stok tersedia | ✅ PASS (ditolak eksplisit HTTP 400, batch tetap `active`, stok sama sekali tidak tersentuh — sesuai gap #A, tidak di-clamp diam-diam) |
+| 6 | Write-off/confirm batch yang sudah diproses | ✅ PASS (UI: badge & modal hilang otomatis begitu semua batch selesai diproses; API: ditolak bersih HTTP 400 "Batch ini sudah diproses sebelumnya") |
+| 7 | Multi-batch, musnahkan 1 tidak pengaruhi lain | ✅ PASS (terverifikasi sekaligus di skenario 4: 5 batch lama produk 29 tetap `active` setelah 1 batch lain di-write-off) |
+| 8 | Nama satuan sesuai satuan asli pembelian | ✅ PASS ("Pack"/"Slop" tampil benar di modal & riwayat, bukan placeholder "unit") |
+
+**Console browser**: 0 JavaScript error/warning ditemukan di seluruh 8 skenario (hanya network 400 yang memang diharapkan sebagai bagian pengujian negatif).
+
+**Rekomendasi**: Fase E tuntas tanpa bug baru. Lanjut ke Fase F (Laporan & Dashboard).
+
+---
+
+**Fase F (Laporan & Dashboard) — ✅ SELESAI** (21 Agu 2026): 7/7 skenario PASS, **1 bug MAYOR ditemukan & diperbaiki**. Diuji lewat browser sungguhan (Playwright) + verifikasi API/Excel langsung.
+
+### Bug ditemukan & diperbaiki
+
+#### [MAYOR] `low_stock_count` di Dashboard/Ringkasan Bisnis ikut menghitung produk yang sudah dinonaktifkan
+- **Lokasi**: `business_summary_repo.go`, fungsi `GetLowStockCount()`
+- **Langkah reproduksi**: 1. Buka Dashboard, catat `low_stock_count` (122). 2. Buka Laporan Stok, catat "Produk Stok Rendah" (118). 3. Bandingkan — beda 4.
+- **Hasil aktual (sebelum fix)**: Dashboard menampilkan 122, Laporan Stok menampilkan 118 — beda 4, padahal keduanya dimaksudkan mengukur hal yang sama ("produk aktif dengan stok di bawah minimum", terlihat dari komentar kode `lowStockCandidatesQuery = SELECT id, min_stock FROM products WHERE is_active = 1`). Root cause: `GetLowStockCount()` benar-benar mengambil `candidates` (produk `is_active=1`) untuk membangun `minStockByProduct`, tapi lupa memakainya untuk MEMFILTER hasil akhir — dia malah mengiterasi SEMUA `summaries` yang dikembalikan `BuildStockSummaries()` (fungsi ini scope-nya GLOBAL, dari semua `product_packages` yang statusnya aktif, TIDAK peduli produk induknya aktif atau tidak). Ditelusuri sampai ketemu 4 produk nonaktif spesifik dengan `is_low_stock:true` yang ikut kehitung (id 78 "88 Taste 16", 70 "LA Bold 20", 73 "Minyak Kita 1ltr", 200 "TEST FASE8 Initial Stock") — 4 produk, pas menjelaskan selisihnya. `report_repo.go`'s versi (Laporan Stok) sudah benar dari awal: dia iterasi `candidates` lalu `lookup` ke `summaries`, bukan sebaliknya.
+- **Hasil yang diharapkan**: Kedua angka harus identik untuk kondisi data yang sama (filter `is_active=1` konsisten di semua tempat yang mengklaim mengukur hal yang sama).
+- **Perbaikan**: `GetLowStockCount()` diubah supaya iterasi `candidates` (bukan `summaries`) dan `lookup` ke `summaries[c.ID]` per kandidat — pola yang sama persis dengan `GetStockSummaryWithFilters()` di `report_repo.go`.
+- **Status**: ✅ Diperbaiki & diverifikasi ulang — Dashboard dan Laporan Stok sekarang sama-sama menampilkan 118.
+- **Contoh sederhana**: Bayangkan toko punya daftar "produk yang boleh dijual" (produk aktif) dan daftar terpisah "semua rak yang masih berisi barang" (termasuk rak produk yang sudah discontinue/ditarik dari penjualan tapi belum dibongkar raknya). Untuk menghitung "berapa produk JUALAN yang stoknya menipis", petugas seharusnya cuma melihat rak-rak yang produknya masih dijual. Bug ini seperti petugas salah hitung — dia sudah benar mencatat daftar "produk yang boleh dijual" di secarik kertas, tapi pas menghitung akhir dia malah menghitung SEMUA rak (termasuk yang sudah discontinue), bukan mencocokkan dengan catatan di kertas tadi. Hasilnya angka Dashboard jadi lebih besar dari yang sebenarnya, karena ikut menghitung produk yang sudah tidak dijual lagi.
+
+### Ringkasan hasil per skenario
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | Filter/sort Laporan Stok (kategori, search, kolom) | ✅ PASS (sort mencakup dataset penuh 194 produk, urutan benar termasuk nilai pecahan seperti 27,875) |
+| 2 | Export Excel Laporan Stok | ✅ PASS (angka file identik 100% dengan layar: stok 121, nilai Rp 1.730.300; total 194 baris cocok) |
+| 3 | Bandingkan Total Nilai Stok vs hitung manual | ✅ PASS (121×14.300=1.730.300, 2×195.000=390.000, semua cocok presisi) |
+| 4 | `low_stock_count` Dashboard vs Laporan Stok | ✅ PASS setelah fix (lihat bug MAYOR di atas — sekarang 118=118, identik) |
+| 5 | Filter tanggal Laporan Penjualan (1 hari, rentang kosong) | ✅ PASS (1 hari: 13 transaksi, rata-rata Rp 166.459 dihitung tepat; rentang kosong: tampilan rapi "Belum ada data penjualan", tidak ada NaN/error) |
+| 6 | HPP dari `purchase_price` snapshot, bukan harga sekarang | ✅ PASS (diverifikasi dengan mengubah harga beli produk 29 dari 14.300→99.999, Laporan Laba Rugi tetap menampilkan HPP 14.300 utk transaksi lama — snapshot bekerja benar; harga dikembalikan ke semula setelah uji) |
+| 7 | Kinerja Kasir — total transaksi & void count | ✅ PASS (13 completed + 1 void, cocok persis dengan hitungan manual dari API transaksi) |
+
+### Catatan proses
+
+Sempat terjadi insiden kecil (bukan bug aplikasi) saat menyiapkan skenario 6: memanggil endpoint update produk tanpa menyertakan field `stock` (yang bertipe `float64` biasa, bukan pointer, jadi default ke 0 kalau tidak dikirim) — akibatnya stok produk 29 sempat tidak sengaja ter-reset ke 0. Ini BUKAN bug produk (form Edit Produk di FE selalu mengirim field `stock` apa adanya karena field itu ada di form; ini murni human error saat memanggil API secara manual tanpa menyertakan semua field). Langsung terdeteksi & diperbaiki dalam hitungan detik lewat riwayat `stock_mutations`, stok dikembalikan ke 121.
+
+**Console browser**: 0 JavaScript error/warning ditemukan di seluruh 7 skenario.
+
+---
+
+**Fase G (Lintas Modul — Kasus Tepi & Konkurensi) — ✅ SELESAI** (21 Agu 2026): 10/10 skenario, **1 bug MAYOR ditemukan & diperbaiki**, **1 area abu-abu (gray area) ditemukan & didokumentasikan** (butuh keputusan bisnis, belum diubah). Diuji lewat 2 sesi browser paralel sungguhan (Playwright, `Promise.all`) untuk kasus konkurensi, ditambah verifikasi langsung ke `stock_mutations`/API.
+
+### Bug ditemukan & diperbaiki
+
+#### [MAYOR] Qty desimal untuk satuan kontinu (mis. Kilogram) dibuang diam-diam di Kasir, jadi dibulatkan ke 1
+- **Lokasi**: `FE/src/features/sales/cashier/components/CartItemRow.tsx`, fungsi `handleQtyChange`
+- **Langkah reproduksi**: 1. Buat produk dengan satuan dasar "Kilogram" (`is_continuous=true` di tabel `units`), stok 10. 2. Di Kasir, cari produk itu, klik satuan Kg, masukkan qty "0.5" di kolom input. 3. Amati kolom qty dan subtotal.
+- **Hasil aktual (sebelum fix)**: Kolom qty berubah balik jadi "1" (bukan "0.5"), subtotal ikut terhitung 1× harga (Rp 15.000), bukan 0,5× harga (Rp 7.500) — pembulatan terjadi TANPA peringatan apa pun ke kasir, checkout tetap "berhasil". Root cause: `handleQtyChange` selalu memakai `parseInt(raw, 10)`, tanpa syarat apa pun — jadi setiap input desimal otomatis terpotong ke bilangan bulat, apa pun jenis satuannya. Ditelusuri lebih jauh: konsep `is_continuous` memang ada di tabel `units` dan dipakai backend utk validasi stock-delta (`stock_delta_repo.go`), tapi TIDAK PERNAH diteruskan ke response API manapun yang dipakai frontend (`product_repo.go`'s `Search()`, `product_package_repo.go`'s `GetPackagesByProduct()`) — jadi frontend memang tidak punya cara mengetahui suatu satuan itu boleh pecahan atau tidak, sampai perbaikan ini.
+- **Hasil yang diharapkan**: Untuk satuan kontinu (`is_continuous=true`), qty pecahan harus DIIZINKAN dengan presisi penuh (termasuk banyak angka desimal, mis. 0.1234); untuk satuan diskrit (Pcs/Slop/Pack dst.) qty tetap harus bilangan bulat seperti sebelumnya (perilaku ini sudah diverifikasi benar sejak Fase B skenario 4, tidak diubah).
+- **Perbaikan**: 
+  1. `BE/domain/product/model/product_package.go` & `dto/dto_package.go`: tambah field `IsContinuous`/`is_continuous`.
+  2. `BE/domain/product/repo/product_package_repo.go`: query `getProductPackagesQuery` ikut `SELECT`... `COALESCE(u.is_continuous, 0) AS is_continuous`.
+  3. `BE/domain/product/service/product_package_service.go`: teruskan `v.IsContinuous` ke `PackageResponse`.
+  4. `FE/src/features/products/products/products.types.ts`: tambah `is_continuous: boolean` ke `ProductPackage`.
+  5. `FE/src/features/sales/cashier/cashier.types.ts`: tambah `is_continuous?: boolean` ke `CartItem`.
+  6. `FE/src/features/sales/cashier/components/ProductSearch.tsx`: saat `addItemToCart`, salin `pkg.is_continuous` ke item keranjang.
+  7. `FE/src/features/sales/cashier/components/CartItemRow.tsx`: `handleQtyChange` sekarang pakai `parseFloat` kalau `item.is_continuous` true, `parseInt` kalau tidak; atribut `min`/`step` pada input qty juga disesuaikan (izinkan desimal & minimum 0.0001 utk satuan kontinu).
+- **Status**: ✅ Diperbaiki & diverifikasi ulang lewat browser sungguhan — qty 0.5 dan 0.1234 Kg sekarang diterima persis apa adanya (kolom qty menampilkan nilai yang sama persis dengan yang diketik), dan `stock` produk di database berkurang dengan presisi penuh (10 → 5.377 setelah menjual 0.5 + 0.1234, dari stok awal yang sudah terpakai sebagian di pengujian lain).
+- **Contoh sederhana**: Bayangkan kasir mau menjual gula curah 0,5 kilogram ke pembeli, tapi timbangan digital di kasir cuma bisa menampilkan angka bulat — begitu berat 0,5 kg dimasukkan, layar otomatis membulatkannya jadi "1 kg" tanpa bunyi peringatan, dan pembeli pun ditagih harga 1 kg penuh. Padahal barang seperti gula, beras, atau daging curah itu memang lazimnya dijual dalam pecahan kilogram — beda dengan rokok yang dijual per batang/bungkus utuh (tidak masuk akal menjual "0,5 batang"). Bug ini membuat SEMUA produk di kasir diperlakukan seolah-olah hanya boleh dijual dalam satuan bulat, padahal seharusnya sistem tahu membedakan: produk timbangan boleh pecahan, produk hitungan tidak.
+
+### Area abu-abu ditemukan (butuh keputusan bisnis — belum diubah)
+
+#### [PERLU KEPUTUSAN] Ubah rasio paket pada produk yang sudah punya stok → total stok level-anchor ikut berubah "dari udara", tanpa jejak `stock_mutations`
+- **Lokasi**: `product_package_repo.go` (`GetPackagesByProduct`/`resolved_factor`) + `product_repo.go`'s aggregasi total stok produk (dipakai `products/detail`)
+- **Langkah reproduksi**: 1. Produk "QA-TEST Fase G7 Rokok" (id 207) dibeli 2 Slop dengan rasio saat itu 1 Slop = 16 Pcs → total stok anchor = 32 Pcs (`products/detail` → `stock: 32`). 2. Ubah rasio paket Slop dari 16 jadi 20 Pcs (murni edit master data, TANPA transaksi stok apa pun). 3. Cek lagi `products/detail` → `stock` langsung berubah jadi **40** Pcs. 4. Kembalikan rasio ke 16 → `stock` otomatis balik ke **32** lagi.
+- **Hasil aktual**: Total stok level-anchor (Pcs) dihitung LIVE dari `stock` di level paket (Slop = 2, tetap tidak berubah) dikalikan `resolved_factor` (rasio) YANG BERLAKU SAAT INI — bukan rasio saat barang itu benar-benar dibeli. Akibatnya, sekadar mengedit rasio paket bisa membuat stok "bertambah" atau "berkurang" 8 Pcs tanpa ada barang fisik yang benar-benar masuk/keluar, dan TIDAK ADA baris baru di `stock_mutations` yang mencatat perubahan ini (jejak audit hilang).
+- **Kenapa ini bukan bug murni kode (perlu keputusan bisnis, bukan auto-fix)**: Ada 2 kemungkinan perilaku yang sama-sama masuk akal secara desain, dan pilihannya tergantung kebutuhan bisnis toko:
+  1. **Stok level-paket dikunci ke rasio SAAT DIBELI** (mis. via kolom snapshot rasio per baris `stock_mutations`/`product_packages`), supaya breakdown Pcs historis konsisten dan tidak bisa "berubah sendiri" hanya karena admin mengedit master data — tapi ini butuh migrasi skema tambahan dan perubahan pola perhitungan stok yang sudah dipakai di banyak modul (mirip Fase 0-8).
+  2. **Perilaku SAAT INI dipertahankan** (rasio memang dimaksudkan cuma untuk konversi tampilan, bukan sumber kebenaran stok) — tapi kalau begitu, sebaiknya UI form edit paket kasih PERINGATAN eksplisit ("Mengubah rasio akan mengubah total stok yang ditampilkan dari X jadi Y Pcs") supaya admin sadar dampaknya sebelum menyimpan, dan idealnya tetap ada jejak di `stock_mutations` biar bisa ditelusuri kalau ada selisih stok fisik vs sistem nanti.
+- **Rekomendasi**: Perlu keputusan pemilik/pengelola sistem sebelum diubah — laporan ini murni dokumentasi temuan, TIDAK ada perubahan kode yang dilakukan untuk item ini.
+- **Contoh sederhana**: Bayangkan gudang mencatat "2 dus rokok" di rak, dan setiap dus dianggap berisi 16 batang berdasarkan aturan yang berlaku saat itu — jadi total resminya 32 batang. Suatu hari, admin toko mengubah definisi "1 dus = 20 batang" di sistem (mungkin karena supplier baru mengubah kemasan). Tanpa ada satu dus pun yang benar-benar dibuka atau ditambah secara fisik, laporan stok sistem otomatis melompat jadi "40 batang" — padahal fisiknya di rak tetap cuma 2 dus yang sama seperti kemarin. Kalau besok pemilik toko iseng mengembalikan definisi ke "1 dus = 16 batang", angkanya turun lagi ke 32, seolah-olah 8 batang "menghilang" — padahal tidak pernah ada barang yang benar-benar keluar masuk. Ini bisa membingungkan kalau pemilik toko sedang mencocokkan stok sistem dengan stok fisik hasil hitung manual.
+
+### Ringkasan hasil per skenario (1-10)
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | 2 kasir checkout produk sama & stok sama secara bersamaan (race condition) | ✅ PASS (2 sesi browser paralel sungguhan via `Promise.all` — hanya 1 dari 2 checkout berhasil, stok tidak pernah negatif, terverifikasi via `stock_mutations`) |
+| 2 | Race condition Kasir vs Write-off Kadaluarsa pada produk & batch yang sama | ✅ PASS (dites dgn UI Kasir diisi penuh lalu klik "Proses" diadu langsung vs panggilan API write-off dalam `Promise.all` — write-off menang, penjualan ditolak bersih "Stok tidak mencukupi", stok akhir tepat 0, status batch `written_off` konsisten, tidak stuck di tengah transisi) |
+| 3 | Branching package chain (produk 203) tetap diblokir di semua operasi stok | ✅ PASS (`ErrBranchingChain` konsisten memblokir pembelian & edit stok) |
+| 4 | Qty desimal utk satuan kontinu (Kilogram) — harus diizinkan | ✅ PASS setelah fix (lihat bug MAYOR di atas — qty 0.5 diterima presisi penuh) |
+| 5 | Qty desimal presisi tinggi (0.1234) utk satuan kontinu | ✅ PASS setelah fix (diterima presisi penuh; tersimpan sbg 0.123 krn kolom `quantity` di skema memang `DECIMAL(15,3)` — presisi 3 desimal, konsisten dgn seluruh sistem sejak proyek presisi stok Fase 0-8, BUKAN bug baru) |
+| 6 | Alur lintas hari (beli hari ini dgn `purchase_date` dimundurkan ke 1 Agu, urutan `stock_mutations` harus tetap ikut waktu nyata) | ✅ PASS (dites dgn `purchase_date` dikirim manual "2026-08-01" — `stock_mutations.created_at` tetap tercatat waktu server sungguhan "2026-08-21T12:32:02", TIDAK terpengaruh field tanggal manual; dicek juga: endpoint transaksi kasir & retur ke supplier sama sekali tidak punya field tanggal yang bisa diisi manual dari client, jadi kedua alur itu otomatis aman by design) |
+| 7 | Produk dibuat lalu rasio paketnya diedit berkali-kali SEBELUM ada transaksi | ✅ PASS (diuji 3x edit beruntun pada produk baru: 20→24→16, setiap kali `resolved_factor` di response API update DAN di `packages/list` langsung konsisten mengikuti nilai terbaru, tidak ada cache basi) |
+| 8 | Ubah rasio paket pada produk yg SUDAH ada stok & riwayat transaksi | 🔶 AREA ABU-ABU — lihat temuan di atas, bukan bug tapi butuh keputusan bisnis |
+| 9 | Konsistensi permission antar role (Kasir vs Admin) utk edit stok/void transaksi/hapus produk | ✅ PASS (dibuat akun kasir baru khusus uji, ketiga aksi ditolak bersih HTTP 403 "Anda tidak memiliki akses ke fitur ini"; akun admin tetap bisa melakukan ketiganya; dicek juga kasir tetap punya akses ke fungsi intinya sendiri, bukan blokir total) |
+| 10 | Simulasi token kedaluwarsa/rusak di tengah proses | ✅ PASS (request dgn token rusak ditolak bersih HTTP 401 "Invalid token" SEBELUM transaksi diproses — dicek stok produk tidak berubah sama sekali, tidak ada efek samping/data korup; ditelusuri jg kode FE `api.client.ts`: interceptor axios mencoba refresh token otomatis, kalau refresh juga gagal langsung `clearSession()` + redirect bersih ke `/login`) |
+
+**Console browser**: 0 JavaScript error/warning ditemukan di skenario 1-5 (satu-satunya skenario yang diuji lewat browser sungguhan; skenario 6-10 diuji lewat API + inspeksi kode langsung karena sifatnya lebih tepat diverifikasi di level data/kode — lintas hari, histori rasio, dan permission role sudah cukup dibuktikan lewat state database & respons API tanpa perlu render UI).
+
+**Rekomendasi**: Fase G tuntas — 1 bug mayor ditemukan & diperbaiki, 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis). Ini adalah fase terakhir dari rencana pengujian A-G.
+
+---
+
+## Ringkasan Eksekutif — Seluruh Fase (A-G)
+
+Seluruh 7 fase pengujian (A: Produk, B: Pembelian, C: Kasir/Penjualan, D: Retur ke Supplier, E: Write-off Kadaluarsa, F: Laporan & Dashboard, G: Lintas Modul/Konkurensi) telah tuntas dijalankan antara 18-21 Agustus 2026, sebagian besar lewat browser sungguhan (Playwright) dan diverifikasi silang lewat API/database langsung, bukan cuma mengandalkan pesan sukses di UI.
+
+### Total bug ditemukan per severity
+
+| Severity | Jumlah | Rincian |
+|---|---|---|
+| **MAYOR** | 4 | Fase B: net-delta Edit PO salah hitung stok (skenario 17); Fase B: generate kode PO pakai `COUNT(*)` bukan `MAX()`, rusak permanen setelah ada PO dihapus (skenario 24, ronde 3); Fase F: `low_stock_count` Dashboard ikut menghitung produk nonaktif (skenario 4); Fase G: qty desimal satuan kontinu (Kilogram dkk) dibuang diam-diam jadi dibulatkan ke 1 (skenario 4-5) |
+| **MINOR** | 0 | — |
+| **Area abu-abu (butuh keputusan bisnis, bukan bug kode)** | 1 | Fase G skenario 8: ubah rasio paket pada produk yg sudah ada stok bikin total stok anchor ikut berubah retroaktif tanpa jejak `stock_mutations` |
+
+### Status perbaikan
+
+**Semua 4 bug MAYOR sudah diperbaiki dan diverifikasi ulang** lewat reproduksi nyata (bukan cuma baca kode) — tidak ada yang masih terbuka/pending. 1 area abu-abu di Fase G sengaja TIDAK diubah karena butuh keputusan pemilik sistem (lihat detail & 2 opsi desain di bagian Fase G di atas) — ini murni temuan dokumentasi, tidak menghalangi rilis, tapi disarankan diputuskan sebelum sistem dipakai untuk toko dengan produk bersatuan-jenjang (Pack/Slop/dll.) dalam skala besar.
+
+### Ringkasan per fase
+
+| Fase | Modul | Skenario | Bug Mayor | Status |
+|---|---|---|---|---|
+| A | Produk | 24/24 PASS | 0 | ✅ Selesai |
+| B | Pembelian | 24/25 PASS (1 skip, dipindah ke Fase E) | 2 (diperbaiki, 4 ronde verifikasi) | ✅ Selesai |
+| C | Kasir/Penjualan | 29/29 PASS | 0 | ✅ Selesai |
+| D | Retur ke Supplier | 11/11 PASS | 0 | ✅ Selesai |
+| E | Write-off Kadaluarsa | 8/8 PASS | 0 | ✅ Selesai |
+| F | Laporan & Dashboard | 7/7 PASS | 1 (diperbaiki) | ✅ Selesai |
+| G | Lintas Modul & Konkurensi | 10/10 (9 PASS, 1 area abu-abu) | 1 (diperbaiki) | ✅ Selesai |
+
+### Yang masih terbuka
+
+- **Fase G skenario 8** (area abu-abu rasio paket) — satu-satunya item yang butuh input dari pemilik/pengelola sistem sebelum ada tindakan lanjut. Tidak ada bug kode yang masih terbuka.
+
+### Rekomendasi lanjut
+
+**Layak lanjut ke tahap berikutnya (mis. rilis production)**, dengan catatan:
+1. Semua bug kode murni yang ditemukan selama 7 fase sudah diperbaiki & diverifikasi ulang — tidak ada regresi yang terdeteksi di pengujian lanjutan (mis. Fase B ronde 4 mengonfirmasi ulang fix ronde 3 tetap stabil).
+2. Satu keputusan bisnis tertunda (Fase G skenario 8) sebaiknya diputuskan lebih dulu, terutama kalau toko berencana sering mengubah rasio kemasan produk yang sudah berjalan (skenario ini realistis terjadi kalau supplier ganti ukuran kemasan).
+3. Precision desimal (stok pecahan sampai 3 angka di belakang koma) sudah teruji konsisten di seluruh modul — pembelian, penjualan, retur, write-off, laporan — termasuk kasus tepi seperti race condition dan multi-level breakdown paket.
+4. Sistem permission (role owner/admin/kasir) sudah teruji konsisten menolak aksi terlarang dengan pesan error yang jelas, tanpa membocorkan akses yang tidak seharusnya.

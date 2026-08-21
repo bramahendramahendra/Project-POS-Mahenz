@@ -18,6 +18,7 @@ export interface ProductPackage {
   stock: number
   reserved_qty: number
   is_active: boolean
+  is_continuous: boolean
 }
 
 export interface PriceTier {

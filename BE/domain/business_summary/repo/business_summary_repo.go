@@ -211,9 +211,16 @@ func (r *businessSummaryRepo) GetLowStockCount() (int64, error) {
 		return 0, fmt.Errorf("GetLowStockCount: %w", err)
 	}
 
+	// BuildStockSummaries mengembalikan hasil utk SEMUA produk yang punya
+	// package aktif (scope global), bukan cuma yang ada di candidates (produk
+	// is_active=1). Harus difilter lewat candidates di sini, kalau tidak
+	// produk yang sudah dinonaktifkan tapi kebetulan stoknya rendah ikut
+	// kehitung -- bikin angka ini beda dari Laporan Stok (report_repo.go)
+	// yang sudah benar memfilter lewat candidates.
 	var count int64
-	for _, s := range summaries {
-		if s.IsLowStock {
+	for _, c := range candidates {
+		s, ok := summaries[c.ID]
+		if ok && s.IsLowStock {
 			count++
 		}
 	}

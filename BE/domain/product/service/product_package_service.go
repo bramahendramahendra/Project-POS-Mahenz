@@ -49,6 +49,7 @@ func toPackageResponse(v *model.ProductPackage, factor float64) *dto.PackageResp
 		Stock:          v.Stock,
 		ReservedQty:    v.ReservedQty,
 		IsActive:       v.IsActive,
+		IsContinuous:   v.IsContinuous,
 	}
 }
 

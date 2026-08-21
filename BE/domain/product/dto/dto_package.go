@@ -57,5 +57,6 @@ type (
 		Stock          float64  `json:"stock"`
 		ReservedQty    float64  `json:"reserved_qty"`
 		IsActive       bool     `json:"is_active"`
+		IsContinuous   bool     `json:"is_continuous"`
 	}
 )

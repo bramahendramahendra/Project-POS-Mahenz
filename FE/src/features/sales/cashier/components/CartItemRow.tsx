@@ -128,7 +128,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
   const displayPrice = item.effective_price ?? item.price
 
   const handleQtyChange = (raw: string) => {
-    const v = parseInt(raw, 10)
+    const v = item.is_continuous ? parseFloat(raw) : parseInt(raw, 10)
     if (!isNaN(v) && v > 0) updateQty(item.product_id, item.unit_id, v)
   }
 
@@ -236,7 +236,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
           value={item.qty}
           onChange={(e) => handleQtyChange(e.target.value)}
           className="h-9 w-16 text-center text-sm px-1"
-          min={1}
+          min={item.is_continuous ? 0.0001 : 1}
+          step={item.is_continuous ? 'any' : 1}
         />
         <Button
           variant="outline"

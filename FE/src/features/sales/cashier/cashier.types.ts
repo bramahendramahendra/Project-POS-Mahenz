@@ -21,6 +21,7 @@ export interface CartItem {
   unit_id: number      // product_packages.id
   unit_name: string    // snapshot nama satuan untuk struk
   conversion_qty: number
+  is_continuous?: boolean   // satuan desimal (mis. Kilogram) — izinkan qty pecahan
   barcode?: string
   qty: number
   price: number
