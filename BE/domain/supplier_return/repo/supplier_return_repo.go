@@ -12,11 +12,12 @@ import (
 	request_helper "pos_api/helper/request"
 	time_helper "pos_api/helper/time"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
 const (
-	generateReturnCodeQuery = `SELECT COUNT(*) FROM supplier_returns WHERE DATE(return_date) = ?`
+	generateReturnCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(return_code, '-', -1) AS UNSIGNED)), 0) FROM supplier_returns WHERE DATE(return_date) = ?`
 	createReturnQuery       = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
 	// package_id diisi dari purchase_items.package_id lewat purchase_item_id
 	// (celah #14) -- FE tidak perlu diubah, purchase_item_id sudah dikirim.
@@ -160,10 +161,31 @@ func (r *supplierReturnRepo) GetPurchaseStatus(purchaseID int) (string, error) {
 	return status, nil
 }
 
-func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
-	var returnID int
+func isDuplicateReturnCodeError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return stderrors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+}
 
-	if err := r.db.Transaction(func(tx *gorm.DB) error {
+func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
+	const maxCodeRetries = 5
+	var returnID int
+	var err error
+	for attempt := 0; attempt < maxCodeRetries; attempt++ {
+		returnID = 0
+		err = r.createOnce(req, &returnID)
+		if err == nil || !isDuplicateReturnCodeError(err) {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	data, err := r.GetByID(returnID)
+	return data, err
+}
+
+func (r *supplierReturnRepo) createOnce(req *dto.CreateSupplierReturnRequest, returnID *int) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
 		now := time_helper.GetTimeNow()
 		var count int
 		if err := tx.Raw(generateReturnCodeQuery, now.Format("2006-01-02")).Scan(&count).Error; err != nil {
@@ -184,7 +206,7 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 			return err
 		}
 
-		if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&returnID).Error; err != nil {
+		if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(returnID).Error; err != nil {
 			return err
 		}
 
@@ -221,7 +243,7 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 
 			subtotal := item.PurchasePrice * item.Quantity
 			err = tx.Exec(createReturnItemQuery,
-				returnID, item.PurchaseItemID, item.ProductID, item.ProductName, packageID,
+				*returnID, item.PurchaseItemID, item.ProductID, item.ProductName, packageID,
 				item.Quantity, item.Unit, item.PurchasePrice, subtotal,
 			).Error
 			if err != nil {
@@ -237,11 +259,7 @@ func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*mode
 		}
 
 		return nil
-	}); err != nil {
-		return nil, err
-	}
-	data, err := r.GetByID(returnID)
-	return data, err
+	})
 }
 
 func (r *supplierReturnRepo) UpdateStatus(id int, status, notes string) error {

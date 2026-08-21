@@ -605,7 +605,7 @@ Sempat terjadi insiden kecil (bukan bug aplikasi) saat menyiapkan skenario 6: me
 
 ---
 
-**Fase G (Lintas Modul — Kasus Tepi & Konkurensi) — ✅ SELESAI** (21 Agu 2026): 10/10 skenario, **1 bug MAYOR ditemukan & diperbaiki**, **1 area abu-abu (gray area) ditemukan & didokumentasikan** (butuh keputusan bisnis, belum diubah). Diuji lewat 2 sesi browser paralel sungguhan (Playwright, `Promise.all`) untuk kasus konkurensi, ditambah verifikasi langsung ke `stock_mutations`/API.
+**Fase G (Lintas Modul — Kasus Tepi & Konkurensi) — ✅ SELESAI (Ronde ke-1)** (21 Agu 2026): 10/10 skenario, **1 bug MAYOR ditemukan & diperbaiki**, **1 area abu-abu (gray area) ditemukan & didokumentasikan** (butuh keputusan bisnis, belum diubah). Diuji lewat 2 sesi browser paralel sungguhan (Playwright, `Promise.all`) untuk kasus konkurensi, ditambah verifikasi langsung ke `stock_mutations`/API.
 
 ### Bug ditemukan & diperbaiki
 
@@ -654,7 +654,40 @@ Sempat terjadi insiden kecil (bukan bug aplikasi) saat menyiapkan skenario 6: me
 
 **Console browser**: 0 JavaScript error/warning ditemukan di skenario 1-5 (satu-satunya skenario yang diuji lewat browser sungguhan; skenario 6-10 diuji lewat API + inspeksi kode langsung karena sifatnya lebih tepat diverifikasi di level data/kode — lintas hari, histori rasio, dan permission role sudah cukup dibuktikan lewat state database & respons API tanpa perlu render UI).
 
-**Rekomendasi**: Fase G tuntas — 1 bug mayor ditemukan & diperbaiki, 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis). Ini adalah fase terakhir dari rencana pengujian A-G.
+**Rekomendasi (Ronde ke-1)**: Fase G tuntas — 1 bug mayor ditemukan & diperbaiki, 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis).
+
+### Ronde ke-2: bug baru ditemukan & diperbaiki (21 Agu 2026)
+
+User minta re-run penuh Fase G sekali lagi (data fixture baru prefix `QATEST-G2-*`, produk id 208-212). Skenario 2-10 hasilnya identik dengan ronde pertama (semua PASS/area abu-abu terkonfirmasi ulang dengan angka baru: rasio Box 30→3×30=90 Pcs, lalu 40→3×40=120 Pcs, pola sama seperti ronde 1). Tapi **skenario 1 (race condition 2 kasir jual produk sama, stok pas-pasan) kali ini GAGAL** — beda dari ronde pertama yang PASS bersih.
+
+#### [MAYOR] Generate `transaction_code` di Kasir memakai `COUNT(*)` tanpa retry — collision di bawah beban konkuren, muncul sebagai "Internal Server Error" mentah ke kasir
+- **Lokasi**: `transaction_repo.go`, fungsi `Create()` (dan turunannya `ApplySyncTransaction()` untuk sync offline), query `generateTransactionCodeQuery`
+- **Langkah reproduksi**: 1. Produk stok pas-pasan (1 Pcs), 2. Buka 2 sesi kasir berbeda (2 browser context terpisah, BUKAN cuma 2 tab dari sesi sama), 3. Kedua sesi isi keranjang produk yang sama & klik "Proses Bayar" hampir bersamaan.
+- **Hasil aktual (sebelum fix)**: Salah satu request GAGAL dengan toast **"Internal Server Error"** generik (bukan pesan bersih semacam "Stok tidak mencukupi" yang seharusnya muncul kalau memang kalah rebutan stok). Ditelusuri ke log backend: `Error 1062 (23000): Duplicate entry 'WEB-20260821-022' for key 'transactions.transaction_code'`. Root cause: `generateTransactionCodeQuery` pakai `SELECT COUNT(*) FROM transactions WHERE DATE(...) = ? AND device_source = ?` lalu kode baru = `count+1` — begitu 2 request berjalan hampir bersamaan, KEDUANYA membaca COUNT yang sama sebelum salah satu sempat INSERT, jadi keduanya menghasilkan kode identik (mis. sama-sama `WEB-20260821-022`). Yang INSERT lebih dulu berhasil, yang kedua kena duplicate-key error mentah dari database — dan TIDAK ADA mekanisme retry sama sekali di fungsi ini (beda dengan `purchase_repo.go` yang sudah punya retry-on-duplicate sejak perbaikan Fase B). Bug yang sama persis pola-nya juga ada di jalur sync transaksi offline (`ApplySyncTransaction`), walau risiko konkurensinya lebih rendah (biasanya 1 device sync sendirian).
+- **Kenapa tidak ketemu di ronde pertama Fase G**: skenario 1 di ronde pertama kebetulan 2 request-nya tidak persis bersamaan sampai ke level yang memicu collision nomor urut — race condition semacam ini memang tidak selalu konsisten muncul di setiap percobaan (timing-dependent), makanya QA jenis ini perlu diulang beberapa kali dengan data segar untuk menaikkan peluang memicu kondisi pemicunya. Ini murni soal keberuntungan timing eksekusi test, bukan berarti bug-nya baru muncul.
+- **Hasil yang diharapkan**: Salah satu transaksi berhasil, satunya ditolak BERSIH dengan pesan jelas terkait stok (bukan error generik 500) — dan tidak boleh ada kode transaksi yang collide/gagal insert karena alasan teknis di baliknya.
+- **Perbaikan**: Pola identik dengan fix PO di Fase B — (1) `generateTransactionCodeQuery` diubah dari `COUNT(*)` jadi `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0), ...` (ambil nomor urut TERTINGGI, bukan hitung jumlah baris); (2) `Create()` dipecah jadi `createOnce()` + wrapper retry 5x kalau kena duplicate-key error (kode error MySQL 1062); (3) pola retry yang sama diterapkan juga ke `ApplySyncTransaction()` (dipecah jadi `applySyncTransactionOnce()` + retry di level pemanggilan `r.db.Transaction(...)`, supaya seluruh transaksi DB diulang bersih kalau kena collision, bukan cuma bagian generate kode-nya).
+- **Status**: ✅ Diperbaiki & diverifikasi ulang dengan reproduksi PERSIS sama (2 sesi browser terpisah, produk fixture baru id 209, stok 1) — hasilnya sekarang bersih: 1 transaksi sukses (kode `WEB-20260821-023`), 1 ditolak dengan pesan jelas `"Stok produk ID 209 tidak mencukupi..."` (HTTP 400, bukan 500), stok akhir tepat 0 (tidak negatif), tidak ada lagi duplicate entry di log.
+- **Contoh sederhana**: Bayangkan 2 kasir di loket berbeda, keduanya HAMPIR BERSAMAAN melayani pelanggan dan sama-sama mengambil nomor struk berikutnya dengan cara "menghitung berapa struk yang sudah tercetak hari ini, lalu +1". Kalau keduanya menghitung di detik yang sama sebelum salah satu sempat mencetak struknya, KEDUANYA dapat angka yang sama, mis. sama-sama struk nomor 022. Mesin kasir yang mencetak lebih dulu berhasil dapat nomor 022, mesin kasir yang satunya lagi DITOLAK MENTAH oleh sistem karena "nomor struk 022 sudah dipakai" — dan kasir kedua ini cuma dikasih pesan error teknis yang membingungkan pelanggan ("terjadi kesalahan sistem"), padahal seharusnya cuma perlu dikasih tahu dengan jelas "maaf, ini produk terakhir sudah keburu terjual ke pelanggan lain". Perbaikannya: sekarang tiap mesin kasir, kalau kebetulan tabrakan nomor, otomatis MENCOBA LAGI mengambil nomor berikutnya (bukan langsung menyerah dengan pesan error yang membingungkan) — dan penentuan nomornya juga diubah dari "menghitung jumlah struk" jadi "melihat nomor tertinggi yang pernah dipakai", jauh lebih tahan terhadap tabrakan.
+
+### Ringkasan hasil ronde ke-2 (data fixture baru, produk id 208-212)
+
+| # | Skenario | Hasil |
+|---|---|---|
+| 1 | Race condition 2 kasir jual produk sama, stok pas-pasan | ✅ PASS setelah fix (lihat bug MAYOR di atas — sebelum fix: 1 sukses + 1 gagal "Internal Server Error" mentah karena duplicate transaction_code; sesudah fix: 1 sukses + 1 ditolak bersih "Stok tidak mencukupi", stok akhir 0 bukan negatif) |
+| 2 | Race condition Kasir vs Write-off Kadaluarsa | ✅ PASS (identik ronde 1 — write-off menang, penjualan ditolak bersih HTTP 400, stok akhir 0, batch `written_off`) |
+| 3 | Branching package chain (produk 203) tetap diblokir | ✅ PASS (dites ulang: pembelian & edit stok manual sama-sama ditolak eksplisit dgn pesan jelas) |
+| 4 | Qty desimal satuan kontinu (0.5 Kg) | ✅ PASS (produk fixture baru id 211 "Beras Curah" — diterima presisi penuh) |
+| 5 | Qty desimal presisi tinggi (0.1234 Kg) | ✅ PASS (diterima presisi penuh; stok akhir 20 → 19.377, sesuai perhitungan manual) |
+| 6 | Alur lintas hari (`purchase_date` dimundurkan sampai 1 bulan ke belakang, 15 Juli) | ✅ PASS (`stock_mutations.created_at` tetap waktu server asli hari ini, tidak terpengaruh) |
+| 7 | Edit rasio paket berkali-kali sebelum ada transaksi | ✅ PASS (3x edit beruntun 12→25→8→30, semua langsung konsisten di response API) |
+| 8 | Ubah rasio paket pada produk yg sudah ada stok | 🔶 AREA ABU-ABU (terkonfirmasi ulang, perilaku sama persis dengan ronde 1: beli 3 Box rasio 30 → stok anchor 90 Pcs, ubah rasio ke 40 → stok anchor otomatis jadi 120 Pcs tanpa transaksi fisik apa pun) |
+| 9 | Konsistensi permission antar role | ✅ PASS (akun kasir baru khusus ronde ini, ketiga aksi terlarang ditolak bersih HTTP 403) |
+| 10 | Token kedaluwarsa/rusak di tengah proses | ✅ PASS (401 bersih, stok tidak berubah) |
+
+**Kesimpulan**: Fase G dinyatakan final tuntas setelah 2 ronde pengujian — total sekarang **2 bug MAYOR ditemukan & diperbaiki** (qty desimal satuan kontinu di ronde 1, race condition `transaction_code` di ronde 2), keduanya murni bug kode (bukan keputusan bisnis), keduanya sudah diverifikasi ulang dengan reproduksi nyata. 1 area abu-abu (rasio paket retroaktif) tetap konsisten di kedua ronde, masih menunggu keputusan bisnis.
+
+**Rekomendasi**: Fase G tuntas — 2 bug mayor ditemukan & diperbaiki (2 ronde), 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis). Ini adalah fase terakhir dari rencana pengujian A-G.
 
 ---
 
@@ -666,13 +699,17 @@ Seluruh 7 fase pengujian (A: Produk, B: Pembelian, C: Kasir/Penjualan, D: Retur 
 
 | Severity | Jumlah | Rincian |
 |---|---|---|
-| **MAYOR** | 4 | Fase B: net-delta Edit PO salah hitung stok (skenario 17); Fase B: generate kode PO pakai `COUNT(*)` bukan `MAX()`, rusak permanen setelah ada PO dihapus (skenario 24, ronde 3); Fase F: `low_stock_count` Dashboard ikut menghitung produk nonaktif (skenario 4); Fase G: qty desimal satuan kontinu (Kilogram dkk) dibuang diam-diam jadi dibulatkan ke 1 (skenario 4-5) |
+| **MAYOR** | 5 (ditemukan lewat pengujian nyata) + 1 (ditemukan lewat audit preventif setelah pola berulang, belum sempat terpicu di pengujian manapun) | Fase B: net-delta Edit PO salah hitung stok (skenario 17); Fase B: generate kode PO pakai `COUNT(*)` bukan `MAX()`, rusak permanen setelah ada PO dihapus (skenario 24, ronde 3); Fase F: `low_stock_count` Dashboard ikut menghitung produk nonaktif (skenario 4); Fase G ronde 1: qty desimal satuan kontinu (Kilogram dkk) dibuang diam-diam jadi dibulatkan ke 1 (skenario 4-5); Fase G ronde 2: generate `transaction_code` di Kasir pakai `COUNT(*)` tanpa retry, collision di bawah beban konkuren muncul sbg "Internal Server Error" mentah (skenario 1); **Audit preventif**: generate `return_code` di Retur ke Supplier punya kerentanan identik, diperbaiki sebelum sempat jadi insiden nyata |
 | **MINOR** | 0 | — |
 | **Area abu-abu (butuh keputusan bisnis, bukan bug kode)** | 1 | Fase G skenario 8: ubah rasio paket pada produk yg sudah ada stok bikin total stok anchor ikut berubah retroaktif tanpa jejak `stock_mutations` |
 
 ### Status perbaikan
 
-**Semua 4 bug MAYOR sudah diperbaiki dan diverifikasi ulang** lewat reproduksi nyata (bukan cuma baca kode) — tidak ada yang masih terbuka/pending. 1 area abu-abu di Fase G sengaja TIDAK diubah karena butuh keputusan pemilik sistem (lihat detail & 2 opsi desain di bagian Fase G di atas) — ini murni temuan dokumentasi, tidak menghalangi rilis, tapi disarankan diputuskan sebelum sistem dipakai untuk toko dengan produk bersatuan-jenjang (Pack/Slop/dll.) dalam skala besar.
+**Semua 6 bug MAYOR sudah diperbaiki dan diverifikasi ulang** (5 lewat reproduksi nyata, 1 lewat audit preventif + smoke test) — tidak ada yang masih terbuka/pending. 1 area abu-abu di Fase G sengaja TIDAK diubah karena butuh keputusan pemilik sistem (lihat detail & 2 opsi desain di bagian Fase G di atas) — ini murni temuan dokumentasi, tidak menghalangi rilis, tapi disarankan diputuskan sebelum sistem dipakai untuk toko dengan produk bersatuan-jenjang (Pack/Slop/dll.) dalam skala besar.
+
+**Catatan penting soal bug race condition (Fase B skenario 24 & Fase G ronde 2 skenario 1)**: keduanya BARU ketemu di ronde re-test kedua/ketiga, bukan ronde pertama — pola ini konsisten menunjukkan bahwa bug timing-dependent (race condition) memang butuh beberapa kali percobaan dengan data segar untuk terpicu, tidak cukup diuji sekali saja.
+
+**Audit preventif menyeluruh (dilakukan setelah temuan di atas)**: karena sudah 2x ketemu kelas bug yang sama persis (generate kode urutan harian pakai `COUNT(*)` tanpa retry), seluruh backend di-grep untuk pola serupa. Ditemukan **1 lokasi TAMBAHAN** dengan kerentanan identik yang belum sempat terpicu di pengujian manapun: `supplier_return_repo.go`'s `generateReturnCodeQuery` (generate `RTR-yyyymmdd-NNN` untuk Retur ke Supplier) — pola & risikonya PERSIS sama (2 retur dibuat hampir bersamaan di hari yang sama bisa collide, gagal dengan error mentah, tanpa retry). **Diperbaiki secara preventif** sebelum sempat menyebabkan insiden nyata: `generateReturnCodeQuery` diubah ke `MAX()`, fungsi `Create()` dipecah jadi `createOnce()` + retry 5x pada duplicate-key error — pola identik dengan 2 fix lain di atas. Diverifikasi lewat smoke test: retur baru berhasil dibuat dengan kode `RTR-20260821-004`, alur normal tidak terganggu oleh perubahan ini. Item generator kode lain di sistem (SKU produk) sudah diperiksa dan TIDAK rentan — pola generate SKU-nya beda, memakai pengecekan keunikan eksplisit per kandidat sebelum dipakai (bukan langsung `count+1` diinsert), jadi aman dari race condition serupa.
 
 ### Ringkasan per fase
 
@@ -681,10 +718,10 @@ Seluruh 7 fase pengujian (A: Produk, B: Pembelian, C: Kasir/Penjualan, D: Retur 
 | A | Produk | 24/24 PASS | 0 | ✅ Selesai |
 | B | Pembelian | 24/25 PASS (1 skip, dipindah ke Fase E) | 2 (diperbaiki, 4 ronde verifikasi) | ✅ Selesai |
 | C | Kasir/Penjualan | 29/29 PASS | 0 | ✅ Selesai |
-| D | Retur ke Supplier | 11/11 PASS | 0 | ✅ Selesai |
+| D | Retur ke Supplier | 11/11 PASS | 0 (+1 diperbaiki preventif via audit, belum sempat terpicu di pengujian) | ✅ Selesai |
 | E | Write-off Kadaluarsa | 8/8 PASS | 0 | ✅ Selesai |
 | F | Laporan & Dashboard | 7/7 PASS | 1 (diperbaiki) | ✅ Selesai |
-| G | Lintas Modul & Konkurensi | 10/10 (9 PASS, 1 area abu-abu) | 1 (diperbaiki) | ✅ Selesai |
+| G | Lintas Modul & Konkurensi | 10/10 (9 PASS, 1 area abu-abu), 2 ronde | 2 (diperbaiki, 2 ronde verifikasi) | ✅ Selesai |
 
 ### Yang masih terbuka
 
@@ -697,3 +734,4 @@ Seluruh 7 fase pengujian (A: Produk, B: Pembelian, C: Kasir/Penjualan, D: Retur 
 2. Satu keputusan bisnis tertunda (Fase G skenario 8) sebaiknya diputuskan lebih dulu, terutama kalau toko berencana sering mengubah rasio kemasan produk yang sudah berjalan (skenario ini realistis terjadi kalau supplier ganti ukuran kemasan).
 3. Precision desimal (stok pecahan sampai 3 angka di belakang koma) sudah teruji konsisten di seluruh modul — pembelian, penjualan, retur, write-off, laporan — termasuk kasus tepi seperti race condition dan multi-level breakdown paket.
 4. Sistem permission (role owner/admin/kasir) sudah teruji konsisten menolak aksi terlarang dengan pesan error yang jelas, tanpa membocorkan akses yang tidak seharusnya.
+5. Pola bug "generate kode urutan harian pakai `COUNT(*)` tanpa retry" muncul 3x di modul berbeda (PO, Transaksi, Retur) — semuanya sudah diperbaiki dengan pola seragam (`MAX()` + retry-on-duplicate-key). Kalau ke depan ada modul baru yang butuh kode urutan harian serupa (mis. fitur baru), pastikan pola yang sama (bukan `COUNT(*)`) dipakai sejak awal.

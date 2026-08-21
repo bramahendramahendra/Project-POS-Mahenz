@@ -15,12 +15,13 @@ import (
 	time_helper "pos_api/helper/time"
 	"pos_api/pkg/syncmap"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 )
 
 const (
 	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generateTransactionCodeQuery = `SELECT COUNT(*) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
+	generateTransactionCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
 	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = ? WHERE id = ?`
@@ -175,7 +176,25 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 	return &t, nil
 }
 
+func isDuplicateTransactionCodeError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	return stderrors.As(err, &mysqlErr) && mysqlErr.Number == 1062
+}
+
 func (r *transactionRepo) Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
+	const maxCodeRetries = 5
+	var resp *dto.CreateTransactionResponse
+	var err error
+	for attempt := 0; attempt < maxCodeRetries; attempt++ {
+		resp, err = r.createOnce(req, userID)
+		if err == nil || !isDuplicateTransactionCodeError(err) {
+			break
+		}
+	}
+	return resp, err
+}
+
+func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error) {
 	var resp dto.CreateTransactionResponse
 
 	now := time_helper.GetTimeNow()
@@ -416,8 +435,23 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 	}
 
 	var serverID int
+	var err error
+	const maxCodeRetries = 5
+	for attempt := 0; attempt < maxCodeRetries; attempt++ {
+		serverID = 0
+		err = r.db.Transaction(func(db *gorm.DB) error {
+			return r.applySyncTransactionOnce(db, tx, deviceID, localID, cashDrawerRepo, &serverID)
+		})
+		if err == nil || !isDuplicateTransactionCodeError(err) {
+			break
+		}
+	}
 
-	err := r.db.Transaction(func(db *gorm.DB) error {
+	return serverID, err
+}
+
+func (r *transactionRepo) applySyncTransactionOnce(db *gorm.DB, tx dto_sync.SyncTransactionPayload, deviceID string, localID string, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface, serverID *int) error {
+	{
 		now := time_helper.GetTimeNow()
 		prefixMap := map[string]string{"desktop": "DSK", "web": "WEB", "android": "AND"}
 		prefix, ok := prefixMap[tx.DeviceSource]
@@ -514,11 +548,9 @@ func (r *transactionRepo) ApplySyncTransaction(payload string, deviceID string, 
 			}
 		}
 
-		serverID = transactionID
+		*serverID = transactionID
 		return nil
-	})
-
-	return serverID, err
+	}
 }
 
 // ReturnStockForRejectSync membalikkan stok saat konflik sync transaksi
