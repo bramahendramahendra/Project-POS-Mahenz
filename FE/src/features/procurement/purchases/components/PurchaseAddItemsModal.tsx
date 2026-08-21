@@ -16,13 +16,15 @@ import { api } from '@/services'
 import { useProductSearchQuery } from '@/features/products/products'
 import type { ProductPackage, ProductSearchOption } from '@/features/products/products/products.types'
 
-import { purchaseItemSchema } from '../purchases.schema'
+import { purchaseItemSchema, refineItemQuantities } from '../purchases.schema'
 import { useSupplierPurchaseDetailQuery, useAddPurchaseItemsMutation } from '../purchases.api'
 import type { SupplierPurchase } from '../purchases.types'
 
-const addItemsSchema = z.object({
-  items: z.array(purchaseItemSchema).min(1, 'Minimal tambah 1 item'),
-})
+const addItemsSchema = z
+  .object({
+    items: z.array(purchaseItemSchema).min(1, 'Minimal tambah 1 item'),
+  })
+  .superRefine((data, ctx) => refineItemQuantities(data.items, ctx))
 
 type AddItemsFormValues = z.infer<typeof addItemsSchema>
 
@@ -118,6 +120,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
     setValue(`items.${index}.price`, defaultPkg?.purchase_price ?? 0)
     setValue(`items.${index}.conversion_qty`, defaultPkg?.resolved_factor ?? 1)
+    setValue(`items.${index}.is_continuous`, defaultPkg?.is_continuous ?? false)
   }
 
   const newItemsTotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
@@ -262,8 +265,8 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
                               render={({ field: f }) => (
                                 <Input
                                   type="number"
-                                  min={1}
-                                  step={1}
+                                  min={watchItems[index]?.is_continuous ? 0.0001 : 1}
+                                  step={watchItems[index]?.is_continuous ? 'any' : 1}
                                   value={f.value}
                                   onChange={(e) => f.onChange(Number(e.target.value))}
                                   className={`h-8 text-xs text-right ${itemErrors?.quantity ? 'border-red-500' : ''}`}

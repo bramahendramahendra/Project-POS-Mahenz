@@ -367,6 +367,23 @@ TUGAS — Kerjakan FASE G (Lintas Modul) sebagai senior QA / bug hunter:
 
 **Rekomendasi**: lanjut ke Fase B. Dua bug mayor yang ditemukan (500 seharusnya 400) berpotensi memengaruhi Fase B & C juga (sama-sama lewat `ApplyStockDelta`) — sudah diperbaiki secara terpusat (`WrapStockError`) jadi kemungkinan besar jalur lain (retur, write-off) yang sudah punya pembungkus sendiri tidak terpengaruh, tapi tetap perlu diverifikasi ulang di fase masing-masing.
 
+### Ronde ke-2: konfirmasi ulang seluruh 24 skenario dengan data fixture baru (21 Agu 2026)
+
+User minta re-run penuh Fase A (data fixture baru prefix `QATEST-A2-*`, produk id 228-234, akun kasir baru `qafaseA2kasir`). Semua 24 skenario dijalankan lewat kombinasi browser sungguhan (Playwright, untuk alur form/UI-kritis: create multi-satuan, validasi margin, import Excel, sort/filter, cetak label) dan API+DB langsung (untuk aturan validasi backend: circular ref, hapus paket, needs_stock_review, permission role).
+
+**Hasil: 24/24 PASS, tidak ada bug baru ditemukan.** Kedua bug MAYOR dari ronde 1 (500 seharusnya 400 untuk stok kurang & `needs_stock_review`) tetap terbukti stabil diperbaiki — tidak regresi.
+
+**Detail temuan menarik selama re-test (bukan bug, klarifikasi)**:
+- **Skenario 6 (margin negatif)**: saat diuji langsung via API (bypass form), backend TERNYATA menerima create dengan margin negatif tanpa penolakan — sekilas terlihat beda dari catatan ronde 1 ("BLOCKED validasi keras"). Ditelusuri lebih lanjut lewat submit form yang sesungguhnya (bukan cuma isi field lalu screenshot, tapi benar-benar klik "Simpan"): FE **tetap memblokir** submit dengan pesan "Harga jual tidak boleh lebih rendah dari harga beli", modal tetap terbuka, tidak ada API call terkirim sama sekali. Jadi validasi keras ini murni di level FE (client-side), backend tidak mereplikasi validasi yang sama kalau dipanggil langsung — perilaku ini KONSISTEN dengan ronde 1, bukan regresi. Dicatat di sini supaya jelas: kalau ada integrasi API pihak ketiga di masa depan yang tidak lewat form FE, validasi margin negatif ini TIDAK akan otomatis berlaku — perlu jadi pertimbangan kalau API publik/integrasi eksternal direncanakan.
+- **Skenario 16 (nonaktifkan produk)**: field `is_active` TIDAK bisa diubah lewat `POST /products/update/:id` (payload `is_active:false` diam-diam diabaikan, field itu memang tidak ada di `UpdateRequest` struct) — harus lewat endpoint terpisah `POST /products/toggle-status/:id`. Ini bukan bug, murni desain API (mirip pola toggle switch), tapi dicatat sebagai info penting kalau ada yang mengintegrasikan API secara manual di masa depan supaya tidak salah asumsi field mana yang mengontrol status aktif.
+- **Skenario 18-19 (hapus produk ditolak)**: dikonfirmasi ada 3 pesan penolakan BERBEDA sesuai alasan spesifik ("sudah ada di transaksi" utk yang pernah terjual, "sudah pernah dibeli dari supplier" utk yang cuma pernah dibeli belum terjual, "masih memiliki stok" utk yang stoknya belum 0) — detail ini belum eksplisit tercatat di ronde 1, sekarang terverifikasi dan terdokumentasi.
+
+**Console browser**: 0 JavaScript error/warning di seluruh skenario yang diuji lewat browser sungguhan.
+
+**Kesimpulan**: Fase A dinyatakan final tuntas setelah 2 ronde pengujian — 2 bug MAYOR (dari ronde 1) tetap terbukti solid tanpa regresi, 0 bug baru ditemukan di ronde 2. Sistem validasi (baik client-side maupun server-side), audit trail `stock_mutations`, dan pesan error per-kasus semuanya berfungsi konsisten.
+
+**Rekomendasi**: Fase A tuntas, tidak ada tindak lanjut kode yang diperlukan.
+
 ---
 
 **Fase B (Modul Pembelian) — ✅ SELESAI (24/25), 1 skenario butuh keputusan user** (18 Agu 2026): dijalankan lewat browser sungguhan (Playwright) untuk alur create/edit/void/delete PO, dikombinasikan dengan verifikasi state lewat API langsung (produk & PO yang sama dipakai form-nya) untuk memastikan angka stok presisi sebelum/sesudah tiap aksi. Data uji: PO berprefix `QATEST-B*` / `PO-20260818-00x` (id 142-151), produk `88 Hitam 12` (29), `88 Kretek 12` (9), `Djarum Super Kretek 12` (197, rasio non-bulat Pack/Pieces/Sachet). Semua data uji dibiarkan di DB dev.
@@ -727,9 +744,21 @@ User minta re-run penuh Fase G lagi (data fixture baru prefix `QATEST-G4-*`, pro
 
 **Tidak ada bug baru ditemukan di ronde ini** — ini ronde pertama sejak Fase G dimulai yang benar-benar bersih tanpa temuan baru, mengindikasikan mekanisme locking dari ronde 3 sudah matang dan stabil.
 
-**Kesimpulan final**: Fase G dinyatakan final tuntas setelah **4 ronde pengujian** — total tetap 2 bug MAYOR unik (keduanya sudah diperbaiki & terverifikasi solid, termasuk lewat stress test 4-arah di ronde ini), 1 area abu-abu (rasio paket retroaktif) terkonfirmasi konsisten di SEMUA EMPAT ronde.
+**Kesimpulan (setelah ronde 4)**: total tetap 2 bug MAYOR unik (keduanya sudah diperbaiki & terverifikasi solid, termasuk lewat stress test 4-arah), 1 area abu-abu (rasio paket retroaktif) terkonfirmasi konsisten di 4 ronde.
 
-**Rekomendasi**: Fase G tuntas — mekanisme generate kode urutan harian di seluruh sistem (Transaksi Kasir, Purchase Order, Retur Supplier) seragam pakai locking eksplisit, sudah terbukti solid bahkan di bawah 4 request konkuren. 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis). Ini adalah fase terakhir dari rencana pengujian A-G.
+### Ronde ke-5: stress test dinaikkan lagi (5 request konkuren) — tetap bersih, tidak ada bug baru (21 Agu 2026)
+
+User minta re-run penuh Fase G sekali lagi (data fixture baru prefix `QATEST-G5-*`, produk id 224-227). Skenario 1 kali ini dinaikkan lagi jadi **5 sesi browser konkuren** (naik dari 4 di ronde 4) menjual produk stok 1 secara bersamaan.
+
+**Hasil skenario 1**: tepat 1 dari 5 berhasil, 4 lainnya ditolak bersih. `grep -c "Duplicate entry"` di log backend sejak restart terakhir hasilnya tetap **0**. Stok akhir 0, tidak negatif.
+
+**Skenario 2-10**: semua PASS, hasil identik dengan ronde-ronde sebelumnya (skenario 2: kasir menang lagi vs write-off, konsisten dengan ronde 3-4; skenario 6: `purchase_date` dimundurkan ke awal tahun (1 Jan 2026), `stock_mutations.created_at` tetap benar; skenario 7: 3x edit rasio beruntun 50→32→10→45, semua konsisten; skenario 8: area abu-abu terkonfirmasi ulang untuk **KE-5 KALINYA** — beli 3 Bal rasio 45 → 135 Pcs, ubah rasio ke 60 → otomatis 180 Pcs; skenario 9-10: permission & token tetap bersih).
+
+**Tidak ada bug baru ditemukan** — ronde kedua berturut-turut (setelah ronde 4) yang benar-benar bersih. Mekanisme locking dari ronde 3 terus terbukti stabil bahkan dengan tingkat konkurensi yang terus dinaikkan (2→4→5 request).
+
+**Kesimpulan final**: Fase G dinyatakan final tuntas setelah **5 ronde pengujian** — total tetap 2 bug MAYOR unik (keduanya diperbaiki & terverifikasi solid lewat stress test bertingkat 2/4/5 request konkuren), 1 area abu-abu (rasio paket retroaktif) terkonfirmasi konsisten di SEMUA LIMA ronde dengan angka yang berbeda-beda tiap kali namun perilaku selalu sama persis.
+
+**Rekomendasi**: Fase G tuntas — mekanisme generate kode urutan harian di seluruh sistem (Transaksi Kasir, Purchase Order, Retur Supplier) seragam pakai locking eksplisit, terbukti solid di bawah tekanan konkurensi yang terus dinaikkan. 1 area abu-abu didokumentasikan (menunggu keputusan bisnis, tidak menghalangi rilis). Pengujian lanjutan pada skenario yang sudah 2x berturut-turut bersih tanpa temuan baru (ronde 4 & 5) kemungkinan besar sudah mencapai titik jenuh — re-test lagi dengan pola yang sama besar kemungkinan hanya akan mengulang hasil yang sama, kecuali ada perubahan kode baru di area terkait yang perlu diverifikasi ulang. Ini adalah fase terakhir dari rencana pengujian A-G.
 
 ---
 
@@ -768,7 +797,7 @@ Seluruh 7 fase pengujian (A: Produk, B: Pembelian, C: Kasir/Penjualan, D: Retur 
 | D | Retur ke Supplier | 11/11 PASS | 0 (+1 diperbaiki preventif, di-upgrade ke locking di ronde 3 Fase G) | ✅ Selesai |
 | E | Write-off Kadaluarsa | 8/8 PASS | 0 | ✅ Selesai |
 | F | Laporan & Dashboard | 7/7 PASS | 1 (diperbaiki) | ✅ Selesai |
-| G | Lintas Modul & Konkurensi | 10/10 (9 PASS, 1 area abu-abu), **4 ronde** (ronde 4: stress test 4 request konkuren, 0 bug baru) | 2 (diperbaiki — 1 butuh 2 iterasi fix, terverifikasi solid lewat stress test ronde 4) | ✅ Selesai |
+| G | Lintas Modul & Konkurensi | 10/10 (9 PASS, 1 area abu-abu), **5 ronde** (ronde 4-5: stress test 4-5 request konkuren, 0 bug baru di kedua ronde) | 2 (diperbaiki — 1 butuh 2 iterasi fix, terverifikasi solid lewat stress test bertingkat ronde 4-5) | ✅ Selesai |
 
 ### Yang masih terbuka
 

@@ -224,6 +224,11 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
       price: item.purchase_price,
       unit: item.unit,
       conversion_qty: item.conversion_qty,
+      // API tidak balikin is_continuous per item pembelian lama -- qty pecahan yang
+      // sudah tersimpan cuma mungkin terjadi kalau satuannya memang kontinu (satuan
+      // diskrit tidak akan pernah tersimpan desimal), jadi ini heuristik aman supaya
+      // buka-edit PO lama tidak langsung kena validasi "harus bulat" tanpa diubah apa pun.
+      is_continuous: !Number.isInteger(item.quantity),
       // Wajib dibawa balik ke form — Update() menghapus semua purchase_items lama
       // (CASCADE ke product_expiry_batches) lalu re-insert cuma dari payload ini. Kalau
       // expiry_batches tidak di-hydrate di sini, submit edit apapun (bahkan tanpa
@@ -468,6 +473,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
       setValue(`items.${index}.price`, 0)
       setValue(`items.${index}.conversion_qty`, 1)
+      setValue(`items.${index}.is_continuous`, defaultPkg?.is_continuous ?? false)
     }
   }
 
@@ -481,6 +487,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     // Harga TIDAK ikut di-auto-isi di sini — biarkan kosong/apa adanya sampai user klik
     // chip Ref. Harga Beli (sama seperti form Produk).
     setValue(`items.${index}.conversion_qty`, pkg.resolved_factor ?? 1)
+    setValue(`items.${index}.is_continuous`, pkg.is_continuous ?? false)
   }
 
   function unitOptionLabel(pkg: ProductPackage) {
@@ -752,8 +759,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                       <td className="px-3 py-2">
                         <Input
                           type="number"
-                          min={1}
-                          step={1}
+                          min={watchItems[index]?.is_continuous ? 0.0001 : 1}
+                          step={watchItems[index]?.is_continuous ? 'any' : 1}
                           {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                           className={`h-8 text-xs text-right ${itemErrors?.quantity ? 'border-red-500' : ''}`}
                         />

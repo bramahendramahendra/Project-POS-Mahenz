@@ -12,12 +12,34 @@ export const expiryBatchDraftSchema = z.object({
 export const purchaseItemSchema = z.object({
   product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
   product_name: z.string().optional(),
-  quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0').int('Qty harus bilangan bulat'),
+  quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
   price: z.number({ error: 'Wajib diisi' }).positive('Harga harus lebih dari 0'),
   unit: z.string().min(1, 'Wajib diisi'),
   conversion_qty: z.number().min(1).catch(1),
+  // Satuan kontinu (mis. Kilogram) boleh qty pecahan; satuan diskrit (Pcs/Slop/dll.)
+  // wajib bilangan bulat -- dicek di superRefine (bukan di sini) karena aturannya
+  // beda per baris item, bukan aturan tetap untuk semua qty.
+  is_continuous: z.boolean().optional(),
   expiry_batches: z.array(expiryBatchDraftSchema).optional(),
 })
+
+// Dipakai di superRefine purchaseSchema & addItemsSchema (2 tempat) -- qty item
+// wajib bilangan bulat KECUALI satuan yang dipakai kontinu (mis. Kilogram).
+export function refineItemQuantities(
+  items: { quantity: number; is_continuous?: boolean }[],
+  ctx: { addIssue: (issue: { code: 'custom'; message: string; path: (string | number)[] }) => void },
+  basePath: (string | number)[] = ['items'],
+) {
+  items.forEach((item, index) => {
+    if (!item.is_continuous && !Number.isInteger(item.quantity)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Qty harus bilangan bulat',
+        path: [...basePath, index, 'quantity'],
+      })
+    }
+  })
+}
 
 export const purchaseSchema = z
   .object({
@@ -86,6 +108,8 @@ export const purchaseSchema = z
         path: ['payment_method'],
       })
     }
+
+    refineItemQuantities(data.items, ctx)
 
     const seen = new Map<number, number>()
     data.items.forEach((item, index) => {
