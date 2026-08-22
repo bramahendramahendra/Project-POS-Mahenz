@@ -3,6 +3,7 @@ package repo
 import (
 	stderrors "errors"
 	"fmt"
+	"strconv"
 
 	model_product "pos_api/domain/product/model"
 	product_repo "pos_api/domain/product/repo"
@@ -238,8 +239,12 @@ func (r *supplierReturnRepo) createOnce(conn *gorm.DB, req *dto.CreateSupplierRe
 
 			sisaQty := purchaseQty - alreadyReturned
 			if item.Quantity > sisaQty {
+				// strconv.FormatFloat(..., -1, ...) -- BUKAN %.0f -- supaya sisa pecahan
+				// (mis. satuan kontinu seperti Kilogram) tampil apa adanya (0.5), bukan
+				// dibulatkan ke 0 di pesan errornya (meski validasi angkanya sendiri sudah
+				// benar, pesannya jadi menyesatkan / kelihatan seperti sisa 0 padahal bukan).
 				return &custom_errors.BadRequestError{
-					Message: fmt.Sprintf("Jumlah retur %s melebihi sisa yang bisa diretur (maks %.0f)", item.ProductName, sisaQty),
+					Message: fmt.Sprintf("Jumlah retur %s melebihi sisa yang bisa diretur (maks %s)", item.ProductName, strconv.FormatFloat(sisaQty, 'f', -1, 64)),
 				}
 			}
 

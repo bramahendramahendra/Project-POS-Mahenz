@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
 	generateTransactionCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
 	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -269,6 +269,7 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 		// fresh dari package_id, bukan baca balik nilai ini -- celah #21).
 		conversionQty := item.ConversionQty
 		unitName := item.Unit
+		var packagePurchasePrice float64
 		var pkgRows []*model_product.ProductPackage
 		if err := r.db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
 			if factor, factorErr := model_product.ResolvePackageFactor(pkgRows, packageID); factorErr == nil && factor > 0 {
@@ -276,6 +277,7 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 				for _, p := range pkgRows {
 					if p.ID == packageID {
 						unitName = p.UnitName
+						packagePurchasePrice = p.PurchasePrice
 						break
 					}
 				}
@@ -285,11 +287,20 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 			conversionQty = 1
 		}
 
-		var basePurchasePrice float64
-		if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&basePurchasePrice).Error; err != nil {
-			return nil, err
+		// HPP pakai harga beli RIIL yang dicatat manual per paket (product_packages.
+		// purchase_price), BUKAN sekadar harga anchor dikali faktor konversi -- toko
+		// bisa beli satuan kecil (mis. Butir) dengan harga per-unit yang TIDAK
+		// proporsional dari harga per-kg (mis. beli eceran dari sumber lain, lebih
+		// mahal per satuan). Kalau field itu kosong/0 (data lama sebelum field ini
+		// dipakai), fallback ke hitungan proporsional lama supaya tidak pecah.
+		purchasePrice := packagePurchasePrice
+		if purchasePrice <= 0 {
+			var basePurchasePrice float64
+			if err := r.db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&basePurchasePrice).Error; err != nil {
+				return nil, err
+			}
+			purchasePrice = basePurchasePrice * conversionQty
 		}
-		purchasePrice := basePurchasePrice * conversionQty
 
 		if err := r.db.Exec(createTransactionItemQuery,
 			transactionID, item.ProductID, item.ProductName,
@@ -531,9 +542,24 @@ func (r *transactionRepo) applySyncTransactionOnce(db *gorm.DB, tx dto_sync.Sync
 				return fmt.Errorf("produk %d tidak punya paket satuan yang bisa dipakai buat sync", item.ProductID)
 			}
 
+			// HPP pakai harga beli riil per paket kalau ada (sama seperti alur online
+			// di createOnce()), fallback ke harga anchor × conversion_qty kalau kosong.
 			var purchasePrice float64
-			if err := db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&purchasePrice).Error; err != nil {
-				return err
+			var pkgRows []*model_product.ProductPackage
+			if err := db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
+				for _, p := range pkgRows {
+					if p.ID == packageID {
+						purchasePrice = p.PurchasePrice
+						break
+					}
+				}
+			}
+			if purchasePrice <= 0 {
+				var basePurchasePrice float64
+				if err := db.Raw(getProductPurchasePriceQuery, item.ProductID).Scan(&basePurchasePrice).Error; err != nil {
+					return err
+				}
+				purchasePrice = basePurchasePrice * item.ConversionQty
 			}
 
 			if err := db.Exec(createTransactionItemQuery,

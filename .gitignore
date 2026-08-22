@@ -33,3 +33,6 @@ FE/*.ntvs*
 FE/*.njsproj
 FE/*.sln
 FE/*.sw?
+
+testing
+backups
