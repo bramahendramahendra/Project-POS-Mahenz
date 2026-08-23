@@ -17,6 +17,7 @@ export interface SupplierPurchaseItem {
   id: number
   product_id: number
   product_name: string
+  package_id?: number
   quantity: number
   unit: string
   conversion_qty: number

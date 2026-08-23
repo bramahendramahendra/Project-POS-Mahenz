@@ -53,18 +53,27 @@ func validateExpiryBatches(items []dto.PurchaseRequest) error {
 	return nil
 }
 
-// validateDuplicateProducts menolak PO yang memilih produk yang sama di lebih dari
-// satu baris item — FE sudah menolak ini di form, tapi endpoint API tetap harus
-// menegakkan aturan yang sama supaya tidak bisa dilewati lewat panggilan API langsung.
+// validateDuplicateProducts menolak PO yang memilih produk + satuan (package) yang sama
+// di lebih dari satu baris item. Produk yang sama BOLEH muncul berkali-kali selama
+// package_id-nya berbeda (contoh: beli 2 Slop + 5 Pack rokok yang sama dalam 1 nota).
 func validateDuplicateProducts(items []dto.PurchaseRequest) error {
-	seen := make(map[int]bool, len(items))
+	type key struct {
+		productID int
+		packageID int
+	}
+	seen := make(map[key]bool, len(items))
 	for i, item := range items {
-		if seen[item.ProductID] {
+		pkgID := 0
+		if item.PackageID != nil {
+			pkgID = *item.PackageID
+		}
+		k := key{productID: item.ProductID, packageID: pkgID}
+		if seen[k] {
 			return &errors.BadRequestError{Message: fmt.Sprintf(
-				"Item ke-%d: produk sudah dipilih di baris lain", i+1,
+				"Item ke-%d: produk dengan satuan ini sudah dipilih di baris lain", i+1,
 			)}
 		}
-		seen[item.ProductID] = true
+		seen[k] = true
 	}
 	return nil
 }

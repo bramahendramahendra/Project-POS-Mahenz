@@ -201,7 +201,7 @@ const emptyValues: PurchaseFormValues = {
   invoice_number: '',
   no_invoice: false,
   supplier_id: 0,
-  items: [{ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
+  items: [{ product_id: 0, product_name: '', package_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
   discount_amount: 0,
   notes: '',
   payment_status: '',
@@ -220,6 +220,7 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
     items: data.items.map((item) => ({
       product_id: item.product_id,
       product_name: item.product_name,
+      package_id: item.package_id ?? 0,
       quantity: item.quantity,
       price: item.purchase_price,
       unit: item.unit,
@@ -454,6 +455,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         delete next[index]
         return next
       })
+      setValue(`items.${index}.package_id`, 0)
       setValue(`items.${index}.unit`, '')
       setValue(`items.${index}.price`, 0)
       setValue(`items.${index}.conversion_qty`, 1)
@@ -468,6 +470,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         delete next[index]
         return next
       })
+      // Produk 1 satuan: langsung set package_id ke default package
+      setValue(`items.${index}.package_id`, defaultPkg?.id ?? 0)
       // Harga SENGAJA tidak diisi otomatis — sama seperti konsep "Ref. Harga" di form
       // Produk: nilai referensi cuma dipakai kalau user klik chip-nya sendiri.
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
@@ -483,6 +487,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     if (!pkg) return
     setItemSelectedPackageId((prev) => ({ ...prev, [index]: id }))
     setItemRefPurchasePrice((prev) => ({ ...prev, [index]: pkg.purchase_price }))
+    setValue(`items.${index}.package_id`, id)
     setValue(`items.${index}.unit`, pkg.unit_name)
     // Harga TIDAK ikut di-auto-isi di sini — biarkan kosong/apa adanya sampai user klik
     // chip Ref. Harga Beli (sama seperti form Produk).

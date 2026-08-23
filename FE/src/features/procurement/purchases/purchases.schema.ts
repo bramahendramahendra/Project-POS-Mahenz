@@ -12,6 +12,7 @@ export const expiryBatchDraftSchema = z.object({
 export const purchaseItemSchema = z.object({
   product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
   product_name: z.string().optional(),
+  package_id: z.number().optional(),
   quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
   price: z.number({ error: 'Wajib diisi' }).positive('Harga harus lebih dari 0'),
   unit: z.string().min(1, 'Wajib diisi'),
@@ -111,18 +112,24 @@ export const purchaseSchema = z
 
     refineItemQuantities(data.items, ctx)
 
-    const seen = new Map<number, number>()
+    // Validasi duplikat: produk + satuan yang sama tidak boleh muncul di >1 baris.
+    // Produk sama BOLEH muncul berkali-kali selama satuannya (package_id) berbeda —
+    // contoh: beli 2 Slop + 5 Pack rokok yang sama dalam 1 nota.
+    const seen = new Map<string, number>()
     data.items.forEach((item, index) => {
       if (!item.product_id) return
-      const firstIndex = seen.get(item.product_id)
+      // Kunci: product_id + package_id. Jika package_id belum dipilih (0/undefined),
+      // fallback ke product_id saja supaya tetap ada pengecekan minimal.
+      const key = `${item.product_id}-${item.package_id || 0}`
+      const firstIndex = seen.get(key)
       if (firstIndex !== undefined) {
         ctx.addIssue({
           code: 'custom',
-          message: 'Produk sudah dipilih di baris lain',
+          message: 'Produk dengan satuan ini sudah dipilih di baris lain',
           path: ['items', index, 'product_id'],
         })
       } else {
-        seen.set(item.product_id, index)
+        seen.set(key, index)
       }
     })
 
