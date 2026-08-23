@@ -29,7 +29,7 @@ if req.PaymentMethod == "cash" {
 }
 ```
 
-Saat ini kas harian dicatat = `total_amount` (nilai transaksi). Ini **perlu diubah** menjadi `payment_amount` (uang yang benar-benar masuk laci) agar konsisten dengan Opsi B.
+Kas harian = `total_amount` untuk metode cash. Ini **tetap benar** untuk tunai biasa (net di laci = bayar - kembalian = total_amount). Setelah fitur saldo, rumusnya sedikit berubah menjadi `total_amount - balance_used` (lihat section 7.5).
 
 ---
 
@@ -37,9 +37,9 @@ Saat ini kas harian dicatat = `total_amount` (nilai transaksi). Ini **perlu diub
 
 | # | Keputusan | Alasan |
 |---|-----------|--------|
-| 1 | **Opsi B: Kas harian = uang fisik masuk laci** | Kas selalu cocok dengan isi laci saat tutup shift |
+| 1 | **Kas harian = net uang fisik yang tetap di laci** | Kas selalu cocok dengan isi laci saat tutup shift |
 | 2 | Pakai saldo → kas TIDAK bertambah | Uang sudah masuk kas saat top-up |
-| 3 | Top-up saldo (dari kembalian) → kas TIDAK bertambah ekstra | Kas sudah +payment_amount saat checkout; top-up hanya pencatatan saldo |
+| 3 | Top-up saldo (dari kembalian) → kas BERTAMBAH sejumlah yang disimpan | Kembalian tidak jadi keluar laci, jadi laci bertambah net |
 | 4 | Top-up manual → kas BERTAMBAH | Uang fisik masuk laci di luar transaksi jual beli |
 | 5 | Kombinasi saldo + tunai dibolehkan | Saldo < total → sisa bayar tunai |
 | 6 | Kombinasi saldo + hutang dibolehkan | Saldo < total → sisa jadi piutang |
@@ -164,13 +164,15 @@ Customer A beli air Rp 5.000, bayar tunai Rp 200.000
                     ▼
 Efek:
 - Transaksi: payment_method=cash, payment_amount=200000, change=195000
-- Kas harian: +Rp 200.000 (uang fisik masuk laci, ini dari checkout biasa)
+- Kas harian dari checkout: +Rp 5.000 (= total_amount, existing logic)
+- Kas harian dari simpan saldo: +Rp 195.000 (kembalian tidak keluar laci)
+- Total kas harian: +Rp 200.000 (cocok dengan uang fisik yang tetap di laci)
 - Saldo customer: +Rp 195.000
 - Mutasi: type=topup, amount=+195000, ref=transaction/{id}
 - Struk update: "Saldo ditambahkan: Rp 195.000 | Saldo Anda: Rp 195.000"
 ```
 
-**Catatan**: Kas harian +Rp 200.000 sudah terjadi dari proses checkout biasa (payment_amount). Top-up saldo TIDAK menambah kas lagi — hanya memindahkan pencatatan dari "kembalian fisik" menjadi "saldo digital".
+**Catatan**: Checkout biasa membuat kas harian +Rp 5.000 (= total_amount). Tapi karena kembalian Rp 195.000 disimpan ke saldo (tidak jadi keluar laci secara fisik), endpoint `save-to-balance` juga menambah kas += Rp 195.000. Total kas harian = +Rp 200.000, cocok dengan uang fisik yang memang tetap di laci.
 
 ### Skenario B: Customer Belanja Pakai Saldo (Saldo Cukup)
 
@@ -496,15 +498,40 @@ func Void(transactionID) {
 
 ### 7.5 Kas Harian — Aturan Lengkap
 
-| Kejadian | Kas harian | Jumlah |
-|----------|-----------|--------|
-| Checkout tunai (tanpa saldo) | +✅ | payment_amount |
-| Checkout tunai (dengan saldo) | +✅ | payment_amount (= total - balance_used) |
-| Checkout transfer/qris/kartu | — | 0 |
-| Checkout hutang | — | 0 |
-| Checkout full saldo | — | 0 |
-| Top-up manual (customer titip di luar transaksi) | +✅ | jumlah top-up |
-| Refund/tarik saldo | -❗ | dicatat sebagai expense |
+**Prinsip: Kas harian mencatat uang fisik yang NET tetap di laci.**
+
+Existing saat ini (`UpdateSales` di `transaction_service.go`) menambah kas = `total_amount` untuk metode cash. Ini BENAR untuk tunai biasa (customer bayar 25.000, kembalian 2.500, net di laci = 22.500 = total_amount).
+
+Setelah fitur saldo, kas harian tetap prinsip yang sama:
+
+| Kejadian | Kas bertambah? | Jumlah | Penjelasan |
+|----------|---------------|--------|------------|
+| Checkout tunai biasa | ✅ | `total_amount` | Net di laci = bayar - kembalian = total |
+| Checkout tunai + saldo | ✅ | `effective_total` (= total - balance_used) | Customer hanya bayar sisanya, net = sisa |
+| Checkout full saldo | ❌ | 0 | Tidak ada uang fisik masuk |
+| Checkout transfer/qris/kartu | ❌ | 0 | Uang masuk rekening, bukan laci |
+| Checkout hutang | ❌ | 0 | Tidak ada uang masuk |
+| Checkout saldo + hutang | ❌ | 0 | Saldo bukan uang baru, hutang juga bukan |
+| Top-up manual (titip tanpa belanja) | ✅ | jumlah top-up | Uang fisik masuk laci |
+| Simpan kembalian ke saldo | ✅ | jumlah yang disimpan | Kembalian tidak jadi keluar laci → laci tetap penuh |
+| Refund/tarik saldo | dicatat expense | jumlah refund | Uang fisik keluar laci |
+
+**Perubahan di kode:**
+```go
+// SEBELUM (existing):
+if req.PaymentMethod == "cash" {
+    cashDrawerRepo.UpdateSales(drawer.ID, req.TotalAmount, req.TotalAmount, now)
+}
+
+// SESUDAH:
+if req.PaymentMethod == "cash" {
+    netCash := req.TotalAmount - req.BalanceUsed  // effective_total
+    if netCash > 0 {
+        cashDrawerRepo.UpdateSales(drawer.ID, netCash, netCash, now)
+    }
+}
+// payment_method == "balance" → tidak update kas sama sekali
+```
 
 ---
 
