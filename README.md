@@ -1,6 +1,6 @@
 # Project POS Mahenz
 
-Versi : 2.4.0
+Versi : 2.5.0
 Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan, stok produk, supplier, keuangan, hingga laporan, dengan backend Go dan frontend React.
 
 ## Tech Stack

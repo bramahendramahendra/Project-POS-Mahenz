@@ -568,6 +568,6 @@ if req.PaymentMethod == "cash" {
 |------|-------|--------|
 | **1** | Database + BE core | Migration (balance, balance_used, mutations table, payment_method 'balance'). Endpoint top-up, refund, history. Kolom saldo di customer response |
 | **2** | FE kasir + checkout | Checkbox "Gunakan Saldo" di modal. Rename Kredit→Hutang. Logic saldo+metode. Opsi simpan kembalian di struk |
-| **3** | BE checkout integration | Handle balance_used di transactions/create. Deduct saldo, buat mutasi, piutang = effective. Kas harian = payment_amount |
+| **3** | BE checkout integration | Handle balance_used di transactions/create. Deduct saldo, buat mutasi, piutang = effective_total. Kas harian = effective_total |
 | **4** | Void + edge cases | Rollback saldo saat void. Rollback top-up saat void. Refund = expense di kas |
 | **5** | FE pelanggan + polish | Kolom saldo di list. Detail: section saldo + riwayat + top-up/tarik. Info saldo di struk |
