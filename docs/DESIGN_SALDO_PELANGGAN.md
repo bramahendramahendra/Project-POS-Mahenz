@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS customer_balance_mutations (
 ```
 effective_total = total_amount - balance_used
 piutang (jika is_credit) = effective_total
-kas_harian (jika cash) = payment_amount
+kas_harian (jika cash) = effective_total (= total_amount - balance_used)
 ```
 
 ### 3.6 Tipe Mutasi Saldo
@@ -466,9 +466,12 @@ func Create(req) {
             INSERT receivables (total_amount = effectiveTotal, remaining = effectiveTotal)
         }
         
-        // e. Update kas harian (hanya cash, dan hanya payment_amount)
-        if req.PaymentMethod == "cash" && req.PaymentAmount > 0 {
-            UPDATE cash_drawer ... total_sales += req.PaymentAmount
+        // e. Update kas harian (hanya cash, hanya effective_total)
+        if req.PaymentMethod == "cash" {
+            netCash := req.TotalAmount - req.BalanceUsed
+            if netCash > 0 {
+                UPDATE cash_drawer ... total_sales += netCash
+            }
         }
     }
 }
