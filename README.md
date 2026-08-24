@@ -1,62 +1,59 @@
-# Project POS Mahenz
+# POS Mahenz
 
-Versi : 2.5.0
-Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan, stok produk, supplier, keuangan, hingga laporan, dengan backend Go dan frontend React.
+Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan, stok produk, supplier, keuangan, dan laporan.
 
 ## Tech Stack
 
-**Backend**
-- Go (Gin) — REST API
-- MySQL 8.0 — database utama, migrasi otomatis saat startup
-- JWT — autentikasi
-- Redis — caching/permission cache
+| Layer | Teknologi |
+|-------|-----------|
+| Backend | Go 1.24 (Gin), MySQL 8.0, JWT, GORM |
+| Frontend | React 19, TypeScript, Vite 8, TanStack Query, Zustand |
+| UI | Tailwind CSS, Radix UI (shadcn-style) |
 
-**Frontend**
-- React 19 + TypeScript
-- Vite — build tool
-- TanStack Query — data fetching & caching
-- Redux + Zustand — state management
-- Tailwind CSS + Radix UI — styling & komponen UI
+## Fitur
 
-## Fitur Utama
+- **Kasir** — checkout multi-metode (tunai, transfer, QRIS, kartu, hutang, saldo pelanggan)
+- **Produk** — multi-satuan/paket (Slop → Pack → Batang), barcode, SKU, import massal
+- **Pembelian** — PO supplier, multi-satuan per produk dalam 1 nota, bayar bertahap, void
+- **Retur** — retur ke supplier dengan reservasi stok
+- **Pelanggan** — saldo deposit, piutang (hutang), riwayat mutasi
+- **Keuangan** — kas harian, pengeluaran, rekonsiliasi shift
+- **Stok** — mutasi otomatis, batch expired, stok per level satuan
+- **Laporan** — penjualan, laba rugi, stok, kinerja kasir, ringkasan bisnis
+- **RBAC** — role & permission per menu (owner, admin, kasir)
+- **Sync** — offline-online dengan conflict resolution
 
-- Kasir / transaksi penjualan
-- Manajemen produk, kategori, dan satuan
-- Manajemen stok & mutasi stok
-- Supplier (pembelian & retur)
-- Kas & shift kasir (cash drawer)
-- Piutang (receivable) & pengeluaran (expense)
-- Manajemen user, role & hak akses (menu/permission)
-- Laporan & dashboard
-- Sinkronisasi data (mode offline-online)
-- Maintenance mode untuk aplikasi (lihat [docs/DEPLOYMENT_PROD.md](docs/DEPLOYMENT_PROD.md))
-
-## Struktur Project
+## Struktur
 
 ```
-BE/      Backend Go (domain-driven: domain/, routes/, middleware/, dll)
+BE/      Backend Go (domain-driven)
 FE/      Frontend React + Vite
-docs/    Dokumentasi deployment & audit
+docs/    Dokumentasi
 ```
 
-## Dokumentasi
+## Quick Start
 
-- [Panduan Instalasi & Deploy Production](docs/DEPLOYMENT_PROD.md)
-- [Setup User Server](docs/SETUP_USER_SERVER.md)
-
-## Menjalankan Secara Lokal
-
-### Backend
 ```bash
+# Backend (port 8080)
 cd BE
-go run main.go
-```
+cp .env.local .env        # sesuaikan config
+go run main.go            # migrasi DB otomatis saat startup
 
-### Frontend
-```bash
+# Frontend (port 3000)
 cd FE
 npm install
 npm run dev
 ```
 
-Lihat [docs/DEPLOYMENT_PROD.md](docs/DEPLOYMENT_PROD.md) untuk konfigurasi environment, database, dan panduan deploy ke production.
+**Prasyarat:** Go 1.24+, Node 20+, MySQL 8.0
+
+**Kredensial default (setelah seed):**
+- Owner: `owner` / `owner123`
+- Admin: `admin` / `admin123`
+
+## Dokumentasi
+
+- [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md)
+- [Setup User Server](docs/SETUP_USER_SERVER.md)
+- [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)
+- [Desain Fitur Saldo Pelanggan](docs/DESIGN_SALDO_PELANGGAN.md)

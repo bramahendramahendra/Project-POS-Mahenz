@@ -1,20 +1,24 @@
 package repo
 
 import (
+	"fmt"
 	"pos_api/domain/customer_balance/dto"
 	"pos_api/domain/customer_balance/model"
 	request_helper "pos_api/helper/request"
 	time_helper "pos_api/helper/time"
+
+	"gorm.io/gorm"
 )
 
 const (
-	getBalanceQuery     = `SELECT balance FROM customers WHERE id = ? LIMIT 1`
-	lockCustomerQuery   = `SELECT id, balance FROM customers WHERE id = ? FOR UPDATE`
-	updateBalanceQuery  = `UPDATE customers SET balance = ?, updated_at = ? WHERE id = ?`
-	insertMutationQuery = `INSERT INTO customer_balance_mutations (customer_id, amount, balance_after, type, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	getMutationByRef    = `SELECT id, customer_id, amount, balance_after, type, reference_type, reference_id, notes, user_id, created_at FROM customer_balance_mutations WHERE reference_type = ? AND reference_id = ? AND type = ? LIMIT 1`
-	getHistoryQuery     = `SELECT m.id, m.customer_id, m.amount, m.balance_after, m.type, m.reference_type, m.reference_id, m.notes, COALESCE(u.full_name, '') as user_name, m.created_at FROM customer_balance_mutations m LEFT JOIN users u ON m.user_id = u.id WHERE m.customer_id = ? ORDER BY m.created_at DESC LIMIT ? OFFSET ?`
-	countHistoryQuery   = `SELECT COUNT(*) FROM customer_balance_mutations WHERE customer_id = ?`
+	getBalanceQuery       = `SELECT balance FROM customers WHERE id = ? LIMIT 1`
+	updateBalanceDeduct   = `UPDATE customers SET balance = balance + ?, updated_at = ? WHERE id = ? AND balance + ? >= 0`
+	updateBalanceCredit   = `UPDATE customers SET balance = balance + ?, updated_at = ? WHERE id = ?`
+	insertMutationQuery   = `INSERT INTO customer_balance_mutations (customer_id, amount, balance_after, type, reference_type, reference_id, notes, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	getMutationByRef      = `SELECT id, customer_id, amount, balance_after, type, reference_type, reference_id, notes, user_id, created_at FROM customer_balance_mutations WHERE reference_type = ? AND reference_id = ? AND type = ? LIMIT 1`
+	getHistoryQuery       = `SELECT m.id, m.customer_id, m.amount, m.balance_after, m.type, m.reference_type, m.reference_id, m.notes, COALESCE(u.full_name, '') as user_name, m.created_at FROM customer_balance_mutations m LEFT JOIN users u ON m.user_id = u.id WHERE m.customer_id = ? ORDER BY m.created_at DESC LIMIT ? OFFSET ?`
+	countHistoryQuery     = `SELECT COUNT(*) FROM customer_balance_mutations WHERE customer_id = ?`
+	getBalanceAfterUpdate = `SELECT balance FROM customers WHERE id = ? LIMIT 1`
 )
 
 func (r *customerBalanceRepo) GetBalance(customerID int) (float64, error) {
@@ -72,25 +76,37 @@ func (r *customerBalanceRepo) Adjust(customerID int, amount float64, notes strin
 }
 
 // mutate adalah helper internal yang:
-// 1. Lock row customer (FOR UPDATE)
-// 2. Hitung balance baru
-// 3. Update balance
-// 4. Insert mutasi
+// 1. Atomic UPDATE balance (tanpa FOR UPDATE lock untuk menghindari deadlock)
+// 2. Read balance baru
+// 3. Insert mutasi
 // Returns: balance setelah mutasi
 func (r *customerBalanceRepo) mutate(customerID int, amount float64, mutType string, refType string, refID *int, notes string, userID int) (float64, error) {
-	// Lock customer row
-	var row struct {
-		ID      int
-		Balance float64
-	}
-	if err := r.db.Raw(lockCustomerQuery, customerID).Scan(&row).Error; err != nil {
-		return 0, err
+	// Untuk deduction (amount negatif), pakai conditional update agar tidak bisa negatif
+	// Untuk credit (amount positif), langsung update
+	var query string
+	if amount < 0 {
+		// Deduct: pastikan saldo cukup via WHERE condition
+		query = updateBalanceDeduct
+	} else {
+		query = updateBalanceCredit
 	}
 
-	newBalance := row.Balance + amount
+	var result *gorm.DB
+	if amount < 0 {
+		result = r.db.Exec(query, amount, time_helper.GetTimeNow(), customerID, amount)
+	} else {
+		result = r.db.Exec(query, amount, time_helper.GetTimeNow(), customerID)
+	}
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return 0, fmt.Errorf("saldo tidak mencukupi")
+	}
 
-	// Update balance
-	if err := r.db.Exec(updateBalanceQuery, newBalance, time_helper.GetTimeNow(), customerID).Error; err != nil {
+	// Baca balance terbaru
+	var newBalance float64
+	if err := r.db.Raw(getBalanceAfterUpdate, customerID).Scan(&newBalance).Error; err != nil {
 		return 0, err
 	}
 

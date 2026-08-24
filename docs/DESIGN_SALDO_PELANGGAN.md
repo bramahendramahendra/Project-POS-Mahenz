@@ -1,7 +1,7 @@
 # Desain Fitur: Saldo Pelanggan (Customer Deposit)
 
-> Dokumen ini mencatat desain lengkap fitur Saldo Pelanggan sebelum implementasi.
-> Status: **FINAL** — siap implementasi.
+> Dokumen ini mencatat desain lengkap fitur Saldo Pelanggan.
+> Status: **SELESAI** — sudah diimplementasi dan terverifikasi E2E.
 
 ---
 
