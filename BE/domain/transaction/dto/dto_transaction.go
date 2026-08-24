@@ -43,9 +43,10 @@ type (
 		Discount      float64                        `json:"discount" validate:"gte=0,ltefield=Subtotal"`
 		Tax           float64                        `json:"tax" validate:"gte=0"`
 		TotalAmount   float64                        `json:"total_amount" validate:"required,min=0"`
-		PaymentMethod string                         `json:"payment_method" validate:"required,oneof=cash transfer qris card kredit"`
+		PaymentMethod string                         `json:"payment_method" validate:"required,oneof=cash transfer qris card kredit balance"`
 		PaymentAmount float64                        `json:"payment_amount" validate:"min=0"`
 		ChangeAmount  float64                        `json:"change_amount"`
+		BalanceUsed   float64                        `json:"balance_used" validate:"min=0"`
 		CustomerID    *int                           `json:"customer_id"`
 		IsCredit      bool                           `json:"is_credit"`
 		DeviceSource  string                         `json:"device_source" validate:"required,oneof=desktop web android"`
@@ -80,6 +81,7 @@ type (
 		PaymentMethod   string                    `json:"payment_method"`
 		PaymentAmount   float64                   `json:"payment_amount"`
 		ChangeAmount    float64                   `json:"change_amount"`
+		BalanceUsed     float64                   `json:"balance_used"`
 		CustomerID      *int                      `json:"customer_id"`
 		CustomerName    string                    `json:"customer_name"`
 		IsCredit        bool                      `json:"is_credit"`

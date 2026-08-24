@@ -29,7 +29,7 @@ export function useCustomerCreditQuery(customerId: number | null) {
   return useQuery({
     queryKey: ['customers', 'credit', customerId],
     queryFn: () =>
-      api.post<{ id: number; name: string; credit_limit: number; outstanding_amount: number }>(
+      api.post<{ id: number; name: string; credit_limit: number; balance: number; outstanding_amount: number }>(
         `/customers/detail/${customerId}`,
         {}
       ),

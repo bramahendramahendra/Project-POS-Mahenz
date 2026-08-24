@@ -5,6 +5,7 @@ export interface Customer {
   phone: string
   address: string
   credit_limit: number
+  balance: number
   notes?: string
   is_active: boolean
   created_at: string
@@ -15,6 +16,7 @@ export interface CustomerOption {
   name: string
   customer_code: string
   credit_limit: number
+  balance: number
 }
 
 export interface CustomerListFilter {

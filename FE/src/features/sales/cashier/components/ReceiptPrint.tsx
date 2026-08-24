@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useRef } from 'react'
-import { Printer, ShoppingCart, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Printer, ShoppingCart, X, Wallet } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 
 import { ActionModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { DialogFooter } from '@/shared/components/ui/dialog'
 import { formatRupiah } from '@/shared/utils'
+import { RupiahInput } from '@/shared/components/ui/rupiah-input'
+import { api } from '@/services'
+import { toast } from 'sonner'
 
 import { useStoreProfileQuery } from '@/features/settings/store'
 import { usePrinterSettingsQuery } from '@/features/settings/printer'
@@ -48,7 +52,8 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   transfer: 'Transfer',
   qris: 'QRIS',
   card: 'Kartu',
-  kredit: 'Kredit',
+  kredit: 'Hutang',
+  balance: 'Saldo',
 }
 
 function formatDate(dateStr: string): string {
@@ -109,24 +114,97 @@ export function ReceiptPrint({
     if (!open) autoPrinted.current = false
   }, [open, mode, printerSettings.auto_print, handlePrint])
 
+  // Save-to-balance feature
+  const showSaveToBalance = mode === 'checkout' && !!customerName && paymentMethod === 'cash' && change > 0
+  const [saveAmount, setSaveAmount] = useState(0)
+  const [savedToBalance, setSavedToBalance] = useState(false)
+
+  useEffect(() => {
+    if (open && showSaveToBalance) {
+      setSaveAmount(Math.max(0, change))
+      setSavedToBalance(false)
+    }
+  }, [open, showSaveToBalance, change])
+
+  const saveToBalanceMutation = useMutation({
+    mutationFn: (payload: { transaction_id: number; amount: number }) =>
+      api.post('/transactions/save-to-balance', payload),
+    onSuccess: () => {
+      setSavedToBalance(true)
+      toast.success(`Rp ${saveAmount.toLocaleString('id-ID')} berhasil disimpan ke saldo pelanggan`)
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Gagal menyimpan ke saldo')
+    },
+  })
+
+  function handleSaveToBalance() {
+    if (saveAmount <= 0 || saveAmount > change) return
+    saveToBalanceMutation.mutate({
+      transaction_id: checkoutData.id,
+      amount: saveAmount,
+    })
+  }
+
   const footer = (
-    <DialogFooter className="border-t px-6 py-4 no-print">
-      <Button variant="outline" onClick={handlePrint} className="gap-1.5">
-        <Printer size={14} />
-        Cetak
-      </Button>
-      {mode === 'checkout' ? (
-        <Button onClick={onClose} className="gap-1.5">
-          <ShoppingCart size={14} />
-          Transaksi Baru
-        </Button>
-      ) : (
-        <Button onClick={onClose} className="gap-1.5">
-          <X size={14} />
-          Tutup
-        </Button>
+    <div className="no-print">
+      {/* Simpan kembalian ke saldo — only checkout mode, cash, has customer, has change */}
+      {showSaveToBalance && !savedToBalance && (
+        <div className="border-t px-6 py-3 bg-blue-50 space-y-2">
+          <div className="flex items-center gap-2">
+            <Wallet size={16} className="text-blue-600" />
+            <span className="text-sm font-semibold text-blue-800">Simpan kembalian ke Saldo Pelanggan?</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <RupiahInput
+              value={saveAmount}
+              onChange={(v) => setSaveAmount(Math.min(v, change))}
+              className="flex-1 h-9 text-sm"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onClose}
+              className="shrink-0"
+            >
+              Tidak
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveToBalance}
+              disabled={saveAmount <= 0 || saveToBalanceMutation.isPending}
+              className="shrink-0 bg-blue-600 hover:bg-blue-700"
+            >
+              {saveToBalanceMutation.isPending ? 'Menyimpan...' : 'Ya, Simpan'}
+            </Button>
+          </div>
+        </div>
       )}
-    </DialogFooter>
+      {savedToBalance && (
+        <div className="border-t px-6 py-3 bg-green-50">
+          <p className="text-sm text-green-700 font-medium">
+            ✓ {formatRupiah(saveAmount)} berhasil disimpan ke saldo pelanggan
+          </p>
+        </div>
+      )}
+      <DialogFooter className="border-t px-6 py-4">
+        <Button variant="outline" onClick={handlePrint} className="gap-1.5">
+          <Printer size={14} />
+          Cetak
+        </Button>
+        {mode === 'checkout' ? (
+          <Button onClick={onClose} className="gap-1.5">
+            <ShoppingCart size={14} />
+            Transaksi Baru
+          </Button>
+        ) : (
+          <Button onClick={onClose} className="gap-1.5">
+            <X size={14} />
+            Tutup
+          </Button>
+        )}
+      </DialogFooter>
+    </div>
   )
 
   return (

@@ -54,6 +54,7 @@ type (
 		Phone        string    `json:"phone"`
 		Address      string    `json:"address"`
 		CreditLimit  float64   `json:"credit_limit"`
+		Balance      float64   `json:"balance"`
 		IsActive     bool      `json:"is_active"`
 		CreatedAt    time.Time `json:"created_at"`
 	}
@@ -65,6 +66,7 @@ type (
 		Phone        string    `json:"phone"`
 		Address      string    `json:"address"`
 		CreditLimit  float64   `json:"credit_limit"`
+		Balance      float64   `json:"balance"`
 		Notes        string    `json:"notes"`
 		IsActive     bool      `json:"is_active"`
 		CreatedAt    time.Time `json:"created_at"`
@@ -75,5 +77,6 @@ type (
 		Name         string  `json:"name"`
 		CustomerCode string  `json:"customer_code"`
 		CreditLimit  float64 `json:"credit_limit"`
+		Balance      float64 `json:"balance"`
 	}
 )

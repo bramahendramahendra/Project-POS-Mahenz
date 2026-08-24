@@ -1,17 +1,17 @@
 package repo
 
 import (
-	request_helper "pos_api/helper/request"
 	dto "pos_api/domain/customer/dto"
 	model "pos_api/domain/customer/model"
+	request_helper "pos_api/helper/request"
 	time_helper "pos_api/helper/time"
 )
 
 const (
 	countCustomersBase         = `SELECT COUNT(*) FROM customers WHERE 1=1`
-	getAllCustomersQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, notes, is_active, created_at FROM customers WHERE 1=1`
-	getActiveCustomerListQuery = `SELECT id, name, customer_code, credit_limit FROM customers WHERE is_active = 1 ORDER BY name`
-	getCustomerByIDQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, notes, is_active, created_at FROM customers WHERE id = ? LIMIT 1`
+	getAllCustomersQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, balance, notes, is_active, created_at FROM customers WHERE 1=1`
+	getActiveCustomerListQuery = `SELECT id, name, customer_code, credit_limit, balance FROM customers WHERE is_active = 1 ORDER BY name`
+	getCustomerByIDQuery       = `SELECT id, customer_code, name, phone, address, credit_limit, balance, notes, is_active, created_at FROM customers WHERE id = ? LIMIT 1`
 	checkCustomerHasReceivable = `SELECT COUNT(*) FROM receivables WHERE customer_id = ? AND status NOT IN ('paid', 'void')`
 	generateCustomerCodeQuery  = `SELECT COUNT(*) FROM customers`
 	createCustomerQuery        = `INSERT INTO customers (customer_code, name, phone, address, credit_limit, notes) VALUES (?, ?, ?, ?, ?, ?)`

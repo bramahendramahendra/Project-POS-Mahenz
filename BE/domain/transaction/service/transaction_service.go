@@ -50,11 +50,25 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		return nil, err
 	}
 
-	if !req.IsCredit && req.PaymentAmount < req.TotalAmount {
+	// Validasi balance_used
+	if req.BalanceUsed > 0 {
+		if req.CustomerID == nil {
+			return nil, &errors.BadRequestError{Message: "Pilih pelanggan untuk menggunakan saldo"}
+		}
+		if req.BalanceUsed > req.TotalAmount {
+			return nil, &errors.BadRequestError{Message: "Saldo yang digunakan melebihi total belanja"}
+		}
+	}
+
+	// Hitung effective total (setelah saldo)
+	effectiveTotal := req.TotalAmount - req.BalanceUsed
+
+	// Validasi pembayaran (hanya cek sisa setelah saldo)
+	if !req.IsCredit && effectiveTotal > 0 && req.PaymentAmount < effectiveTotal {
 		return nil, &errors.BadRequestError{Message: "Jumlah pembayaran kurang dari total transaksi"}
 	}
-	if change := req.PaymentAmount - req.TotalAmount; change > 0 {
-		req.ChangeAmount = change
+	if effectiveTotal > 0 && req.PaymentAmount > effectiveTotal {
+		req.ChangeAmount = req.PaymentAmount - effectiveTotal
 	} else {
 		req.ChangeAmount = 0
 	}
@@ -70,25 +84,34 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		}
 		resp = result
 
-		if req.PaymentMethod == "cash" {
-			drawer, err := cashDrawerRepo.GetOpenCashDrawer(userID)
+		// Deduct customer balance SETELAH transaksi berhasil dibuat
+		if req.BalanceUsed > 0 {
+			cbRepo := s.customerBalanceRepo.WithTx(tx)
+			refID := resp.ID
+			_, err := cbRepo.Deduct(*req.CustomerID, req.BalanceUsed, "transaction", &refID, "Bayar belanja dari saldo", userID)
 			if err != nil {
-				return err
+				return &errors.BadRequestError{Message: "Saldo pelanggan tidak mencukupi"}
 			}
-			if drawer != nil {
-				if err := cashDrawerRepo.UpdateSales(drawer.ID, req.TotalAmount, req.TotalAmount, time_helper.GetTimeNow()); err != nil {
+		}
+
+		// Update kas harian (hanya cash, hanya effective_total)
+		if req.PaymentMethod == "cash" {
+			netCash := req.TotalAmount - req.BalanceUsed
+			if netCash > 0 {
+				drawer, err := cashDrawerRepo.GetOpenCashDrawer(userID)
+				if err != nil {
 					return err
+				}
+				if drawer != nil {
+					if err := cashDrawerRepo.UpdateSales(drawer.ID, netCash, netCash, time_helper.GetTimeNow()); err != nil {
+						return err
+					}
 				}
 			}
 		}
 		return nil
 	})
 	if txErr != nil {
-		// Bug QA Fase A skenario 15: txErr sudah bisa berupa *errors.BadRequestError
-		// (lihat product_repo.WrapStockError, dipakai transaction_repo.go Create())
-		// -- kalau tetap dipaksa masuk InternalServerError di sini, pesan ramah
-		// dari sana hilang, klien cuma lihat 500 generik. Pass-through kalau
-		// sudah app error yang dikenal, cuma unknown error yang dibungkus 500.
 		var badReq *errors.BadRequestError
 		if stderrors.As(txErr, &badReq) {
 			return nil, badReq
@@ -145,17 +168,48 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 			return err
 		}
 
+		// Rollback kas harian
 		if t.PaymentMethod == "cash" {
-			drawer, err := cashDrawerRepo.GetOpenCashDrawer(t.UserID)
+			netCash := t.TotalAmount - t.BalanceUsed
+			if netCash > 0 {
+				drawer, err := cashDrawerRepo.GetOpenCashDrawer(t.UserID)
+				if err != nil {
+					return err
+				}
+				if drawer != nil {
+					if err := cashDrawerRepo.UpdateSales(drawer.ID, -netCash, -netCash, time_helper.GetTimeNow()); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		// Rollback saldo pelanggan (jika transaksi pakai saldo)
+		if t.BalanceUsed > 0 && t.CustomerID != nil {
+			cbRepo := s.customerBalanceRepo.WithTx(tx)
+			refID := req.ID
+			_, err := cbRepo.Topup(*t.CustomerID, t.BalanceUsed, "void", &refID, "Void transaksi — saldo dikembalikan", userID)
 			if err != nil {
 				return err
 			}
-			if drawer != nil {
-				if err := cashDrawerRepo.UpdateSales(drawer.ID, -t.TotalAmount, -t.TotalAmount, time_helper.GetTimeNow()); err != nil {
+		}
+
+		// Rollback top-up saldo (jika kembalian pernah disimpan ke saldo)
+		if t.CustomerID != nil {
+			cbRepo := s.customerBalanceRepo.WithTx(tx)
+			topupMutation, err := cbRepo.GetMutationByRef("transaction", req.ID, "topup")
+			if err != nil {
+				return err
+			}
+			if topupMutation != nil {
+				refID := req.ID
+				_, err := cbRepo.Deduct(*t.CustomerID, topupMutation.Amount, "void", &refID, "Void transaksi — top-up saldo dibatalkan", userID)
+				if err != nil {
 					return err
 				}
 			}
 		}
+
 		return nil
 	})
 	if txErr != nil {

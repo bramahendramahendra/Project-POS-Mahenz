@@ -23,6 +23,7 @@ func (s *customerService) GetAll(req *dto.GetAllRequest) (data []dto.CustomerRes
 			Phone:        v.Phone,
 			Address:      v.Address,
 			CreditLimit:  v.CreditLimit,
+			Balance:      v.Balance,
 			IsActive:     v.IsActive,
 			CreatedAt:    v.CreatedAt,
 		})
@@ -43,6 +44,7 @@ func (s *customerService) GetOptions() (data []dto.CustomerActiveItem, err error
 			Name:         v.Name,
 			CustomerCode: v.CustomerCode,
 			CreditLimit:  v.CreditLimit,
+			Balance:      v.Balance,
 		})
 	}
 
@@ -65,6 +67,7 @@ func (s *customerService) GetByID(id int) (data dto.CustomerDetailResponse, err 
 		Phone:        dataDB.Phone,
 		Address:      dataDB.Address,
 		CreditLimit:  dataDB.CreditLimit,
+		Balance:      dataDB.Balance,
 		Notes:        dataDB.Notes,
 		IsActive:     dataDB.IsActive,
 		CreatedAt:    dataDB.CreatedAt,
@@ -102,6 +105,7 @@ func (s *customerService) Create(req *dto.CreateRequest) (data dto.CustomerRespo
 		Phone:        dataDB.Phone,
 		Address:      dataDB.Address,
 		CreditLimit:  dataDB.CreditLimit,
+		Balance:      dataDB.Balance,
 		IsActive:     dataDB.IsActive,
 		CreatedAt:    dataDB.CreatedAt,
 	}
@@ -139,6 +143,7 @@ func (s *customerService) Update(req *dto.UpdateRequest) (data dto.CustomerRespo
 		Phone:        dataDB.Phone,
 		Address:      dataDB.Address,
 		CreditLimit:  dataDB.CreditLimit,
+		Balance:      dataDB.Balance,
 		IsActive:     dataDB.IsActive,
 		CreatedAt:    dataDB.CreatedAt,
 	}
@@ -153,6 +158,10 @@ func (s *customerService) Delete(req *dto.DeleteRequest) (err error) {
 	}
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+	}
+
+	if exists.Balance > 0 {
+		return &errors.BadRequestError{Message: "Pelanggan masih memiliki saldo aktif"}
 	}
 
 	count, err := s.repo.CountActiveReceivables(req.ID)
@@ -173,6 +182,11 @@ func (s *customerService) ToggleStatus(req *dto.ToggleStatusRequest) (err error)
 	}
 	if exists == nil {
 		return &errors.NotFoundError{Message: "Pelanggan tidak ditemukan"}
+	}
+
+	// Cegah nonaktifkan pelanggan yang masih punya saldo
+	if exists.IsActive && exists.Balance > 0 {
+		return &errors.BadRequestError{Message: "Tidak bisa menonaktifkan pelanggan yang masih memiliki saldo"}
 	}
 
 	return s.repo.ToggleStatus(req)

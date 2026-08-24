@@ -2,6 +2,7 @@ package segment
 
 import (
 	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
+	cb_repo "pos_api/domain/customer_balance/repo"
 	product_repo "pos_api/domain/product/repo"
 	transaction_handler "pos_api/domain/transaction/handler"
 	transaction_repo "pos_api/domain/transaction/repo"
@@ -16,7 +17,8 @@ func TransactionRoutes(r *gin.RouterGroup) {
 	cashDrawerRepo := cash_drawer_repo.NewCashDrawerRepo(pkgdatabase.DB)
 	transactionRepo := transaction_repo.NewTransactionRepo(pkgdatabase.DB)
 	productRepo := product_repo.NewProductRepo(pkgdatabase.DB)
-	transactionService := transaction_service.NewTransactionService(transactionRepo, cashDrawerRepo, productRepo)
+	customerBalanceRepo := cb_repo.NewCustomerBalanceRepo(pkgdatabase.DB)
+	transactionService := transaction_service.NewTransactionService(transactionRepo, cashDrawerRepo, productRepo, customerBalanceRepo)
 	transactionHandler := transaction_handler.NewTransactionHandler(transactionService)
 
 	svc := newAccessService()

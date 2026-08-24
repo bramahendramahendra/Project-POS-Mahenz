@@ -22,7 +22,7 @@ import (
 const (
 	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
 	generateTransactionCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
-	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, balance_used, customer_id, is_credit, status, device_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = ? WHERE id = ?`
 	createReceivableQuery        = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
@@ -34,7 +34,7 @@ const (
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
 		       t.shift_id, t.transaction_date,
 		       t.subtotal, t.discount, t.tax, t.total_amount, t.payment_method,
-		       t.payment_amount, t.change_amount, t.customer_id, COALESCE(c.name, '') AS customer_name,
+		       t.payment_amount, t.change_amount, t.balance_used, t.customer_id, COALESCE(c.name, '') AS customer_name,
 		       t.is_credit, t.status, t.device_source
 		FROM transactions t
 		LEFT JOIN users u ON u.id = t.user_id
@@ -44,7 +44,7 @@ const (
 		SELECT t.id, t.transaction_code, t.user_id, COALESCE(u.full_name, '') AS kasir_name,
 		       t.shift_id, t.transaction_date,
 		       t.subtotal, t.discount, t.tax, t.total_amount, t.payment_method,
-		       t.payment_amount, t.change_amount, t.customer_id, COALESCE(c.name, '') AS customer_name,
+		       t.payment_amount, t.change_amount, t.balance_used, t.customer_id, COALESCE(c.name, '') AS customer_name,
 		       t.is_credit, t.status, t.device_source
 		FROM transactions t
 		LEFT JOIN users u ON u.id = t.user_id
@@ -121,7 +121,7 @@ func (r *transactionRepo) GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResp
 		if err := rows.Scan(
 			&t.ID, &t.TransactionCode, &t.UserID, &t.KasirName, &t.ShiftID, &t.TransactionDate,
 			&t.Subtotal, &t.Discount, &t.Tax, &t.TotalAmount, &t.PaymentMethod,
-			&t.PaymentAmount, &t.ChangeAmount, &t.CustomerID, &t.CustomerName,
+			&t.PaymentAmount, &t.ChangeAmount, &t.BalanceUsed, &t.CustomerID, &t.CustomerName,
 			&t.IsCredit, &t.Status, &t.DeviceSource,
 		); err != nil {
 			return nil, 0, err
@@ -148,7 +148,7 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 	if err := rows.Scan(
 		&t.ID, &t.TransactionCode, &t.UserID, &t.KasirName, &t.ShiftID, &t.TransactionDate,
 		&t.Subtotal, &t.Discount, &t.Tax, &t.TotalAmount, &t.PaymentMethod,
-		&t.PaymentAmount, &t.ChangeAmount, &t.CustomerID, &t.CustomerName,
+		&t.PaymentAmount, &t.ChangeAmount, &t.BalanceUsed, &t.CustomerID, &t.CustomerName,
 		&t.IsCredit, &t.Status, &t.DeviceSource,
 	); err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 		if err := conn.Exec(createTransactionQuery,
 			code, userID, req.ShiftID, now,
 			req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
-			req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
+			req.PaymentMethod, req.PaymentAmount, req.ChangeAmount, req.BalanceUsed,
 			req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
 		).Error; err != nil {
 			return err
@@ -334,10 +334,13 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 	}
 
 	if req.IsCredit && req.CustomerID != nil {
-		if err := r.db.Exec(createReceivableQuery,
-			transactionID, *req.CustomerID, req.TotalAmount, req.TotalAmount,
-		).Error; err != nil {
-			return nil, err
+		receivableAmount := req.TotalAmount - req.BalanceUsed
+		if receivableAmount > 0 {
+			if err := r.db.Exec(createReceivableQuery,
+				transactionID, *req.CustomerID, receivableAmount, receivableAmount,
+			).Error; err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -514,7 +517,7 @@ func (r *transactionRepo) applySyncTransactionOnce(db *gorm.DB, tx dto_sync.Sync
 		if err := db.Exec(createTransactionQuery,
 			code, tx.UserID, tx.ShiftID, now,
 			tx.Subtotal, tx.Discount, tx.Tax, tx.TotalAmount,
-			tx.PaymentMethod, tx.PaymentAmount, tx.ChangeAmount,
+			tx.PaymentMethod, tx.PaymentAmount, tx.ChangeAmount, float64(0),
 			tx.CustomerID, tx.IsCredit, "completed", tx.DeviceSource,
 		).Error; err != nil {
 			return err

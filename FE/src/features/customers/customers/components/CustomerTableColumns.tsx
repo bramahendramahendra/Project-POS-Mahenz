@@ -70,6 +70,18 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
         ),
     },
     {
+      key: 'balance',
+      header: 'Saldo',
+      align: 'right',
+      sortable: true,
+      cell: (row) =>
+        row.balance > 0 ? (
+          <span className="text-sm font-bold text-blue-700">{formatRupiah(row.balance)}</span>
+        ) : (
+          <span className="text-gray-400 text-sm">—</span>
+        ),
+    },
+    {
       key: 'is_active',
       header: 'Status',
       align: 'center',

@@ -9,6 +9,7 @@ type Customer struct {
 	Phone        string    `gorm:"column:phone"`
 	Address      string    `gorm:"column:address"`
 	CreditLimit  float64   `gorm:"column:credit_limit"`
+	Balance      float64   `gorm:"column:balance"`
 	Notes        string    `gorm:"column:notes"`
 	IsActive     bool      `gorm:"column:is_active"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
