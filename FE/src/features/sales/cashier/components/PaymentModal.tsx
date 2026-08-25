@@ -348,6 +348,13 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
 
                       {roundedOptions.length > 0 && (
                         <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setValue('amount_paid', effectiveTotal, { shouldValidate: true })}
+                            className="rounded-md border border-blue-200 bg-blue-50 py-1.5 px-3 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                          >
+                            Uang Pas
+                          </button>
                           {buildRoundedOptions(effectiveTotal).map((amt) => (
                             <button
                               key={amt}
