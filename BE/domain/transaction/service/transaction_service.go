@@ -3,6 +3,7 @@ package service
 import (
 	stderrors "errors"
 
+	cash_drawer_model "pos_api/domain/cash_drawer/model"
 	"pos_api/domain/transaction/dto"
 	time_helper "pos_api/helper/time"
 	"pos_api/pkg/pricing"
@@ -172,9 +173,24 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 		if t.PaymentMethod == "cash" {
 			netCash := t.TotalAmount - t.BalanceUsed
 			if netCash > 0 {
-				drawer, err := cashDrawerRepo.GetOpenCashDrawer(t.UserID)
-				if err != nil {
-					return err
+				var drawer *cash_drawer_model.CashDrawer
+				if t.CashDrawerID != nil {
+					// Transaksi punya referensi kas langsung → pakai itu
+					d, dErr := cashDrawerRepo.GetByID(*t.CashDrawerID)
+					if dErr != nil {
+						return dErr
+					}
+					// Hanya rollback jika kas masih open
+					if d != nil && d.Status == "open" {
+						drawer = d
+					}
+				} else {
+					// Transaksi lama (sebelum fitur backdate) → pakai kas open biasa
+					d, dErr := cashDrawerRepo.GetOpenCashDrawer(t.UserID)
+					if dErr != nil {
+						return dErr
+					}
+					drawer = d
 				}
 				if drawer != nil {
 					if err := cashDrawerRepo.UpdateSales(drawer.ID, -netCash, -netCash, time_helper.GetTimeNow()); err != nil {

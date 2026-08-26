@@ -18,6 +18,8 @@ type CashDrawer struct {
 	Status          string     `gorm:"column:status"`
 	Notes           *string    `gorm:"column:notes"`
 	IsAutoClosed    bool       `gorm:"column:is_auto_closed"`
+	IsBackdate      bool       `gorm:"column:is_backdate"`
+	CreatedBy       *int       `gorm:"column:created_by"`
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	UpdatedAt       time.Time  `gorm:"column:updated_at"`
 }

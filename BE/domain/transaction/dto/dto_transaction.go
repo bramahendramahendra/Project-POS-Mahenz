@@ -87,6 +87,7 @@ type (
 		IsCredit        bool                      `json:"is_credit"`
 		Status          string                    `json:"status"`
 		DeviceSource    string                    `json:"device_source"`
+		CashDrawerID    *int                      `json:"cash_drawer_id"`
 		Items           []TransactionItemResponse `json:"items,omitempty"`
 	}
 

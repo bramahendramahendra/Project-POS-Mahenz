@@ -10,6 +10,8 @@ import { LazyRoute } from './LazyRoute'
 // Sales
 const CashierPage      = lazy(() => import('@/features/sales/cashier/CashierPage').then(m => ({ default: m.CashierPage })))
 const TransactionsPage = lazy(() => import('@/features/sales/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })))
+const BackdateCashPage    = lazy(() => import('@/features/sales/backdate-cash/BackdateCashPage').then(m => ({ default: m.BackdateCashPage })))
+const BackdateCashierPage = lazy(() => import('@/features/sales/backdate-cashier/BackdateCashierPage').then(m => ({ default: m.BackdateCashierPage })))
 
 // Customers
 const CustomersPage    = lazy(() => import('@/features/customers/customers/CustomersPage').then(m => ({ default: m.CustomersPage })))
@@ -71,6 +73,10 @@ const PROTECTED_ROUTES: RouteDef[] = [
   // Penjualan
   { path: ROUTES.KASIR, menuKey: 'penjualan.kasir', element: <CashierPage /> },
   { path: ROUTES.TRANSACTIONS, menuKey: 'penjualan.transaksi', element: <TransactionsPage /> },
+
+  // Historis (Backdate)
+  { path: ROUTES.BACKDATE_CASH, menuKey: 'historis.kas_historis', element: <BackdateCashPage /> },
+  { path: ROUTES.BACKDATE_CASHIER, menuKey: 'historis.kasir_historis', element: <BackdateCashierPage /> },
 
   // Produk
   { path: ROUTES.PRODUCTS, menuKey: 'produk.produk', element: <ProductsPage /> },

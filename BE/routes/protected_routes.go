@@ -47,4 +47,5 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.MenuRoutes(r)
 	segment.AccessRoutes(r)
 	segment.RouteRegistryRoutes(r)
+	segment.BackdateRoutes(r)
 }

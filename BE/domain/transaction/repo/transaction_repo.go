@@ -35,7 +35,7 @@ const (
 		       t.shift_id, t.transaction_date,
 		       t.subtotal, t.discount, t.tax, t.total_amount, t.payment_method,
 		       t.payment_amount, t.change_amount, t.balance_used, t.customer_id, COALESCE(c.name, '') AS customer_name,
-		       t.is_credit, t.status, t.device_source
+		       t.is_credit, t.status, t.device_source, t.cash_drawer_id
 		FROM transactions t
 		LEFT JOIN users u ON u.id = t.user_id
 		LEFT JOIN customers c ON c.id = t.customer_id
@@ -149,7 +149,7 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 		&t.ID, &t.TransactionCode, &t.UserID, &t.KasirName, &t.ShiftID, &t.TransactionDate,
 		&t.Subtotal, &t.Discount, &t.Tax, &t.TotalAmount, &t.PaymentMethod,
 		&t.PaymentAmount, &t.ChangeAmount, &t.BalanceUsed, &t.CustomerID, &t.CustomerName,
-		&t.IsCredit, &t.Status, &t.DeviceSource,
+		&t.IsCredit, &t.Status, &t.DeviceSource, &t.CashDrawerID,
 	); err != nil {
 		return nil, err
 	}

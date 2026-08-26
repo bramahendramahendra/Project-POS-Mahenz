@@ -12,8 +12,8 @@ import (
 const liveExpectedBalanceExpr = `(cd.opening_balance + COALESCE((SELECT SUM(total_amount) FROM transactions WHERE user_id = cd.user_id AND payment_method = 'cash' AND status = 'completed' AND transaction_date >= cd.open_time), 0) - COALESCE((SELECT SUM(amount) FROM expenses WHERE user_id = cd.user_id AND created_at >= cd.open_time), 0))`
 
 const (
-	getCurrentCashDrawerQuery  = `SELECT cd.id, cd.user_id, u.full_name as user_name, cd.shift_id, s.name as shift_name, s.start_time as shift_start, s.end_time as shift_end, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status, cd.open_notes FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE cd.user_id = ? AND cd.status = 'open' LIMIT 1`
-	getOpenCashDrawerQuery     = `SELECT cd.id, cd.user_id, cd.shift_id, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status FROM cash_drawer cd WHERE cd.user_id = ? AND cd.status = 'open' LIMIT 1`
+	getCurrentCashDrawerQuery  = `SELECT cd.id, cd.user_id, u.full_name as user_name, cd.shift_id, s.name as shift_name, s.start_time as shift_start, s.end_time as shift_end, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status, cd.open_notes FROM cash_drawer cd LEFT JOIN users u ON cd.user_id = u.id LEFT JOIN shifts s ON cd.shift_id = s.id WHERE cd.user_id = ? AND cd.status = 'open' AND (cd.is_backdate = 0 OR cd.is_backdate IS NULL) LIMIT 1`
+	getOpenCashDrawerQuery     = `SELECT cd.id, cd.user_id, cd.shift_id, cd.open_time, cd.opening_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status FROM cash_drawer cd WHERE cd.user_id = ? AND cd.status = 'open' AND (cd.is_backdate = 0 OR cd.is_backdate IS NULL) LIMIT 1`
 	getCashDrawerByIDQuery     = `SELECT cd.id, cd.user_id, cd.shift_id, cd.open_time, cd.close_time, cd.opening_balance, cd.closing_balance, cd.total_sales, cd.total_cash_sales, cd.total_expenses, CASE WHEN cd.status = 'closed' THEN cd.expected_balance ELSE ` + liveExpectedBalanceExpr + ` END as expected_balance, cd.difference, cd.status, cd.notes FROM cash_drawer cd WHERE cd.id = ? LIMIT 1`
 	openCashDrawerQuery        = `INSERT INTO cash_drawer (user_id, shift_id, open_time, opening_balance, open_notes, status) VALUES (?, ?, ?, ?, ?, 'open')`
 	getLastCashDrawerInsertID  = `SELECT LAST_INSERT_ID()`
@@ -65,7 +65,7 @@ const (
 
 	getNextSessionOpenTimeQuery = `SELECT MIN(open_time) FROM cash_drawer WHERE user_id = ? AND open_time > ? AND id != ?`
 
-	getOpenYesterdayQuery = `SELECT id, user_id, open_time, opening_balance FROM cash_drawer WHERE status = 'open' AND DATE(open_time) < ?`
+	getOpenYesterdayQuery = `SELECT id, user_id, open_time, opening_balance FROM cash_drawer WHERE status = 'open' AND DATE(open_time) < ? AND (is_backdate = 0 OR is_backdate IS NULL)`
 
 	calculateExpectedBalanceQuery = `
 		SELECT ? +
@@ -115,7 +115,7 @@ var getMyCashQuery = `
 	       ` + liveExpectedBalanceExpr + ` as expected_balance, cd.status, cd.open_notes
 	FROM cash_drawer cd
 	LEFT JOIN shifts s ON cd.shift_id = s.id
-	WHERE cd.user_id = ? AND cd.status = 'open'
+	WHERE cd.user_id = ? AND cd.status = 'open' AND (cd.is_backdate = 0 OR cd.is_backdate IS NULL)
 	LIMIT 1`
 
 func (r *cashDrawerRepo) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {

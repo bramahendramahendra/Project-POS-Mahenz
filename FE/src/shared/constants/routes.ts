@@ -24,6 +24,10 @@ export const ROUTES = {
   FINANCE_EXPENSES: '/finance/expenses',
   FINANCE_MY_CASH: '/finance/my-cash',
 
+  // Historis (Backdate)
+  BACKDATE_CASH: '/backdate/cash',
+  BACKDATE_CASHIER: '/backdate/cashier',
+
   // Laporan
   REPORTS: '/reports',
   REPORTS_SALES: '/reports/sales',

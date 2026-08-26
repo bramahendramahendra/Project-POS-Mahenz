@@ -179,4 +179,14 @@ export const queryKeys = {
     list: (filter?: Filter) => ['supplierReturns', 'list', filter] as const,
     detail: (id: number) => ['supplierReturns', 'detail', id] as const,
   },
+
+  backdateCash: {
+    all: () => ['backdateCash'] as const,
+    current: () => ['backdateCash', 'current'] as const,
+    userOptions: () => ['backdateCash', 'userOptions'] as const,
+  },
+
+  backdateTransaction: {
+    all: () => ['backdateTransaction'] as const,
+  },
 }
