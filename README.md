@@ -1,6 +1,6 @@
 # POS Mahenz
 
-Versi APlikasi : 2.6.5
+Versi APlikasi : 2.7.7
 Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan, stok produk, supplier, keuangan, dan laporan.
 
 ## Tech Stack
