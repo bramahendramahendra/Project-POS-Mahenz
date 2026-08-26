@@ -442,15 +442,19 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     const validPackages = Array.isArray(packages) ? packages : []
     const defaultPkg = validPackages.find((pkg) => pkg.is_default) ?? validPackages[0]
 
-    setItemRefPurchasePrice((prev) => ({ ...prev, [index]: defaultPkg?.purchase_price ?? 0 }))
-
     if (validPackages.length > 1) {
       // Sengaja TIDAK auto-pilih satuan dasar di sini — dropdown Satuan dibiarkan kosong
-      // (placeholder), user wajib memilih sendiri sebelum Harga/Qty terisi. Kolom "Ref.
-      // Harga Beli" di atas tetap tampil sebagai info pembanding dari satuan dasar, terpisah
-      // dari nilai yang benar-benar akan disimpan.
+      // (placeholder), user wajib memilih sendiri sebelum Harga/Qty terisi.
+      // Ref. Harga Beli juga TIDAK ditampilkan sampai user pilih satuan — karena tiap
+      // satuan bisa punya purchase_price yang berbeda, menampilkan harga default bisa
+      // misleading.
       setItemUnitOptions((prev) => ({ ...prev, [index]: validPackages }))
       setItemSelectedPackageId((prev) => {
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+      setItemRefPurchasePrice((prev) => {
         const next = { ...prev }
         delete next[index]
         return next
@@ -472,6 +476,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       })
       // Produk 1 satuan: langsung set package_id ke default package
       setValue(`items.${index}.package_id`, defaultPkg?.id ?? 0)
+      // Ref. Harga langsung muncul karena satuan sudah otomatis terpilih
+      setItemRefPurchasePrice((prev) => ({ ...prev, [index]: defaultPkg?.purchase_price ?? 0 }))
       // Harga SENGAJA tidak diisi otomatis — sama seperti konsep "Ref. Harga" di form
       // Produk: nilai referensi cuma dipakai kalau user klik chip-nya sendiri.
       setValue(`items.${index}.unit`, defaultPkg?.unit_name ?? 'pcs')
