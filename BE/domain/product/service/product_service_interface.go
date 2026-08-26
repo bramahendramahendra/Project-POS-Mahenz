@@ -35,6 +35,9 @@ type (
 
 		GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error)
 
+		GetPurchaseHistory(productID, page, limit int) (*dto.PurchaseHistoryResponse, error)
+		GetSaleHistory(productID, page, limit int, status string) (*dto.SaleHistoryResponse, error)
+
 		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)
 		GetUnitInfos() (data []*dto.GetUnitInfoResponse, err error)

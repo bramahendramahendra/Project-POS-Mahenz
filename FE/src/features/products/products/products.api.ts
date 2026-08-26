@@ -165,6 +165,77 @@ export function useProductPricesQuery(productId: number) {
   })
 }
 
+// ─── Product History ──────────────────────────────────────────────────────────
+
+export interface PurchaseHistoryItem {
+  purchase_date: string
+  purchase_code: string
+  invoice_number: string
+  supplier_name: string
+  unit: string
+  quantity: number
+  purchase_price: number
+  subtotal: number
+}
+
+export interface PurchaseHistorySummary {
+  total_notes: number
+  total_qty: number
+  total_value: number
+  average_price: number
+}
+
+export interface PurchaseHistoryResponse {
+  summary: PurchaseHistorySummary
+  items: PurchaseHistoryItem[]
+  total: number
+  page: number
+  limit: number
+}
+
+export interface SaleHistoryItem {
+  transaction_date: string
+  transaction_code: string
+  customer_name: string
+  unit: string
+  quantity: number
+  price: number
+  subtotal: number
+  discount_item: number
+  status: string
+}
+
+export interface SaleHistorySummary {
+  total_transactions: number
+  total_qty: number
+  total_revenue: number
+  average_per_day: number
+}
+
+export interface SaleHistoryResponse {
+  summary: SaleHistorySummary
+  items: SaleHistoryItem[]
+  total: number
+  page: number
+  limit: number
+}
+
+export function useProductPurchaseHistoryQuery(productId: number, page: number = 1, limit: number = 10) {
+  return useQuery({
+    queryKey: ['products', 'purchase-history', productId, page, limit],
+    queryFn: () => api.post<PurchaseHistoryResponse>(`/products/${productId}/purchase-history`, { page, limit }),
+    enabled: productId > 0,
+  })
+}
+
+export function useProductSaleHistoryQuery(productId: number, page: number = 1, limit: number = 10, status: string = '') {
+  return useQuery({
+    queryKey: ['products', 'sale-history', productId, page, limit, status],
+    queryFn: () => api.post<SaleHistoryResponse>(`/products/${productId}/sale-history`, { page, limit, status }),
+    enabled: productId > 0,
+  })
+}
+
 // ─── Product Mutations ────────────────────────────────────────────────────────
 
 export function useCreateProductMutation() {

@@ -34,6 +34,9 @@ type ProductRepoInterface interface {
 	CountPackagesReferencing(packageID int) (int, error)
 
 	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
+
+	GetPurchaseHistory(productID, page, limit int) (*dto_product.PurchaseHistoryResponse, error)
+	GetSaleHistory(productID, page, limit int, status string) (*dto_product.SaleHistoryResponse, error)
 }
 
 type productRepo struct {

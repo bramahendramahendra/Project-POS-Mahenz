@@ -20,30 +20,43 @@ Saat ini, untuk mengetahui riwayat pembelian atau penjualan suatu produk, user h
 
 ## 2. Desain: Redesign Modal Detail Produk (Tabbed)
 
-Mengubah modal detail produk yang sekarang (flat info) menjadi **tabbed modal** dengan 4 tab:
+Mengubah modal detail produk yang sekarang (flat info tanpa tab) menjadi **tabbed modal** dengan 4 tab.
 
-### Posisi di UI
+### Kondisi Saat Ini (Sebelum)
+
+Modal detail produk berisi info flat dalam 1 halaman scroll:
+- Identitas: Nama, Status, Barcode, SKU, Kategori, Satuan
+- Harga: Beli, Jual, Margin
+- Stok: Saat ini (breakdown per paket), Minimum, Reserved
+- Grosiran/Satuan Lain: tabel rasio + harga per paket
+- Batch Expired: tabel batch qty + tanggal + status
+
+Semua ditampilkan tanpa tab, langsung scroll ke bawah.
+
+### Kondisi Sesudah (Redesign)
 
 ```
-Halaman Produk → Klik icon Eye (action button) → Modal Detail terbuka
-
-SEKARANG: info flat tanpa tab
-SESUDAH:  4 tab interactive
+Modal Detail Produk → 4 Tab:
 
   [Detail] [Paket Satuan] [Riwayat Pembelian] [Riwayat Penjualan]
 ```
 
-### Tab 1: Detail (info yang sudah ada, ditata ulang)
+### Tab 1: Detail
+Isi sama dengan modal sekarang, ditata ulang ke format grid:
 - Nama Produk, Status
 - Barcode, SKU/Kode
 - Kategori, Satuan Dasar
 - Harga Beli, Harga Jual, Margin
-- Stok Saat Ini (+ visual bar), Stok Minimum
+- Stok Saat Ini (+ visual bar low stock), Stok Minimum
+- Warning `needs_stock_review` (jika ada)
+- Batch Expired (tabel, jika ada)
 
 ### Tab 2: Paket Satuan
+Data dari API `products/:id/packages/list` yang sudah ada:
 - Daftar semua satuan/kemasan produk (Pack, Slop, Dus, dll)
-- Setiap paket menampilkan: nama satuan, konversi (1 Slop = 10 Pack), harga beli, harga jual, stok per level
+- Setiap paket: nama satuan, konversi (1 Slop = 10 Pack), harga beli, harga jual, stok per level
 - Badge "Satuan Dasar" untuk default package
+- Info ini sekarang ada di section "Grosiran / Satuan Lain" — dipindahkan ke tab sendiri agar lebih rapi
 
 ---
 
@@ -147,24 +160,42 @@ Menampilkan daftar semua transaksi penjualan yang mengandung produk ini.
 | `POST /products/:id/purchase-history` | Riwayat pembelian produk. Body: `{ page, limit }` |
 | `POST /products/:id/sale-history` | Riwayat penjualan produk. Body: `{ page, limit, status? }` |
 
-### 5.2 Query SQL
+### 5.2 Query SQL (Verified dari schema DB)
 
-**Riwayat Pembelian:**
+**Riwayat Pembelian** (tabel `purchase_items` JOIN `purchases` JOIN `suppliers`):
 ```sql
-SELECT pi.quantity, pi.purchase_price, pi.unit,
-       sp.purchase_code, sp.invoice_number, sp.purchase_date,
+SELECT pi.quantity, pi.purchase_price, pi.unit, pi.subtotal,
+       p.purchase_code, p.invoice_number, p.purchase_date,
        s.name AS supplier_name
 FROM purchase_items pi
-JOIN supplier_purchases sp ON pi.purchase_id = sp.id
-JOIN suppliers s ON sp.supplier_id = s.id
+JOIN purchases p ON pi.purchase_id = p.id
+JOIN suppliers s ON p.supplier_id = s.id
 WHERE pi.product_id = ?
-ORDER BY sp.purchase_date DESC
+  AND p.status = 'active'
+ORDER BY p.purchase_date DESC
 LIMIT ? OFFSET ?
 ```
 
-**Riwayat Penjualan:**
+**Count untuk pagination:**
 ```sql
-SELECT ti.quantity, ti.price, ti.unit, ti.subtotal,
+SELECT COUNT(*) FROM purchase_items pi
+JOIN purchases p ON pi.purchase_id = p.id
+WHERE pi.product_id = ? AND p.status = 'active'
+```
+
+**Summary (total nota, total qty, total nilai):**
+```sql
+SELECT COUNT(DISTINCT pi.purchase_id) as total_notes,
+       COALESCE(SUM(pi.quantity), 0) as total_qty,
+       COALESCE(SUM(pi.subtotal), 0) as total_value
+FROM purchase_items pi
+JOIN purchases p ON pi.purchase_id = p.id
+WHERE pi.product_id = ? AND p.status = 'active'
+```
+
+**Riwayat Penjualan** (tabel `transaction_items` JOIN `transactions` LEFT JOIN `customers`):
+```sql
+SELECT ti.quantity, ti.price, ti.unit, ti.subtotal, ti.discount_item,
        t.transaction_code, t.transaction_date, t.status,
        COALESCE(c.name, '') AS customer_name
 FROM transaction_items ti
@@ -175,31 +206,69 @@ ORDER BY t.transaction_date DESC
 LIMIT ? OFFSET ?
 ```
 
-### 5.3 FE — Perubahan
+**Dengan filter status (opsional):**
+```sql
+... AND t.status = ?
+```
+
+**Summary:**
+```sql
+SELECT COUNT(*) as total_transactions,
+       COALESCE(SUM(ti.quantity), 0) as total_qty,
+       COALESCE(SUM(ti.subtotal), 0) as total_revenue
+FROM transaction_items ti
+JOIN transactions t ON ti.transaction_id = t.id
+WHERE ti.product_id = ? AND t.status = 'completed'
+```
+
+### 5.3 Catatan Schema
+
+- `purchase_items.product_id` → FK ke `products(id)` ON DELETE SET NULL. Jika produk dihapus, `product_id` jadi NULL — query harus handle ini.
+- `transaction_items.product_id` → sama, ON DELETE SET NULL.
+- `purchases` tabel punya kolom `status` ENUM('active','void') — hanya tampilkan yang `active`.
+- `purchase_items` tidak punya `product_name` snapshot (beda dari `transaction_items` yang punya). Jadi JOIN ke `products.name` dibutuhkan sebagai fallback display.
+
+### 5.4 FE — Perubahan
 
 | Item | Keterangan |
 |------|-----------|
-| Buat komponen `ProductPurchaseHistory.tsx` | Tab riwayat pembelian (tabel + pagination) |
-| Buat komponen `ProductSaleHistory.tsx` | Tab riwayat penjualan (tabel + pagination + filter status) |
-| Integrasikan ke detail produk | Tambah 2 tab baru di modal/panel detail produk |
-| API hooks baru | `useProductPurchaseHistory(id)` + `useProductSaleHistory(id)` |
+| Refactor `ProductDetailModal.tsx` | Ubah dari flat layout → tabbed (shadcn Tabs component) |
+| Tab "Detail" | Isi yang sama seperti sekarang (hanya ditata ulang) |
+| Tab "Paket Satuan" | Pindahkan section "Grosiran" ke tab sendiri, tambah info stok per level |
+| Tab "Riwayat Pembelian" | Komponen baru: tabel + summary + pagination |
+| Tab "Riwayat Penjualan" | Komponen baru: tabel + summary + filter + pagination |
+| API hooks baru | `useProductPurchaseHistory(id, page)` + `useProductSaleHistory(id, page, status)` |
 
-### 5.4 Tidak Ada Perubahan di
+### 5.5 Tidak Ada Perubahan di
 
-- Tabel database (query dari tabel yang sudah ada: `purchase_items`, `transaction_items`)
-- Menu sidebar (tidak perlu menu baru)
-- Fitur existing (tidak ada modifikasi logic, hanya tambah endpoint read-only)
+- Tabel database (query dari tabel yang sudah ada)
+- Menu sidebar
+- Action buttons di tabel produk (tetap pakai icon Eye yang sudah ada)
+- Permission (mengikuti permission `produk.produk` yang sudah ada)
 
 ---
 
-## 6. Pertimbangan
+## 6. Analisis Gap & Potensi Masalah
 
-| Aspek | Keputusan | Alasan |
-|-------|-----------|--------|
-| Posisi fitur | Tab di detail produk | Tidak menambah menu, akses cepat |
-| Akses/role | Sama dengan akses halaman Produk | Jika bisa lihat produk, bisa lihat riwayatnya |
-| Performa | Pagination (10-20 per page) | Produk populer bisa punya ratusan record |
-| Klik kode PO/Transaksi | Navigasi ke detail PO/Transaksi | Biar bisa lihat nota lengkap |
+| # | Area | Masalah | Solusi |
+|---|------|---------|--------|
+| 1 | `product_id` bisa NULL | Jika produk dihapus, `purchase_items.product_id` = NULL → record hilang dari riwayat | Query tetap pakai `WHERE pi.product_id = ?` — record lama yang NULL memang sudah tidak relevan |
+| 2 | Tabel `purchases` punya status `void` | PO yang di-void tidak boleh muncul di riwayat pembelian | Filter `AND p.status = 'active'` |
+| 3 | `purchase_items` tidak punya `product_name` | Jika join ke products gagal (NULL), nama produk tidak tersedia | Gunakan `COALESCE(prod.name, 'Produk Dihapus')` sebagai fallback — tapi ini edge case karena kita query by product_id yang valid |
+| 4 | Performa query | Produk populer bisa punya 500+ transaction_items | Index `product_id` sudah ada (FK). Pagination LIMIT/OFFSET cukup. |
+| 5 | Modal size | Konten tab riwayat bisa panjang (tabel banyak baris) | Modal pakai ScrollArea, tab content scrollable independent |
+| 6 | Existing modal content | Modal sekarang flat tanpa tab — refactor diperlukan | Minimal breaking change: bungkus konten existing di Tab "Detail", tambah tab baru |
+
+### Checklist Keamanan (Tidak Merusak Existing)
+
+| Fitur | Terpengaruh? | Tindakan |
+|-------|:------------:|----------|
+| Modal detail produk existing | ⚠️ Refactor | Konten dipindah ke Tab "Detail" — isi sama, layout jadi tabbed |
+| Action button Eye | ❌ | Tetap sama, trigger modal yang sama |
+| Halaman produk (tabel) | ❌ | Tidak berubah |
+| Edit produk | ❌ | Modal terpisah, tidak terpengaruh |
+| API existing | ❌ | Tidak diubah, hanya tambah endpoint baru |
+| Permission | ❌ | Ikut permission `produk.produk` yang sudah ada |
 
 ---
 

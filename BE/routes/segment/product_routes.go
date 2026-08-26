@@ -60,5 +60,9 @@ func ProductRoutes(r *gin.RouterGroup) {
 
 		// Product Price Handler
 		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)
+
+		// Product History Handler
+		g.POST("/:id/purchase-history", productHandler.GetPurchaseHistory)
+		g.POST("/:id/sale-history", productHandler.GetSaleHistory)
 	}
 }
