@@ -48,7 +48,8 @@ func (s *backdateService) OpenCashDrawer(adminUserID int, req *dto.OpenCashDrawe
 	}
 
 	// Validasi: tanggal harus sebelum hari ini
-	today := time_helper.GetTimeNow().Truncate(24 * time.Hour)
+	now := time_helper.GetTimeNow()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	if !targetDate.Before(today) {
 		return nil, &errors.BadRequestError{Message: "Tanggal harus sebelum hari ini"}
 	}
