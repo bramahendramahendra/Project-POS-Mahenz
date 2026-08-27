@@ -480,20 +480,19 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
                       id="barcode"
                       {...register('barcode')}
                       readOnly={barcodeLocked}
-                      placeholder={isEdit ? '' : (barcodeLocked ? 'Klik 🔓 untuk edit manual' : 'Ketik barcode manual')}
+                      placeholder={barcodeLocked ? 'Klik 🔓 untuk edit manual' : 'Ketik barcode manual'}
                       className={`pr-9 ${barcodeLocked ? 'bg-gray-50 text-gray-700' : ''} ${errors.barcode ? 'border-red-500' : ''}`}
                     />
-                    {!isEdit && (
-                      <button
-                        type="button"
-                        onClick={() => setBarcodeLocked((v) => !v)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        title={barcodeLocked ? 'Klik untuk edit manual' : 'Kunci barcode'}
-                      >
-                        {barcodeLocked ? <Lock size={14} /> : <Unlock size={14} />}
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setBarcodeLocked((v) => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      title={barcodeLocked ? 'Klik untuk edit manual' : 'Kunci barcode'}
+                    >
+                      {barcodeLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                    </button>
                   </div>
+                  {/* Tombol Generate hanya di mode Tambah — saat Edit, barcode disesuaikan manual dengan fisik */}
                   {!isEdit && barcodeLocked && (
                     <button
                       type="button"
