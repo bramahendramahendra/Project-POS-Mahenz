@@ -33,6 +33,7 @@ export const ROUTES = {
   REPORTS_SALES: '/reports/sales',
   REPORTS_PROFIT_LOSS: '/reports/profit-loss',
   REPORTS_STOCK: '/reports/stock',
+  REPORTS_STOCK_RECONCILIATION: '/reports/stock-reconciliation',
   REPORTS_CASHIER: '/reports/cashier',
   REPORTS_BUSINESS_SUMMARY: '/reports/business-summary',
 

@@ -2,7 +2,7 @@
 
 Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Frontend (Vite/React) ke server production, beserta penjelasan **kenapa** setiap langkah dilakukan — supaya bisa dipakai sebagai bahan belajar, bukan sekadar "copy-paste perintah".
 
-> Ditulis berdasarkan kondisi kode saat ini (Juli 2026). Lihat bagian [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini) untuk hal-hal yang perlu diperbaiki sebelum benar-benar deploy.
+> Ditulis berdasarkan kondisi kode saat ini (Agustus 2026). Lihat bagian [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini) untuk hal-hal yang perlu diperbaiki sebelum benar-benar deploy.
 
 ---
 
@@ -142,7 +142,7 @@ EXIT;
 
 **Kenapa buat user terpisah, bukan pakai `root`?** Prinsip *least privilege* — kalau kredensial aplikasi bocor, penyerang hanya bisa mengakses database `pos_retail_db`, bukan seluruh instance MySQL.
 
-Saat backend pertama kali dijalankan, ia otomatis membaca semua file di `BE/database/migrations/` secara berurutan (`001_init_schema.sql` → `006_sync_id_map.sql` saat ini) dan mencatat progres di tabel `migrations_history`. Anda **tidak perlu** menjalankan file SQL secara manual.
+Saat backend pertama kali dijalankan, ia otomatis membaca semua file di `BE/database/migrations/` secara berurutan (`001_init_schema.sql` → `008_backdate_feature.sql` saat ini) dan mencatat progres di tabel `migrations_history`. Anda **tidak perlu** menjalankan file SQL secara manual.
 
 ### 4.1 Akses Database dari Navicat (Remote)
 
