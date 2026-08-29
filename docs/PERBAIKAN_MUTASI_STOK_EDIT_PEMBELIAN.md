@@ -127,11 +127,33 @@ Input satu-satu pakai angka di `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md`. K
 
 ---
 
-## 7. Catatan Uji yang Sudah Dilakukan
+## 7. Catatan Uji / Baseline (SEBELUM perbaikan)
 
-- Test "edit PO tambah produk kedua" sudah dijalankan lewat API (login admin → create PO 1 produk unpaid → edit tambah produk kedua) dan **membuktikan** produk kedua tercatat `adjustment`, bukan `in`.
-- Semua data test (PO + mutasi + stok) sudah **dibersihkan**, DB dikembalikan ke kondisi semula.
-- Belum diuji: skenario turunkan qty item lama, dan hapus produk saat edit (untuk memvalidasi arah `void_purchase`).
+Test lengkap dijalankan via browser (login UI Playwright + request sesi sama), 5 skenario,
+lalu tipe mutasi diperiksa langsung di `stock_mutations`. Semua data test sudah dibersihkan,
+DB dikembalikan ke kondisi semula. Hasil baseline (perilaku SEKARANG):
+
+| Skenario | Aksi edit | Tipe mutasi tercatat SEKARANG | Seharusnya (target perbaikan) | Bug? |
+|----------|-----------|-------------------------------|-------------------------------|------|
+| SCN1 | Tambah produk baru | `in` + **`adjustment`** | `in` + **`in`** | ❌ |
+| SCN2 | Naikkan qty (5→9) | `in` + **`adjustment`** (+4) | `in` + **`in`** (+4) | ❌ |
+| SCN3 | Turunkan qty (8→3) | `in` + **`adjustment`** (−5) | `in` + **`void_purchase`** (5) | ❌ |
+| SCN4 | Hapus produk (−6) | `in` + **`adjustment`** (−6) | `in` + **`void_purchase`** (6) | ❌ |
+| SCN5 | Void PO | `in` + **`void_purchase`** | `in` + `void_purchase` | ✅ (sudah benar) |
+
+**Kesimpulan baseline:**
+1. Bug lebih luas dari dugaan awal — BUKAN cuma "tambah produk", tapi SEMUA jenis edit
+   (tambah/naik/turun/hapus) tercatat `adjustment`. Ini menguatkan Tabel di Bagian 4.
+2. Angka stok SECARA NILAI sudah benar di semua skenario (stock_before/after berurutan) —
+   bug ini TIDAK merusak angka stok operasional, hanya salah melabeli TIPE mutasi.
+   Masalah baru muncul saat migrasi/rekonstruksi yang mengandalkan tipe.
+3. `Void` (SCN5) sudah benar (`void_purchase`) → perbaikan `Update` TIDAK boleh menyentuh
+   `Void`, dan target tipe delta-negatif memang `void_purchase` (konsisten dengan Void).
+4. Baseline ini jadi acuan pembanding: setelah perbaikan, SCN1-4 harus berubah ke kolom
+   "Seharusnya", dan SCN5 harus TETAP sama (tidak boleh berubah/rusak).
+
+Catatan: perbaikan `Update` harus dites ulang untuk kelima skenario ini + memastikan
+angka stok akhir tetap identik dengan baseline (hanya tipe mutasi yang berubah).
 
 ---
 
