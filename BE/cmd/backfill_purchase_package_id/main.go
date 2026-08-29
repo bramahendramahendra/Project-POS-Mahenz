@@ -17,13 +17,31 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 
 	model_product "pos_api/domain/product/model"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const dsn = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
+// defaultDSN dipakai kalau env MIGRATION_DSN tidak diset (mis. di local WAMP,
+// root tanpa password). Di production, set MIGRATION_DSN dulu sebelum
+// menjalankan skrip ini supaya connect ke user/password/host yang benar,
+// contoh (sesuai config_prod.json):
+//
+//	set MIGRATION_DSN=pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local   (Windows CMD)
+//	$env:MIGRATION_DSN="pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local" (PowerShell)
+//	export MIGRATION_DSN='pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local' (Linux)
+const defaultDSN = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
+
+// resolveDSN mengembalikan DSN dari env MIGRATION_DSN kalau ada, selain itu
+// pakai defaultDSN. Hanya menyangkut koneksi -- logika backfill tidak berubah.
+func resolveDSN() string {
+	if v := os.Getenv("MIGRATION_DSN"); v != "" {
+		return v
+	}
+	return defaultDSN
+}
 
 type purchaseItemRow struct {
 	ID            int
@@ -33,7 +51,7 @@ type purchaseItemRow struct {
 }
 
 func main() {
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("mysql", resolveDSN())
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}

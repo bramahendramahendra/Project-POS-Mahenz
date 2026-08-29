@@ -12,13 +12,13 @@
 // stok lama) SAMA PERSIS dengan skrip asli — tidak ada perubahan konsep.
 //
 // PRASYARAT sebelum menjalankan skrip ini:
-//   1. Restore data prod (skema lama) ke pos_retail_db
-//   2. Buat tabel backup SEBELUM BE dijalankan:
-//        CREATE TABLE products_stock_backup AS
-//        SELECT id, stock, reserved_qty FROM products;
-//   3. Jalankan BE sekali (migrasi 003-008 jalan, products.stock ke-drop)
-//   4. Jalankan cmd/backfill_purchase_package_id (isi purchase_items.package_id)
-//   5. Baru jalankan skrip ini
+//  1. Restore data prod (skema lama) ke pos_retail_db
+//  2. Buat tabel backup SEBELUM BE dijalankan:
+//     CREATE TABLE products_stock_backup AS
+//     SELECT id, stock, reserved_qty FROM products;
+//  3. Jalankan BE sekali (migrasi 003-008 jalan, products.stock ke-drop)
+//  4. Jalankan cmd/backfill_purchase_package_id (isi purchase_items.package_id)
+//  5. Baru jalankan skrip ini
 //
 // Jalankan: go run ./cmd/backfill_stock_restore
 package main
@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"sort"
 
 	model_product "pos_api/domain/product/model"
@@ -35,7 +36,24 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const dsn = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
+// defaultDSN dipakai kalau env MIGRATION_DSN tidak diset (mis. di local WAMP,
+// root tanpa password). Di production, set MIGRATION_DSN dulu sebelum
+// menjalankan skrip ini supaya connect ke user/password/host yang benar,
+// contoh (sesuai config_prod.json):
+//
+//	set MIGRATION_DSN=pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local   (Windows CMD)
+//	$env:MIGRATION_DSN="pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local" (PowerShell)
+//	export MIGRATION_DSN='pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local' (Linux)
+const defaultDSN = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
+
+// resolveDSN mengembalikan DSN dari env MIGRATION_DSN kalau ada, selain itu
+// pakai defaultDSN. Hanya menyangkut koneksi -- logika backfill tidak berubah.
+func resolveDSN() string {
+	if v := os.Getenv("MIGRATION_DSN"); v != "" {
+		return v
+	}
+	return defaultDSN
+}
 
 // toleransi selisih anchor-unit yang masih dianggap "efek truncation wajar"
 // dari bug lama, bukan indikasi ada masalah data lain.
@@ -64,7 +82,7 @@ type reportEntry struct {
 }
 
 func main() {
-	db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("mysql", resolveDSN())
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
