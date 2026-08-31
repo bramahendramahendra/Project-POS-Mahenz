@@ -9,11 +9,11 @@ Panduan memindahkan data lama (stok di `products.stock`) ke skema baru (stok per
 
 ## Ringkasan Singkat
 
-Alur intinya cuma 4 langkah:
+Alur intinya:
 
 1. **Backup** database dulu (pengaman).
 2. **Jalankan Backend sekali** → migrasi otomatis jalan. Stok lama otomatis disalin ke tabel `products_stock_backup` sebelum dihapus.
-3. **Jalankan 2 skrip backfill** → hitung ulang stok dari riwayat transaksi.
+3. **Jalankan 3 skrip backfill** (urut): `backfill_purchase_package_id` → `backfill_missing_purchase_in` → `backfill_stock_restore`. Yang tengah menambal mutasi `in` pembelian yang hilang dari ledger; kalau dilewati, banyak produk salah ditandai perlu ditinjau.
 4. **Cek hasil** → produk yang stoknya tidak yakin ditandai untuk ditinjau manual.
 
 > **Yang penting Anda tahu:** stok baru **dihitung ulang dari riwayat** (pembelian + retur + penjualan), bukan disalin buta. Stok lama hanya dipakai untuk **validasi silang**. Kalau hasil hitung tidak cocok, produk ditandai `needs_stock_review` (tidak diisi angka asal).
@@ -79,6 +79,30 @@ go run ./cmd/backfill_purchase_package_id/
 
 Hasil yang diharapkan: semua terisi, 0 dilewati.
 
+### Langkah 5b — Tambal mutasi `in` pembelian yang hilang
+
+Sebagian item pembelian (`purchase_items`) di data prod ternyata TIDAK punya baris
+mutasi `in` pasangannya di ledger `stock_mutations` — barang yang benar-benar
+dibeli, tapi jejak stok masuknya tidak pernah tercatat. Kalau dibiarkan, backfill
+stok (langkah 6) akan menghitung barang itu seolah tidak pernah masuk → stok minus
+→ produk salah ditandai `needs_stock_review`. Skrip ini menambal baris `in` yang
+hilang itu dari data `purchase_items` yang memang ada.
+
+```bash
+cd BE
+go run ./cmd/backfill_missing_purchase_in/
+```
+
+Hasil yang diharapkan (contoh): `Berhasil disisipkan 'in' : 23` (angka bisa beda).
+Yang `[SKIP]` biasanya produk rantai satuan bercabang (celah #10) — wajar, ditangani
+manual belakangan.
+
+> Aman & idempotent: skrip HANYA menyentuh item yang benar-benar belum punya baris
+> `in` (cek `NOT EXISTS`), jadi tidak ada dobel-hitung dan boleh dijalankan berulang.
+> Baris `in` yang disisipkan sengaja di-backdate `created_at`-nya ke tanggal PO,
+> supaya saat langkah 6 me-replay riwayat, stok masuk itu dihitung SEBELUM penjualan.
+> Bisa dicoba dulu tanpa menulis apa pun: tambahkan flag `--dry-run`.
+
 ### Langkah 6 — Backfill Stok (hitung ulang dari riwayat)
 
 ```bash
@@ -86,11 +110,14 @@ cd BE
 go run ./cmd/backfill_stock_restore/
 ```
 
-Hasil yang diharapkan (contoh):
+Hasil yang diharapkan (contoh, setelah langkah 5b dijalankan):
 ```
-Berhasil direkonstruksi & disimpan : 218
-Ditandai perlu ditinjau (needs_stock_review): 32
+Berhasil direkonstruksi & disimpan : 238
+Ditandai perlu ditinjau (needs_stock_review): 12
 ```
+
+> Kalau langkah 5b DILEWATI, angka `needs_stock_review` akan jauh lebih besar (mis. 32)
+> karena banyak pembelian yang mutasi `in`-nya belum ditambal.
 
 ### Langkah 7 — Verifikasi
 
@@ -149,8 +176,14 @@ export MIGRATION_DSN='pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charse
 ```bash
 cd BE
 go run ./cmd/backfill_purchase_package_id/
+go run ./cmd/backfill_missing_purchase_in/
 go run ./cmd/backfill_stock_restore/
 ```
+
+> `backfill_missing_purchase_in` WAJIB dijalankan SEBELUM `backfill_stock_restore`
+> (menambal mutasi `in` pembelian yang hilang dari ledger). Kalau dilewati, banyak
+> produk akan salah ditandai `needs_stock_review`. Skrip ini idempotent & baca
+> `MIGRATION_DSN` yang sama.
 
 ### 5. Verifikasi & tangani produk yang perlu ditinjau
 

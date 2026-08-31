@@ -530,20 +530,29 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			if delta == 0 {
 				continue
 			}
+			// Perubahan item lewat Edit PO adalah PEMBELIAN, bukan koreksi manual.
+			// Delta positif (item baru / qty dinaikkan) = tambah pembelian -> 'in'.
+			// Delta negatif (qty diturunkan / item dihapus) = pembelian dikurangi
+			// -> 'void_purchase'. SENGAJA tidak pakai 'adjustment' supaya konsisten
+			// dengan Create()/AddItems() ('in') & Void() ('void_purchase'), dan supaya
+			// rekonstruksi stok (backfill/kartu stok) bisa menelusurinya sebagai
+			// pembelian. Lihat docs/PERBAIKAN_MUTASI_STOK_EDIT_PEMBELIAN.md.
 			direction := model_product.StockIn
 			qty := delta
-			notes := fmt.Sprintf("Edit PO ID %d -- penyesuaian stok (selisih item baru vs lama)", req.ID)
+			mutationType := "in"
+			notes := fmt.Sprintf("Edit PO ID %d -- tambah pembelian (selisih item baru vs lama)", req.ID)
 			if delta < 0 {
 				direction = model_product.StockOut
 				qty = -delta
-				notes = fmt.Sprintf("Edit PO ID %d -- balikkan sebagian item lama (selisih)", req.ID)
+				mutationType = "void_purchase"
+				notes = fmt.Sprintf("Edit PO ID %d -- kurangi pembelian (selisih item baru vs lama)", req.ID)
 			}
 			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
 				ProductID:     k.productID,
 				PackageID:     k.packageID,
 				Quantity:      qty,
 				Direction:     direction,
-				MutationType:  "adjustment",
+				MutationType:  mutationType,
 				ReferenceType: "purchase",
 				ReferenceID:   req.ID,
 				Notes:         notes,

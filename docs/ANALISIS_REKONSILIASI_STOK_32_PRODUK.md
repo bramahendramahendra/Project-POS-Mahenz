@@ -8,11 +8,36 @@
 
 ## 1. Kesimpulan Utama
 
-Akar masalah **bukan** status pembayaran (hutang/lunas). Sudah dikonfirmasi dari kode: pembelian hutang **tetap** menambah stok. Masalahnya adalah **data historis**:
+> **KOREKSI NARASI (update setelah investigasi lanjutan).** Versi awal dokumen ini menuduh
+> penyebab tunggalnya adalah "pembelian di sistem lama yang belum mencatat mutasi `in`".
+> Investigasi lanjutan menemukan penyebab utamanya berbeda — lihat di bawah. **Angka
+> rekomendasi di Bagian 3–4 TIDAK berubah** (tetap valid apa pun penyebabnya, karena
+> dasarnya adalah membandingkan stok lama vs ledger), yang dikoreksi hanya penjelasan
+> *kenapa* ini terjadi.
 
-**Mayoritas produk ini dibeli di sistem LAMA yang belum mencatat mutasi `in` (stok masuk) ke tabel ledger `stock_mutations`.** Sistem lama cukup menyimpan stok sebagai satu angka di `products.stock`. Jadi saat backfill me-replay ledger, pembelian lama itu "tak terlihat" (tidak ada baris `in`), sementara penjualan (`out`) yang terjadi belakangan tercatat. Akibatnya replay menghasilkan stok minus → ditandai perlu ditinjau.
+Akar masalah **bukan** status pembayaran (hutang/lunas) secara langsung. Sudah dikonfirmasi
+dari kode: pembelian hutang **tetap** menambah stok.
 
-**Bukti kuat:** kolom `stock_after` pada mutasi terakhir di ledger (angka yang "dipercaya" sistem lama saat itu) **hampir selalu sama persis dengan stok lama** di backup. Artinya **stok lama umumnya akurat** dan bisa dipakai sebagai angka koreksi.
+**Penyebab utama: bug tipe mutasi saat Edit PO.** Saat sebuah Purchase Order diedit
+(menambah produk / menaikkan / menurunkan qty / menghapus item), perubahan stoknya dulu
+tercatat dengan tipe **`adjustment`**, bukan `in`/`void_purchase`. Backfill/rekonstruksi
+stok hanya me-replay tipe pembelian (`in`, `void_purchase`) dan **melewati** `adjustment`
+bersumber `purchase`. Akibatnya barang yang sebenarnya masuk lewat edit-PO "tak terlihat"
+saat replay, sementara penjualan (`out`) yang terjadi belakangan tetap tercatat → replay
+menghasilkan stok minus → produk ditandai `needs_stock_review`. Ini menjelaskan korelasi
+dengan PO hutang/partial: PO jenis itu lebih sering diedit belakangan (menambah barang),
+dan tiap edit-nya kena bug `adjustment`. Detail & perbaikannya:
+`docs/PERBAIKAN_MUTASI_STOK_EDIT_PEMBELIAN.md` (Lapisan 1 sudah diperbaiki & terverifikasi).
+
+**Penyebab sekunder (sebagian kecil produk): benar-benar tanpa ledger.** Untuk produk di
+Grup B (jml_mutasi=0), memang tidak ada mutasi apa pun — ini pembelian lama yang tidak punya
+jejak ledger sama sekali, bukan efek bug edit-PO. Untuk grup ini narasi "pra-ledger" tetap
+berlaku.
+
+**Bukti kuat (tetap berlaku):** kolom `stock_after` pada mutasi terakhir di ledger (angka
+yang "dipercaya" sistem saat itu) **hampir selalu sama persis dengan stok lama** di backup.
+Artinya **stok lama umumnya akurat** dan bisa dipakai sebagai angka koreksi — terlepas dari
+penyebab (bug edit-PO atau pra-ledger).
 
 ---
 
@@ -153,4 +178,8 @@ Setiap koreksi otomatis:
 
 - Angka pecahan (4.917 dst) berasal dari **satuan turunan** (produk dijual per batang/gram sementara satuan dasarnya lebih besar). Itu bukan error — tapi kalau menurut Anda tidak masuk akal secara fisik, koreksi manual saat input.
 - Produk Grup C (70, 140, 236, 238) adalah satu-satunya yang datanya bertentangan. Untuk ini pertimbangkan cek fisik, terutama **236**.
-- Setelah semua dikoreksi, stok ke depan akan akurat karena jalur stok baru (kode sekarang) sudah mencatat semua mutasi dengan benar — masalah ini hanya untuk data transisi/historis.
+- Setelah semua dikoreksi, stok ke depan akan akurat karena bug edit-PO (penyebab utama)
+  **sudah diperbaiki** — sejak perbaikan itu, edit PO mencatat `in`/`void_purchase` dengan
+  benar (lihat `docs/PERBAIKAN_MUTASI_STOK_EDIT_PEMBELIAN.md`, Lapisan 1). Jadi masalah ini
+  hanya menyisakan data transisi/historis; edit PO baru tidak akan menghasilkan
+  `needs_stock_review` lagi karena sebab yang sama.

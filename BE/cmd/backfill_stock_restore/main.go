@@ -321,7 +321,13 @@ func hasBranchingChain(packages []*model_product.ProductPackage) (bool, int) {
 }
 
 func loadMutations(db *sql.DB, productID int) ([]mutationRow, error) {
-	rows, err := db.Query(`SELECT id, mutation_type, reference_type, reference_id FROM stock_mutations WHERE product_id = ? ORDER BY id ASC`, productID)
+	// Urut KRONOLOGIS (created_at) dengan id sebagai tie-breaker -- bukan murni
+	// id. Untuk data lama created_at monoton naik dengan id (jadi hasilnya sama
+	// dengan ORDER BY id), TAPI baris 'in' hasil backfill_missing_purchase_in
+	// sengaja di-backdate created_at-nya ke tanggal PO supaya diproses SEBELUM
+	// penjualan lama -- kalau diurut murni id (id besar karena baru disisipkan),
+	// 'in' itu akan diproses setelah 'out' dan bikin stok minus keliru.
+	rows, err := db.Query(`SELECT id, mutation_type, reference_type, reference_id FROM stock_mutations WHERE product_id = ? ORDER BY created_at ASC, id ASC`, productID)
 	if err != nil {
 		return nil, err
 	}
