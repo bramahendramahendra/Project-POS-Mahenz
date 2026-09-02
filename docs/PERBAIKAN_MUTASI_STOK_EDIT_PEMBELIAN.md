@@ -1,8 +1,15 @@
 # Rencana Perbaikan: Mutasi Stok Salah Tipe saat Edit Pembelian
 
 > Status: **LAPISAN 1 SELESAI & TERVERIFIKASI (via UI browser).** Lapisan 2 (data lama)
-> masih menunggu keputusan (Opsi 2a vs 2b, lihat Bagian 4).
+> SUDAH DIKLARIFIKASI & DITANGANI dengan cara berbeda dari rencana awal — lihat Bagian 4.
 > Ditemukan saat investigasi kenapa banyak produk `needs_stock_review` setelah migrasi stok.
+>
+> ⚠️ **KOREKSI PENTING (setelah cek DB prod):** rencana awal Lapisan 2 mengasumsikan data
+> lama punya banyak baris `adjustment` dari edit-PO yang perlu di-remap. Ternyata **DB prod
+> TIDAK punya baris `adjustment` sama sekali.** Penyebab 32 produk `needs_stock_review`
+> sebenarnya adalah **`purchase_items` yang tidak punya baris `in` di ledger** (bukan
+> `adjustment`). Sudah ditangani otomatis lewat skrip `backfill_missing_purchase_in`
+> (32 → 12). Lihat Bagian 4 (revisi) & `docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md` langkah 5b.
 
 ---
 
@@ -118,42 +125,47 @@ Bedakan jenis perubahan saat edit PO, dan pilih tipe mutasi yang benar:
 
 Alternatif yang DITOLAK: memakai `adjustment` untuk perubahan qty item lama. Ditolak karena tetap membuat backfill/analisis tidak bisa menelusuri sebagai pembelian.
 
-### Lapisan 2 — Sesuaikan data LAMA yang terlanjur `adjustment` — PERLU KEPUTUSAN
+### Lapisan 2 — Data LAMA (32 produk `needs_stock_review`) — SUDAH DITANGANI (revisi)
 
-Data 32 produk yang sudah terlanjur punya mutasi `adjustment` (dari edit-PO lama). Dua opsi:
+> **Revisi total dari rencana awal.** Rencana lama di bawah ini mengasumsikan 32 produk itu
+> punya mutasi `adjustment` dari edit-PO yang perlu di-remap. **Setelah cek langsung DB prod,
+> asumsi itu SALAH: tidak ada satu pun baris `adjustment`.** Jadi tidak ada yang perlu
+> di-remap. Penyebab & solusi sebenarnya di bawah.
 
-**Opsi 2a — Perbaiki skrip backfill lalu jalankan ulang (otomatis)**
-Ajari `backfill_stock_restore` supaya mutasi `adjustment` dengan `reference_type='purchase'` diperlakukan sebagai pembelian:
-- `adjustment` + `reference_type='purchase'` + arah menambah → perlakukan seperti `in`
-- `adjustment` + `reference_type='purchase'` + arah mengurangi → perlakukan seperti `void_purchase`
-- Arah (+/−) ditentukan dari `stock_after` vs `stock_before` pada baris mutasi itu (JANGAN diasumsikan).
+**Penyebab sebenarnya (terverifikasi di DB prod):** sebagian `purchase_items` (24 baris dari
+4 PO active) tidak punya baris mutasi `in` pasangannya di `stock_mutations`. Barang benar
+dibeli & tercatat di `purchase_items`, tapi jejak `in`-nya tidak pernah masuk ledger. Saat
+backfill me-replay, barang itu tak terlihat → hanya `out` yang terhitung → stok minus →
+`needs_stock_review`.
 
-> ⚠️ **KOMPLIKASI TEKNIS PENTING (harus ditangani, kalau tidak justru salah hitung).**
-> Backfill sekarang memproses `in`/`void_purchase` lewat fungsi `purchaseItemEvents`, yang
-> membaca **qty FINAL dari `purchase_items`** (`SELECT quantity FROM purchase_items WHERE
-> purchase_id=? AND product_id=?`) — BUKAN qty delta yang tercatat di baris mutasi. Untuk
-> mutasi `in` asli itu benar. TAPI untuk kasus **edit menaikkan qty** (mis. 5→9), ledger
-> berisi `in`=5 (create) + `adjustment`=4 (delta). Kalau `adjustment` diproses lewat
-> `purchaseItemEvents` yang sama, ia akan membaca qty final purchase_items (=9) dan menambah
-> 9 LAGI → total jadi 5+9=14, padahal benar 9 (dobel hitung).
->
-> Jadi Opsi 2a TIDAK cukup hanya "mapping adjustment→in". Skrip harus memproses mutasi
-> `adjustment`-purchase memakai **qty DELTA dari baris `stock_mutations` itu sendiri**
-> (`stock_after − stock_before`, sudah dalam satuan anchor), BUKAN lewat `purchaseItemEvents`.
-> Ini menambah kompleksitas: perlu jalur replay khusus untuk adjustment-purchase yang tidak
-> membaca ulang purchase_items.
+**Solusi yang dipakai (otomatis, tanpa input manual): skrip baru
+`BE/cmd/backfill_missing_purchase_in`.**
+- Mencari `purchase_items` (PO `active`) yang belum punya baris `in` (`NOT EXISTS` → idempotent).
+- Menyisipkan baris `in` yang hilang lewat jalur resmi `product_repo.ApplyStockDelta`
+  (qty & package_id dari `purchase_items` asli), `user_id` NULL (mutasi backfill, bukan aksi user).
+- **`created_at` di-backdate ke tanggal PO** supaya saat di-replay, stok masuk dihitung
+  SEBELUM penjualan.
+- Dijalankan SEBELUM `backfill_stock_restore` dalam alur migrasi (langkah 5b).
 
-Kelebihan: mayoritas 32 produk beres otomatis tanpa input manual, DAN backfill jadi tahan
-terhadap data campuran (`in` + `adjustment` di PO yang sama). Kekurangan: **mengubah skrip
-backfill** (perlu izin — user sebelumnya menekankan jangan ubah skrip backfill yang sudah ada),
-dan komplikasi qty-delta di atas menaikkan risiko bug kalau tidak hati-hati.
+**Perubahan pendukung di `backfill_stock_restore`:** urutan replay diubah dari `ORDER BY id`
+→ `ORDER BY created_at, id`. Untuk data lama `created_at` monoton dengan `id` (0 baris
+out-of-order dari 806 mutasi) jadi hasilnya identik; yang berubah hanya posisi baris `in`
+hasil tambal (yang sengaja di-backdate) supaya kronologis benar. Tanpa ini, baris `in` yang
+id-nya besar (baru disisipkan) diproses SETELAH `out` lama → stok minus keliru.
 
-> CATATAN penting soal urutan: perbaikan Lapisan 1 (Update) hanya mengubah perilaku data BARU.
-> Data lama tetap `adjustment` sampai Lapisan 2 dijalankan. Kedua lapisan saling melengkapi,
-> bukan menggantikan.
+> Kenapa TIDAK ada risiko dobel-hitung (beda dari kekhawatiran rencana lama soal `adjustment`):
+> skrip HANYA menyentuh item yang benar-benar BELUM punya `in` sama sekali. Ini menambah stok
+> masuk yang memang hilang, bukan menggandakan yang sudah ada.
 
-**Opsi 2b — Koreksi manual lewat menu Rekonsiliasi Stok**
-Input satu-satu pakai angka di `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md`. Kelebihan: tidak menyentuh skrip, tidak ada risiko dobel-hitung. Kekurangan: manual, lebih lama.
+**Hasil:** `needs_stock_review` turun **32 → 12**. Sisa 12 adalah kasus yang tidak bisa
+ditambal otomatis: 6 rantai satuan bercabang (celah #10), 2 paket satuan tidak ditemukan
+(penjualan pakai package_id yang sudah tak ada), 4 selisih rekonstruksi riil. Sisa ini
+ditangani manual lewat menu **Rekonsiliasi Stok** (angka acuan di
+`docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md`).
+
+> CATATAN: perbaikan Lapisan 1 (Update) & Lapisan 2 (tambal `in` hilang) menangani dua hal
+> berbeda. Lapisan 1 mencegah edit-PO ke depan mencatat tipe mutasi keliru. Lapisan 2
+> membenahi data historis yang ledger-nya bolong. Keduanya saling melengkapi.
 
 ---
 
@@ -166,9 +178,15 @@ Input satu-satu pakai angka di `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md`. K
 - Tidak mengubah `Void()` (sudah benar: pakai `void_purchase`).
 - Perlu test ulang skenario: tambah produk, naikkan qty, turunkan qty, hapus produk saat edit — plus **regresi**: pastikan Create, AddItems, dan Void TIDAK berubah perilakunya.
 
-**Lapisan 2 (kalau Opsi 2a dipilih):**
-- File: `BE/cmd/backfill_stock_restore/main.go` — tambah handling `adjustment` bersumber `purchase`.
-- Setelah itu jalankan ulang backfill (butuh reset/kondisi yang sesuai).
+**Lapisan 2 (tambal `in` hilang — SUDAH diimplementasi):**
+- File BARU: `BE/cmd/backfill_missing_purchase_in/main.go` — sisip mutasi `in` untuk
+  `purchase_items` PO active yang bolong ledger (idempotent, `created_at` di-backdate ke
+  tanggal PO, via `ApplyStockDelta`). Punya flag `--dry-run`.
+- File diubah: `BE/cmd/backfill_stock_restore/main.go` — `loadMutations` diurut
+  `ORDER BY created_at, id` (dari `ORDER BY id`) supaya baris `in` backdated diproses
+  kronologis benar. Tidak mengubah logika rekonstruksi lain.
+- Dijalankan dalam alur migrasi langkah 5b (sebelum `backfill_stock_restore`).
+- Hasil: `needs_stock_review` 32 → 12.
 
 ---
 
@@ -177,7 +195,11 @@ Input satu-satu pakai angka di `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md`. K
 1. ~~**Lapisan 1 — pembedaan tipe**~~ — **SELESAI.** Disepakati & diimplementasi: `in`
    (delta naik) / `void_purchase` (delta turun), bukan `adjustment`. Terverifikasi via UI
    browser (Bagian 7b).
-2. **Lapisan 2 — data lama:** pilih **2a** (ubah backfill, otomatis) atau **2b** (manual lewat menu)? Ini mengubah skrip backfill, jadi butuh izin eksplisit. **← MASIH MENUNGGU KEPUTUSAN.**
+2. ~~**Lapisan 2 — data lama**~~ — **SELESAI (jalur otomatis).** Ternyata data lama TIDAK
+   punya `adjustment` (jadi Opsi 2a lama tidak relevan). Penyebab riil = `purchase_items`
+   bolong `in` di ledger, ditangani otomatis oleh skrip `backfill_missing_purchase_in`
+   (32 → 12). Sisa 12 (branching chain / paket tak ditemukan / selisih riil) ditangani
+   manual via Rekonsiliasi Stok. Lihat Bagian 4 (revisi).
 3. ~~Test tambahan~~ — **SUDAH SELESAI.** Baseline 5 skenario (tambah/naik/turun/hapus/void)
    sudah diuji via UI browser, lihat Bagian 7. Tidak perlu test tambahan sebelum implementasi.
 
@@ -246,5 +268,9 @@ berstatus `unpaid` (Hutang).
 
 ## 8. Kaitan dengan Dokumen Lain
 
-- `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md` — daftar 32 produk & rekomendasi angka. **Perlu dikoreksi narasinya**: penyebab sebenarnya adalah bug edit-PO (`adjustment`), bukan "pembelian lama pra-ledger".
-- `docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md` — panduan migrasi (tidak terpengaruh langsung, tapi jumlah `needs_stock_review` akan berkurang kalau Lapisan 2 dijalankan).
+- `docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md` — daftar 32 produk & rekomendasi angka.
+  Narasi penyebab SUDAH dikoreksi: penyebab riil = `purchase_items` bolong `in` di ledger
+  (bukan `adjustment`, bukan sekadar "pra-ledger"). Sisa 12 produk pakai angka acuan di sana.
+- `docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md` — panduan migrasi. SUDAH diperbarui: langkah 5b
+  (`backfill_missing_purchase_in`) kini bagian resmi alur, dijalankan sebelum
+  `backfill_stock_restore`. Setelahnya `needs_stock_review` 32 → 12.

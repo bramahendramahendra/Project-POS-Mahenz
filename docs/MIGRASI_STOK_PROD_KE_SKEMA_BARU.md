@@ -197,13 +197,21 @@ Produk `needs_stock_review` ditangani lewat menu **Rekonsiliasi Stok** di aplika
 
 ## Menangani Produk `needs_stock_review`
 
-Produk ditandai perlu ditinjau karena salah satu dari:
+Setelah langkah 5b (`backfill_missing_purchase_in`) dijalankan, penyebab paling
+umum — pembelian yang mutasi `in`-nya hilang dari ledger — sudah ditambal otomatis.
+Sisa produk yang masih ditandai biasanya karena hal yang TIDAK bisa ditambal
+otomatis:
 
-- **Rantai satuan bercabang** — struktur satuan produk tidak linear, tidak diproses otomatis.
-- **Stok tidak mencukupi / paket tidak ditemukan** — saat replay riwayat, stok jadi minus (mis. ada penjualan sebelum pembelian) atau satuan sudah berubah.
-- **Selisih di luar wajar** — hasil hitung beda jauh dari stok lama (bukan sekadar pembulatan).
+- **Rantai satuan bercabang** — struktur satuan produk tidak linear (>1 anak menunjuk
+  satu paket induk). Perlu dirapikan strukturnya dulu, tidak bisa direkonstruksi otomatis.
+- **Paket satuan tidak ditemukan** — ada penjualan lama yang memakai `package_id` yang
+  kini tidak ada lagi pada produk itu (satuan sudah diubah/dihapus sejak transaksi terjadi).
+- **Selisih di luar wajar** — hasil hitung ulang masih beda jauh dari stok lama, mis. ada
+  penjualan yang benar-benar melebihi total pembelian tercatat (bukan sekadar pembulatan).
 
-Cara menangani: buka menu **Rekonsiliasi Stok** di aplikasi (login sebagai admin). Di sana Anda bisa lihat stok lama vs baru, rincian perhitungan, dan koreksi manual per satuan. Setelah dikoreksi, flag hilang otomatis.
+Cara menangani sisa ini: buka menu **Rekonsiliasi Stok** di aplikasi (login sebagai admin).
+Di sana Anda bisa lihat stok lama vs baru, rincian perhitungan, dan koreksi manual per
+satuan. Setelah dikoreksi, flag hilang otomatis.
 
 ---
 
@@ -226,9 +234,10 @@ Salin-tempel ini saat ingin Kiro menjalankan migrasi ulang untuk Anda:
 
 ```
 Restore prod ke pos_retail_db sudah selesai. Jalankan migrasi stok sesuai
-docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md Bagian A (local), langkah 1-8.
-Kabari hasil tiap langkah. Ingat: backup dulu, jangan ubah skrip backfill yang
-sudah ada, stok dihitung ulang dari riwayat.
+docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md Bagian A (local), langkah 1-8 (termasuk
+langkah 5b: backfill_missing_purchase_in SEBELUM backfill_stock_restore).
+Kabari hasil tiap langkah. Ingat: backup dulu, stok dihitung ulang dari riwayat,
+jalankan ketiga skrip backfill sesuai urutan.
 ```
 
 ---
@@ -239,7 +248,9 @@ sudah ada, stok dihitung ulang dari riwayat.
 |-----|-----------|
 | Migrasi jalan otomatis | Saat BE start (`database/migrate.go`), file `001`–`009` di `BE/database/migrations/` |
 | Backup stok otomatis | Migrasi `005` membuat `products_stock_backup` sebelum drop `products.stock` |
-| Skrip backfill | `BE/cmd/backfill_purchase_package_id` lalu `BE/cmd/backfill_stock_restore` |
+| Skrip backfill (urut) | `backfill_purchase_package_id` → `backfill_missing_purchase_in` → `backfill_stock_restore` (semua di `BE/cmd/`) |
+| Skrip tambal `in` hilang | `BE/cmd/backfill_missing_purchase_in` — sisip mutasi `in` untuk `purchase_items` PO active yang bolong ledger; idempotent (`NOT EXISTS`), `created_at` di-backdate ke tanggal PO. Punya flag `--dry-run` |
 | Koneksi DB backfill | Env `MIGRATION_DSN` (kalau kosong → default `root@127.0.0.1` untuk local) |
 | Tabel backup stok | `products_stock_backup` (kolom: `id`, `stock`, `reserved_qty`) |
 | Flag tinjau | Kolom `products.needs_stock_review` + `products.stock_review_note` |
+| Urutan replay backfill | `backfill_stock_restore` me-replay `stock_mutations` urut `created_at, id` (bukan murni `id`) — supaya baris `in` hasil tambal yang di-backdate diproses SEBELUM penjualan lama |
