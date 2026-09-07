@@ -3,9 +3,24 @@ import { Input } from '@/shared/components/ui/input'
 
 import { useCashierStore } from '../cashier.store'
 import { calcDiscountAmount, calcSubtotal, calcTaxAmount } from '../cashier.utils'
+import type { CartItem, Discount, Tax } from '../cashier.types'
 
-export function TaxInput() {
-  const { cart, discount, tax, setTax } = useCashierStore()
+// Slice minimal yang dibutuhkan. Kedua store (kasir reguler & historis)
+// memenuhinya, jadi komponen bisa dipakai di kedua konteks.
+type TaxInputStore = () => {
+  cart: CartItem[]
+  discount: Discount
+  tax: Tax
+  setTax: (percent: number) => void
+}
+
+interface TaxInputProps {
+  // Default useCashierStore agar pemakaian lama tanpa prop tetap jalan.
+  store?: TaxInputStore
+}
+
+export function TaxInput({ store = useCashierStore }: TaxInputProps) {
+  const { cart, discount, tax, setTax } = store()
 
   const subtotal = calcSubtotal(cart)
   const discountAmount = calcDiscountAmount(subtotal, discount)

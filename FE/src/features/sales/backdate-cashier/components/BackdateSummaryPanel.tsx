@@ -25,23 +25,14 @@ export function BackdateSummaryPanel() {
 
       {/* Body - scrollable */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {/* Customer selector */}
-        <CustomerSelector
-          value={useBackdateCashierStore.getState().selectedCustomer}
-          onChange={(c) => useBackdateCashierStore.getState().setCustomer(c)}
-        />
+        {/* Customer selector — di-bind ke store historis (backdate) */}
+        <CustomerSelector store={useBackdateCashierStore} />
 
         {/* Discount */}
-        <DiscountInput
-          discount={discount}
-          onChange={(d) => useBackdateCashierStore.getState().setDiscount(d)}
-        />
+        <DiscountInput store={useBackdateCashierStore} />
 
         {/* Tax */}
-        <TaxInput
-          tax={tax}
-          onChange={(percent) => useBackdateCashierStore.getState().setTax(percent)}
-        />
+        <TaxInput store={useBackdateCashierStore} />
 
         {/* Totals */}
         <div className="space-y-2 pt-2 border-t">

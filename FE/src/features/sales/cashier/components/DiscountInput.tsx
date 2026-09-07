@@ -4,10 +4,23 @@ import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 
 import { useCashierStore } from '../cashier.store'
 import { calcDiscountAmount, calcSubtotal } from '../cashier.utils'
-import type { DiscountType } from '../cashier.types'
+import type { CartItem, Discount, DiscountType } from '../cashier.types'
 
-export function DiscountInput() {
-  const { cart, discount, setDiscount } = useCashierStore()
+// Slice minimal yang dibutuhkan. Kedua store (kasir reguler & historis)
+// memenuhinya, jadi komponen bisa dipakai di kedua konteks.
+type DiscountInputStore = () => {
+  cart: CartItem[]
+  discount: Discount
+  setDiscount: (discount: Omit<Discount, 'amount'>) => void
+}
+
+interface DiscountInputProps {
+  // Default useCashierStore agar pemakaian lama tanpa prop tetap jalan.
+  store?: DiscountInputStore
+}
+
+export function DiscountInput({ store = useCashierStore }: DiscountInputProps) {
+  const { cart, discount, setDiscount } = store()
   const subtotal = calcSubtotal(cart)
 
   const handleTypeChange = (type: DiscountType) => {

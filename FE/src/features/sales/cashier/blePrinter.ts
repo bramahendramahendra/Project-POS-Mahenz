@@ -8,6 +8,7 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   qris: 'QRIS',
   card: 'Kartu',
   kredit: 'Kredit',
+  balance: 'Saldo',
 }
 
 const ESC_INIT = new Uint8Array([0x1b, 0x40]) // ESC @ — reset printer

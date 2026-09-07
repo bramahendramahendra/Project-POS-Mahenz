@@ -9,10 +9,24 @@ import { useCustomerListQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
 import type { Customer } from '@/features/customers'
 
-export function CustomerSelector() {
+// Slice minimal yang dibutuhkan komponen ini. Kedua store (kasir reguler &
+// historis) memenuhi bentuk ini, jadi komponen bisa dipakai ulang di kedua
+// konteks tanpa menyalin logikanya.
+type CustomerSelectorStore = () => {
+  selectedCustomer: { id: number; name: string } | null
+  setCustomer: (customer: { id: number; name: string } | null) => void
+}
+
+interface CustomerSelectorProps {
+  // Optional: pilih store yang dipakai. Default useCashierStore (kasir reguler)
+  // supaya pemakaian lama tanpa prop tetap jalan tanpa perubahan.
+  store?: CustomerSelectorStore
+}
+
+export function CustomerSelector({ store = useCashierStore }: CustomerSelectorProps) {
   const [showCustomer, setShowCustomer] = useState(false)
   const [keyword, setKeyword] = useState('')
-  const { selectedCustomer, setCustomer } = useCashierStore()
+  const { selectedCustomer, setCustomer } = store()
 
   const { data: customerData, isFetching } = useCustomerListQuery({
     page: 1,

@@ -230,7 +230,7 @@ npm run type-check
 npm run lint
 npm run build
 
-sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_20260727
+sudo mv /var/www/pos-web/dist /var/www/pos-web/dist_20260907
 sudo cp -r dist /var/www/pos-web/
 sudo chown -R www-data:www-data /var/www/pos-web
 ```

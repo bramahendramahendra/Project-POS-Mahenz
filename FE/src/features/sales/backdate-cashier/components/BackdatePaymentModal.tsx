@@ -60,7 +60,11 @@ function createBackdatePaymentSchema(effectiveTotal: number, isKredit: boolean) 
   })
 }
 
-type FormValues = { payment_method: PaymentMethod; amount_paid: number; transaction_time: string }
+// amount_paid opsional: schema pakai z.number().default(0) sehingga tipe input
+// form yang di-infer Zod v4 adalah optional. Ini konsisten dgn PaymentFormValues
+// di cashier (kasir reguler). Nilai selalu terisi via defaultValues & dibaca
+// null-safe (?? 0), jadi aman secara runtime.
+type FormValues = { payment_method: PaymentMethod; amount_paid?: number; transaction_time: string }
 
 interface Props {
   open: boolean
@@ -120,7 +124,7 @@ export function BackdatePaymentModal({ open, onOpenChange, backdateDrawer }: Pro
   const onSubmit = (values: FormValues) => {
     if (!backdateDrawer) return
     const finalPaymentMethod = effectiveTotal === 0 && useSaldo ? 'balance' as PaymentMethod : values.payment_method
-    const effectiveAmountPaid = isKredit ? 0 : (effectiveTotal === 0 ? 0 : values.amount_paid)
+    const effectiveAmountPaid = isKredit ? 0 : (effectiveTotal === 0 ? 0 : (values.amount_paid ?? 0))
 
     const payload: BackdatePaymentPayload = {
       transaction_time: values.transaction_time,

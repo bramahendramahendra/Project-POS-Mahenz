@@ -6,6 +6,7 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   qris: 'QRIS',
   card: 'Kartu',
   kredit: 'Kredit',
+  balance: 'Saldo',
 }
 
 export function formatDateTimeShort(dateStr: string): string {
