@@ -17,8 +17,8 @@ import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { formatRupiah } from '@/shared/utils'
 
 import { useCustomerCreditQuery } from '../../cashier/cashier.api'
-import { calcCartSummary, calcChange } from '../../cashier/cashier.utils'
-import type { CartItem, CartSummary, Discount, PaymentMethod, Tax } from '../../cashier/cashier.types'
+import { calcCartSummary } from '../../cashier/cashier.utils'
+import type { PaymentMethod } from '../../cashier/cashier.types'
 import { useBackdateCashierStore } from '../backdate-cashier.store'
 import { useBackdateCheckoutMutation } from '../backdate-cashier.api'
 import type { BackdateCashDrawer } from '../../backdate-cash/backdate-cash.types'
@@ -104,7 +104,14 @@ export function BackdatePaymentModal({ open, onOpenChange, backdateDrawer }: Pro
   const sufficient = isKredit || effectiveTotal === 0 || amountPaid >= effectiveTotal
 
   useEffect(() => {
-    if (open) { reset({ payment_method: 'cash', amount_paid: 0, transaction_time: '' }); setUseSaldo(false) }
+    // Reset form + ephemeral UI state saat modal dibuka. set-state di effect
+    // memang disengaja di sini (menyinkronkan state form ke kondisi "baru dibuka"),
+    // bukan cascading render yang tidak disengaja.
+    if (open) {
+      reset({ payment_method: 'cash', amount_paid: 0, transaction_time: '' })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUseSaldo(false)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 

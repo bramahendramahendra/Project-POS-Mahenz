@@ -139,7 +139,6 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   const paymentMethod = useWatch({ control, name: 'payment_method' })
   const amountPaid = useWatch({ control, name: 'amount_paid' }) ?? 0
   const isKredit = paymentMethod === 'kredit'
-  const change = calcChange(summary.grandTotal, amountPaid)
   const roundedOptions = buildRoundedOptions(summary.grandTotal)
 
   // Saldo calculations
@@ -156,6 +155,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   useEffect(() => {
     if (open) {
       reset({ payment_method: 'cash', amount_paid: 0 })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUseSaldo(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

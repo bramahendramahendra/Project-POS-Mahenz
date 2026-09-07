@@ -14,7 +14,6 @@ import { formatRupiah } from '@/shared/utils'
 
 import { useBackdateCashierStore } from '../backdate-cashier.store'
 import type { CartItem } from '../../cashier/cashier.types'
-import { calculateItemDiscount } from '../../cashier/cashier.utils'
 
 interface Props { item: CartItem }
 

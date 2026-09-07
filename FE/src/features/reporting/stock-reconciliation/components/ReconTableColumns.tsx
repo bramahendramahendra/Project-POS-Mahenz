@@ -3,6 +3,10 @@ import { formatStockNumber } from '@/features/products/products'
 
 import type { ReconListItem } from '../stock-reconciliation.types'
 
+// File ini adalah builder kolom tabel (buildReconColumns), bukan modul komponen
+// untuk Fast Refresh. StatusBadge cuma helper internal yang dipakai di dalam
+// definisi kolom, jadi aturan react-refresh/only-export-components tidak relevan.
+// eslint-disable-next-line react-refresh/only-export-components
 function StatusBadge({ item }: { item: ReconListItem }) {
   if (item.needs_stock_review) {
     return (

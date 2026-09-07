@@ -70,6 +70,11 @@ function OpenCashForm() {
   const { data: users } = useUserOptionsQuery()
   const { data: shiftOptions } = useShiftOptionsQuery()
 
+  // Batas maksimal tanggal = kemarin (backdate hanya untuk tanggal lampau).
+  // Dihitung sekali lewat lazy initializer useState — tempat yang tepat untuk
+  // pembacaan waktu (fungsi impur), sehingga tidak dipanggil setiap render.
+  const [maxDate] = useState(() => new Date(Date.now() - 86400000).toISOString().split('T')[0])
+
   const {
     register,
     handleSubmit,
@@ -159,7 +164,7 @@ function OpenCashForm() {
               </Label>
               <Input
                 type="date"
-                max={new Date(Date.now() - 86400000).toISOString().split('T')[0]}
+                max={maxDate}
                 {...register('date')}
                 className={errors.date ? 'border-red-500' : ''}
               />

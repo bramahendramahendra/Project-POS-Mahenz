@@ -119,8 +119,11 @@ export function ReceiptPrint({
   const [saveAmount, setSaveAmount] = useState(0)
   const [savedToBalance, setSavedToBalance] = useState(false)
 
+  // Inisialisasi nilai simpan-ke-saldo saat struk dibuka. set-state di effect
+  // memang disengaja: menyiapkan default form dari nilai kembalian.
   useEffect(() => {
     if (open && showSaveToBalance) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSaveAmount(Math.max(0, change))
       setSavedToBalance(false)
     }

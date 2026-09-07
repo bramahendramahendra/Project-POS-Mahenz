@@ -48,13 +48,15 @@ export function ReconDetailModal({ productId, open, onOpenChange }: ReconDetailM
   const [levelValues, setLevelValues] = useState<Record<number, string>>({})
   const [note, setNote] = useState('')
 
-  // reset form tiap ganti produk / buka ulang
+  // reset form tiap ganti produk / buka ulang. set-state di effect memang
+  // disengaja: menyinkronkan nilai form dengan data detail yang baru dimuat.
   useEffect(() => {
     if (detail) {
       const init: Record<number, string> = {}
       detail.packages.forEach((p) => {
         init[p.package_id] = String(p.current_stock)
       })
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLevelValues(init)
       setNote('')
     }

@@ -74,7 +74,7 @@ sudo mysql -u root pos_retail_db -e "SELECT COUNT(*) AS baris, ROUND(SUM(stock),
 
 ```bash
 cd BE
-sudo go run ./cmd/backfill_purchase_package_id/
+go run ./cmd/backfill_purchase_package_id/
 ```
 
 Hasil yang diharapkan: semua terisi, 0 dilewati.
@@ -90,7 +90,7 @@ hilang itu dari data `purchase_items` yang memang ada.
 
 ```bash
 cd BE
-sudo go run ./cmd/backfill_missing_purchase_in/
+go run ./cmd/backfill_missing_purchase_in/
 ```
 
 Hasil yang diharapkan (contoh): `Berhasil disisipkan 'in' : 23` (angka bisa beda).
@@ -122,7 +122,7 @@ Ditandai perlu ditinjau (needs_stock_review): 12
 ### Langkah 7 — Verifikasi
 
 ```bash
-mysql -u root pos_retail_db -e "SELECT (SELECT COUNT(*) FROM product_packages WHERE stock>0) AS paket_ada_stok, (SELECT COUNT(*) FROM products WHERE needs_stock_review=1) AS perlu_ditinjau;"
+sudo mysql -u root pos_retail_db -e "SELECT (SELECT COUNT(*) FROM product_packages WHERE stock>0) AS paket_ada_stok, (SELECT COUNT(*) FROM products WHERE needs_stock_review=1) AS perlu_ditinjau;"
 ```
 
 ### Langkah 8 — Jalankan BE & FE normal
