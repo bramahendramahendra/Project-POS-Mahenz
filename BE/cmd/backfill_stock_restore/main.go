@@ -28,32 +28,13 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"sort"
 
+	"pos_api/cmd/internal/migrationdb"
 	model_product "pos_api/domain/product/model"
 
 	_ "github.com/go-sql-driver/mysql"
 )
-
-// defaultDSN dipakai kalau env MIGRATION_DSN tidak diset (mis. di local WAMP,
-// root tanpa password). Di production, set MIGRATION_DSN dulu sebelum
-// menjalankan skrip ini supaya connect ke user/password/host yang benar,
-// contoh (sesuai config_prod.json):
-//
-//	set MIGRATION_DSN=pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local   (Windows CMD)
-//	$env:MIGRATION_DSN="pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local" (PowerShell)
-//	export MIGRATION_DSN='pos_user:P@ssw0rd@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local' (Linux)
-const defaultDSN = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
-
-// resolveDSN mengembalikan DSN dari env MIGRATION_DSN kalau ada, selain itu
-// pakai defaultDSN. Hanya menyangkut koneksi -- logika backfill tidak berubah.
-func resolveDSN() string {
-	if v := os.Getenv("MIGRATION_DSN"); v != "" {
-		return v
-	}
-	return defaultDSN
-}
 
 // toleransi selisih anchor-unit yang masih dianggap "efek truncation wajar"
 // dari bug lama, bukan indikasi ada masalah data lain.
@@ -82,7 +63,11 @@ type reportEntry struct {
 }
 
 func main() {
-	db, err := sql.Open("mysql", resolveDSN())
+	dsn, err := migrationdb.ResolveDSN()
+	if err != nil {
+		log.Fatalf("resolve DSN: %v", err)
+	}
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}

@@ -65,7 +65,7 @@ Apa yang terjadi otomatis di balik layar:
 Verifikasi backup stok otomatis berhasil:
 
 ```bash
-mysql -u root pos_retail_db -e "SELECT COUNT(*) AS baris, ROUND(SUM(stock),3) AS total FROM products_stock_backup;"
+sudo mysql -u root pos_retail_db -e "SELECT COUNT(*) AS baris, ROUND(SUM(stock),3) AS total FROM products_stock_backup;"
 ```
 
 > `total` harus sama dengan `total_stok` di Langkah 3.
@@ -74,7 +74,7 @@ mysql -u root pos_retail_db -e "SELECT COUNT(*) AS baris, ROUND(SUM(stock),3) AS
 
 ```bash
 cd BE
-go run ./cmd/backfill_purchase_package_id/
+sudo go run ./cmd/backfill_purchase_package_id/
 ```
 
 Hasil yang diharapkan: semua terisi, 0 dilewati.
@@ -90,7 +90,7 @@ hilang itu dari data `purchase_items` yang memang ada.
 
 ```bash
 cd BE
-go run ./cmd/backfill_missing_purchase_in/
+sudo go run ./cmd/backfill_missing_purchase_in/
 ```
 
 Hasil yang diharapkan (contoh): `Berhasil disisipkan 'in' : 23` (angka bisa beda).

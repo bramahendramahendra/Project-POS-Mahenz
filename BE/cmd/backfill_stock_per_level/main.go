@@ -22,12 +22,11 @@ import (
 	"math"
 	"sort"
 
+	"pos_api/cmd/internal/migrationdb"
 	model_product "pos_api/domain/product/model"
 
 	_ "github.com/go-sql-driver/mysql"
 )
-
-const dsn = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
 
 // toleransi selisih anchor-unit yang masih dianggap "efek truncation wajar"
 // dari bug lama, bukan indikasi ada masalah data lain.
@@ -56,6 +55,10 @@ type reportEntry struct {
 }
 
 func main() {
+	dsn, err := migrationdb.ResolveDSN()
+	if err != nil {
+		log.Fatalf("resolve DSN: %v", err)
+	}
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
@@ -422,9 +425,9 @@ func supplierReturnItemEvents(db *sql.DB, productID, returnID int, dir model_pro
 	defer rows.Close()
 
 	type raw struct {
-		qty    float64
-		unit   string
-		pkgID  sql.NullInt64
+		qty   float64
+		unit  string
+		pkgID sql.NullInt64
 	}
 	var raws []raw
 	for rows.Next() {
@@ -477,7 +480,7 @@ func expiryBatchEvents(db *sql.DB, productID, batchID int) ([]historyEvent, erro
 }
 
 func matchPackageByUnitName(db *sql.DB, packages []*model_product.ProductPackage, unitName string) (int, error) {
-	rows, err := db.Query(`SELECT pp.id, u.name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id IN (` + placeholders(len(packages)) + `)`, packageIDArgs(packages)...)
+	rows, err := db.Query(`SELECT pp.id, u.name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.id IN (`+placeholders(len(packages))+`)`, packageIDArgs(packages)...)
 	if err != nil {
 		return 0, err
 	}

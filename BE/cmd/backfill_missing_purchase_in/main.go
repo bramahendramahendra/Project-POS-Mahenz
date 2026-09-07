@@ -42,24 +42,13 @@ import (
 	"os"
 	"time"
 
+	"pos_api/cmd/internal/migrationdb"
 	product_repo "pos_api/domain/product/repo"
 
 	gmysql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
-
-// defaultDSN dipakai kalau env MIGRATION_DSN tidak diset (local WAMP, root
-// tanpa password). Di production, set MIGRATION_DSN dulu -- sama seperti
-// skrip backfill_stock_restore.
-const defaultDSN = "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
-
-func resolveDSN() string {
-	if v := os.Getenv("MIGRATION_DSN"); v != "" {
-		return v
-	}
-	return defaultDSN
-}
 
 // missingItem = satu baris purchase_items (PO active) yang belum punya baris
 // 'in' pasangannya di stock_mutations.
@@ -99,7 +88,11 @@ func main() {
 		}
 	}
 
-	db, err := gorm.Open(gmysql.Open(resolveDSN()), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	dsn, err := migrationdb.ResolveDSN()
+	if err != nil {
+		log.Fatalf("resolve DSN: %v", err)
+	}
+	db, err := gorm.Open(gmysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
