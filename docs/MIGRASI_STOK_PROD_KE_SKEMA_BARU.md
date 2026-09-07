@@ -33,7 +33,7 @@ Pastikan Backend (BE) **tidak sedang jalan**. Ini penting: kalau BE jalan, migra
 ### Langkah 2 — Backup Database (pengaman)
 
 ```bash
-mysqldump -u root pos_retail_db > backups/backup_sebelum_migrasi.sql
+sudo mysqldump -u root pos_retail_db > backups/backup_sebelum_migrasi.sql
 ```
 
 > Kalau ada yang salah, Anda bisa balik ke kondisi ini (lihat [Rollback](#rollback)).
@@ -43,7 +43,7 @@ mysqldump -u root pos_retail_db > backups/backup_sebelum_migrasi.sql
 Catat angka ini untuk dibandingkan nanti:
 
 ```bash
-mysql -u root pos_retail_db -e "SELECT COUNT(*) AS produk, ROUND(SUM(stock),3) AS total_stok FROM products;"
+sudo mysql -u root pos_retail_db -e "SELECT COUNT(*) AS produk, ROUND(SUM(stock),3) AS total_stok FROM products;"
 ```
 
 > Kalau `total_stok` = 0, berarti data belum ke-restore dengan benar — **STOP**, jangan lanjut.
