@@ -5,6 +5,9 @@ BE/vendor/
 BE/tmp/
 BE/.scannerwork/
 BE/logs/
+# Log buangan hasil menjalankan/menguji server di root BE (be_run*.log,
+# be_test_*.log, dsb) -- bukan log resmi aplikasi (itu di BE/logs/).
+BE/*.log
 
 # ========================
 # FE (Frontend - Node/Vite)

@@ -149,13 +149,16 @@ func TestComputeStockDelta_ReservedQtyExcludedFromPool(t *testing.T) {
 	}
 }
 
-// Skenario 6: produk dengan ref_package_id bercabang (celah #10) ditolak
-// diproses otomatis, bukan menebak jawaban.
-func TestComputeStockDelta_RejectBranchingChain(t *testing.T) {
+// Skenario 6: produk dengan dua satuan berfaktor konversi SAMA PERSIS (ambigu)
+// ditolak diproses otomatis, bukan menebak jawaban. (Revisi celah #10: yang
+// ditolak sekarang hanya ambiguitas faktor kembar, bukan sekadar percabangan.)
+func TestComputeStockDelta_RejectAmbiguousEqualFactor(t *testing.T) {
 	refQty1 := 1.0
+	// BotolA & BotolB dua-duanya 12 unit = 1 Kardus -> faktor identik 1/12.
+	// Tidak ada cara memutuskan "satuan terkecil" -> harus ditolak.
 	kardus := &ProductPackage{ID: 1, UnitID: 100, IsDefault: true, Qty: 1, Stock: 5}
-	botolA := &ProductPackage{ID: 2, UnitID: 101, RefPackageID: intPtr(1), Qty: 24, RefQty: &refQty1, Stock: 0}
-	botolB := &ProductPackage{ID: 3, UnitID: 102, RefPackageID: intPtr(1), Qty: 12, RefQty: &refQty1, Stock: 0} // sama-sama nunjuk Kardus (id 1) -> bercabang
+	botolA := &ProductPackage{ID: 2, UnitID: 101, RefPackageID: intPtr(1), Qty: 12, RefQty: &refQty1, Stock: 0}
+	botolB := &ProductPackage{ID: 3, UnitID: 102, RefPackageID: intPtr(1), Qty: 12, RefQty: &refQty1, Stock: 0}
 	packages := []*ProductPackage{kardus, botolA, botolB}
 
 	_, err := ComputeStockDelta(StockDeltaInput{
@@ -165,7 +168,101 @@ func TestComputeStockDelta_RejectBranchingChain(t *testing.T) {
 		Direction: StockOut,
 	})
 	if !errors.Is(err, ErrBranchingChain) {
-		t.Fatalf("harus ErrBranchingChain, dapat: %v", err)
+		t.Fatalf("faktor kembar harus ErrBranchingChain, dapat: %v", err)
+	}
+}
+
+// Skenario 6d: dua turunan berbeda yang sama-sama LEBIH KECIL dari anchor dan
+// menunjuk anchor langsung (kasus Kardus/Renteng/Sachet dari produk nyata).
+// Faktor berbeda (Sachet 1/200 < Renteng 1/20 < Kardus 1) -> tidak ambigu,
+// harus BISA diproses. Ini yang dulu keliru ditolak guard lama.
+func TestComputeStockDelta_TwoSmallerLeaves_DistinctFactor_Allowed(t *testing.T) {
+	refQty1 := 1.0
+	kardus := &ProductPackage{ID: 1, UnitID: 100, IsDefault: true, Qty: 1, Stock: 0}
+	renteng := &ProductPackage{ID: 2, UnitID: 101, RefPackageID: intPtr(1), Qty: 20, RefQty: &refQty1, Stock: 0} // 20 Renteng = 1 Kardus
+	sachet := &ProductPackage{ID: 3, UnitID: 102, RefPackageID: intPtr(1), Qty: 200, RefQty: &refQty1, Stock: 0} // 200 Sachet = 1 Kardus
+	packages := []*ProductPackage{kardus, renteng, sachet}
+
+	// Stok awal 1 Kardus = 200 Sachet. Jual 1 Sachet -> sisa 199 Sachet.
+	kardus.Stock = 1
+	result, err := ComputeStockDelta(StockDeltaInput{
+		Packages:  packages,
+		PackageID: 3, // Sachet
+		Quantity:  1,
+		Direction: StockOut,
+	})
+	if err != nil {
+		t.Fatalf("dua turunan faktor-beda harus bisa diproses, dapat error: %v", err)
+	}
+	applyUpdates(packages, result.Updates)
+
+	// Breakdown 199 Sachet, urut terbesar->terkecil:
+	// Kardus (200 sachet): floor(199/200)=0, sisa 199.
+	// Renteng (10 sachet): floor(199/10)=19 (190), sisa 9.
+	// Sachet (1): 9.
+	if !float64AlmostEqual(kardus.Stock, 0) {
+		t.Fatalf("Kardus harus 0, dapat %v", kardus.Stock)
+	}
+	if !float64AlmostEqual(renteng.Stock, 19) {
+		t.Fatalf("Renteng harus 19, dapat %v", renteng.Stock)
+	}
+	if !float64AlmostEqual(sachet.Stock, 9) {
+		t.Fatalf("Sachet harus 9, dapat %v", sachet.Stock)
+	}
+	// Total setara Kardus: 199/200.
+	if !float64AlmostEqual(result.StockAfterAnchor, 199.0/200.0) {
+		t.Fatalf("StockAfterAnchor harus 199/200, dapat %v", result.StockAfterAnchor)
+	}
+}
+
+// Skenario 6b: "star topology" yang VALID (kasus rokok Surya 12) -- anchor di
+// tengah rantai (Pack), dengan turunan lebih kecil (Batang) DAN lebih besar
+// (Slop) sama-sama menunjuk anchor. Meski dua paket menunjuk satu induk, ini
+// TIDAK ambigu karena hanya ada satu daun sejati (Batang) dan urutan faktornya
+// tunggal (Batang 1/12 < Pack 1 < Slop 10). Harus BISA diproses, bukan ditolak.
+func TestComputeStockDelta_StarTopology_AnchorInMiddle_Allowed(t *testing.T) {
+	// Pack = anchor (id 32). Batang: 12 Batang = 1 Pack (id 354).
+	// Slop: 1 Slop = 10 Pack (id 31). Batang & Slop dua-duanya ref ke Pack.
+	refBatang := 1.0 // 12 Batang = 1 Pack
+	refSlop := 10.0  // 1 Slop  = 10 Pack
+	pack := &ProductPackage{ID: 32, UnitID: 300, IsDefault: true, Qty: 1, Stock: 0}
+	batang := &ProductPackage{ID: 354, UnitID: 301, RefPackageID: intPtr(32), Qty: 12, RefQty: &refBatang, Stock: 0}
+	slop := &ProductPackage{ID: 31, UnitID: 302, RefPackageID: intPtr(32), Qty: 1, RefQty: &refSlop, Stock: 0}
+	packages := []*ProductPackage{pack, batang, slop}
+
+	// Set stok awal: 2 Pack + 2 Batang (Slop 0). Total di satuan terkecil (Batang):
+	// 2 Pack * 12 + 2 Batang = 26 Batang.
+	pack.Stock = 2
+	batang.Stock = 2
+
+	// Jual 1 Batang -> harus berhasil (tidak ErrBranchingChain), sisa 25 Batang.
+	result, err := ComputeStockDelta(StockDeltaInput{
+		Packages:  packages,
+		PackageID: 354, // Batang
+		Quantity:  1,
+		Direction: StockOut,
+	})
+	if err != nil {
+		t.Fatalf("star topology valid harus bisa diproses, dapat error: %v", err)
+	}
+	applyUpdates(packages, result.Updates)
+
+	// 25 Batang = 2 Slop? tidak. Breakdown terbesar->terkecil: Slop(120 batang) dulu,
+	// tak cukup utk 1 Slop (butuh 120), lalu Pack: floor(25/12)=2 Pack (24 batang),
+	// sisa 1 Batang. Jadi Slop=0, Pack=2, Batang=1.
+	if !float64AlmostEqual(slop.Stock, 0) {
+		t.Fatalf("Slop harus 0, dapat %v", slop.Stock)
+	}
+	if !float64AlmostEqual(pack.Stock, 2) {
+		t.Fatalf("Pack harus 2, dapat %v", pack.Stock)
+	}
+	if !float64AlmostEqual(batang.Stock, 1) {
+		t.Fatalf("Batang harus 1, dapat %v", batang.Stock)
+	}
+
+	// Total setara anchor (Pack) harus konsisten: 25 Batang = 25/12 Pack.
+	if !float64AlmostEqual(result.StockAfterAnchor, 25.0/12.0) {
+		t.Fatalf("StockAfterAnchor harus 25/12 Pack, dapat %v", result.StockAfterAnchor)
 	}
 }
 

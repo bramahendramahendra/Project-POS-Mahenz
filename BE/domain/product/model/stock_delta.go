@@ -22,7 +22,7 @@ const (
 
 var (
 	ErrInsufficientStock = errors.New("stok tidak mencukupi")
-	ErrBranchingChain    = errors.New("rantai satuan produk bercabang (ref_package_id tidak linear), tidak bisa diproses otomatis")
+	ErrBranchingChain    = errors.New("dua satuan produk punya faktor konversi sama persis (ambigu), tidak bisa diproses otomatis")
 	ErrNeedsStockReview  = errors.New("produk ini ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir")
 	ErrPackageNotFound   = errors.New("paket satuan tidak ditemukan pada produk ini")
 	ErrNoAnchorPackage   = errors.New("produk tidak punya baris satuan anchor (is_default)")
@@ -66,16 +66,19 @@ type StockDeltaResult struct {
 
 // ComputeStockDelta menghitung perubahan stok lintas-level untuk satu
 // transaksi (Aturan Operasional #3, #4, #5, #6, #7 di dokumen desain):
-//   1. Tolak total kalau produk ditandai needs_stock_review (celah #20).
-//   2. Tolak total kalau rantai ref_package_id bercabang, bukan linear (celah #10).
-//   3. Kurangi reserved_qty dulu dari pool yang boleh dipakai (celah #13).
-//   4. Turunkan semua level ke total di satuan terkecil (integer, kecuali
-//      level kontinu di posisi terkecil boleh desimal) -- Aturan #4.
-//   5. Faktor konversi SELALU dihitung ulang fresh dari qty/ref_qty (lewat
-//      ResolvePackageFactor), TIDAK PERNAH membaca nilai tersimpan yang
-//      berpotensi sudah dibulatkan -- ini yang menutup celah #21 (drift saat
-//      void) sekaligus bug precision utama yang jadi alasan seluruh rencana
-//      ini (docs/RENCANA_PERBAIKAN_STOK_PRESISI.md bagian "Masalah").
+//  1. Tolak total kalau produk ditandai needs_stock_review (celah #20).
+//  2. Tolak total HANYA kalau ada dua satuan berfaktor konversi sama persis
+//     (ambigu). Struktur bercabang yang faktornya berbeda (mis. anchor di
+//     tengah, atau beberapa turunan langsung menunjuk anchor) tetap diproses
+//     karena bisa diurutkan unik berdasarkan faktor (celah #10 -- revisi).
+//  3. Kurangi reserved_qty dulu dari pool yang boleh dipakai (celah #13).
+//  4. Turunkan semua level ke total di satuan terkecil (integer, kecuali
+//     level kontinu di posisi terkecil boleh desimal) -- Aturan #4.
+//  5. Faktor konversi SELALU dihitung ulang fresh dari qty/ref_qty (lewat
+//     ResolvePackageFactor), TIDAK PERNAH membaca nilai tersimpan yang
+//     berpotensi sudah dibulatkan -- ini yang menutup celah #21 (drift saat
+//     void) sekaligus bug precision utama yang jadi alasan seluruh rencana
+//     ini (docs/RENCANA_PERBAIKAN_STOK_PRESISI.md bagian "Masalah").
 func ComputeStockDelta(in StockDeltaInput) (*StockDeltaResult, error) {
 	if in.NeedsStockReview {
 		return nil, ErrNeedsStockReview
@@ -197,24 +200,19 @@ func ComputeStockDelta(in StockDeltaInput) (*StockDeltaResult, error) {
 // dan ComputeStockSummary (jalur baca, Fase 5) supaya logika "apa itu
 // anchor/leaf/faktor" cuma ada satu tempat.
 func analyzePackageChain(packages []*ProductPackage) (anchor, smallest *ProductPackage, factorToAnchor map[int]float64, err error) {
-	childCount := make(map[int]int)
 	for _, p := range packages {
 		if p.IsDefault {
 			anchor = p
-		}
-		if p.RefPackageID != nil {
-			childCount[*p.RefPackageID]++
 		}
 	}
 	if anchor == nil {
 		return nil, nil, nil, ErrNoAnchorPackage
 	}
-	for _, count := range childCount {
-		if count > 1 {
-			return nil, nil, nil, ErrBranchingChain
-		}
-	}
 
+	// Hitung faktor konversi tiap paket ke anchor (fresh dari qty/ref_qty,
+	// bukan nilai tersimpan). Karena tiap paket cuma punya satu ref_package_id
+	// (satu induk), rantai selalu berbentuk pohon -- ResolvePackageFactor juga
+	// sudah menolak siklus.
 	factorToAnchor = make(map[int]float64, len(packages))
 	for _, p := range packages {
 		f, ferr := ResolvePackageFactor(packages, p.ID)
@@ -224,16 +222,48 @@ func analyzePackageChain(packages []*ProductPackage) (anchor, smallest *ProductP
 		factorToAnchor[p.ID] = f
 	}
 
-	isParent := make(map[int]bool, len(packages))
-	for _, p := range packages {
-		if p.RefPackageID != nil {
-			isParent[*p.RefPackageID] = true
+	// Guard ambiguitas (pengganti guard "percabangan" lama yang terlalu ketat).
+	//
+	// Kenapa guard lama dilonggarkan: breakdown stok (ComputeStockDelta) hanya
+	// butuh SATU urutan satuan dari terkecil ke terbesar berdasarkan faktor
+	// konversi -- ia TIDAK peduli bentuk pohonnya bercabang atau lurus. Contoh
+	// yang valid & umum di retail:
+	//   - Surya 12 : anchor Pack; Batang(1/12) & Slop(10) sama-sama ref ke Pack.
+	//   - Kardus/Renteng/Sachet : anchor Kardus; Renteng(1/20) & Sachet(1/200)
+	//     dua-duanya ref ke Kardus (dua turunan lebih kecil dari anchor).
+	// Semua ini punya faktor yang BERBEDA, jadi tetap bisa diurutkan unik dan
+	// dipecah deterministik. Guard lama ("ada induk dengan >1 anak") salah
+	// menolaknya.
+	//
+	// Yang BENAR-BENAR ambigu (dan tetap ditolak): dua paket dengan faktor
+	// konversi SAMA PERSIS -- mis. dua satuan berbeda yang dua-duanya "= 3
+	// Pieces". Di situ pemilihan "satuan terkecil" jadi tidak deterministik dan
+	// pemecahan stok tidak punya jawaban tunggal. Pakai epsilon relatif untuk
+	// perbandingan float supaya rasio non-terminating (mis. 1/3) tidak salah
+	// dianggap kembar/berbeda karena galat pembulatan.
+	for i := 0; i < len(packages); i++ {
+		for j := i + 1; j < len(packages); j++ {
+			fi := factorToAnchor[packages[i].ID]
+			fj := factorToAnchor[packages[j].ID]
+			scale := math.Max(math.Abs(fi), math.Abs(fj))
+			if scale < 1 {
+				scale = 1
+			}
+			if math.Abs(fi-fj) <= 1e-9*scale {
+				return nil, nil, nil, ErrBranchingChain
+			}
 		}
 	}
+
+	// Satuan terkecil = paket dengan faktor-ke-anchor TERKECIL. Ini definisi yang
+	// benar secara matematis: smallestFactor dipakai sebagai pembagi
+	// unitsPerSmallest, jadi harus yang paling kecil supaya semua
+	// unitsPerSmallest >= 1. Berbasis faktor (bukan "paket yang bukan induk")
+	// membuatnya tidak bergantung urutan baris data & benar untuk anchor yang
+	// berada di tengah rantai.
 	for _, p := range packages {
-		if !isParent[p.ID] {
+		if smallest == nil || factorToAnchor[p.ID] < factorToAnchor[smallest.ID] {
 			smallest = p
-			break
 		}
 	}
 	if smallest == nil {
