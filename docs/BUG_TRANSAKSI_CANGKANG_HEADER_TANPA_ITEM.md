@@ -177,7 +177,7 @@ berhasil atau semua gagal.
 
 ### 6.2 Pembersihan data — SUDAH dijalankan di LOKAL (mirror production)
 
-Skrip: `backups/cleanup_transaksi_cangkang_20260913.sql`. Semua verifikasi lulus:
+Skrip: `BE/database/oneoff/cleanup_transaksi_cangkang_20260913.sql`. Semua verifikasi lulus:
 
 - 545, 635, 636 → status `void`.
 - Tidak ada cangkang `completed` tersisa (audit Pola 1 = 0).
@@ -192,8 +192,10 @@ Skrip: `backups/cleanup_transaksi_cangkang_20260913.sql`. Semua verifikasi lulus
    munculnya cangkang baru.
 2. **Backup DB production** sebelum pembersihan, mis.:
    `mysqldump -u <user> -p pos_retail_db > backups/pos_retail_db_before_cleanup_cangkang_20260913.sql`
-3. **Jalankan** `backups/cleanup_transaksi_cangkang_20260913.sql` terhadap DB
-   production. Skrip berjalan dalam satu transaksi dan menampilkan verifikasi
+3. **Jalankan** `BE/database/oneoff/cleanup_transaksi_cangkang_20260913.sql`
+   terhadap DB production (manual, lewat klien MySQL — TIDAK auto-run saat boot BE,
+   karena runner migrasi hanya membaca folder `database/migrations/`).
+   Skrip berjalan dalam satu transaksi dan menampilkan verifikasi
    sebelum `COMMIT`. Jika muncul baris "VERIFIKASI GAGAL", ganti `COMMIT;` di
    akhir file menjadi `ROLLBACK;` lalu investigasi.
    - Catatan: id 545/635/636 dan angka drawer 21 (1.120.501) sudah dicek identik

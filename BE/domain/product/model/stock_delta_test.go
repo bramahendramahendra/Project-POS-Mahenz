@@ -18,6 +18,64 @@ func kardusBotolChain(kardusStock, kardusReserved, botolStock, botolReserved flo
 
 func intPtr(v int) *int { return &v }
 
+// Regression untuk produk "Telur" (id 83, TEL-0001) di production: struktur
+// satuan nyata dengan Krak (anchor) dan Kilogram SAMA persis ("1 Krak = 1
+// Kilogram", faktor kembar = 1). Dulu ditolak ErrBranchingChain sehingga menu
+// Rekonsiliasi Stok & operasi stok lain memblokir produk ini. Sekarang harus
+// BISA diproses karena dua satuan berfaktor sama = alias.
+func eggPackages() []*ProductPackage {
+	ref1 := 1.0
+	// 139 Krak (anchor), factor 1
+	krak := &ProductPackage{ID: 139, UnitID: 20, IsDefault: true, Qty: 1}
+	// 140 Kilogram: 1 Kilogram = 1 Krak -> factor 1 (KEMBAR dengan Krak)
+	kilogram := &ProductPackage{ID: 140, UnitID: 3, RefPackageID: intPtr(139), Qty: 1, RefQty: &ref1}
+	// 160 Gram (Setengah Kilo): 2 Gram = 1 Kilogram -> factor 0.5
+	gram160 := &ProductPackage{ID: 160, UnitID: 21, RefPackageID: intPtr(140), Qty: 2, RefQty: &ref1}
+	// 161 Gram (Seperempat): 4 Gram = 1 Kilogram -> factor 0.25
+	gram161 := &ProductPackage{ID: 161, UnitID: 21, RefPackageID: intPtr(140), Qty: 4, RefQty: &ref1}
+	// 141 Pieces: 4 Pieces = 1 Gram(161) -> factor 0.0625
+	pieces := &ProductPackage{ID: 141, UnitID: 1, RefPackageID: intPtr(161), Qty: 4, RefQty: &ref1}
+	return []*ProductPackage{krak, kilogram, gram160, gram161, pieces}
+}
+
+func TestComputeStockDelta_EggRealStructure_NotRejected(t *testing.T) {
+	packages := eggPackages()
+	// Set stok 3 Krak (anchor). Faktor terkecil = Pieces (0.0625), jadi
+	// 1 Krak = 1/0.0625 = 16 Pieces. 3 Krak = 48 Pieces.
+	packages[0].Stock = 3
+
+	// Jual 1 Krak -> tidak boleh ErrBranchingChain, sisa 2 Krak.
+	result, err := ComputeStockDelta(StockDeltaInput{
+		Packages:  packages,
+		PackageID: 139, // Krak
+		Quantity:  1,
+		Direction: StockOut,
+	})
+	if err != nil {
+		t.Fatalf("struktur Telur (Krak=Kilogram faktor kembar) harus BISA diproses, dapat: %v", err)
+	}
+	// Total di satuan anchor (Krak) harus tepat 2.
+	if !float64AlmostEqual(result.StockAfterAnchor, 2) {
+		t.Fatalf("StockAfterAnchor harus 2 Krak, dapat %v", result.StockAfterAnchor)
+	}
+}
+
+func TestComputeStockSummary_EggRealStructure_NotRejected(t *testing.T) {
+	packages := eggPackages()
+	for _, p := range packages {
+		p.IsActive = true
+	}
+	packages[0].Stock = 3 // 3 Krak
+
+	summary, err := ComputeStockSummary(packages, map[int]bool{}, 0)
+	if err != nil {
+		t.Fatalf("ComputeStockSummary utk Telur harus BISA, dapat: %v", err)
+	}
+	if !float64AlmostEqual(summary.AnchorStock, 3) {
+		t.Fatalf("AnchorStock harus 3 Krak, dapat %v", summary.AnchorStock)
+	}
+}
+
 func float64AlmostEqual(a, b float64) bool {
 	return math.Abs(a-b) < 1e-6
 }
@@ -149,26 +207,48 @@ func TestComputeStockDelta_ReservedQtyExcludedFromPool(t *testing.T) {
 	}
 }
 
-// Skenario 6: produk dengan dua satuan berfaktor konversi SAMA PERSIS (ambigu)
-// ditolak diproses otomatis, bukan menebak jawaban. (Revisi celah #10: yang
-// ditolak sekarang hanya ambiguitas faktor kembar, bukan sekadar percabangan.)
-func TestComputeStockDelta_RejectAmbiguousEqualFactor(t *testing.T) {
+// Skenario 6 (REVISI): dua satuan berfaktor konversi SAMA PERSIS (alias, mis.
+// "1 Krak = 1 Kilogram" pada Telur) TIDAK LAGI ditolak. Bagi toko dua satuan
+// berfaktor sama adalah nama berbeda untuk hal yang sama, jadi aman diproses:
+// total stok (di satuan anchor) selalu benar apa pun labelnya. Determinisme
+// distribusi per-baris dijamin tie-breaker berbasis ID paket.
+func TestComputeStockDelta_EqualFactorAlias_Allowed_Deterministic(t *testing.T) {
 	refQty1 := 1.0
-	// BotolA & BotolB dua-duanya 12 unit = 1 Kardus -> faktor identik 1/12.
-	// Tidak ada cara memutuskan "satuan terkecil" -> harus ditolak.
+	// BotolA & BotolB dua-duanya 12 unit = 1 Kardus -> faktor identik 1/12 (alias).
 	kardus := &ProductPackage{ID: 1, UnitID: 100, IsDefault: true, Qty: 1, Stock: 5}
 	botolA := &ProductPackage{ID: 2, UnitID: 101, RefPackageID: intPtr(1), Qty: 12, RefQty: &refQty1, Stock: 0}
 	botolB := &ProductPackage{ID: 3, UnitID: 102, RefPackageID: intPtr(1), Qty: 12, RefQty: &refQty1, Stock: 0}
 	packages := []*ProductPackage{kardus, botolA, botolB}
 
-	_, err := ComputeStockDelta(StockDeltaInput{
+	// Stok awal 5 Kardus = 60 Botol. Jual 1 BotolA -> sisa 59 Botol = 59/12 Kardus.
+	result, err := ComputeStockDelta(StockDeltaInput{
 		Packages:  packages,
-		PackageID: 2,
+		PackageID: 2, // BotolA
 		Quantity:  1,
 		Direction: StockOut,
 	})
-	if !errors.Is(err, ErrBranchingChain) {
-		t.Fatalf("faktor kembar harus ErrBranchingChain, dapat: %v", err)
+	if err != nil {
+		t.Fatalf("faktor kembar (alias) harus BISA diproses, dapat error: %v", err)
+	}
+	applyUpdates(packages, result.Updates)
+
+	// Breakdown 59 Botol, urut faktor terbesar->terkecil, tie-break ID TERBESAR
+	// dulu untuk yang kembar:
+	//   Kardus (12 botol): floor(59/12)=4 (48), sisa 11.
+	//   BotolB (id 3, kembar, ID lebih besar -> duluan): floor(11/1)=11, sisa 0.
+	//   BotolA (id 2): 0.
+	if !float64AlmostEqual(kardus.Stock, 4) {
+		t.Fatalf("Kardus harus 4, dapat %v", kardus.Stock)
+	}
+	if !float64AlmostEqual(botolB.Stock, 11) {
+		t.Fatalf("BotolB (ID terbesar) harus menampung sisa = 11, dapat %v", botolB.Stock)
+	}
+	if !float64AlmostEqual(botolA.Stock, 0) {
+		t.Fatalf("BotolA harus 0, dapat %v", botolA.Stock)
+	}
+	// Yang paling penting: total di satuan anchor selalu benar = 59/12.
+	if !float64AlmostEqual(result.StockAfterAnchor, 59.0/12.0) {
+		t.Fatalf("StockAfterAnchor harus 59/12, dapat %v", result.StockAfterAnchor)
 	}
 }
 

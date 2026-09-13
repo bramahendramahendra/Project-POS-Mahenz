@@ -22,11 +22,16 @@ const (
 
 var (
 	ErrInsufficientStock = errors.New("stok tidak mencukupi")
-	ErrBranchingChain    = errors.New("dua satuan produk punya faktor konversi sama persis (ambigu), tidak bisa diproses otomatis")
-	ErrNeedsStockReview  = errors.New("produk ini ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir")
-	ErrPackageNotFound   = errors.New("paket satuan tidak ditemukan pada produk ini")
-	ErrNoAnchorPackage   = errors.New("produk tidak punya baris satuan anchor (is_default)")
-	ErrNoPackages        = errors.New("produk tidak punya baris product_packages sama sekali")
+	// Dipertahankan untuk kompatibilitas wrapper error (WrapStockError dll) &
+	// jalur lain yang mungkin memakainya. CATATAN: analyzePackageChain TIDAK
+	// LAGI melempar error ini untuk faktor konversi kembar -- dua satuan
+	// berfaktor sama kini diperlakukan sebagai alias & diproses normal
+	// (deterministik lewat tie-break ID). Lihat komentar di analyzePackageChain.
+	ErrBranchingChain   = errors.New("dua satuan produk punya faktor konversi sama persis (ambigu), tidak bisa diproses otomatis")
+	ErrNeedsStockReview = errors.New("produk ini ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir")
+	ErrPackageNotFound  = errors.New("paket satuan tidak ditemukan pada produk ini")
+	ErrNoAnchorPackage  = errors.New("produk tidak punya baris satuan anchor (is_default)")
+	ErrNoPackages       = errors.New("produk tidak punya baris product_packages sama sekali")
 )
 
 // StockDeltaInput adalah input murni (in-memory) untuk satu operasi perubahan
@@ -150,8 +155,24 @@ func ComputeStockDelta(in StockDeltaInput) (*StockDeltaResult, error) {
 	// utuh di akhir supaya bagian yang ditahan retur tetap protected (celah #13).
 	ordered := make([]*ProductPackage, len(in.Packages))
 	copy(ordered, in.Packages)
+	// Urut dari faktor terbesar ke terkecil. Tie-breaker berbasis ID (paket ID
+	// terbesar didahulukan) supaya deterministik saat ada faktor KEMBAR (alias,
+	// mis. Krak & Kilogram pada Telur): tanpa tie-breaker, sort.Slice tidak
+	// stabil sehingga alias mana yang "menampung" stok bisa berpindah antar
+	// operasi (jual vs void). Total stok tetap benar tanpa ini, tapi tie-breaker
+	// menjaga baris tujuan stok konsisten.
+	const factorEqEps = 1e-9
 	sort.Slice(ordered, func(i, j int) bool {
-		return factorToAnchor[ordered[i].ID] > factorToAnchor[ordered[j].ID]
+		fi := factorToAnchor[ordered[i].ID]
+		fj := factorToAnchor[ordered[j].ID]
+		scale := math.Max(math.Abs(fi), math.Abs(fj))
+		if scale < 1 {
+			scale = 1
+		}
+		if math.Abs(fi-fj) <= factorEqEps*scale {
+			return ordered[i].ID > ordered[j].ID // faktor kembar -> tie-break stabil by ID
+		}
+		return fi > fj
 	})
 
 	remaining := freeSmallestAfter
@@ -222,48 +243,51 @@ func analyzePackageChain(packages []*ProductPackage) (anchor, smallest *ProductP
 		factorToAnchor[p.ID] = f
 	}
 
-	// Guard ambiguitas (pengganti guard "percabangan" lama yang terlalu ketat).
+	// Faktor konversi KEMBAR (dua satuan dengan faktor-ke-anchor sama persis)
+	// TIDAK LAGI ditolak. Alasannya: kalau dua satuan punya faktor identik,
+	// keduanya adalah "alias" satu sama lain (kasus nyata: Telur dengan
+	// "1 Krak = 1 Kilogram" -- bagi toko, Krak dan Kilogram memang satuan yang
+	// sama). Secara matematis ini AMAN karena unitsPerSmallest tiap paket
+	// dihitung dari factorToAnchor/smallestFactor; kalau ada faktor kembar,
+	// nilai smallestFactor identik siapa pun yang terpilih sebagai smallest,
+	// jadi hasil agregasi total stok (di satuan anchor) SELALU sama.
 	//
-	// Kenapa guard lama dilonggarkan: breakdown stok (ComputeStockDelta) hanya
-	// butuh SATU urutan satuan dari terkecil ke terbesar berdasarkan faktor
-	// konversi -- ia TIDAK peduli bentuk pohonnya bercabang atau lurus. Contoh
-	// yang valid & umum di retail:
-	//   - Surya 12 : anchor Pack; Batang(1/12) & Slop(10) sama-sama ref ke Pack.
-	//   - Kardus/Renteng/Sachet : anchor Kardus; Renteng(1/20) & Sachet(1/200)
-	//     dua-duanya ref ke Kardus (dua turunan lebih kecil dari anchor).
-	// Semua ini punya faktor yang BERBEDA, jadi tetap bisa diurutkan unik dan
-	// dipecah deterministik. Guard lama ("ada induk dengan >1 anak") salah
-	// menolaknya.
+	// Satu-satunya efek samping faktor kembar adalah distribusi stok per-baris
+	// bisa tidak deterministik saat dipecah ulang (semua stok bisa masuk ke
+	// salah satu alias, 0 di yang lain -- total tetap benar). Untuk membuatnya
+	// DETERMINISTIK (baris tujuan stok selalu konsisten antar-operasi, mis.
+	// jual lalu void tidak memindah stok antar-alias), kita pakai TIE-BREAKER
+	// stabil berbasis ID paket di pemilihan smallest (sini) dan di sort
+	// breakdown (ComputeStockDelta) -- lihat komentar di sana.
 	//
-	// Yang BENAR-BENAR ambigu (dan tetap ditolak): dua paket dengan faktor
-	// konversi SAMA PERSIS -- mis. dua satuan berbeda yang dua-duanya "= 3
-	// Pieces". Di situ pemilihan "satuan terkecil" jadi tidak deterministik dan
-	// pemecahan stok tidak punya jawaban tunggal. Pakai epsilon relatif untuk
-	// perbandingan float supaya rasio non-terminating (mis. 1/3) tidak salah
-	// dianggap kembar/berbeda karena galat pembulatan.
-	for i := 0; i < len(packages); i++ {
-		for j := i + 1; j < len(packages); j++ {
-			fi := factorToAnchor[packages[i].ID]
-			fj := factorToAnchor[packages[j].ID]
-			scale := math.Max(math.Abs(fi), math.Abs(fj))
-			if scale < 1 {
-				scale = 1
-			}
-			if math.Abs(fi-fj) <= 1e-9*scale {
-				return nil, nil, nil, ErrBranchingChain
-			}
-		}
-	}
+	// Catatan: guard "percabangan" lama (dua satuan ambigu -> ditolak total)
+	// dihapus karena breakdown stok hanya butuh SATU urutan satuan dari
+	// terkecil ke terbesar; struktur pohon yang bercabang tetap bisa diurut
+	// unik selama faktornya bisa diurutkan (dengan tie-breaker ID untuk yang
+	// kembar). Contoh valid: Surya 12 (Batang & Slop ref ke Pack),
+	// Kardus/Renteng/Sachet, dan alias faktor-kembar seperti Telur.
 
-	// Satuan terkecil = paket dengan faktor-ke-anchor TERKECIL. Ini definisi yang
-	// benar secara matematis: smallestFactor dipakai sebagai pembagi
-	// unitsPerSmallest, jadi harus yang paling kecil supaya semua
-	// unitsPerSmallest >= 1. Berbasis faktor (bukan "paket yang bukan induk")
-	// membuatnya tidak bergantung urutan baris data & benar untuk anchor yang
-	// berada di tengah rantai.
+	// Satuan terkecil = paket dengan faktor-ke-anchor TERKECIL. smallestFactor
+	// dipakai sebagai pembagi unitsPerSmallest, jadi harus yang paling kecil
+	// supaya semua unitsPerSmallest >= 1. Tie-breaker: kalau faktor sama persis
+	// (alias), pilih ID paket terkecil supaya deterministik & tidak bergantung
+	// urutan baris dari DB.
+	const factorEqEps = 1e-9
 	for _, p := range packages {
-		if smallest == nil || factorToAnchor[p.ID] < factorToAnchor[smallest.ID] {
+		if smallest == nil {
 			smallest = p
+			continue
+		}
+		fp := factorToAnchor[p.ID]
+		fs := factorToAnchor[smallest.ID]
+		scale := math.Max(math.Abs(fp), math.Abs(fs))
+		if scale < 1 {
+			scale = 1
+		}
+		if fp < fs-factorEqEps*scale {
+			smallest = p // faktor jelas lebih kecil
+		} else if math.Abs(fp-fs) <= factorEqEps*scale && p.ID < smallest.ID {
+			smallest = p // faktor kembar -> tie-break by ID terkecil
 		}
 	}
 	if smallest == nil {
