@@ -57,7 +57,7 @@ sudo mysql -u root -p
 ```
 
 ```sql
-CREATE DATABASE pos_retail_db_20260907 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE pos_retail_db_20260913 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- pos_user hanya punya privilege di pos_retail_db (lihat DEPLOYMENT_PROD.md §4) — tanpa GRANT ini,
 -- langkah import di bawah akan gagal "Access denied ... to database pos_retail_db_20260907"
@@ -71,10 +71,10 @@ CREATE DATABASE pos_retail_db_20260907 CHARACTER SET utf8mb4 COLLATE utf8mb4_uni
 SELECT user, host FROM mysql.user WHERE user = 'pos_user';
 
 -- Beri GRANT ke localhost (akses dari dalam server) ...
-GRANT ALL PRIVILEGES ON pos_retail_db_20260907.* TO 'pos_user'@'localhost';
+GRANT ALL PRIVILEGES ON pos_retail_db_20260913.* TO 'pos_user'@'localhost';
 -- ... dan ke '%' (akses remote / Navicat). Kalau host pos_user berupa IP tertentu, ganti '%'
 -- dengan IP tersebut. Kalau baris '%' tidak ada di hasil SELECT di atas, langkah ini boleh dilewati.
-GRANT ALL PRIVILEGES ON pos_retail_db_20260907.* TO 'pos_user'@'%';
+GRANT ALL PRIVILEGES ON pos_retail_db_20260913.* TO 'pos_user'@'%';
 FLUSH PRIVILEGES;
 
 -- Verifikasi kedua host sudah punya izin ke database baru
@@ -95,7 +95,7 @@ EXIT;
 # di kedua sisi pipe sekaligus, karena dua prompt password interaktif di terminal yang sama akan
 # saling tertukar/kececer (salah satu proses akan menerima password kosong, gagal "using password: NO")
 read -s -p "Password pos_user: " DBPASS && echo
-mysqldump -u pos_user -p"$DBPASS" --no-tablespaces pos_retail_db | mysql -u pos_user -p"$DBPASS" pos_retail_db_20260907
+mysqldump -u pos_user -p"$DBPASS" --no-tablespaces pos_retail_db | mysql -u pos_user -p"$DBPASS" pos_retail_db_20260913
 unset DBPASS
 ```
 
@@ -106,13 +106,13 @@ Verifikasi jumlah tabel di database baru sama dengan yang lama (angka keduanya h
 -- jalankan di prompt mysql untuk membandingkan langsung dalam satu query
 SELECT
   (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_db')          AS tabel_lama,
-  (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_db_20260907') AS tabel_baru;
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'pos_retail_db_20260913') AS tabel_baru;
 ```
 
 Dan pastikan `pos_user` benar-benar bisa mengakses database baru (bukan sekadar izinnya ada):
 ```bash
 # Harus keluar angka 1 tanpa error "Access denied"
-mysql -u pos_user -p pos_retail_db_20260907 -e "SELECT 1;"
+mysql -u pos_user -p pos_retail_db_20260913 -e "SELECT 1;"
 ```
 
 **Kenapa dump+import langsung lewat pipe, bukan lewat file `.sql` dulu?** Lebih cepat dan tidak perlu ruang disk ekstra untuk file perantara — cocok untuk database yang belum terlalu besar. Kalau database sudah besar (ratusan MB+) dan ingin ada file `.sql` fisik sebagai arsip tambahan juga, bisa gabungkan dengan pendekatan di [Backup Database](DEPLOYMENT_PROD.md#backup-database) (§12) terlebih dahulu, baru `mysql ... < file.sql` ke database baru.
