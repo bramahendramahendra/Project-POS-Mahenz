@@ -18,34 +18,29 @@ import (
 )
 
 const (
-	generateReturnCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(return_code, '-', -1) AS UNSIGNED)), 0) FROM supplier_returns WHERE DATE(return_date) = ?`
-	createReturnQuery       = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
-	// package_id diisi dari purchase_items.package_id lewat purchase_item_id
-	// (celah #14) -- FE tidak perlu diubah, purchase_item_id sudah dikirim.
-	createReturnItemQuery      = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, package_id, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	updateReturnStatusQuery    = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
-	approveReturnStatusQuery   = `UPDATE supplier_returns SET status = 'approved', updated_at = NOW() WHERE id = ?`
-	reservePackageStockQuery   = `UPDATE product_packages SET reserved_qty = reserved_qty + ?, updated_at = NOW() WHERE id = ?`
-	releasePackageStockQuery   = `UPDATE product_packages SET reserved_qty = GREATEST(reserved_qty - ?, 0), updated_at = NOW() WHERE id = ?`
+	generateReturnCodeQuery           = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(return_code, '-', -1) AS UNSIGNED)), 0) FROM supplier_returns WHERE DATE(return_date) = ?`
+	createReturnQuery                 = `INSERT INTO supplier_returns (return_code, purchase_id, supplier_id, supplier_name, return_date, total_return_amount, reason, status, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+	createReturnItemQuery             = `INSERT INTO supplier_return_items (return_id, purchase_item_id, product_id, product_name, package_id, quantity, unit, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	updateReturnStatusQuery           = `UPDATE supplier_returns SET status = ?, notes = ?, updated_at = NOW() WHERE id = ?`
+	approveReturnStatusQuery          = `UPDATE supplier_returns SET status = 'approved', updated_at = NOW() WHERE id = ?`
+	reservePackageStockQuery          = `UPDATE product_packages SET reserved_qty = reserved_qty + ?, updated_at = NOW() WHERE id = ?`
+	releasePackageStockQuery          = `UPDATE product_packages SET reserved_qty = GREATEST(reserved_qty - ?, 0), updated_at = NOW() WHERE id = ?`
 	getPackageIDFromPurchaseItemQuery = `SELECT package_id FROM purchase_items WHERE id = ?`
-	getReturnItemsQuery         = `SELECT sri.id, sri.product_id, sri.product_name, sri.package_id, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
-	checkReturnApprovedQuery    = `SELECT status FROM supplier_returns WHERE id = ?`
-	getPurchaseIDAndAmountQuery = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
-	reducePurchaseDebtQuery     = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getReturnByIDQuery          = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
-	getAllReturnsBase           = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
-	countReturnsBase            = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
-	getPurchaseDateQuery        = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
-	getPurchaseStatusQuery      = `SELECT status FROM purchases WHERE id = ? LIMIT 1`
-	getPurchaseItemQtyQuery     = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
-	getTotalReturnedQtyQuery    = `SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = ? AND sr.status IN ('pending', 'approved')`
-	deleteReturnItemsQuery      = `DELETE FROM supplier_return_items WHERE return_id = ?`
-	deleteReturnQuery           = `DELETE FROM supplier_returns WHERE id = ?`
+	getReturnItemsQuery               = `SELECT sri.id, sri.product_id, sri.product_name, sri.package_id, sri.quantity, sri.unit, sri.purchase_price, sri.subtotal FROM supplier_return_items sri WHERE sri.return_id = ?`
+	checkReturnApprovedQuery          = `SELECT status FROM supplier_returns WHERE id = ?`
+	getPurchaseIDAndAmountQuery       = `SELECT purchase_id, total_return_amount FROM supplier_returns WHERE id = ?`
+	reducePurchaseDebtQuery           = `UPDATE purchases SET remaining_amount = GREATEST(remaining_amount - ?, 0), payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getReturnByIDQuery                = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE sr.id = ?`
+	getAllReturnsBase                 = `SELECT sr.id, sr.return_code, sr.purchase_id, sr.supplier_id, sr.supplier_name, sr.return_date, sr.total_return_amount, sr.reason, sr.status, u.full_name as user_name, sr.notes FROM supplier_returns sr LEFT JOIN users u ON sr.user_id = u.id WHERE 1=1`
+	countReturnsBase                  = `SELECT COUNT(*) FROM supplier_returns sr WHERE 1=1`
+	getPurchaseDateQuery              = `SELECT purchase_date FROM purchases WHERE id = ? LIMIT 1`
+	getPurchaseStatusQuery            = `SELECT status FROM purchases WHERE id = ? LIMIT 1`
+	getPurchaseItemQtyQuery           = `SELECT quantity FROM purchase_items WHERE id = ? AND purchase_id = ? LIMIT 1 FOR UPDATE`
+	getTotalReturnedQtyQuery          = `SELECT COALESCE(SUM(sri.quantity), 0) FROM supplier_return_items sri JOIN supplier_returns sr ON sri.return_id = sr.id WHERE sri.purchase_item_id = ? AND sr.status IN ('pending', 'approved')`
+	deleteReturnItemsQuery            = `DELETE FROM supplier_return_items WHERE return_id = ?`
+	deleteReturnQuery                 = `DELETE FROM supplier_returns WHERE id = ?`
 )
 
-// resolveReturnItemPackageID mengisi celah #14: kalau supplier_return_items
-// lama belum punya package_id (data sebelum migrasi), cari dari
-// purchase_items.package_id lewat purchase_item_id sebagai fallback.
 func resolveReturnItemPackageID(tx *gorm.DB, item model.SupplierReturnItem) (int, error) {
 	if item.PackageID != nil && *item.PackageID > 0 {
 		return *item.PackageID, nil
@@ -168,9 +163,6 @@ func isDuplicateReturnCodeError(err error) bool {
 }
 
 func (r *supplierReturnRepo) Create(req *dto.CreateSupplierReturnRequest) (*model.SupplierReturnRow, error) {
-	// GET_LOCK per tanggal -- lihat komentar panjang di transaction_repo.go's
-	// createOnce(): retry-on-duplicate-key SENDIRIAN terbukti nyata belum cukup
-	// di bawah 2 request yang benar-benar konkuren.
 	lockName := fmt.Sprintf("returncode:%s", time_helper.GetTimeNow().Format("2006-01-02"))
 
 	const maxCodeRetries = 5
@@ -239,10 +231,6 @@ func (r *supplierReturnRepo) createOnce(conn *gorm.DB, req *dto.CreateSupplierRe
 
 			sisaQty := purchaseQty - alreadyReturned
 			if item.Quantity > sisaQty {
-				// strconv.FormatFloat(..., -1, ...) -- BUKAN %.0f -- supaya sisa pecahan
-				// (mis. satuan kontinu seperti Kilogram) tampil apa adanya (0.5), bukan
-				// dibulatkan ke 0 di pesan errornya (meski validasi angkanya sendiri sudah
-				// benar, pesannya jadi menyesatkan / kelihatan seperti sisa 0 padahal bukan).
 				return &custom_errors.BadRequestError{
 					Message: fmt.Sprintf("Jumlah retur %s melebihi sisa yang bisa diretur (maks %s)", item.ProductName, strconv.FormatFloat(sisaQty, 'f', -1, 64)),
 				}
@@ -270,9 +258,6 @@ func (r *supplierReturnRepo) createOnce(conn *gorm.DB, req *dto.CreateSupplierRe
 				return err
 			}
 
-			// Reserve di level PACKAGE (bukan lagi products.reserved_qty) --
-			// supaya bagian yang ditahan retur ini tidak ikut kepakai/kepinjam
-			// jalur lain (celah #7/#13).
 			if err = tx.Exec(reservePackageStockQuery, item.Quantity, *packageID).Error; err != nil {
 				return err
 			}
@@ -312,11 +297,6 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 				return err
 			}
 
-			// Lepas reservasi DULU, baru kurangi stok. ApplyStockDelta
-			// menghitung pool "boleh dipakai" = stock - reserved_qty --
-			// kalau reservasi belum dilepas, qty yang mau dikurangi ini
-			// masih dianggap "ditahan" dan akan DITOLAK sebagai stok tidak
-			// cukup, padahal justru inilah stok yang mau dikonsumsi retur.
 			if err := tx.Exec(releasePackageStockQuery, item.Quantity, packageID).Error; err != nil {
 				return err
 			}
@@ -351,8 +331,6 @@ func (r *supplierReturnRepo) ApproveWithStockReduction(id int, userID int) error
 	return err
 }
 
-// ReleaseReservedStock melepas reserved_qty yang dibuat saat retur ini dibuat (status pending),
-// dipanggil saat retur ditolak (rejected) atau dihapus, tanpa mengubah stock fisik.
 func (r *supplierReturnRepo) ReleaseReservedStock(id int) error {
 	items, err := r.GetItems(id)
 	if err != nil {

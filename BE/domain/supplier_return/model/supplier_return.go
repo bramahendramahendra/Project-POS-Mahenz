@@ -18,7 +18,6 @@ type SupplierReturn struct {
 	UpdatedAt         *time.Time `db:"updated_at"`
 }
 
-// SupplierReturnRow is the result of a join query (includes user_name, items).
 type SupplierReturnRow struct {
 	ID                int                  `gorm:"column:id"`
 	ReturnCode        string               `gorm:"column:return_code"`

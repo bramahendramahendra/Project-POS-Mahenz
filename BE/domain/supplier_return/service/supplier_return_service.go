@@ -91,10 +91,6 @@ func (s *supplierReturnService) Create(req *dto.CreateSupplierReturnRequest) (da
 		return data, &errors.NotFoundError{Message: "Purchase order tidak ditemukan"}
 	}
 
-	// PO yang sudah di-void dianggap tidak pernah terjadi secara resmi (stoknya sudah
-	// dikembalikan saat void) — retur terhadap PO seperti itu tidak masuk akal dan bisa
-	// bikin ApproveWithStockReduction() mengurangi stok yang sebenarnya tidak lagi
-	// berasal dari PO ini.
 	purchaseStatus, err := s.repo.GetPurchaseStatus(req.PurchaseID)
 	if err != nil {
 		return data, err

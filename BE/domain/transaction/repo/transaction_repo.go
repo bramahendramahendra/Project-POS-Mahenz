@@ -205,46 +205,57 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 		prefix = "POS"
 	}
 
-	// Retry-on-duplicate-key SENDIRIAN ternyata tidak cukup di sini: dites nyata
-	// dengan 2 request BENAR-BENAR konkuren (2 goroutine terpisah), retry-nya jalan
-	// tapi SELECT MAX() di setiap percobaan retry masih membaca angka yang sama
-	// persis berkali-kali (rows:0 x5 dengan kode identik) -- goroutine kedua tidak
-	// langsung melihat commit dari goroutine pertama meski secara teori seharusnya
-	// sudah ter-commit duluan. Makanya generate kode + insert sekarang diserialkan
-	// pakai MySQL named lock (GET_LOCK/RELEASE_LOCK, scoped per tanggal+device_source)
-	// di SATU koneksi terkunci (r.db.Connection) -- ini menghilangkan race di
-	// sumbernya, bukan cuma mencoba lagi setelah tabrakan. Retry-on-duplicate di
-	// Create() tetap dipertahankan sebagai lapis kedua (mis. kalau GET_LOCK timeout).
+	// ATOMICITY (bug transaksi cangkang / header tanpa item):
+	// SEBELUMNYA generate kode + insert header dijalankan lewat r.db.Connection(...),
+	// yang di GORM v1.31.1 (finisher_api.go: sqlDB.Conn) MENGAMBIL KONEKSI BARU dari
+	// pool -- BUKAN koneksi transaksi (tx) yang dibungkus transaction_service.go.
+	// Akibatnya insert header jalan di koneksi terpisah mode autocommit dan langsung
+	// ter-commit sendiri; ketika insert item / ApplyStockDelta di bawah gagal dan
+	// service me-rollback tx, header sudah terlanjur committed dan TIDAK ikut
+	// rollback -> tersisa header tanpa item ("cangkang"). Lihat
+	// docs/BUG_TRANSAKSI_CANGKANG_HEADER_TANPA_ITEM.md.
+	//
+	// PERBAIKAN: jalankan GET_LOCK + generate kode + insert header lewat r.db yang
+	// SAMA dengan sisa alur (di dalam service, r.db == tx dari WithTx(tx)). Dengan
+	// begitu header berada dalam transaksi yang sama -> kalau item gagal, header
+	// ikut rollback. Karena tx GORM terikat ke satu koneksi tunggal, GET_LOCK dan
+	// RELEASE_LOCK tetap berada di koneksi yang sama (syarat named lock MySQL).
+	// Named lock (scoped per tanggal+device_source) tetap menyerialkan generate
+	// nomor urut untuk mencegah race, dan retry-on-duplicate di Create() tetap
+	// dipertahankan sebagai lapis kedua (mis. kalau GET_LOCK timeout).
 	lockName := fmt.Sprintf("txcode:%s:%s", time_helper.ToSQLDate(now), req.DeviceSource)
 	var code string
 	var transactionID int
-	if err := r.db.Connection(func(conn *gorm.DB) error {
-		var locked int
-		if err := conn.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
-			return err
-		}
-		if locked != 1 {
-			return fmt.Errorf("gagal mendapatkan lock generate kode transaksi (timeout)")
-		}
-		defer conn.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
 
-		var count int
-		if err := conn.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
-			return err
-		}
-		code = fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
+	var locked int
+	if err := r.db.Raw(`SELECT GET_LOCK(?, 5)`, lockName).Scan(&locked).Error; err != nil {
+		return nil, err
+	}
+	if locked != 1 {
+		return nil, fmt.Errorf("gagal mendapatkan lock generate kode transaksi (timeout)")
+	}
+	// Lepas lock di koneksi yang sama saat createOnce selesai (baik sukses maupun
+	// error). Saat tx akhirnya commit/rollback koneksi dikembalikan ke pool; MySQL
+	// juga otomatis melepas named lock ketika sesi berakhir, tapi kita lepas
+	// eksplisit supaya koneksi yang dipakai ulang dari pool tidak menahan lock.
+	defer r.db.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
 
-		if err := conn.Exec(createTransactionQuery,
-			code, userID, req.ShiftID, now,
-			req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
-			req.PaymentMethod, req.PaymentAmount, req.ChangeAmount, req.BalanceUsed,
-			req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
-		).Error; err != nil {
-			return err
-		}
+	var count int
+	if err := r.db.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
+		return nil, err
+	}
+	code = fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
 
-		return conn.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error
-	}); err != nil {
+	if err := r.db.Exec(createTransactionQuery,
+		code, userID, req.ShiftID, now,
+		req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
+		req.PaymentMethod, req.PaymentAmount, req.ChangeAmount, req.BalanceUsed,
+		req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
+	).Error; err != nil {
+		return nil, err
+	}
+
+	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&transactionID).Error; err != nil {
 		return nil, err
 	}
 

@@ -34,19 +34,11 @@ type (
 		PurchaseCode string `json:"purchase_code"`
 	}
 
-	// ExpiryBatchDraft: satu baris rincian tanggal expired untuk sebagian qty item PO.
-	// Opsional — dikirim hanya kalau staf mencentang "Produk ini ada tanggal expired".
-	// Total Qty di semua baris untuk 1 item harus persis sama dengan PurchaseRequest.Quantity
-	// (dicek di service, bukan lewat tag validate karena butuh baca field lain).
 	ExpiryBatchDraft struct {
 		Qty         float64 `json:"qty" validate:"required,gt=0"`
 		ExpiredDate string  `json:"expired_date" validate:"required"`
 	}
 
-	// PackageID: id product_packages yang dipilih user (mis. "Slop (Lama)" vs "Slop
-	// (Baru)"). Kalau diisi, conversion_qty dihitung ulang di server dari sini —
-	// ConversionQty yang dikirim klien cuma dipakai sebagai fallback kalau PackageID
-	// kosong (mis. baris lama sebelum redesain ini).
 	PurchaseRequest struct {
 		ProductID     int                `json:"product_id" validate:"required,gt=0"`
 		PackageID     *int               `json:"package_id"`

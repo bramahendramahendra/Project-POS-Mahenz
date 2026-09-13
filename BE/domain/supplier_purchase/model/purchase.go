@@ -20,7 +20,6 @@ type Purchase struct {
 	UpdatedAt       *time.Time `db:"updated_at"`
 }
 
-// PurchaseRow is the result of a join query (includes supplier_name, user_name).
 type PurchaseRow struct {
 	ID              int
 	PurchaseCode    string

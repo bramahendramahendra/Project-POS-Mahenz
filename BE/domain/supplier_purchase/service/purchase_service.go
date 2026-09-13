@@ -12,9 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// mapExpiryBatches mengubah rincian batch expired dari model repo ke bentuk response —
-// dipakai di 4 tempat (GetByID, Create, Update, AddItems) yang sama-sama membangun
-// PurchaseItemResponse dari model.PurchaseItem.
 func mapExpiryBatches(batches []model.PurchaseItemExpiryBatch) []dto.PurchaseItemExpiryBatchResponse {
 	if len(batches) == 0 {
 		return nil
@@ -29,10 +26,6 @@ func mapExpiryBatches(batches []model.PurchaseItemExpiryBatch) []dto.PurchaseIte
 	return result
 }
 
-// validateExpiryBatches memastikan, untuk tiap item PO yang mencentang "ada tanggal
-// expired", total qty di rincian batch-nya persis sama dengan qty item itu sendiri —
-// tidak boleh kurang/lebih. Toleransi kecil dipakai karena qty desimal (satuan
-// grosir/pecahan) supaya tidak salah tolak akibat pembulatan floating point.
 func validateExpiryBatches(items []dto.PurchaseRequest) error {
 	const epsilon = 0.0001
 	for i, item := range items {
@@ -53,9 +46,6 @@ func validateExpiryBatches(items []dto.PurchaseRequest) error {
 	return nil
 }
 
-// validateDuplicateProducts menolak PO yang memilih produk + satuan (package) yang sama
-// di lebih dari satu baris item. Produk yang sama BOLEH muncul berkali-kali selama
-// package_id-nya berbeda (contoh: beli 2 Slop + 5 Pack rokok yang sama dalam 1 nota).
 func validateDuplicateProducts(items []dto.PurchaseRequest) error {
 	type key struct {
 		productID int
@@ -78,10 +68,6 @@ func validateDuplicateProducts(items []dto.PurchaseRequest) error {
 	return nil
 }
 
-// validateDiscountAmount menolak diskon yang lebih besar dari subtotal — tanpa ini,
-// calculateTotal() meng-clamp total_amount ke 0 secara diam-diam sementara
-// discount_amount & payment_status tetap tersimpan apa adanya, menghasilkan data PO
-// yang tidak konsisten (mis. remaining_amount 0 tapi payment_status masih "unpaid").
 func validateDiscountAmount(items []dto.PurchaseRequest, discountAmount float64) error {
 	var subtotal float64
 	for _, item := range items {
@@ -244,13 +230,6 @@ func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseRespo
 	return data, nil
 }
 
-// Update mengedit PO di status pembayaran manapun (unpaid/partial/paid) — tidak lagi
-// disyaratkan paid_amount = 0. Karena item/qty/harga tetap bisa diedit bebas
-// (termasuk pada PO yang sudah ada pembayaran), payment_status akhir TIDAK lagi
-// dipercaya dari req.PaymentStatus — dihitung ulang murni dari total baru vs
-// paid_amount (lihat repo.Update()), supaya PO yang tadinya "Lunas" otomatis balik
-// jadi "Bayar Sebagian" kalau total naik, dan supaya total tidak bisa turun sampai
-// di bawah yang sudah dibayar (validasi ada di repo, sebelum mutasi apapun dieksekusi).
 func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseResponse, err error) {
 	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {
@@ -326,13 +305,6 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	return data, nil
 }
 
-// Delete menghapus PO permanen dari sistem — hanya boleh untuk PO yang sudah
-// di-void terlebih dahulu (Void mengembalikan stok & tetap menyisakan jejak audit;
-// Delete membersihkan total termasuk jejak itu). Alur wajib: Void dulu, baru Hapus.
-// Sengaja TIDAK lagi mengecek paid_amount di sini — Void boleh dipanggil pada PO yang
-// sudah dibayar (unpaid/partial/paid), dan paid_amount-nya sengaja dipertahankan
-// sebagai histori (lihat purchase_service.go Void). Status "void" saja sudah cukup
-// jadi syarat, karena PO cuma bisa mencapai status itu lewat aturan Void() sendiri.
 func (s *purchaseService) Delete(id int) error {
 	exists, err := s.repo.GetRawByID(id)
 	if err != nil {
@@ -377,12 +349,6 @@ func (s *purchaseService) Pay(req *dto.PayRequest) error {
 	return s.repo.Pay(req)
 }
 
-// Void membatalkan PO di status pembayaran manapun (unpaid/partial/paid) — tidak lagi
-// disyaratkan paid_amount = 0. Kalau PO sudah pernah dibayar, uang itu TIDAK otomatis
-// di-refund oleh sistem (lihat komentar voidPurchaseQuery di repo); yang digugurkan
-// cuma remaining_amount karena tidak ada lagi yang perlu ditagih setelah dibatalkan.
-// Tetap disyaratkan belum punya retur supplier terkait — supplier_returns.purchase_id
-// tidak punya FK constraint di database, jadi pengecekan ini murni di level aplikasi.
 func (s *purchaseService) Void(id int, userID int) error {
 	exists, err := s.repo.GetRawByID(id)
 	if err != nil {
@@ -408,10 +374,6 @@ func (s *purchaseService) Void(id int, userID int) error {
 		return purchaseTx.Void(id, userID)
 	})
 	if txErr != nil {
-		// Bug QA Fase A skenario 15 (pola sama seperti transaction_service.go):
-		// purchase_repo.go Void() sudah bisa mengembalikan *errors.BadRequestError
-		// lewat wrapStockError -- jangan dipaksa jadi 500, pass-through kalau
-		// sudah app error yang dikenal.
 		var badReq *errors.BadRequestError
 		if stderrors.As(txErr, &badReq) {
 			return badReq
@@ -421,8 +383,6 @@ func (s *purchaseService) Void(id int, userID int) error {
 	return nil
 }
 
-// AddItems menambah item baru ke PO yang sudah ada pembayaran (partial/paid), tanpa
-// mengubah item lama. Total & payment_status dihitung ulang otomatis.
 func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseResponse, err error) {
 	existing, err := s.repo.GetRawByID(req.ID)
 	if err != nil {

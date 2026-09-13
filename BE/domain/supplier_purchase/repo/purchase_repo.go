@@ -36,11 +36,10 @@ const (
 	countPurchasesBase                  = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
 	validatePaymentMethodQuery          = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
 	getExpiryBatchesByPurchaseItemQuery = `SELECT qty, expired_date FROM product_expiry_batches WHERE purchase_item_id = ? ORDER BY expired_date ASC`
-
-	getPurchaseForVoidQuery   = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
-	voidPurchaseQuery         = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
-	countReturnsByPurchaseQry = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
-	updatePurchaseTotalsQuery = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPurchaseForVoidQuery             = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
+	voidPurchaseQuery                   = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
+	countReturnsByPurchaseQry           = `SELECT COUNT(*) FROM supplier_returns WHERE purchase_id = ?`
+	updatePurchaseTotalsQuery           = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
 
 func insertExpiryBatches(tx *gorm.DB, productID, purchaseItemID, packageID int, batches []dto.ExpiryBatchDraft) error {
@@ -281,13 +280,6 @@ func isDuplicatePurchaseCodeError(err error) bool {
 func (r *purchaseRepo) Create(req *dto.CreateRequest) (*model.PurchaseRow, error) {
 	var purchaseID int
 
-	// GET_LOCK per tanggal (bukan cuma retry-on-duplicate) -- lihat komentar
-	// panjang di transaction_repo.go's createOnce(): retry SENDIRIAN terbukti
-	// nyata BELUM cukup di bawah 2 request yang benar-benar konkuren (retry bisa
-	// berkali-kali membaca MAX yang sama, bukan otomatis dapat data terbaru).
-	// Lock diserialkan di SATU koneksi (r.db.Connection) supaya request kedua
-	// betul-betul MENUNGGU request pertama commit, baru baca MAX yang sudah pasti
-	// ter-update -- bukan cuma "coba lagi" tanpa jaminan urutan.
 	lockName := fmt.Sprintf("pocode:%s", time_helper.GetTimeNow().Format("20060102"))
 
 	const maxCodeRetries = 5
@@ -407,8 +399,6 @@ func (r *purchaseRepo) createOnce(conn *gorm.DB, req *dto.CreateRequest, purchas
 	})
 }
 
-// wrapStockError menerjemahkan error teknis dari ApplyStockDelta jadi pesan
-// yang enak dibaca user, tanpa membuang informasi aslinya.
 func wrapStockError(err error, productID int) error {
 	if stderrors.Is(err, model_product.ErrInsufficientStock) {
 		return &errors.BadRequestError{Message: fmt.Sprintf("Stok produk ID %d tidak mencukupi untuk perubahan ini", productID)}
@@ -514,10 +504,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			newQty[stockKey{item.ProductID, *resolvedPackageID}] += item.Quantity
 		}
 
-		// Terapkan hanya SELISIH bersih per (produk, paket), bukan reverse-semua-lalu-reapply-semua.
-		// Kalau qty item lama & baru sama persis (item lain yang diubah/dihapus), delta = 0, stok
-		// produk itu sama sekali tidak disentuh -- jadi tidak bisa gagal gara-gara stok riilnya
-		// sudah berkurang oleh transaksi lain sejak PO ini dibuat.
 		keys := make(map[stockKey]struct{}, len(oldQty)+len(newQty))
 		for k := range oldQty {
 			keys[k] = struct{}{}
@@ -530,13 +516,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			if delta == 0 {
 				continue
 			}
-			// Perubahan item lewat Edit PO adalah PEMBELIAN, bukan koreksi manual.
-			// Delta positif (item baru / qty dinaikkan) = tambah pembelian -> 'in'.
-			// Delta negatif (qty diturunkan / item dihapus) = pembelian dikurangi
-			// -> 'void_purchase'. SENGAJA tidak pakai 'adjustment' supaya konsisten
-			// dengan Create()/AddItems() ('in') & Void() ('void_purchase'), dan supaya
-			// rekonstruksi stok (backfill/kartu stok) bisa menelusurinya sebagai
-			// pembelian. Lihat docs/PERBAIKAN_MUTASI_STOK_EDIT_PEMBELIAN.md.
 			direction := model_product.StockIn
 			qty := delta
 			mutationType := "in"
@@ -571,12 +550,6 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 	return r.GetByID(req.ID)
 }
 
-// Delete menghapus PO permanen. TIDAK membalikkan stok di sini -- service
-// layer (purchase_service.go Delete) mewajibkan PO sudah berstatus 'void'
-// dulu sebelum boleh dihapus, dan Void() sudah membalikkan stok saat itu.
-// Membalikkan lagi di sini akan jadi pengurangan dobel. (Sempat salah
-// ditambahkan saat tinjauan Fase 4 poin 1, langsung dibatalkan setelah
-// ketahuan ada guard "harus di-void dulu" di service layer.)
 func (r *purchaseRepo) Delete(id int) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Exec(deleteStockMutationsQuery, id).Error; err != nil {
