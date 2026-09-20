@@ -2,8 +2,7 @@
 // (purchase_items) pada PO ber-status 'active' yang tidak pernah tercatat di
 // stock_mutations.
 //
-// LATAR BELAKANG (lihat docs/PERBAIKAN_MUTASI_STOK_EDIT_PEMBELIAN.md &
-// docs/ANALISIS_REKONSILIASI_STOK_32_PRODUK.md):
+// LATAR BELAKANG:
 // Di data prod, sebagian purchase_items TIDAK punya baris 'in' pasangannya di
 // ledger stock_mutations (barang yang sebenarnya dibeli, tapi jejak stok
 // masuknya tidak pernah tercatat -- kemungkinan bug/alur lama). Akibatnya saat

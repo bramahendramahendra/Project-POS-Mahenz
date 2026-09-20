@@ -397,7 +397,13 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   if (open && isEditMode && fullPurchaseDetail && fullPurchaseDetail.id !== loadedDetailId) {
     setLoadedDetailId(fullPurchaseDetail.id)
     setItemUnitOptions({})
-    setItemSelectedPackageId({})
+    // Re-populate satuan terpilih dari item PO lama, supaya dropdown Satuan tampil benar
+    // dan payload edit tetap membawa package_id yang sudah tersimpan (bukan undefined).
+    const seededPackageIds: Record<number, number> = {}
+    fullPurchaseDetail.items.forEach((item, index) => {
+      if (item.package_id) seededPackageIds[index] = item.package_id
+    })
+    setItemSelectedPackageId(seededPackageIds)
     setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
 
     const snapshot = fullPurchaseDetail.items.map((item) => ({
@@ -469,11 +475,10 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         delete next[index]
         return next
       })
-      setItemSelectedPackageId((prev) => {
-        const next = { ...prev }
-        delete next[index]
-        return next
-      })
+      // Produk 1 satuan: kunci package_id ke default package. Selain di-set ke form
+      // values, catat juga di itemSelectedPackageId supaya konsisten dengan item
+      // multi-satuan (mencegah false-positive "duplikat" saat validasi & payload).
+      setItemSelectedPackageId((prev) => ({ ...prev, [index]: defaultPkg?.id ?? 0 }))
       // Produk 1 satuan: langsung set package_id ke default package
       setValue(`items.${index}.package_id`, defaultPkg?.id ?? 0)
       // Ref. Harga langsung muncul karena satuan sudah otomatis terpilih
@@ -540,7 +545,12 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       payment_status: pendingValues.payment_status as PaymentStatus,
       items: pendingValues.items.map((item, index) => ({
         product_id: item.product_id,
-        package_id: itemSelectedPackageId[index] || undefined,
+        // Utamakan satuan yang barusan dipilih user (itemSelectedPackageId), tapi kalau
+        // belum ada — mis. item lama yang di-hydrate saat Edit, atau item produk 1-satuan
+        // — fallback ke item.package_id dari form values. Tanpa fallback ini, item yang
+        // package_id-nya hanya ada di form values terkirim `undefined` → backend gagal
+        // resolve → SELURUH Update di-rollback (gejala "tidak bisa tambah item saat edit").
+        package_id: itemSelectedPackageId[index] || item.package_id || undefined,
         quantity: item.quantity,
         purchase_price: item.price,
         unit: item.unit,

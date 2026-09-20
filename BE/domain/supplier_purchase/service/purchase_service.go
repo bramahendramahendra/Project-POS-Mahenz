@@ -125,6 +125,7 @@ func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error)
 			ID:            v.ID,
 			ProductID:     v.ProductID,
 			ProductName:   v.ProductName,
+			PackageID:     v.PackageID,
 			Quantity:      v.Quantity,
 			Unit:          v.Unit,
 			ConversionQty: v.ConversionQty,

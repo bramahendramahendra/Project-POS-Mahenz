@@ -116,6 +116,7 @@ type (
 		ID            int                               `json:"id"`
 		ProductID     int                               `json:"product_id"`
 		ProductName   string                            `json:"product_name"`
+		PackageID     *int                              `json:"package_id,omitempty"`
 		Quantity      float64                           `json:"quantity"`
 		Unit          string                            `json:"unit"`
 		ConversionQty float64                           `json:"conversion_qty"`

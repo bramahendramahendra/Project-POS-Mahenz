@@ -1,6 +1,6 @@
 # POS Mahenz
 
-Versi APlikasi : 2.8.2
+Versi APlikasi : 2.8.4
 Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan, stok produk, supplier, keuangan, dan laporan.
 
 ## Tech Stack
@@ -43,6 +43,8 @@ go run main.go            # migrasi DB otomatis saat startup
 # Frontend (port 3000)
 cd FE
 npm install
+npm run type-check
+npm run lint
 npm run dev
 ```
 
@@ -57,4 +59,4 @@ npm run dev
 - [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md)
 - [Setup User Server](docs/SETUP_USER_SERVER.md)
 - [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)
-- [Desain Fitur Saldo Pelanggan](docs/DESIGN_SALDO_PELANGGAN.md)
+- [Panduan Migrasi Stok ke Skema Baru](docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md)
