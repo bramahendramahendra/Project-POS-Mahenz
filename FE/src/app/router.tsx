@@ -42,6 +42,7 @@ const SalesReportPage        = lazy(() => import('@/features/reporting/sales/Sal
 const ProfitLossPage         = lazy(() => import('@/features/reporting/profit-loss/ProfitLossPage').then(m => ({ default: m.ProfitLossPage })))
 const StockReportPage        = lazy(() => import('@/features/reporting/stock/StockReportPage').then(m => ({ default: m.StockReportPage })))
 const StockReconciliationPage = lazy(() => import('@/features/reporting/stock-reconciliation').then(m => ({ default: m.StockReconciliationPage })))
+const CapitalReconciliationPage = lazy(() => import('@/features/reporting/capital-reconciliation').then(m => ({ default: m.CapitalReconciliationPage })))
 const CashierPerformancePage = lazy(() => import('@/features/reporting/cashier-performance/CashierPerformancePage').then(m => ({ default: m.CashierPerformancePage })))
 
 // Operational
@@ -105,6 +106,7 @@ const PROTECTED_ROUTES: RouteDef[] = [
   { path: ROUTES.REPORTS_PROFIT_LOSS, menuKey: 'pelaporan.laba_rugi', element: <ProfitLossPage /> },
   { path: ROUTES.REPORTS_STOCK, menuKey: 'pelaporan.stok', element: <StockReportPage /> },
   { path: ROUTES.REPORTS_STOCK_RECONCILIATION, menuKey: 'pelaporan.rekonsiliasi_stok', element: <StockReconciliationPage /> },
+  { path: ROUTES.REPORTS_CAPITAL_RECONCILIATION, menuKey: 'pelaporan.rekonsiliasi_modal', element: <CapitalReconciliationPage /> },
   { path: ROUTES.REPORTS_CASHIER, menuKey: 'pelaporan.kinerja_kasir', element: <CashierPerformancePage /> },
 
   // Operasional

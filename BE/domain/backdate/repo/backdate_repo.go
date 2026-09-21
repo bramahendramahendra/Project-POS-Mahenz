@@ -39,6 +39,11 @@ const (
 
 	createBackdateTransactionItemQuery = `INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
+	// Ambil semua paket produk (untuk ResolvePackageFactor + harga beli per paket).
+	// Sama dengan getPackagesByProductQuery di transaction_repo.go — didefinisikan
+	// lokal di sini agar backdate konsisten memakai pola yang sama.
+	getPackagesByProductQuery = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+
 	updateBackdateSalesQuery = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, updated_at = ? WHERE id = ?`
 
 	createReceivableQuery = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
@@ -210,7 +215,15 @@ func (r *backdateRepo) CreateTransaction(userID int, shiftID *int, transactionDa
 		return nil, err
 	}
 
-	// Insert items + apply stock
+	// Insert items + apply stock.
+	// Penentuan modal (purchase_price) & conversion_qty DISAMAKAN dengan jalur kasir
+	// biasa (transaction_repo.go createOnce) supaya HPP/Laba Rugi konsisten & benar:
+	//   - conversion_qty = FAKTOR konversi paket ke anchor (ResolvePackageFactor),
+	//     BUKAN quantity * pkg.qty (bug lama yang mencampur qty dgn faktor).
+	//   - purchase_price = product_packages.purchase_price paket terpilih (modal riil
+	//     per satuan jual); fallback products.purchase_price (anchor) * faktor.
+	// (Sebelumnya backdate memakai products.purchase_price MENTAH tanpa faktor →
+	//  modal salah level satuan, pola bug yang sama seperti data historis.)
 	for _, item := range req.Items {
 		packageID := 0
 		if item.UnitID != nil && *item.UnitID > 0 {
@@ -219,28 +232,44 @@ func (r *backdateRepo) CreateTransaction(userID int, shiftID *int, transactionDa
 			packageID = resolved
 		}
 
-		// Get purchase price
-		var purchasePrice float64
-		r.db.Raw(`SELECT purchase_price FROM products WHERE id = ? LIMIT 1`, item.ProductID).Scan(&purchasePrice)
-
-		// Hitung conversion qty
+		// Hitung faktor konversi ke anchor + ambil harga beli riil per paket.
 		conversionQty := item.Quantity
-		if packageID > 0 {
-			var pkgQty float64
-			r.db.Raw(`SELECT qty FROM product_packages WHERE id = ?`, packageID).Scan(&pkgQty)
-			if pkgQty > 0 {
-				conversionQty = item.Quantity * pkgQty
+		unitName := item.Unit
+		var packagePurchasePrice float64
+		var pkgRows []*model_product.ProductPackage
+		if err := r.db.Raw(getPackagesByProductQuery, item.ProductID).Scan(&pkgRows).Error; err == nil {
+			if factor, factorErr := model_product.ResolvePackageFactor(pkgRows, packageID); factorErr == nil && factor > 0 {
+				conversionQty = factor
+				for _, p := range pkgRows {
+					if p.ID == packageID {
+						unitName = p.UnitName
+						packagePurchasePrice = p.PurchasePrice
+						break
+					}
+				}
 			}
+		}
+		if conversionQty <= 0 {
+			conversionQty = 1
+		}
+
+		purchasePrice := packagePurchasePrice
+		if purchasePrice <= 0 {
+			var basePurchasePrice float64
+			r.db.Raw(`SELECT purchase_price FROM products WHERE id = ? LIMIT 1`, item.ProductID).Scan(&basePurchasePrice)
+			purchasePrice = basePurchasePrice * conversionQty
 		}
 
 		if err := r.db.Exec(createBackdateTransactionItemQuery,
-			transactionID, item.ProductID, item.ProductName, item.Quantity, item.Unit,
+			transactionID, item.ProductID, item.ProductName, item.Quantity, unitName,
 			item.Price, purchasePrice, item.Subtotal, item.DiscountItem, conversionQty, item.UnitID,
 		).Error; err != nil {
 			return nil, err
 		}
 
-		// Apply stock delta (reduce)
+		// Apply stock delta (reduce). MutationType "out" — sama dgn kasir biasa
+		// (enum stock_mutations: in/out/adjustment/void/return/void_purchase/expired;
+		//  "sale" BUKAN nilai valid — bug lama).
 		if packageID == 0 {
 			continue
 		}
@@ -250,7 +279,7 @@ func (r *backdateRepo) CreateTransaction(userID int, shiftID *int, transactionDa
 			PackageID:     packageID,
 			Quantity:      item.Quantity,
 			Direction:     model_product.StockOut,
-			MutationType:  "sale",
+			MutationType:  "out",
 			ReferenceType: "transaction",
 			ReferenceID:   transactionID,
 			Notes:         notes,

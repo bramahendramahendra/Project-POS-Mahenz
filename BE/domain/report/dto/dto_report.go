@@ -80,6 +80,11 @@ type ProfitLossResponse struct {
 	NetProfit     float64              `json:"net_profit"`
 	Items         []ProfitLossItem     `json:"items"`
 	Expenses      []ExpenseSummaryItem `json:"expenses"`
+
+	// Pembanding periode sebelumnya (durasi sama, tepat sebelum periode ini).
+	// PrevAvailable=false kalau periode tak bisa dihitung (mis. filter tanpa tanggal).
+	PrevNetProfit float64 `json:"prev_net_profit"`
+	PrevAvailable bool    `json:"prev_available"`
 }
 
 // ─── Stock Report ──────────────────────────────────────────────

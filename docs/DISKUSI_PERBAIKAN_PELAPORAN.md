@@ -95,6 +95,13 @@ Logika urutan: **#1–2 benerin data yang salah/menyesatkan dulu, #3–5 percant
 Format: **Kondisi sekarang** → **Observasi/masalah** → **Ide arah** → **Keputusan final**
 (diisi saat sudah sepakat).
 
+> STATUS AKHIR LABA RUGI (21 Sep 2026): SELESAI 4 langkah —
+> (1) koreksi data modal historis (skrip backfill_transaction_cogs, 582 baris),
+> (2) menu Rekonsiliasi Modal (admin, koreksi 13 baris manual),
+> (3) perbaikan jalur backdate (modal & conversion_qty & mutation_type),
+> (4) percantik tampilan Laba Rugi (kartu kesimpulan untung/rugi + label bahasa awam +
+>     penjelasan rumus, di ProfitLossTab.tsx). Laba Rugi kini akurat & ramah non-finance.
+
 ### 6.1 Laba Rugi  ← SEDANG DIBAHAS (investigasi SELESAI 20 Sep 2026)
 
 - **Kondisi sekarang:** Blok Pendapatan (Total Pendapatan) → Pengeluaran (Harga Pokok

@@ -26,4 +26,6 @@ export interface ProfitLossReport {
   net_profit: number
   items: ProfitLossItem[]
   expenses: ExpenseSummaryItem[]
+  prev_net_profit: number
+  prev_available: boolean
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"pos_api/domain/report/dto"
 	time_helper "pos_api/helper/time"
@@ -94,7 +95,43 @@ func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossR
 
 func (s *reportService) GetProfitLossData(req *dto.ProfitLossRequest) (*dto.ProfitLossResponse, error) {
 	dateFrom, dateTo := time_helper.NormalizeDateRange(req.DateFrom, req.DateTo)
-	return s.GetProfitLoss(dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo})
+	data, err := s.GetProfitLoss(dto.FilterParams{DateFrom: dateFrom, DateTo: dateTo})
+	if err != nil {
+		return nil, err
+	}
+
+	// Pembanding: hitung laba bersih periode SEBELUMNYA dengan durasi sama.
+	// Mis. periode 1-21 Sep (21 hari) -> bandingkan 11 Agu - 31 Agu.
+	if prevFrom, prevTo, ok := previousPeriod(dateFrom, dateTo); ok {
+		prev, perr := s.GetProfitLoss(dto.FilterParams{DateFrom: prevFrom, DateTo: prevTo})
+		if perr == nil {
+			data.PrevNetProfit = prev.NetProfit
+			data.PrevAvailable = true
+		}
+	}
+	return data, nil
+}
+
+// previousPeriod menghitung rentang periode sebelumnya dengan panjang (jumlah hari)
+// yang SAMA, tepat berakhir sehari sebelum periode saat ini dimulai.
+// Menerima format "2006-01-02 15:04:05" (hasil NormalizeDateRange).
+func previousPeriod(dateFrom, dateTo string) (string, string, bool) {
+	const layout = "2006-01-02 15:04:05"
+	from, err1 := time.Parse(layout, dateFrom)
+	to, err2 := time.Parse(layout, dateTo)
+	if err1 != nil || err2 != nil || !to.After(from) {
+		return "", "", false
+	}
+	// jumlah hari (inklusif) periode ini
+	days := int(to.Sub(from).Hours()/24) + 1
+	if days <= 0 {
+		return "", "", false
+	}
+	prevTo := from.AddDate(0, 0, -1)              // sehari sebelum from
+	prevFrom := prevTo.AddDate(0, 0, -(days - 1)) // mundur (days-1) hari
+	prevFromStr := prevFrom.Format("2006-01-02") + " 00:00:00"
+	prevToStr := prevTo.Format("2006-01-02") + " 23:59:59"
+	return prevFromStr, prevToStr, true
 }
 
 func (s *reportService) ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer, error) {
