@@ -30,13 +30,9 @@ function HeroCard({ report }: { report: ProfitLossReport }) {
     const prev = report.prev_net_profit
     const diff = net - prev
     const naik = diff >= 0
-    let pctText = ''
-    if (prev !== 0) {
-      const pct = Math.abs((diff / Math.abs(prev)) * 100)
-      pctText = `${naik ? '▲' : '▼'} ${pct.toFixed(0)}% `
-    } else {
-      pctText = naik ? '▲ ' : '▼ '
-    }
+    const arrow = naik ? '▲' : '▼'
+    const pctText =
+      prev !== 0 ? `${arrow} ${Math.abs((diff / Math.abs(prev)) * 100).toFixed(0)}% ` : `${arrow} `
     deltaNode = (
       <div className="mt-2 flex items-center gap-2">
         <span
@@ -259,11 +255,10 @@ export function ProfitLossTab() {
   const { data: report, isLoading } = useProfitLossReportQuery(filter)
 
   const handleFilterChange = (newFilter: ProfitLossDateFilter) => setFilter(newFilter)
-  const handleReset = () => setFilter({ date_from: monthStart(), date_to: todayStr() })
 
   return (
     <div className="space-y-4">
-      <ProfitLossFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
+      <ProfitLossFilterBar filter={filter} onChange={handleFilterChange} />
 
       {isLoading && <Skeleton />}
 

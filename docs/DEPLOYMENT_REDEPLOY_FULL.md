@@ -52,6 +52,7 @@ sudo maintenance-on.sh 139.180.214.187
 
 **2. Duplicate database ke nama baru bertanggal**
 
+
 ```bash
 sudo mysql -u root -p
 ```

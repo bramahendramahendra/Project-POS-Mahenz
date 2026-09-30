@@ -11,7 +11,6 @@ import type { ProfitLossDateFilter } from '../profit-loss.types'
 interface ProfitLossFilterBarProps {
   filter: ProfitLossDateFilter
   onChange: (filter: ProfitLossDateFilter) => void
-  onReset: () => void
 }
 
 // ── Daftar preset periode. Tiap preset punya id, label, dan fungsi rentang. ──
@@ -79,7 +78,7 @@ function periodLabel(filter: ProfitLossDateFilter): string {
   return `${formatDate(filter.date_from)} – ${formatDate(filter.date_to)}`
 }
 
-export function ProfitLossFilterBar({ filter, onChange, onReset: _onReset }: ProfitLossFilterBarProps) {
+export function ProfitLossFilterBar({ filter, onChange }: ProfitLossFilterBarProps) {
   const { mutate: exportReport, isPending: isExporting } = useExportProfitLossMutation()
 
   const applyPreset = (p: Preset) => {
