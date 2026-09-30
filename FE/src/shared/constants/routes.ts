@@ -40,7 +40,6 @@ export const ROUTES = {
 
   // Operasional
   SHIFTS: '/shifts',
-  SYNC: '/sync',
 
   // Sistem
   SETTINGS: '/settings',

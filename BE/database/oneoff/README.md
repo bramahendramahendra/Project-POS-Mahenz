@@ -25,6 +25,12 @@ dengan pengawasan.
 - `cleanup_transaksi_cangkang_20260913.sql` — void 3 transaksi cangkang (header
   tanpa item) akibat bug atomicity, + koreksi `closing_balance` cash_drawer 21.
   Lihat `docs/BUG_TRANSAKSI_CANGKANG_HEADER_TANPA_ITEM.md`.
+- `remove_sync_center_20261001.sql` — hapus fitur "Sync Center" dari DB production
+  (seed menu `operasional.sync` + route `/sync` + 4 tabel sync: sync_conflicts,
+  sync_queue, sync_history, sync_id_map). Kode BE/FE sync sudah dihapus; migrasi
+  pakai `CREATE TABLE IF NOT EXISTS` jadi tabel lama di prod TIDAK ikut terhapus —
+  harus di-drop manual lewat skrip ini. **WAJIB backup + jalankan BAGIAN 1 (cek isi
+  tabel) dulu; kalau ada isi, STOP dan konsultasikan.**
 
 ## Cara menjalankan
 

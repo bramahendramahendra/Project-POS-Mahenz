@@ -178,10 +178,6 @@ INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
 SELECT m.id, 'operasional.shift', 'Shift', 'Clock', '/shifts', 1
 FROM menus m WHERE m.key_name = 'operasional';
 
-INSERT IGNORE INTO menus (parent_id, key_name, label, icon, path, order_index)
-SELECT m.id, 'operasional.sync', 'Sync Center', 'RefreshCw', '/sync', 2
-FROM menus m WHERE m.key_name = 'operasional';
-
 -- Group: Sistem
 INSERT IGNORE INTO menus (key_name, label, icon, path, order_index) VALUES
     ('sistem', 'Sistem', 'Settings', NULL, 9);
@@ -241,7 +237,6 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
     ('/reports/cashier', 'Laporan Kinerja Kasir'),
     ('/reports/business-summary', 'Ringkasan Bisnis'),
     ('/shifts', 'Shift'),
-    ('/sync', 'Sync Center'),
     ('/settings/store', 'Profil Toko'),
     ('/settings/users', 'Manajemen User'),
     ('/settings/roles', 'Manajemen Role'),
@@ -252,11 +247,11 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
 
 -- -------------------------------------------------------------
 -- Role Menu Access
--- Owner : akses penuh SEMUA menu operasional bisnis, KECUALI 5 menu teknis
---         (sistem.roles, sistem.menus, sistem.versi, sistem.backup,
---         operasional.sync) — dianggap wilayah Admin IT, bukan Owner.
+-- Owner : akses penuh SEMUA menu operasional bisnis, KECUALI 4 menu teknis
+--         (sistem.roles, sistem.menus, sistem.versi, sistem.backup) —
+--         dianggap wilayah Admin IT, bukan Owner.
 -- Admin : berperan sebagai admin IT — akses penuh ke SEMUA menu tanpa
---         kecuali, termasuk 5 menu teknis di atas.
+--         kecuali, termasuk 4 menu teknis di atas.
 -- Kasir : HANYA beranda.dashboard (landing page operasional), penjualan.kasir,
 --         dan keuangan.kas_saya — tidak dapat menu lain apapun (TIDAK profil
 --         toko, TIDAK shift, TIDAK ringkasan bisnis). Data referensi seperti
@@ -273,11 +268,11 @@ INSERT IGNORE INTO route_registry (path, label) VALUES
 -- menu baru lagi di kemudian hari, taruh insert menu-nya sebelum baris ini.
 -- -------------------------------------------------------------
 
--- OWNER: full access semua menu kecuali 5 menu teknis (wilayah Admin IT)
+-- OWNER: full access semua menu kecuali 4 menu teknis (wilayah Admin IT)
 INSERT IGNORE INTO role_menu_access (role_id, menu_id, can_view, can_create, can_edit, can_delete)
 SELECT r.id, m.id, 1, 1, 1, 1
 FROM roles r
-JOIN menus m ON m.key_name NOT IN ('sistem.roles', 'sistem.menus', 'sistem.versi', 'sistem.backup', 'operasional.sync')
+JOIN menus m ON m.key_name NOT IN ('sistem.roles', 'sistem.menus', 'sistem.versi', 'sistem.backup')
 WHERE r.name = 'owner';
 
 -- ADMIN: full access semua menu tanpa kecuali (admin IT)

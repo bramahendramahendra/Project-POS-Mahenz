@@ -14,7 +14,6 @@ type (
 		Create(req *dto.CreateRequest, userID int) (int64, error)
 		Update(req *dto.UpdateRequest) error
 		Delete(req *dto.DeleteRequest) error
-		UpdateFromSync(id int, data map[string]interface{}) error
 
 		GetDB() *gorm.DB
 		WithTx(tx *gorm.DB) ExpenseRepoInterface

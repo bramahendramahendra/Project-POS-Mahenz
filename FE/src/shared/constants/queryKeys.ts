@@ -129,13 +129,6 @@ export const queryKeys = {
     list: (filter?: Filter) => ['users', 'list', filter] as const,
   },
 
-  sync: {
-    status: () => ['sync', 'status'] as const,
-    history: (filter?: Filter) => ['sync', 'history', filter] as const,
-    conflicts: () => ['sync', 'conflicts'] as const,
-    queue: (filter?: Filter) => ['sync', 'queue', filter] as const,
-  },
-
   roles: {
     all: () => ['roles'] as const,
     list: (filter?: Filter) => ['roles', 'list', filter] as const,

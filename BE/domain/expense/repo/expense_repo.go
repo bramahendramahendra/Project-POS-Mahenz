@@ -98,18 +98,3 @@ func (r *expenseRepo) Update(req *dto.UpdateRequest) error {
 func (r *expenseRepo) Delete(req *dto.DeleteRequest) error {
 	return r.db.Exec(deleteExpenseQuery, req.ID).Error
 }
-
-func (r *expenseRepo) UpdateFromSync(id int, data map[string]interface{}) error {
-	allowed := []string{"expense_date", "category", "description", "amount", "payment_method", "notes"}
-	updates := make(map[string]interface{}, len(allowed))
-	for _, key := range allowed {
-		if val, ok := data[key]; ok {
-			updates[key] = val
-		}
-	}
-	if len(updates) == 0 {
-		return nil
-	}
-	updates["updated_at"] = time_helper.GetTimeNow()
-	return r.db.Table("expenses").Where("id = ?", id).Updates(updates).Error
-}

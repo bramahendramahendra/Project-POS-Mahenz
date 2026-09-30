@@ -47,7 +47,6 @@ const CashierPerformancePage = lazy(() => import('@/features/reporting/cashier-p
 
 // Operational
 const ShiftsPage       = lazy(() => import('@/features/operational/shifts/ShiftsPage').then(m => ({ default: m.ShiftsPage })))
-const SyncCenterPage   = lazy(() => import('@/features/operational/sync/SyncCenterPage').then(m => ({ default: m.SyncCenterPage })))
 
 // Settings
 const SettingsPage         = lazy(() => import('@/features/settings/SettingsPage').then(m => ({ default: m.SettingsPage })))
@@ -111,7 +110,6 @@ const PROTECTED_ROUTES: RouteDef[] = [
 
   // Operasional
   { path: ROUTES.SHIFTS, menuKey: 'operasional.shift', element: <ShiftsPage /> },
-  { path: ROUTES.SYNC, menuKey: 'operasional.sync', element: <SyncCenterPage /> },
 
   // Sistem
   { path: ROUTES.SETTINGS_STORE, menuKey: 'sistem.profil_toko', element: <StoreProfilePage /> },

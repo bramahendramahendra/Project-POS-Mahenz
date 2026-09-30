@@ -1,7 +1,6 @@
 package repo
 
 import (
-	cash_drawer_repo "pos_api/domain/cash_drawer/repo"
 	"pos_api/domain/transaction/dto"
 	"pos_api/domain/transaction/model"
 
@@ -14,9 +13,6 @@ type TransactionRepoInterface interface {
 	Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
 	Void(id, userID int) error
 	GetItems(transactionID int) ([]model.TransactionItem, error)
-	UpdateFromSync(id int, data map[string]interface{}) error
-	ReturnStockForRejectSync(transactionID, resolvedBy int) error
-	ApplySyncTransaction(payload string, deviceID string, localID string, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface) (int, error)
 
 	GetDB() *gorm.DB
 	WithTx(tx *gorm.DB) TransactionRepoInterface

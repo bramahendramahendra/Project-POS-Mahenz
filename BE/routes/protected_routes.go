@@ -43,7 +43,6 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.DashboardRoutes(r)
 	segment.SettingRoutes(r)
 	segment.BackupRoutes(r)
-	segment.SyncRoutes(r)
 	segment.VersionAdminRoutes(r)
 	segment.RoleRoutes(r)
 	segment.MenuRoutes(r)
