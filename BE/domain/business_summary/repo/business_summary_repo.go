@@ -189,17 +189,20 @@ func (r *businessSummaryRepo) GetMonthCOGS(month int, year int) (float64, error)
 	return total, nil
 }
 
-func (r *businessSummaryRepo) GetLowStockCount() (int64, error) {
+// GetStockStatusCounts mengembalikan (jumlah HABIS, jumlah MENIPIS) — terpisah,
+// supaya dashboard bisa menampilkan dua kartu berbeda seperti Laporan Stok.
+// Memakai BuildStockSummaries/ComputeStockSummary yang sama dengan Laporan Stok.
+func (r *businessSummaryRepo) GetStockStatusCounts() (outCount int64, lowCount int64, err error) {
 	type candidateRow struct {
 		ID       int     `gorm:"column:id"`
 		MinStock float64 `gorm:"column:min_stock"`
 	}
 	var candidates []*candidateRow
 	if err := r.db.Raw(lowStockCandidatesQuery).Scan(&candidates).Error; err != nil {
-		return 0, fmt.Errorf("GetLowStockCount: %w", err)
+		return 0, 0, fmt.Errorf("GetStockStatusCounts: %w", err)
 	}
 	if len(candidates) == 0 {
-		return 0, nil
+		return 0, 0, nil
 	}
 
 	minStockByProduct := make(map[int]float64, len(candidates))
@@ -208,23 +211,25 @@ func (r *businessSummaryRepo) GetLowStockCount() (int64, error) {
 	}
 	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
 	if err != nil {
-		return 0, fmt.Errorf("GetLowStockCount: %w", err)
+		return 0, 0, fmt.Errorf("GetStockStatusCounts: %w", err)
 	}
 
-	// BuildStockSummaries mengembalikan hasil utk SEMUA produk yang punya
-	// package aktif (scope global), bukan cuma yang ada di candidates (produk
-	// is_active=1). Harus difilter lewat candidates di sini, kalau tidak
-	// produk yang sudah dinonaktifkan tapi kebetulan stoknya rendah ikut
-	// kehitung -- bikin angka ini beda dari Laporan Stok (report_repo.go)
-	// yang sudah benar memfilter lewat candidates.
-	var count int64
+	// BuildStockSummaries mengembalikan hasil utk SEMUA produk berpackage aktif
+	// (scope global); difilter lewat candidates (produk is_active=1) agar
+	// konsisten dengan Laporan Stok (report_repo.go).
 	for _, c := range candidates {
 		s, ok := summaries[c.ID]
-		if ok && s.IsLowStock {
-			count++
+		if !ok {
+			continue
+		}
+		switch s.Status {
+		case "out": // model_product.StockStatusOut
+			outCount++
+		case "low": // model_product.StockStatusLow
+			lowCount++
 		}
 	}
-	return count, nil
+	return outCount, lowCount, nil
 }
 
 func (r *businessSummaryRepo) GetOpenReceivablesCount() (int64, error) {

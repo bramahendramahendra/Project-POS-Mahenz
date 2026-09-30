@@ -2,6 +2,7 @@ package repo
 
 import (
 	"sort"
+	"time"
 
 	product_repo "pos_api/domain/product/repo"
 	dto "pos_api/domain/report/dto"
@@ -211,11 +212,43 @@ func (r *reportRepo) GetSalesSummaryWithFilters(req *dto.SalesListRequest) (*dto
 	if err := r.db.Raw(salesSummaryBase+conditions, args...).Scan(&summary).Error; err != nil {
 		return nil, err
 	}
+
+	// Pembanding periode sebelumnya (durasi sama, tepat sebelum periode ini).
+	// Filter lain (metode bayar, kasir) tetap ikut supaya apple-to-apple.
+	if prevFrom, prevTo, ok := prevSalesRange(dateFrom, dateTo); ok {
+		prevArgs := append([]any{prevFrom, prevTo}, args[2:]...) // ganti tanggal, pertahankan kondisi lain
+		var prev dto.SalesSummary
+		if err := r.db.Raw(salesSummaryBase+conditions, prevArgs...).Scan(&prev).Error; err == nil {
+			summary.PrevTransactions = prev.TotalTransactions
+			summary.PrevRevenue = prev.TotalRevenue
+			summary.PrevAvgPerTx = prev.AvgPerTransaction
+			summary.PrevAvailable = prev.TotalTransactions > 0
+		}
+	}
 	return &summary, nil
 }
 
 func resolveSalesDates(dateFrom, dateTo string) (string, string) {
 	return time_helper.NormalizeDateRange(dateFrom, dateTo)
+}
+
+// prevSalesRange menghitung rentang periode SEBELUMNYA berdurasi sama, tepat
+// berakhir sehari sebelum periode saat ini dimulai. Input format hasil
+// NormalizeDateRange ("2006-01-02 15:04:05").
+func prevSalesRange(dateFrom, dateTo string) (string, string, bool) {
+	const layout = "2006-01-02 15:04:05"
+	from, err1 := time.Parse(layout, dateFrom)
+	to, err2 := time.Parse(layout, dateTo)
+	if err1 != nil || err2 != nil || !to.After(from) {
+		return "", "", false
+	}
+	days := int(to.Sub(from).Hours()/24) + 1
+	if days <= 0 {
+		return "", "", false
+	}
+	prevTo := from.AddDate(0, 0, -1)
+	prevFrom := prevTo.AddDate(0, 0, -(days - 1))
+	return prevFrom.Format("2006-01-02") + " 00:00:00", prevTo.Format("2006-01-02") + " 23:59:59", true
 }
 
 func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error) {
@@ -333,6 +366,7 @@ func (r *reportRepo) attachStockToItems(items []dto.StockItem) error {
 			items[i].CurrentStock = s.AnchorStock
 			items[i].StockValue = s.AnchorStock * items[i].CostPrice
 			items[i].IsLowStock = s.IsLowStock
+			items[i].StockStatus = s.Status
 		}
 	}
 	return nil
@@ -381,6 +415,11 @@ func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.St
 	}
 	if err := r.attachStockToItems(items); err != nil {
 		return nil, 0, err
+	}
+
+	// Filter cepat berdasarkan status stok (dihitung di Go, bukan SQL).
+	if req.StockStatus != "" {
+		items = filterByStockStatus(items, req.StockStatus)
 	}
 
 	switch req.SortBy {
@@ -449,17 +488,42 @@ func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*
 	if err != nil {
 		return nil, err
 	}
+	// Kalau ada filter status, hitung ringkasan HANYA untuk produk yang cocok.
+	matched := 0
 	for _, c := range candidates {
 		s, ok := summaries[c.ID]
 		if !ok {
 			continue
 		}
+		if req.StockStatus != "" && s.Status != req.StockStatus {
+			continue
+		}
+		matched++
 		summary.TotalStockValue += s.AnchorStock * c.CostPrice
-		if s.IsLowStock {
+		switch s.Status {
+		case "out": // model_product.StockStatusOut
+			summary.OutOfStockCount++
+			summary.LowStockCount++
+		case "low": // model_product.StockStatusLow
+			summary.LowOnlyCount++
 			summary.LowStockCount++
 		}
 	}
+	if req.StockStatus != "" {
+		summary.TotalProducts = matched
+	}
 	return &summary, nil
+}
+
+// filterByStockStatus menyaring daftar item ke satu status ("out"/"low"/"ok").
+func filterByStockStatus(items []dto.StockItem, status string) []dto.StockItem {
+	out := make([]dto.StockItem, 0, len(items))
+	for _, it := range items {
+		if it.StockStatus == status {
+			out = append(out, it)
+		}
+	}
+	return out
 }
 
 func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error) {

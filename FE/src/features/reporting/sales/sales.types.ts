@@ -16,6 +16,10 @@ export interface SalesReportSummary {
   avg_per_transaction: number
   total_discount: number
   total_tax: number
+  prev_transactions: number
+  prev_revenue: number
+  prev_avg_per_transaction: number
+  prev_available: boolean
 }
 
 export interface SalesFilter {

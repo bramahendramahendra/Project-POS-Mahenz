@@ -2,7 +2,23 @@ import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 import { formatStockNumber } from '@/features/products/products'
 
-import type { StockReport } from '../stock.types'
+import type { StockReport, StockStatus } from '../stock.types'
+
+// Tampilan badge per status: Habis (merah), Menipis (kuning), Aman & diragukan (tanpa badge).
+const STATUS_BADGE: Record<StockStatus, { label: string; className: string; textClass: string } | null> = {
+  out: {
+    label: 'Habis',
+    className: 'bg-red-100 text-red-700',
+    textClass: 'text-red-600',
+  },
+  low: {
+    label: 'Menipis',
+    className: 'bg-amber-100 text-amber-700',
+    textClass: 'text-amber-600',
+  },
+  ok: null,
+  '': null,
+}
 
 export function buildStockReportColumns(): ColumnDef<StockReport>[] {
   return [
@@ -37,18 +53,23 @@ export function buildStockReportColumns(): ColumnDef<StockReport>[] {
       header: 'Stok Saat Ini',
       align: 'right',
       sortable: true,
-      cell: (r) => (
-        <div className="flex items-center justify-end gap-2">
-          <span className={`text-sm font-semibold ${r.is_low_stock ? 'text-red-600' : ''}`}>
-            {formatStockNumber(r.current_stock)}
-          </span>
-          {r.is_low_stock && (
-            <span className="inline-flex rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-              Stok Rendah
+      cell: (r) => {
+        const badge = STATUS_BADGE[r.stock_status]
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <span className={`text-sm font-semibold ${badge ? badge.textClass : ''}`}>
+              {formatStockNumber(r.current_stock)}
             </span>
-          )}
-        </div>
-      ),
+            {badge && (
+              <span
+                className={`inline-flex rounded-full px-1.5 py-0.5 text-xs font-medium ${badge.className}`}
+              >
+                {badge.label}
+              </span>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'stock_value',

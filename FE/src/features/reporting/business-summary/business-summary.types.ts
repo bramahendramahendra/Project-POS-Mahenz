@@ -17,10 +17,20 @@ export interface MonthStats {
   gross_profit: number
 }
 
+export interface PrevStats {
+  total_transactions: number
+  total_sales: number
+  gross_profit: number
+  available: boolean
+}
+
 export interface DashboardStats {
   today: TodayStats
   this_month: MonthStats
+  prev: PrevStats
   low_stock_count: number
+  out_of_stock_count: number
+  low_only_count: number
   open_receivables: number
 }
 

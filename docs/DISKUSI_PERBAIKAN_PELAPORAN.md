@@ -245,38 +245,110 @@ Dikonfirmasi (user + baca kode migrasi 004/005 & skrip backfill di `BE/cmd/`):
   tidak ikut dikoreksi**. → Stok sekarang benar, tapi **Laba Rugi periode lama masih salah**.
   Dua hal terpisah; perbaikan stok bukan solusi untuk bug modal historis ini.
 
-### 6.2 Stok
+### 6.2 Stok  ← A+B SELESAI (30 Sep 2026), C menyusul
 - **Kondisi sekarang:** 3 KPI (Total Produk, Stok Rendah, Total Nilai Stok) + tabel
   (kode, nama, kategori, satuan, stok saat ini, nilai stok) + badge "Stok Rendah".
   Filter cari + kategori + Export Excel.
 - **Observasi/masalah:** 68% produk berstatus stok rendah (ambang tak realistis?).
   "Total Nilai Stok" berpotensi disalahartikan sebagai "uang/untung".
-- **Ide arah:** _(diisi saat diskusi)_
-- **Keputusan final:** _(kosong)_
 
-### 6.3 Ringkasan Bisnis
+#### Hasil investigasi data (30 Sep 2026)
+- 337 produk aktif. **322 (96%) pakai min_stock=5** (default form, tak pernah disetel).
+  Tidak ada yang min_stock=0.
+- Distribusi stok riil (satuan anchor): 27 habis, 140 sisa 1-2, 65 sisa 3-5 → banyak yang
+  memang tipis. Dengan perbandingan `<=` ambang 5, ~207+ produk masuk "rendah".
+- **BUKAN bug hitungan** — angkanya benar. Masalahnya: (1) ambang seragam 5 tak realistis
+  per barang, (2) "habis" & "menipis" tak dibedakan (satu badge merah untuk semua).
+- Pembengkakan ambang ke satuan terkecil (dugaan awal) BUKAN penyebab utama: uji
+  perbandingan di satuan anchor tetap ~233 low.
+
+- **Keputusan final (A+B, tanpa ubah data):**
+  - **A. Status 3 tingkat:** Habis (merah, sisa 0) / Menipis (kuning, 0<sisa<=ambang) /
+    Aman (tanpa badge). Produk data-diragukan = status "" (tanpa alarm).
+    Backend: `StockSummary.Status` di `stock_delta.go`; diteruskan via
+    `stock_read_repo.go`; DTO `StockItem.stock_status` + `StockSummary.out_of_stock_count`
+    & `low_only_count` (`dto_report.go`); diisi & difilter di `report_repo.go`;
+    `report_service.go` + export Excel (Habis/Menipis/Aman). `is_low_stock` &
+    `low_stock_count` lama DIPERTAHANKAN (habis+menipis) → menu lain tak berubah.
+  - **B. Filter cepat status:** dropdown "Status Stok" (Semua/Habis/Menipis/Aman) di
+    `StockReportFilterBar.tsx`; kartu ringkasan jadi 4 (Total Produk, Stok Habis merah,
+    Stok Menipis kuning, Total Nilai Stok) di `StockReportSummaryCard.tsx`; badge 3 warna
+    di `StockReportTableColumns.tsx`; tipe di `stock.types.ts`.
+  - Terverifikasi browser (30 Sep): kartu Habis 27 / Menipis 207, badge kuning/merah,
+    filter Habis → 27 data semua badge merah. BE build & FE type-check bersih.
+- **Poin C (menyusul, dibahas terpisah):** ambang min_stock seragam 5 belum ideal.
+  Opsi: setel per barang lebih mudah, atau hitung otomatis dari rata-rata penjualan.
+  BELUM dikerjakan — sesuai permintaan user, dibahas spesifik setelah A+B beres.
+
+### 6.3 Ringkasan Bisnis  ← P1+P2+P3 SELESAI (30 Sep 2026)
 - **Kondisi sekarang:** 5 kartu KPI (Transaksi, Pendapatan, Laba Kotor, Stok Menipis,
   Piutang Terbuka) + Grafik Penjualan + Top Produk Terlaris. Toggle periode
   Hari Ini/Minggu Ini/Bulan Ini.
-- **Observasi/masalah:** kartu Laba Kotor & Stok Menipis bergantung pada perbaikan #1 &
-  #2. Peran sebagai dashboard perlu dipertegas vs menu detail.
-- **Ide arah:** _(diisi saat diskusi)_
-- **Keputusan final:** _(kosong)_
 
-### 6.4 Penjualan
+#### Hasil investigasi (30 Sep 2026)
+- Laba Kotor & COGS dashboard baca `transaction_items.purchase_price` yang SAMA dgn
+  Laba Rugi → sudah ikut terkoreksi backfill HPP. Terverifikasi: Laba Kotor dashboard
+  Bulan Ini = Rp 1.035.903, SAMA dengan menu Laba Rugi.
+- Stok Menipis pakai BuildStockSummaries/ComputeStockSummary yang sama dgn Laporan Stok,
+  tapi hanya baca flag IsLowStock (habis+menipis digabung).
+- Temuan: (1) kartu "Stok Menipis" campur habis+menipis; (2) TIDAK ada pembanding periode
+  sama sekali (cuma angka telanjang); (3) istilah "Laba Kotor" tanpa penjelasan;
+  (4) definisi "Pendapatan" beda dgn Laba Rugi HANYA jika ada pajak (dashboard pakai
+  total_amount penuh, Laba Rugi total_amount−tax).
+
+- **Keputusan final (P1+P2+P3 dikerjakan; P4 pajak di-SKIP atas keputusan user):**
+  - **P1 Pembanding periode:** tiap kartu Transaksi/Pendapatan/Laba Kotor kini punya
+    indikator "▲/▼ x% vs kemarin|minggu lalu|bulan lalu". Backend: `previousPeriodRange`
+    (today=kemarin, week=7hr sebelum, month=bulan kalender lalu) + `PrevStats` di
+    `dto_business_summary.go`; `GetStats` isi Prev via GetStatsByRange+GetCOGSByRange.
+    FE: DeltaLine di `SummaryCards.tsx` (hijau naik/merah turun, "belum ada data" bila
+    periode lalu kosong).
+  - **P2 Pisah Habis/Menipis:** kartu jadi 6 (Transaksi, Pendapatan, Laba Kotor,
+    Stok Habis merah, Stok Menipis kuning, Piutang). Backend repo `GetLowStockCount`
+    diganti `GetStockStatusCounts()(out,low)` (pakai s.Status); DTO tambah
+    OutOfStockCount+LowOnlyCount. Konsisten dgn Laporan Stok (27 habis / 207 menipis).
+  - **P3 Perjelas istilah:** subteks "pendapatan − modal, belum potong biaya" di kartu
+    Laba Kotor.
+  - Terverifikasi browser (30 Sep, Bulan Ini): 3 indikator % (35%/9%/90%), subteks &
+    kartu Habis/Menipis tampil. BE build & FE type-check bersih.
+- **P4 (pajak) — DITUNDA:** samakan definisi Pendapatan dgn Laba Rugi HANYA relevan bila
+  toko pakai pajak. Belum dicek apakah toko pakai pajak; di-skip atas permintaan user.
+
+### 6.4 Penjualan  ← SELESAI (30 Sep 2026)
 - **Kondisi sekarang:** 3 KPI (Total Transaksi, Total Pendapatan, Rata-rata/Transaksi) +
   tabel transaksi (tanggal, kode, kasir, customer, total, metode bayar, status). Filter
   tanggal + metode bayar + Export Excel.
 - **Observasi/masalah:** paling intuitif; angka wajar. Kandidat: tambah pembanding periode.
-- **Ide arah:** _(diisi saat diskusi)_
-- **Keputusan final:** _(kosong)_
 
-### 6.5 Kinerja Kasir
+- **Keputusan final (pembanding periode dikerjakan; diskon/pajak di-SKIP):**
+  - Tiap kartu (Total Transaksi, Total Pendapatan, Rata-rata/Transaksi) kini punya
+    indikator "▲/▼ x% vs periode lalu". Periode pembanding = durasi SAMA dengan rentang
+    tanggal terpilih, tepat sebelum periode ini (mengikuti pola previousPeriod Laba Rugi).
+    Filter metode bayar/kasir ikut diterapkan ke periode pembanding (apple-to-apple).
+  - Backend: `SalesSummary` DTO tambah PrevTransactions/PrevRevenue/PrevAvgPerTx/
+    PrevAvailable (dto_report.go); `GetSalesSummaryWithFilters` (report_repo.go) hitung
+    prev via helper `prevSalesRange` + query ulang salesSummaryBase dgn kondisi sama.
+  - FE: sales.types.ts tambah field prev; SalesReportSummaryCard.tsx pakai DeltaLine
+    (pola sama Ringkasan Bisnis).
+  - Terverifikasi browser (30 Sep, 1-30 Sep): 3 indikator (34%/7%/40% vs periode lalu).
+    BE build & FE type-check bersih.
+  - Diskon & Pajak (sudah dihitung backend tapi tak ditampilkan) SENGAJA tidak
+    ditambahkan — opsional & tergantung apakah toko pakai pajak (belum dikonfirmasi).
+
+### 6.5 Kinerja Kasir  ← SELESAI (30 Sep 2026)
 - **Kondisi sekarang:** tabel per kasir (Jml Transaksi, Total Penjualan, Tunai, Non-Tunai,
   Rata-rata/Transaksi, Void). Filter tanggal + Export Excel.
-- **Observasi/masalah:** cukup jelas. Istilah "Void" mungkin perlu dijelaskan.
-- **Ide arah:** _(diisi saat diskusi)_
-- **Keputusan final:** _(kosong)_
+- **Observasi/masalah:** cukup jelas & angka wajar. Menu paling ringan. Satu-satunya:
+  istilah "Void" teknis untuk owner awam. (Toko saat ini 1 kasir aktif.)
+
+- **Keputusan final (perjelas istilah saja):**
+  - Kolom "Void" → **"Dibatalkan"** di tabel (CashierPerformanceTableColumns.tsx) +
+    tooltip "Jumlah transaksi yang dibatalkan (void)". Header Export Excel juga
+    disamakan jadi "Dibatalkan" (report_service.go ExportCashierReport).
+  - TIDAK ditambah kartu ringkasan/grafik/pembanding periode — sengaja, karena menu ini
+    sifatnya tabel pembanding antar kasir (per-kasir), bukan dashboard angka tunggal.
+  - Terverifikasi browser (30 Sep): kolom "Dibatalkan" tampil, "Void" hilang. BE build &
+    FE type-check bersih.
 
 ---
 

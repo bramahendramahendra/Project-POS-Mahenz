@@ -17,11 +17,22 @@ type MonthStats struct {
 	GrossProfit       float64 `json:"gross_profit"`
 }
 
+// PrevStats: angka periode SEBELUMNYA (untuk pembanding naik/turun di dashboard).
+type PrevStats struct {
+	TotalTransactions int64   `json:"total_transactions"`
+	TotalSales        float64 `json:"total_sales"`
+	GrossProfit       float64 `json:"gross_profit"`
+	Available         bool    `json:"available"` // ada data periode lalu utk dibandingkan?
+}
+
 type StatsResponse struct {
-	Today             TodayStats `json:"today"`
-	ThisMonth         MonthStats `json:"this_month"`
-	LowStockCount     int64      `json:"low_stock_count"`
-	OpenReceivables   int64      `json:"open_receivables"`
+	Today           TodayStats `json:"today"`
+	ThisMonth       MonthStats `json:"this_month"`
+	Prev            PrevStats  `json:"prev"`               // pembanding periode sebelumnya
+	LowStockCount   int64      `json:"low_stock_count"`    // habis + menipis (kompatibel lama)
+	OutOfStockCount int64      `json:"out_of_stock_count"` // habis saja
+	LowOnlyCount    int64      `json:"low_only_count"`     // menipis saja
+	OpenReceivables int64      `json:"open_receivables"`
 }
 
 type SalesTrendItem struct {

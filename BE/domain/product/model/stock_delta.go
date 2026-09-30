@@ -304,10 +304,23 @@ func analyzePackageChain(packages []*ProductPackage) (anchor, smallest *ProductP
 // aktif sebuah produk (Fase 5, docs/RENCANA_PERBAIKAN_STOK_PRESISI.md).
 // Tidak pernah menulis apa pun -- murni untuk jalur baca (list/detail produk,
 // laporan, dashboard low-stock).
+// Status stok kualitatif (dipakai laporan & dashboard). Dihitung dari sisa
+// stok bebas dibanding ambang minimum, di satuan TERKECIL (sama dgn IsLowStock).
+const (
+	StockStatusOut     = "out" // habis: sisa stok bebas = 0
+	StockStatusLow     = "low" // menipis: 0 < sisa <= ambang minimum
+	StockStatusOK      = "ok"  // aman: sisa > ambang minimum
+	StockStatusUnknown = ""    // datanya diragukan (rantai paket tak bisa dianalisis) -> jangan beri alarm
+)
+
 type StockSummary struct {
 	AnchorStock    float64 // total semua level, dikonversi ke satuan anchor -- untuk tampilan angka tunggal (kompatibel dengan products.stock lama)
 	AnchorReserved float64 // total reserved_qty semua level, dikonversi ke satuan anchor
 	IsLowStock     bool    // celah #12: dibandingkan di satuan TERKECIL, bukan anchor-vs-anchor, supaya sisa < 1 unit anchor tidak salah alarm
+	// Status: pemisahan kualitatif "out"/"low"/"ok" untuk penyajian (menu Stok
+	// membedakan Habis vs Menipis vs Aman). IsLowStock tetap = (Status==out||low)
+	// supaya pemakai lama tidak berubah maknanya.
+	Status string
 }
 
 // ComputeStockSummary menghitung StockSummary sebuah produk dari baris
@@ -354,9 +367,23 @@ func ComputeStockSummary(packages []*ProductPackage, continuousUnitID map[int]bo
 	const epsilon = 1e-6
 	isLowStock := smallestFree <= minStockSmallest+epsilon
 
+	// Status kualitatif: pisahkan "habis" (sisa 0) dari "menipis" (sisa > 0 tapi
+	// masih di bawah/sama ambang). Dibandingkan di satuan terkecil, sama seperti
+	// isLowStock, agar konsisten.
+	var status string
+	switch {
+	case smallestFree <= epsilon:
+		status = StockStatusOut
+	case isLowStock:
+		status = StockStatusLow
+	default:
+		status = StockStatusOK
+	}
+
 	return &StockSummary{
 		AnchorStock:    anchorStock,
 		AnchorReserved: anchorReserved,
 		IsLowStock:     isLowStock,
+		Status:         status,
 	}, nil
 }

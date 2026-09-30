@@ -15,7 +15,7 @@ import { useDebounce } from '@/shared/hooks'
 import { useCategoryOptionsQuery } from '@/features/products/categories'
 
 import { useExportStockReportMutation } from '../stock.api'
-import type { StockFilter } from '../stock.types'
+import type { StockFilter, StockStatus } from '../stock.types'
 
 interface StockReportFilterBarProps {
   filter: StockFilter
@@ -69,6 +69,25 @@ export function StockReportFilterBar({ filter, onChange, onReset }: StockReportF
                 {cat.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <Label className="text-xs text-gray-500">Status Stok</Label>
+        <Select
+          value={filter.stock_status ? filter.stock_status : 'all'}
+          onValueChange={(v) =>
+            onChange({ ...filter, stock_status: v === 'all' ? undefined : (v as StockStatus) })
+          }
+        >
+          <SelectTrigger className="w-36 h-9">
+            <SelectValue placeholder="Semua Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="out">Habis</SelectItem>
+            <SelectItem value="low">Menipis</SelectItem>
+            <SelectItem value="ok">Aman</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -37,6 +37,13 @@ type SalesSummary struct {
 	AvgPerTransaction float64 `json:"avg_per_transaction"`
 	TotalDiscount     float64 `json:"total_discount"`
 	TotalTax          float64 `json:"total_tax"`
+
+	// Pembanding periode sebelumnya (durasi sama, tepat sebelum periode ini).
+	// PrevAvailable=false bila periode lalu tak bisa dihitung / tanpa transaksi.
+	PrevTransactions int     `json:"prev_transactions"`
+	PrevRevenue      float64 `json:"prev_revenue"`
+	PrevAvgPerTx     float64 `json:"prev_avg_per_transaction"`
+	PrevAvailable    bool    `json:"prev_available"`
 }
 
 type SalesChartItem struct {
@@ -90,17 +97,19 @@ type ProfitLossResponse struct {
 // ─── Stock Report ──────────────────────────────────────────────
 
 type StockListRequest struct {
-	Search     string `json:"search"`
-	CategoryID *int   `json:"category_id"`
-	Page       int    `json:"page"`
-	Limit      int    `json:"limit"`
-	SortBy     string `json:"sort_by"`
-	SortOrder  string `json:"sort_order"`
+	Search      string `json:"search"`
+	CategoryID  *int   `json:"category_id"`
+	StockStatus string `json:"stock_status"` // "", "out", "low", "ok" -> filter cepat status
+	Page        int    `json:"page"`
+	Limit       int    `json:"limit"`
+	SortBy      string `json:"sort_by"`
+	SortOrder   string `json:"sort_order"`
 }
 
 type StockSummaryRequest struct {
-	Search     string `json:"search"`
-	CategoryID *int   `json:"category_id"`
+	Search      string `json:"search"`
+	CategoryID  *int   `json:"category_id"`
+	StockStatus string `json:"stock_status"`
 }
 
 type StockItem struct {
@@ -114,17 +123,22 @@ type StockItem struct {
 	CostPrice    float64 `json:"cost_price"`
 	StockValue   float64 `json:"stock_value"`
 	IsLowStock   bool    `json:"is_low_stock"`
+	StockStatus  string  `json:"stock_status"` // "out"/"low"/"ok"/"" (diragukan)
 }
 
 type StockSummary struct {
 	TotalProducts   int     `json:"total_products"`
-	LowStockCount   int     `json:"low_stock_count"`
+	LowStockCount   int     `json:"low_stock_count"`    // habis + menipis (kompatibel pemakai lama, mis. Ringkasan Bisnis)
+	OutOfStockCount int     `json:"out_of_stock_count"` // habis saja
+	LowOnlyCount    int     `json:"low_only_count"`     // menipis saja (belum habis)
 	TotalStockValue float64 `json:"total_stock_value"`
 }
 
 type StockReportResponse struct {
 	TotalProducts   int         `json:"total_products"`
 	LowStockCount   int         `json:"low_stock_count"`
+	OutOfStockCount int         `json:"out_of_stock_count"`
+	LowOnlyCount    int         `json:"low_only_count"`
 	TotalStockValue float64     `json:"total_stock_value"`
 	Items           []StockItem `json:"items"`
 }

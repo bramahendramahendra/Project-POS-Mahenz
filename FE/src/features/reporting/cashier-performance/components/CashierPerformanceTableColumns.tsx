@@ -50,12 +50,15 @@ export function buildCashierPerformanceColumns(): ColumnDef<CashierPerformance>[
     },
     {
       key: 'void_count',
-      header: 'Void',
+      header: 'Dibatalkan',
       align: 'right',
       sortable: true,
       cell: (r) =>
         r.void_count > 0 ? (
-          <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+          <span
+            title="Jumlah transaksi yang dibatalkan (void)"
+            className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600"
+          >
             {r.void_count}
           </span>
         ) : (

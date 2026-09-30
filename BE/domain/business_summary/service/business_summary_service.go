@@ -21,6 +21,30 @@ func periodToDateRange(period string) (startDate, endDate string) {
 	}
 }
 
+// previousPeriodRange mengembalikan rentang periode SEBELUMNYA dengan panjang
+// setara periode berjalan, untuk pembanding "naik/turun" di dashboard.
+//   - today: kemarin (1 hari sebelum hari ini)
+//   - week : 7 hari sebelum jendela minggu berjalan
+//   - month: bulan kalender sebelumnya (tanggal 1 s/d akhir bulan lalu)
+func previousPeriodRange(period string) (startDate, endDate string) {
+	now := time_helper.GetTimeNow()
+	switch period {
+	case "week":
+		// jendela berjalan: (now-6 .. now) -> sebelumnya: (now-13 .. now-7)
+		start := now.AddDate(0, 0, -13).Format("2006-01-02")
+		end := now.AddDate(0, 0, -7).Format("2006-01-02")
+		return start, end
+	case "month":
+		firstThis := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		lastPrev := firstThis.AddDate(0, 0, -1)                                                  // hari terakhir bulan lalu
+		firstPrev := time.Date(lastPrev.Year(), lastPrev.Month(), 1, 0, 0, 0, 0, now.Location()) // tanggal 1 bulan lalu
+		return firstPrev.Format("2006-01-02"), lastPrev.Format("2006-01-02")
+	default: // "today" -> kemarin
+		y := now.AddDate(0, 0, -1).Format("2006-01-02")
+		return y, y
+	}
+}
+
 func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, error) {
 	startDate, endDate := periodToDateRange(period)
 
@@ -62,7 +86,25 @@ func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, er
 	monthStats.TotalCOGS = monthCOGS
 	monthStats.GrossProfit = monthStats.TotalSales - monthCOGS
 
-	lowStock, err := s.repo.GetLowStockCount()
+	// Pembanding periode sebelumnya (panjang setara periode berjalan).
+	prevStart, prevEnd := previousPeriodRange(period)
+	prevStats, err := s.repo.GetStatsByRange(prevStart, prevEnd)
+	if err != nil {
+		return nil, err
+	}
+	prevCOGS, err := s.repo.GetCOGSByRange(prevStart, prevEnd)
+	if err != nil {
+		return nil, err
+	}
+	prev := dto.PrevStats{
+		TotalTransactions: prevStats.TotalTransactions,
+		TotalSales:        prevStats.TotalSales,
+		GrossProfit:       prevStats.TotalSales - prevCOGS,
+		// "Available" bila periode lalu memang ada transaksi -> pembanding bermakna.
+		Available: prevStats.TotalTransactions > 0,
+	}
+
+	outStock, lowStock, err := s.repo.GetStockStatusCounts()
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +116,10 @@ func (s *businessSummaryService) GetStats(period string) (*dto.StatsResponse, er
 	return &dto.StatsResponse{
 		Today:           *todayStats,
 		ThisMonth:       *monthStats,
-		LowStockCount:   lowStock,
+		Prev:            prev,
+		LowStockCount:   outStock + lowStock, // habis + menipis (kompatibel lama)
+		OutOfStockCount: outStock,
+		LowOnlyCount:    lowStock,
 		OpenReceivables: openReceivables,
 	}, nil
 }

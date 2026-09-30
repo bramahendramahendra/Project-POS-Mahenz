@@ -87,6 +87,7 @@ func BuildStockSummaries(db *gorm.DB, minStockByProduct map[int]float64) (map[in
 				AnchorStock:    anchor.Stock,
 				AnchorReserved: anchor.ReservedQty,
 				IsLowStock:     false,
+				Status:         model_product.StockStatusUnknown, // data diragukan -> tanpa alarm
 			}
 			continue
 		}

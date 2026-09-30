@@ -188,9 +188,16 @@ func (s *reportService) GetStockReport() (*dto.StockReportResponse, error) {
 
 	var totalValue float64
 	lowCount := 0
+	outCount := 0
+	lowOnlyCount := 0
 	for _, item := range items {
 		totalValue += item.StockValue
-		if item.IsLowStock {
+		switch item.StockStatus {
+		case "out":
+			outCount++
+			lowCount++
+		case "low":
+			lowOnlyCount++
 			lowCount++
 		}
 	}
@@ -198,6 +205,8 @@ func (s *reportService) GetStockReport() (*dto.StockReportResponse, error) {
 	return &dto.StockReportResponse{
 		TotalProducts:   len(items),
 		LowStockCount:   lowCount,
+		OutOfStockCount: outCount,
+		LowOnlyCount:    lowOnlyCount,
 		TotalStockValue: totalValue,
 		Items:           items,
 	}, nil
@@ -230,9 +239,12 @@ func (s *reportService) ExportStockReport() (*bytes.Buffer, error) {
 
 	for idx, item := range data.Items {
 		row := idx + 2
-		status := "Normal"
-		if item.IsLowStock {
-			status = "Stok Rendah"
+		status := "Aman"
+		switch item.StockStatus {
+		case "out":
+			status = "Habis"
+		case "low":
+			status = "Menipis"
 		}
 		vals := []interface{}{idx + 1, item.ProductName, item.CategoryName, item.CurrentStock, item.MinStock,
 			item.Unit, item.CostPrice, item.StockValue, status}
@@ -267,7 +279,7 @@ func (s *reportService) ExportCashierReport(params dto.FilterParams) (*bytes.Buf
 	sheet := "Laporan Kasir"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"No", "Kasir", "Total Transaksi", "Total Penjualan", "Total Tunai", "Total Non-Tunai", "Rata-rata Transaksi", "Void"}
+	headers := []string{"No", "Kasir", "Total Transaksi", "Total Penjualan", "Total Tunai", "Total Non-Tunai", "Rata-rata Transaksi", "Dibatalkan"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
