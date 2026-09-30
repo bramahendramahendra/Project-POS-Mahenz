@@ -6,12 +6,15 @@ import { usePagination, usePageSizeOptions } from '@/shared/hooks'
 import { useReceivableListQuery } from '../receivables.api'
 import type { Receivable, ReceivableListFilter } from '../receivables.types'
 import { PaymentRecordModal } from './PaymentRecordModal'
+import { ReceivableDetailModal } from './ReceivableDetailModal'
 import { ReceivableFilterBar } from './ReceivableFilterBar'
+import { ReceivableSummaryCards } from './ReceivableSummaryCards'
 import { buildReceivableColumns } from './ReceivableTableColumns'
 
 export function ReceivableTable() {
   const [filter, setFilter] = useState<ReceivableListFilter>({ page: 1, limit: 10, search: '' })
   const [payTarget, setPayTarget] = useState<Receivable | null>(null)
+  const [detailTarget, setDetailTarget] = useState<Receivable | null>(null)
 
   const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
   const pageSizeOptions = usePageSizeOptions()
@@ -20,10 +23,15 @@ export function ReceivableTable() {
   const receivables = data?.data ?? []
   const total = data?.total ?? 0
 
-  const columns = buildReceivableColumns({ onPay: (r) => setPayTarget(r) })
+  const columns = buildReceivableColumns({
+    onPay: (r) => setPayTarget(r),
+    onDetail: (r) => setDetailTarget(r),
+  })
 
   return (
     <div className="space-y-4">
+      <ReceivableSummaryCards />
+
       <ReceivableFilterBar filter={filter} onChange={setFilter} onReset={reset} />
 
       <DataTable<Receivable & Record<string, unknown>>
@@ -39,6 +47,16 @@ export function ReceivableTable() {
         open={!!payTarget}
         onOpenChange={(open) => { if (!open) setPayTarget(null) }}
         receivable={payTarget}
+      />
+
+      <ReceivableDetailModal
+        receivable={detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onPay={(r) => {
+          // dari detail -> buka modal bayar; tutup detail agar tidak menumpuk
+          setDetailTarget(null)
+          setPayTarget(r)
+        }}
       />
     </div>
   )

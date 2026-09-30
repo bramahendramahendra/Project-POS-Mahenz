@@ -63,6 +63,21 @@ func (h *ReceivableHandler) GetSummary(c *gin.Context) {
 	})
 }
 
+func (h *ReceivableHandler) GetStats(c *gin.Context) {
+	data, err := h.service.GetStats()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Ringkasan piutang",
+		Data:    data,
+	})
+}
+
 func (h *ReceivableHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {

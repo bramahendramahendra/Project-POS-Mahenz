@@ -5,7 +5,13 @@ import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
 import type { PaginatedData } from '@/shared/types'
 
-import type { CreatePaymentPayload, Receivable, ReceivableListFilter } from './receivables.types'
+import type {
+  CreatePaymentPayload,
+  Receivable,
+  ReceivableDetail,
+  ReceivableListFilter,
+  ReceivableStats,
+} from './receivables.types'
 
 export function useReceivableListQuery(filter?: ReceivableListFilter) {
   return useQuery({
@@ -14,10 +20,17 @@ export function useReceivableListQuery(filter?: ReceivableListFilter) {
   })
 }
 
+export function useReceivableStatsQuery() {
+  return useQuery({
+    queryKey: queryKeys.receivables.stats(),
+    queryFn: () => api.post<ReceivableStats>('/receivables/stats', {}),
+  })
+}
+
 export function useReceivableDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.receivables.detail(id),
-    queryFn: () => api.post<Receivable>(`/receivables/detail/${id}`, {}),
+    queryFn: () => api.post<ReceivableDetail>(`/receivables/detail/${id}`, {}),
     enabled: id > 0,
   })
 }

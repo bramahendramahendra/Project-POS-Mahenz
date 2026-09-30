@@ -12,6 +12,7 @@ import { formatRupiah, todayStr } from '@/shared/utils'
 import { useAddPaymentMutation } from '../receivables.api'
 import type { Receivable } from '../receivables.types'
 import { createPaymentSchema, type PaymentFormValues } from '../receivables.schema'
+import { PaymentReceiptModal, type PaymentReceiptData } from './PaymentReceiptModal'
 
 interface PaymentRecordModalProps {
   open: boolean
@@ -25,6 +26,7 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingValues, setPendingValues] = useState<PaymentFormValues | null>(null)
+  const [receiptData, setReceiptData] = useState<PaymentReceiptData | null>(null)
 
   const paymentSchema = createPaymentSchema(remaining)
 
@@ -60,17 +62,35 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
   }
 
   const handleConfirm = () => {
-    if (!pendingValues) return
+    if (!pendingValues || !receivable) return
+    const values = pendingValues
     addPayment(
       {
-        amount: pendingValues.amount,
-        payment_date: pendingValues.payment_date,
-        notes: pendingValues.notes || undefined,
+        amount: values.amount,
+        payment_date: values.payment_date,
+        notes: values.notes || undefined,
       },
       {
-        onSuccess: () => handleClose(),
+        onSuccess: () => {
+          // Siapkan bukti pembayaran; tutup form & konfirmasi, buka struk bukti.
+          setReceiptData({
+            customerName: receivable.customer_name,
+            transactionCode: receivable.transaction_code,
+            amount: values.amount,
+            paymentDate: values.payment_date,
+            remainingAfter: Math.max(0, remaining - values.amount),
+            notes: values.notes || undefined,
+          })
+          setConfirmOpen(false)
+          setPendingValues(null)
+          onOpenChange(false)
+        },
       }
     )
+  }
+
+  const handleReceiptClose = () => {
+    setReceiptData(null)
   }
 
   return (
@@ -173,6 +193,12 @@ export function PaymentRecordModal({ open, onOpenChange, receivable }: PaymentRe
         confirmLabel="Ya, Simpan"
         onConfirm={handleConfirm}
         isLoading={isPending}
+      />
+
+      <PaymentReceiptModal
+        open={!!receiptData}
+        onClose={handleReceiptClose}
+        data={receiptData}
       />
     </>
   )

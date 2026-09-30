@@ -56,6 +56,8 @@ export const queryKeys = {
     all: () => ['receivables'] as const,
     list: (filter?: Filter) => ['receivables', 'list', filter] as const,
     detail: (id: number) => ['receivables', 'detail', id] as const,
+    payments: (id: number) => ['receivables', 'detail', id, 'payments'] as const,
+    stats: () => ['receivables', 'stats'] as const,
   },
 
   expenses: {

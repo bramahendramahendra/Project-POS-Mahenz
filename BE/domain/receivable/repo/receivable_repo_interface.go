@@ -13,6 +13,7 @@ type (
 		GetByID(id int) (*model.Receivable, error)
 		GetDetailByID(id int) (*dto.ReceivableDetailResponse, error)
 		GetSummary() ([]*dto.ReceivableSummaryItem, error)
+		GetStats() (*dto.ReceivableStats, error)
 		GetPayments(receivableID int) ([]*dto.PaymentResponse, error)
 		CreatePayment(receivableID int, req *dto.PayRequest, userID int) error
 		UpdateAfterPayment(receivableID int, amount float64) error

@@ -24,6 +24,7 @@ func ReceivableRoutes(r *gin.RouterGroup) {
 	{
 		g.POST("/list", receivableHandler.GetAll)
 		g.POST("/summary", perm("can_view"), receivableHandler.GetSummary)
+		g.POST("/stats", perm("can_view"), receivableHandler.GetStats)
 		g.POST("/detail/:id", receivableHandler.GetByID)
 		g.POST("/payments/:id", receivableHandler.GetPayments)
 		g.POST("/pay/:id", perm("can_edit"), receivableHandler.Pay)

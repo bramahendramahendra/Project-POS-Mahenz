@@ -12,7 +12,7 @@ import {
 } from '@/shared/components/ui/select'
 import { useDebounce } from '@/shared/hooks'
 
-import type { ReceivableListFilter, ReceivableStatus } from '../receivables.types'
+import type { ReceivableDueTerm, ReceivableListFilter, ReceivableStatus } from '../receivables.types'
 
 interface ReceivableFilterBarProps {
   filter: ReceivableListFilter
@@ -35,9 +35,14 @@ export function ReceivableFilterBar({ filter, onChange, onReset }: ReceivableFil
     onReset()
   }
 
+  const handleDueTermChange = (value: string) => {
+    onChange({ ...filter, due_term: value === 'all' ? undefined : (value as ReceivableDueTerm) })
+    onReset()
+  }
+
   const handleReset = () => {
     setSearch('')
-    onChange({ ...filter, search: '', status: undefined })
+    onChange({ ...filter, search: '', status: undefined, due_term: undefined })
     onReset()
   }
 
@@ -65,6 +70,16 @@ export function ReceivableFilterBar({ filter, onChange, onReset }: ReceivableFil
           <SelectItem value="partial">Sebagian</SelectItem>
           <SelectItem value="paid">Lunas</SelectItem>
           <SelectItem value="void">Dibatalkan</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={filter.due_term ?? 'all'} onValueChange={handleDueTermChange}>
+        <SelectTrigger className="w-44 h-9">
+          <SelectValue placeholder="Jatuh Tempo" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Jatuh Tempo</SelectItem>
+          <SelectItem value="overdue">Lewat Jatuh Tempo</SelectItem>
+          <SelectItem value="not_due">Belum Jatuh Tempo</SelectItem>
         </SelectContent>
       </Select>
       <Button variant="outline" size="sm" className="h-9" onClick={handleReset}>

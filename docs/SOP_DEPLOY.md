@@ -81,14 +81,44 @@ ls -lh /opt/pos-mahenz/BE/backups/
 sudo mv pos-mahenz pos-mahenz_20260930
 
 sudo mkdir -p /opt/pos-mahenz
-sudo git clone <URL_REPO_ANDA> /opt/pos-mahenz
+sudo git clone https://github.com/bramahendramahendra/Project-POS-Mahenz.git /opt/pos-mahenz
 sudo chown -R $USER:$USER /opt/pos-mahenz
+```
 
-
-
-sudo chown -R $USER:$USER /opt/sipaduke-testing
-git clone https://<GITHUB_TOKEN>@github.com/bramahendramahendra/sipaduke.git /opt/sipaduke-testing
-
-
-# JIka mau di cpy aja
+# JIka mau di copy aja
+```bash
 sudo cp -a pos-mahenz pos-mahenz_20260930
+
+# ambil kodingan 
+git pull
+sudo chown -R $USER:$USER /opt/sipaduke-testing
+```
+
+**5. Setup ulang BE seperti deploy pertama kali**
+
+```bash
+cd /opt/pos-mahenz/BE
+go mod tidy
+go build -o pos_api .
+sudo systemctl restart pos-backend
+sudo systemctl status pos-backend    # harus "active (running)"
+```
+**Frontend (tampilan):**
+
+```bash
+cd /opt/pos-mahenz/FE
+npm install
+npm run type-check
+npm run lint
+npm run build
+
+
+sudo rm -rf /var/www/pos-web/dist
+sudo cp -r dist /var/www/pos-web/
+sudo chown -R $USER:$USER /var/www/pos-web
+```
+
+**7. Verifikasi & matikan maintenance mode**
+```bash
+sudo maintenance-off.sh
+```

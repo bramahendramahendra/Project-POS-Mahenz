@@ -26,6 +26,10 @@ func (s *receivableService) GetSummary() ([]*dto.ReceivableSummaryItem, error) {
 	return s.repo.GetSummary()
 }
 
+func (s *receivableService) GetStats() (*dto.ReceivableStats, error) {
+	return s.repo.GetStats()
+}
+
 func (s *receivableService) GetPayments(id int) ([]*dto.PaymentResponse, error) {
 	rec, err := s.repo.GetByID(id)
 	if err != nil {

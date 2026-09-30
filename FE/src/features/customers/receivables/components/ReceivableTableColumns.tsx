@@ -1,4 +1,4 @@
-import { Banknote } from 'lucide-react'
+import { Banknote, Eye } from 'lucide-react'
 
 import { StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -10,6 +10,7 @@ import type { Receivable } from '../receivables.types'
 
 interface ReceivableColumnHandlers {
   onPay: (receivable: Receivable) => void
+  onDetail: (receivable: Receivable) => void
 }
 
 function isOverdue(dueDate?: string): boolean {
@@ -17,7 +18,7 @@ function isOverdue(dueDate?: string): boolean {
   return getWIBNow().isAfter(dueDate)
 }
 
-export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): ColumnDef<Receivable>[] {
+export function buildReceivableColumns({ onPay, onDetail }: ReceivableColumnHandlers): ColumnDef<Receivable>[] {
   return [
     {
       key: 'transaction_code',
@@ -86,23 +87,39 @@ export function buildReceivableColumns({ onPay }: ReceivableColumnHandlers): Col
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '80px',
-      cell: (row) =>
-        row.status !== 'paid' && row.status !== 'void' ? (
+      width: '100px',
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-gray-500 hover:text-green-600"
-                onClick={() => onPay(row)}
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => onDetail(row)}
               >
-                <Banknote size={14} />
+                <Eye size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Bayar</TooltipContent>
+            <TooltipContent>Detail</TooltipContent>
           </Tooltip>
-        ) : null,
+          {row.status !== 'paid' && row.status !== 'void' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-green-600"
+                  onClick={() => onPay(row)}
+                >
+                  <Banknote size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Bayar</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      ),
     },
   ]
 }
