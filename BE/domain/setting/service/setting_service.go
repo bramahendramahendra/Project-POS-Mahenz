@@ -87,12 +87,17 @@ func (s *settingService) GetPrinterSettings() (*dto.PrinterSettingsResponse, err
 	}
 	showLogo := s.getSettingValue("printer_show_logo") == "true"
 	autoPrint := s.getSettingValue("printer_auto_print") == "true"
+	printMethod := s.getSettingValue("printer_print_method")
+	if printMethod == "" {
+		printMethod = "browser"
+	}
 	return &dto.PrinterSettingsResponse{
 		PaperSize:     paperSize,
 		ReceiptHeader: s.getSettingValue("printer_receipt_header"),
 		ReceiptFooter: receiptFooter,
 		ShowLogo:      showLogo,
 		AutoPrint:     autoPrint,
+		PrintMethod:   printMethod,
 	}, nil
 }
 
@@ -105,12 +110,17 @@ func (s *settingService) UpdatePrinterSettings(req *dto.PrinterSettingsRequest) 
 	if req.AutoPrint {
 		autoPrint = "true"
 	}
+	printMethod := req.PrintMethod
+	if printMethod == "" {
+		printMethod = "browser"
+	}
 	data := map[string]string{
 		"printer_paper_size":     req.PaperSize,
 		"printer_receipt_header": req.ReceiptHeader,
 		"printer_receipt_footer": req.ReceiptFooter,
 		"printer_show_logo":      showLogo,
 		"printer_auto_print":     autoPrint,
+		"printer_print_method":   printMethod,
 	}
 	return s.Save(data)
 }

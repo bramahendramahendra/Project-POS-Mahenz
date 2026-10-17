@@ -45,6 +45,7 @@ const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   receipt_footer: 'Terima kasih telah berbelanja',
   show_logo: false,
   auto_print: false,
+  print_method: 'browser',
 }
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
@@ -87,6 +88,15 @@ export function ReceiptPrint({
   const autoPrinted = useRef(false)
 
   const handlePrint = useCallback(async () => {
+    // Metode "thermal_eppos": cetak lewat dialog printer OS. Printer EPPOS EP58M
+    // memakai Bluetooth Classic (SPP) yang TIDAK terlihat oleh Web Bluetooth,
+    // jadi jalur BLE dilewati — printer harus sudah dipasangkan (pair) di OS.
+    if (printerSettings.print_method === 'thermal_eppos') {
+      window.print()
+      return
+    }
+
+    // Metode "browser" (default): coba printer BLE langsung bila ada, lalu fallback.
     const bleDevice = await getRememberedPrinter()
     if (bleDevice) {
       const text = receiptToPlainText({
@@ -223,6 +233,7 @@ export function ReceiptPrint({
         <ScrollArea style={{ maxHeight: '65vh' }}>
         <div
           className="print-root px-6 py-5 space-y-4"
+          data-paper={printerSettings.paper_size}
           style={{ maxWidth: printerSettings.paper_size === '58mm' ? '210px' : '300px', margin: '0 auto' }}
         >
 

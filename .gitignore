@@ -8,6 +8,10 @@ BE/logs/
 # Log buangan hasil menjalankan/menguji server di root BE (be_run*.log,
 # be_test_*.log, dsb) -- bukan log resmi aplikasi (itu di BE/logs/).
 BE/*.log
+# Artefak build & test (dihasilkan ulang, jangan di-commit)
+BE/*.exe
+BE/*.out
+BE/pos_api
 
 # ========================
 # FE (Frontend - Node/Vite)
@@ -16,6 +20,8 @@ FE/node_modules/
 FE/dist/
 FE/dist-ssr/
 FE/*.local
+# Cache build TypeScript (dihasilkan ulang, jangan di-commit)
+FE/*.tsbuildinfo
 
 # FE Logs
 FE/logs/

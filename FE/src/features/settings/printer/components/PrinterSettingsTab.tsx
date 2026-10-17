@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: PrinterSettingsFormValues = {
   receipt_footer: 'Terima kasih telah berbelanja!',
   show_logo: false,
   auto_print: false,
+  print_method: 'browser',
 }
 
 function ReceiptPreview({ settings }: { settings: PrinterSettings }) {
@@ -165,6 +166,32 @@ export function PrinterSettingsTab() {
       <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-sm space-y-6 shrink-0">
         <div className="rounded-lg border bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700">Konfigurasi Struk</h3>
+
+          <div className="space-y-1.5">
+            <Label>Metode Cetak</Label>
+            <Select
+              value={liveSettings.print_method}
+              onValueChange={(v) => {
+                if (!v) return
+                setValue('print_method', v as 'browser' | 'thermal_eppos')
+                // EPPOS EP58M kertasnya 58mm — set otomatis agar struk pas.
+                if (v === 'thermal_eppos') setValue('paper_size', '58mm')
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="browser">Browser / Dialog Print</SelectItem>
+                <SelectItem value="thermal_eppos">Printer Thermal Bluetooth (EPPOS 58mm)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              {liveSettings.print_method === 'thermal_eppos'
+                ? 'Cetak lewat dialog printer OS. Pastikan printer EPPOS sudah dipasangkan (pair) di Bluetooth perangkat.'
+                : 'Coba printer Bluetooth langsung bila tersedia, jika tidak akan membuka dialog print browser.'}
+            </p>
+          </div>
 
           <div className="space-y-1.5">
             <Label>Ukuran Kertas</Label>

@@ -41,4 +41,21 @@
   [data-radix-scroll-area-viewport] {
     overflow: visible !important;
   }
+
+  /* Struk thermal 58mm: paksa lebar kertas & hilangkan margin halaman supaya
+   * hasil pas di printer EPPOS EP58M (area cetak ~48mm). Diaktifkan lewat
+   * atribut data-paper pada .print-root. Untuk 80mm, biarkan default. */
+  .print-root[data-paper='58mm'] {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    padding: 0 2mm !important;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+}
+
+/* @page khusus 58mm. Browser memilih @page yang cocok saat elemen .print-root
+ * bertanda 58mm sedang dicetak. Dipisah dari blok @media agar @page valid. */
+@page {
+  margin: 4mm;
 }

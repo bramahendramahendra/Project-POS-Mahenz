@@ -6,6 +6,7 @@ export const printerSettingsSchema = z.object({
   receipt_footer: z.string(),
   show_logo: z.boolean(),
   auto_print: z.boolean(),
+  print_method: z.enum(['browser', 'thermal_eppos']),
 })
 
 export type PrinterSettingsFormValues = z.infer<typeof printerSettingsSchema>
