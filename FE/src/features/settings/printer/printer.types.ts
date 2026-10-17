@@ -1,4 +1,4 @@
-export type PrintMethod = 'browser' | 'thermal_eppos'
+export type PrintMethod = 'browser' | 'thermal'
 
 export interface PrinterSettings {
   paper_size: '58mm' | '80mm'

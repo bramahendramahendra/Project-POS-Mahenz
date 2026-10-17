@@ -29,7 +29,7 @@ type PrinterSettingsRequest struct {
 	ReceiptFooter string `json:"receipt_footer"`
 	ShowLogo      bool   `json:"show_logo"`
 	AutoPrint     bool   `json:"auto_print"`
-	PrintMethod   string `json:"print_method" validate:"omitempty,oneof=browser thermal_eppos"`
+	PrintMethod   string `json:"print_method" validate:"omitempty,oneof=browser thermal"`
 }
 
 type PrinterSettingsResponse struct {

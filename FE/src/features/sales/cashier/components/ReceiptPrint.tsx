@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Printer, ShoppingCart, X, Wallet } from 'lucide-react'
+import { Printer, ShoppingCart, X, Wallet, Bluetooth, Monitor } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 
 import { ActionModal } from '@/shared/components'
@@ -15,7 +15,17 @@ import { useStoreProfileQuery } from '@/features/settings/store'
 import { usePrinterSettingsQuery } from '@/features/settings/printer'
 import type { PrinterSettings } from '@/features/settings/printer'
 
-import { getRememberedPrinter, printViaBle, receiptToPlainText } from '../blePrinter'
+import {
+  getRememberedPrinter,
+  printViaBle,
+  receiptToPlainText,
+  buildReceiptEscposBytes,
+  buildReceiptHtml,
+  printViaRawBt,
+  getPlatform,
+  type ReceiptData,
+} from '../blePrinter'
+import { printReceiptHtml } from '../printFrame'
 import type {
   CartItem,
   CartSummary,
@@ -87,42 +97,83 @@ export function ReceiptPrint({
   const printerSettings = printerSettingsData ?? DEFAULT_PRINTER_SETTINGS
   const autoPrinted = useRef(false)
 
-  const handlePrint = useCallback(async () => {
-    // Metode "thermal_eppos": cetak lewat dialog printer OS. Printer EPPOS EP58M
-    // memakai Bluetooth Classic (SPP) yang TIDAK terlihat oleh Web Bluetooth,
-    // jadi jalur BLE dilewati — printer harus sudah dipasangkan (pair) di OS.
-    if (printerSettings.print_method === 'thermal_eppos') {
-      window.print()
+  // Pilihan metode cetak yang muncul saat tombol Cetak ditekan.
+  const [methodPickerOpen, setMethodPickerOpen] = useState(false)
+
+  const buildReceiptData = useCallback(
+    (): ReceiptData => ({
+      storeName: printerSettings.receipt_header || storeProfile?.name || 'POS System',
+      storeSub: [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • '),
+      footer: printerSettings.receipt_footer,
+      paperSize: printerSettings.paper_size,
+      checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
+    }),
+    [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName],
+  )
+
+  // Jalur THERMAL (native ESC/POS). Android => RawBT (kualitas setara e-nota).
+  // Windows/lainnya => coba printer BLE bila sudah dipilih, jika tidak fallback
+  // ke dialog print sistem. Tidak mengandalkan window.print() di Android, jadi
+  // tidak ada masalah nota tercetak dobel.
+  const printThermal = useCallback(async () => {
+    const data = buildReceiptData()
+    const platform = getPlatform()
+
+    if (platform === 'android') {
+      printViaRawBt(buildReceiptEscposBytes(data))
       return
     }
 
-    // Metode "browser" (default): coba printer BLE langsung bila ada, lalu fallback.
+    // Desktop: coba printer Bluetooth BLE yang sudah pernah dipilih.
     const bleDevice = await getRememberedPrinter()
     if (bleDevice) {
-      const text = receiptToPlainText({
-        storeName: printerSettings.receipt_header || storeProfile?.name || 'POS System',
-        storeSub: [storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • '),
-        footer: printerSettings.receipt_footer,
-        paperSize: printerSettings.paper_size,
-        checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
-      })
       try {
-        await printViaBle(bleDevice, text)
+        await printViaBle(bleDevice, receiptToPlainText(data))
         return
       } catch {
-        // Printer BLE gagal (di luar jangkauan, dst) — fallback ke dialog print biasa.
+        // Printer BLE gagal — fallback ke dialog print via iframe.
       }
     }
-    window.print()
-  }, [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName])
+    printReceiptHtml(buildReceiptHtml(data), data.paperSize)
+  }, [buildReceiptData])
+
+  // Jalur BROWSER: cetak lewat iframe tersembunyi (deterministik, tidak
+  // terpengaruh layout aplikasi — menghindari halaman kosong/dobel).
+  const printBrowser = useCallback(() => {
+    const data = buildReceiptData()
+    printReceiptHtml(buildReceiptHtml(data), data.paperSize)
+  }, [buildReceiptData])
+
+  const runPrintMethod = useCallback(
+    (method: 'thermal' | 'browser') => {
+      if (method === 'thermal') void printThermal()
+      else printBrowser()
+    },
+    [printThermal, printBrowser],
+  )
+
+  // Tombol Cetak: buka pemilih metode agar user tetap bisa memilih tiap cetak.
+  const handlePrint = useCallback(() => {
+    setMethodPickerOpen(true)
+  }, [])
+
+  const handlePickMethod = useCallback(
+    (method: 'thermal' | 'browser') => {
+      setMethodPickerOpen(false)
+      runPrintMethod(method)
+    },
+    [runPrintMethod],
+  )
 
   useEffect(() => {
+    // Auto print setelah checkout: langsung pakai metode default dari pengaturan,
+    // tanpa membuka pemilih (supaya alur kasir tetap cepat).
     if (open && mode === 'checkout' && printerSettings.auto_print && !autoPrinted.current) {
       autoPrinted.current = true
-      handlePrint()
+      runPrintMethod(printerSettings.print_method)
     }
     if (!open) autoPrinted.current = false
-  }, [open, mode, printerSettings.auto_print, handlePrint])
+  }, [open, mode, printerSettings.auto_print, printerSettings.print_method, runPrintMethod])
 
   // Save-to-balance feature
   const showSaveToBalance = mode === 'checkout' && !!customerName && paymentMethod === 'cash' && change > 0
@@ -220,7 +271,134 @@ export function ReceiptPrint({
     </div>
   )
 
+  // Isi struk (tanpa wrapper). Dipakai dua kali: sebagai preview di dalam modal
+  // (tampil di layar) dan sebagai konten cetak di dalam PrintPortal (tercetak).
+  const receiptInner = (
+    <>
+      {/* Toko header */}
+      <div className="text-center space-y-0.5">
+        {printerSettings.show_logo && storeProfile?.logo_url && (
+          <img src={storeProfile.logo_url} alt="Logo" className="mx-auto mb-1 max-h-16 max-w-20 object-contain" />
+        )}
+        <p className="text-base font-bold text-gray-900 tracking-wide">
+          {printerSettings.receipt_header || storeProfile?.name || 'POS System'}
+        </p>
+        {[storeProfile?.address, storeProfile?.phone].filter(Boolean).length > 0 && (
+          <p className="text-sm text-gray-500">
+            {[storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')}
+          </p>
+        )}
+      </div>
+
+      <hr className="border-dashed border-gray-300" />
+
+      {/* Info transaksi */}
+      <div className="space-y-1 text-xs text-gray-600">
+        <div className="flex justify-between">
+          <span className="text-gray-400">No. Transaksi</span>
+          <span className="font-medium text-gray-800">{checkoutData.transaction_code}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-400">Tanggal</span>
+          <span className="text-gray-700">{formatDate(checkoutData.transaction_date)}</span>
+        </div>
+        {customerName && (
+          <div className="flex justify-between">
+            <span className="text-gray-400">Pelanggan</span>
+            <span className="text-gray-700">{customerName}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="text-gray-400">Pembayaran</span>
+          <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
+        </div>
+      </div>
+
+      <hr className="border-dashed border-gray-300" />
+
+      {/* Item list */}
+      <div className="space-y-2.5">
+        {cart.map((item) => (
+          <div key={`${item.product_id}-${item.unit_id}`} className="space-y-0.5">
+            <div className="flex justify-between items-start gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{item.product_name}</p>
+                <p className="text-xs text-gray-400">
+                  {item.unit_name} &times; {item.qty} &nbsp;@&nbsp;
+                  {formatRupiah(item.effective_price ?? item.price)}
+                </p>
+              </div>
+              <span className="text-sm font-semibold text-gray-800 shrink-0">
+                {formatRupiah(item.subtotal)}
+              </span>
+            </div>
+            {item.discount_amount && item.discount_amount > 0 && (
+              <div className="flex justify-between text-xs text-red-500 pl-2">
+                <span>
+                  Diskon{' '}
+                  {item.discount_type === 'percent'
+                    ? `${item.discount_value}%`
+                    : formatRupiah(item.discount_value ?? 0)}
+                </span>
+                <span>-{formatRupiah(item.discount_amount)}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <hr className="border-dashed border-gray-300" />
+
+      {/* Summary */}
+      <div className="space-y-1.5 text-sm">
+        <div className="flex justify-between text-gray-600">
+          <span>Subtotal</span>
+          <span>{formatRupiah(summary.subtotal)}</span>
+        </div>
+        {summary.discountAmount > 0 && (
+          <div className="flex justify-between text-green-600">
+            <span>Diskon{discount.type === 'percent' ? ` (${discount.value}%)` : ''}</span>
+            <span>-{formatRupiah(summary.discountAmount)}</span>
+          </div>
+        )}
+        {summary.taxAmount > 0 && (
+          <div className="flex justify-between text-gray-600">
+            <span>Pajak ({tax.percent}%)</span>
+            <span>+{formatRupiah(summary.taxAmount)}</span>
+          </div>
+        )}
+        <hr className="border-gray-200" />
+        <div className="flex justify-between font-bold text-base text-gray-900">
+          <span>TOTAL</span>
+          <span>{formatRupiah(summary.grandTotal)}</span>
+        </div>
+        <div className="flex justify-between text-gray-600">
+          <span>Dibayar</span>
+          <span>{formatRupiah(amountPaid)}</span>
+        </div>
+        <div className="flex justify-between font-semibold">
+          <span>Kembalian</span>
+          <span className="text-green-600">{formatRupiah(Math.max(0, change))}</span>
+        </div>
+      </div>
+
+      <div className="text-center pt-1">
+        <p className="text-xs text-gray-400">{printerSettings.receipt_footer || ''}</p>
+      </div>
+    </>
+  )
+
+  const receiptMaxWidth = printerSettings.paper_size === '58mm' ? '210px' : '300px'
+
+  const defaultMethod = printerSettings.print_method
+  const platform = getPlatform()
+  const thermalHint =
+    platform === 'android'
+      ? 'Cetak langsung via aplikasi RawBT (hasil tajam seperti e-nota).'
+      : 'Cetak ke printer thermal. Jika gagal, akan membuka dialog print sistem.'
+
   return (
+    <>
     <ActionModal
       open={open}
       onOpenChange={(val) => { if (!val) onClose() }}
@@ -229,126 +407,69 @@ export function ReceiptPrint({
       contentClassName="max-w-sm"
       footer={footer}
     >
-        {/* Receipt preview */}
+        {/* Preview struk di layar (TIDAK ikut tercetak — cetak dilakukan dari
+            PrintPortal di bawah). */}
         <ScrollArea style={{ maxHeight: '65vh' }}>
         <div
-          className="print-root px-6 py-5 space-y-4"
-          data-paper={printerSettings.paper_size}
-          style={{ maxWidth: printerSettings.paper_size === '58mm' ? '210px' : '300px', margin: '0 auto' }}
+          className="no-print px-6 py-5 space-y-4"
+          style={{ maxWidth: receiptMaxWidth, margin: '0 auto' }}
         >
-
-          {/* Toko header */}
-          <div className="text-center space-y-0.5">
-            {printerSettings.show_logo && storeProfile?.logo_url && (
-              <img src={storeProfile.logo_url} alt="Logo" className="mx-auto mb-1 max-h-16 max-w-20 object-contain" />
-            )}
-            <p className="text-base font-bold text-gray-900 tracking-wide">
-              {printerSettings.receipt_header || storeProfile?.name || 'POS System'}
-            </p>
-            {[storeProfile?.address, storeProfile?.phone].filter(Boolean).length > 0 && (
-              <p className="text-sm text-gray-500">
-                {[storeProfile?.address, storeProfile?.phone].filter(Boolean).join(' • ')}
-              </p>
-            )}
-          </div>
-
-          <hr className="border-dashed border-gray-300" />
-
-          {/* Info transaksi */}
-          <div className="space-y-1 text-xs text-gray-600">
-            <div className="flex justify-between">
-              <span className="text-gray-400">No. Transaksi</span>
-              <span className="font-medium text-gray-800">{checkoutData.transaction_code}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Tanggal</span>
-              <span className="text-gray-700">{formatDate(checkoutData.transaction_date)}</span>
-            </div>
-            {customerName && (
-              <div className="flex justify-between">
-                <span className="text-gray-400">Pelanggan</span>
-                <span className="text-gray-700">{customerName}</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-400">Pembayaran</span>
-              <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
-            </div>
-          </div>
-
-          <hr className="border-dashed border-gray-300" />
-
-          {/* Item list */}
-          <div className="space-y-2.5">
-            {cart.map((item) => (
-              <div key={`${item.product_id}-${item.unit_id}`} className="space-y-0.5">
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{item.product_name}</p>
-                    <p className="text-xs text-gray-400">
-                      {item.unit_name} &times; {item.qty} &nbsp;@&nbsp;
-                      {formatRupiah(item.effective_price ?? item.price)}
-                    </p>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800 shrink-0">
-                    {formatRupiah(item.subtotal)}
-                  </span>
-                </div>
-                {item.discount_amount && item.discount_amount > 0 && (
-                  <div className="flex justify-between text-xs text-red-500 pl-2">
-                    <span>
-                      Diskon{' '}
-                      {item.discount_type === 'percent'
-                        ? `${item.discount_value}%`
-                        : formatRupiah(item.discount_value ?? 0)}
-                    </span>
-                    <span>-{formatRupiah(item.discount_amount)}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <hr className="border-dashed border-gray-300" />
-
-          {/* Summary */}
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span>
-              <span>{formatRupiah(summary.subtotal)}</span>
-            </div>
-            {summary.discountAmount > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Diskon{discount.type === 'percent' ? ` (${discount.value}%)` : ''}</span>
-                <span>-{formatRupiah(summary.discountAmount)}</span>
-              </div>
-            )}
-            {summary.taxAmount > 0 && (
-              <div className="flex justify-between text-gray-600">
-                <span>Pajak ({tax.percent}%)</span>
-                <span>+{formatRupiah(summary.taxAmount)}</span>
-              </div>
-            )}
-            <hr className="border-gray-200" />
-            <div className="flex justify-between font-bold text-base text-gray-900">
-              <span>TOTAL</span>
-              <span>{formatRupiah(summary.grandTotal)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Dibayar</span>
-              <span>{formatRupiah(amountPaid)}</span>
-            </div>
-            <div className="flex justify-between font-semibold">
-              <span>Kembalian</span>
-              <span className="text-green-600">{formatRupiah(Math.max(0, change))}</span>
-            </div>
-          </div>
-
-          <div className="text-center pt-1">
-            <p className="text-xs text-gray-400">{printerSettings.receipt_footer || ''}</p>
-          </div>
+          {receiptInner}
         </div>
         </ScrollArea>
     </ActionModal>
+
+
+
+    {/* Pemilih metode cetak — muncul saat tombol Cetak ditekan. */}
+    <ActionModal
+      open={methodPickerOpen}
+      onOpenChange={setMethodPickerOpen}
+      title="Pilih Metode Cetak"
+      description="Pilih cara mencetak struk"
+      contentClassName="max-w-xs"
+      hideFooter
+    >
+      <div className="px-5 py-4 space-y-3">
+        <button
+          type="button"
+          onClick={() => handlePickMethod('thermal')}
+          className={`w-full rounded-lg border-2 p-3 text-left transition-colors hover:bg-gray-50 ${
+            defaultMethod === 'thermal' ? 'border-[#2c3e50]' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Bluetooth size={18} className="text-[#2c3e50]" />
+            <span className="text-sm font-semibold text-gray-800">Printer Thermal (EPPOS)</span>
+            {defaultMethod === 'thermal' && (
+              <span className="ml-auto text-[10px] font-medium text-[#2c3e50] bg-gray-100 px-1.5 py-0.5 rounded">
+                Default
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">{thermalHint}</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handlePickMethod('browser')}
+          className={`w-full rounded-lg border-2 p-3 text-left transition-colors hover:bg-gray-50 ${
+            defaultMethod === 'browser' ? 'border-[#2c3e50]' : 'border-gray-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Monitor size={18} className="text-[#2c3e50]" />
+            <span className="text-sm font-semibold text-gray-800">Browser / Dialog Print</span>
+            {defaultMethod === 'browser' && (
+              <span className="ml-auto text-[10px] font-medium text-[#2c3e50] bg-gray-100 px-1.5 py-0.5 rounded">
+                Default
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Membuka dialog print bawaan browser.</p>
+        </button>
+      </div>
+    </ActionModal>
+    </>
   )
 }

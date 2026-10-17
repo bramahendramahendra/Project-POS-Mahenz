@@ -1,61 +1,76 @@
 /*
- * Pola print-di-tempat: sembunyikan semua isi halaman saat print,
- * kecuali elemen bertanda .print-root. Elemen di dalam .print-root
- * yang tidak boleh ikut tercetak (toolbar, tombol) diberi class .no-print.
+ * Aturan cetak untuk komponen yang masih memakai window.print() langsung dengan
+ * pola .print-root (mis. PaymentReceiptModal, LabelPrintModal).
+ *
+ * Catatan: struk kasir (ReceiptPrint) TIDAK lagi mengandalkan @media print ini —
+ * ia dicetak lewat iframe tersembunyi (lihat printFrame.ts) yang punya CSS sendiri,
+ * sehingga bebas dari masalah halaman kosong/dobel.
+ *
+ * Pola di bawah: saat print, sembunyikan semua secara visual, tampilkan hanya
+ * subtree .print-root, lalu lepaskan .print-root dengan position: fixed agar tidak
+ * menambah tinggi dokumen (mencegah halaman kedua kosong).
  */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body * {
-    visibility: hidden;
-  }
-  .print-root,
-  .print-root * {
-    visibility: visible;
-  }
-  .print-root {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 8px;
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 
-  /* .print-root selalu dipakai dari dalam modal Radix Dialog (lihat komponen-komponen
-   * di atas). DialogContent diberi `transform` (translate -50%/-50% buat centering) —
-   * itu membuatnya jadi containing block baru untuk descendant `position: fixed`,
-   * sehingga .print-root TIDAK menempel ke viewport seperti yang diharapkan, melainkan
-   * ke posisi dialog. DialogContent & ScrollArea di dalamnya juga punya overflow/tinggi
-   * terbatas yang lolos memotong konten walau sudah "invisible". Netralkan semuanya
-   * saat print supaya .print-root benar-benar lepas ke viewport tanpa terpotong.
-   */
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .print-root {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 2mm !important;
+    transform: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
   [role='dialog'] {
     position: static !important;
     transform: none !important;
     inset: auto !important;
     max-height: none !important;
     overflow: visible !important;
-    width: auto !important;
+    box-shadow: none !important;
+    border: none !important;
   }
   [data-radix-scroll-area-viewport] {
     overflow: visible !important;
-  }
-
-  /* Struk thermal 58mm: paksa lebar kertas & hilangkan margin halaman supaya
-   * hasil pas di printer EPPOS EP58M (area cetak ~48mm). Diaktifkan lewat
-   * atribut data-paper pada .print-root. Untuk 80mm, biarkan default. */
-  .print-root[data-paper='58mm'] {
-    width: 58mm !important;
-    max-width: 58mm !important;
-    padding: 0 2mm !important;
-    font-size: 11px;
-    line-height: 1.35;
+    max-height: none !important;
   }
 }
 
-/* @page khusus 58mm. Browser memilih @page yang cocok saat elemen .print-root
- * bertanda 58mm sedang dicetak. Dipisah dari blok @media agar @page valid. */
 @page {
   margin: 4mm;
 }

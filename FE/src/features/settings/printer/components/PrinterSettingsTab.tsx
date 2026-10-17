@@ -173,23 +173,23 @@ export function PrinterSettingsTab() {
               value={liveSettings.print_method}
               onValueChange={(v) => {
                 if (!v) return
-                setValue('print_method', v as 'browser' | 'thermal_eppos')
-                // EPPOS EP58M kertasnya 58mm — set otomatis agar struk pas.
-                if (v === 'thermal_eppos') setValue('paper_size', '58mm')
+                setValue('print_method', v as 'browser' | 'thermal')
+                // Printer thermal (EPPOS EP58M) kertasnya 58mm — set otomatis.
+                if (v === 'thermal') setValue('paper_size', '58mm')
               }}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="thermal">Printer Thermal (EPPOS)</SelectItem>
                 <SelectItem value="browser">Browser / Dialog Print</SelectItem>
-                <SelectItem value="thermal_eppos">Printer Thermal Bluetooth (EPPOS 58mm)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              {liveSettings.print_method === 'thermal_eppos'
-                ? 'Cetak lewat dialog printer OS. Pastikan printer EPPOS sudah dipasangkan (pair) di Bluetooth perangkat.'
-                : 'Coba printer Bluetooth langsung bila tersedia, jika tidak akan membuka dialog print browser.'}
+              {liveSettings.print_method === 'thermal'
+                ? 'Default saat mencetak: printer thermal. Di tablet Android cetak lewat aplikasi RawBT (hasil tajam seperti e-nota); di desktop lewat printer Bluetooth/dialog sistem.'
+                : 'Default saat mencetak: dialog print browser. Saat mencetak, metode tetap bisa diganti.'}
             </p>
           </div>
 
