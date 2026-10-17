@@ -289,20 +289,20 @@ export function buildReceiptHtml(data: ReceiptData): string {
 
   const rows: string[] = []
 
-  rows.push(`<div class="center bold">${esc(data.storeName)}</div>`)
+  rows.push(`<div class="center store-name">${esc(data.storeName)}</div>`)
   if (data.storeSub) rows.push(`<div class="center">${esc(data.storeSub)}</div>`)
   rows.push('<hr />')
 
-  rows.push(`<div class="row"><span>No. Transaksi</span><span>${esc(data.checkoutData.transaction_code)}</span></div>`)
-  rows.push(`<div class="row"><span>Tanggal</span><span>${esc(tanggal)}</span></div>`)
-  if (data.customerName) rows.push(`<div class="row"><span>Pelanggan</span><span>${esc(data.customerName)}</span></div>`)
-  rows.push(`<div class="row"><span>Pembayaran</span><span>${esc(PAYMENT_LABELS[data.paymentMethod])}</span></div>`)
+  rows.push(`<div class="info"><span class="lbl">No:</span> <span class="val">${esc(data.checkoutData.transaction_code)}</span></div>`)
+  rows.push(`<div class="info"><span class="lbl">Tgl:</span> <span class="val">${esc(tanggal)}</span></div>`)
+  if (data.customerName) rows.push(`<div class="info"><span class="lbl">Plg:</span> <span class="val">${esc(data.customerName)}</span></div>`)
+  rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_LABELS[data.paymentMethod])}</span></div>`)
   rows.push('<hr />')
 
   for (const item of data.cart) {
     const price = item.effective_price ?? item.price
-    rows.push(`<div class="row"><span>${esc(item.product_name)}</span><span>${esc(formatRupiah(item.subtotal))}</span></div>`)
-    rows.push(`<div class="item-sub">${esc(item.unit_name)} x${item.qty} @ ${esc(formatRupiah(price))}</div>`)
+    rows.push(`<div class="item-name">${esc(item.product_name)}</div>`)
+    rows.push(`<div class="row"><span class="item-sub">${esc(item.unit_name)} x${item.qty} @ ${esc(formatRupiah(price))}</span><span>${esc(formatRupiah(item.subtotal))}</span></div>`)
   }
   rows.push('<hr />')
 

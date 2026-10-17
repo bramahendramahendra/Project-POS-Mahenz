@@ -35,5 +35,10 @@
   "Backup": {
     "MysqldumpBin": "mysqldump",
     "MysqlBin": "mysql"
+  },
+
+  "Printer": {
+    "Port": "COM3",
+    "CharPerLine": 32
   }
 }

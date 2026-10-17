@@ -8,7 +8,11 @@
  * @param paperSize  '58mm' | '80mm' — menentukan lebar & @page.
  */
 export function printReceiptHtml(innerHtml: string, paperSize: '58mm' | '80mm'): void {
-  const widthCss = paperSize === '58mm' ? '58mm' : '80mm'
+  // Lebar AREA CETAK efektif, bukan lebar kertas fisik. Printer 58mm (spt EPPOS
+  // EP58M) hanya bisa mencetak ~48mm; sisanya margin fisik. Memakai 58mm penuh
+  // membuat teks melewati batas kanan dan terpotong. 80mm efektif ~72mm.
+  const printWidth = paperSize === '58mm' ? '48mm' : '72mm'
+  const pageWidth = paperSize === '58mm' ? '58mm' : '80mm'
 
   const iframe = document.createElement('iframe')
   iframe.setAttribute('aria-hidden', 'true')
@@ -33,26 +37,52 @@ export function printReceiptHtml(innerHtml: string, paperSize: '58mm' | '80mm'):
 <head>
 <meta charset="utf-8" />
 <style>
-  @page { size: ${widthCss} auto; margin: 2mm; }
+  @page { size: ${pageWidth} auto; margin: 0; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  /* Thermal 203dpi: teks HITAM PEKAT & tebal agar tajam. Lebar dibatasi ke area
+     cetak efektif (printWidth) supaya tidak ada tulisan yang terpotong di kanan.
+     Semua elemen boleh membungkus — tidak ada yang dipaksa satu baris. */
   body {
-    width: ${widthCss};
-    font-family: 'Courier New', ui-monospace, monospace;
-    font-size: 12px;
+    width: ${printWidth};
+    max-width: ${printWidth};
+    margin: 0;                     /* rata kiri — mulai dari tepi area cetak */
+    padding: 0 1mm;
+    font-family: 'Courier New', 'Consolas', ui-monospace, monospace;
+    font-size: 12px;               /* pas untuk 48mm — lebih besar bikin terpotong */
+    font-weight: 700;              /* semua teks tebal — paling terbaca di thermal */
     line-height: 1.35;
     color: #000;
+    -webkit-font-smoothing: none;  /* matikan anti-alias halus yang bikin tepi abu */
+    text-rendering: geometricPrecision;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
-  .rcpt { width: 100%; padding: 0 2mm; }
-  .rcpt * { color: #000 !important; }
+  .rcpt { width: 100%; }
+  .rcpt * {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .center { text-align: center; }
-  .bold { font-weight: 700; }
-  .row { display: flex; justify-content: space-between; gap: 8px; }
-  .muted { color: #000; }
-  hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
-  .sep { border-top: 1px solid #000; margin: 6px 0; }
-  .item-sub { font-size: 11px; padding-left: 2px; }
-  .total { font-size: 14px; font-weight: 700; }
+  .bold { font-weight: 900; }
+  .store-name { font-size: 14px; font-weight: 900; }
+  /* Baris nilai: label kiri, nominal kanan. Boleh membungkus bila sempit. */
+  .row { display: flex; justify-content: space-between; gap: 4px; align-items: baseline; }
+  .row > span:first-child { flex: 1 1 auto; overflow-wrap: anywhere; }
+  .row > span:last-child { flex: 0 0 auto; text-align: right; white-space: nowrap; }
+  /* Baris info transaksi: label lalu nilai. Nilai panjang (kode trx/tanggal)
+     membungkus rapi tanpa memotong karakter. */
+  .info { margin: 1px 0; }
+  .info .lbl { font-weight: 700; }
+  .info .val { font-weight: 900; overflow-wrap: anywhere; }
+  hr { border: none; border-top: 1px solid #000; margin: 4px 0; }
+  .sep { border-top: 1px solid #000; margin: 4px 0; }
+  .item-name { font-size: 12px; font-weight: 900; overflow-wrap: anywhere; }
+  .item-sub { font-size: 11px; font-weight: 700; }
+  .total { font-size: 15px; font-weight: 900; }
   img { max-width: 100%; }
 </style>
 </head>

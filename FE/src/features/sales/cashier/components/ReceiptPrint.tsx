@@ -26,6 +26,7 @@ import {
   type ReceiptData,
 } from '../blePrinter'
 import { printReceiptHtml } from '../printFrame'
+import { printViaSerialApi } from '../printApi'
 import type {
   CartItem,
   CartSummary,
@@ -119,21 +120,34 @@ export function ReceiptPrint({
     const data = buildReceiptData()
     const platform = getPlatform()
 
+    // Android: cetak lewat RawBT (ESC/POS native, kualitas e-nota).
     if (platform === 'android') {
       printViaRawBt(buildReceiptEscposBytes(data))
       return
     }
 
-    // Desktop: coba printer Bluetooth BLE yang sudah pernah dipilih.
+    // Desktop/laptop: kirim ke BE untuk dicetak LANGSUNG ke printer thermal via
+    // COM port (ESC/POS native). Ini jalur paling tajam & tidak terpotong.
+    try {
+      await printViaSerialApi(data)
+      toast.success('Struk dikirim ke printer')
+      return
+    } catch (err) {
+      // BE gagal cetak (printer mati / port salah). Jatuh ke jalur cadangan.
+      toast.error((err as Error)?.message || 'Gagal cetak ke printer thermal, memakai dialog print')
+    }
+
+    // Cadangan 1: printer Bluetooth BLE yang sudah pernah dipilih (bila ada).
     const bleDevice = await getRememberedPrinter()
     if (bleDevice) {
       try {
         await printViaBle(bleDevice, receiptToPlainText(data))
         return
       } catch {
-        // Printer BLE gagal — fallback ke dialog print via iframe.
+        // lanjut ke cadangan berikutnya
       }
     }
+    // Cadangan 2: dialog print via iframe.
     printReceiptHtml(buildReceiptHtml(data), data.paperSize)
   }, [buildReceiptData])
 

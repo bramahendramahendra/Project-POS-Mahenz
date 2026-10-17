@@ -60,6 +60,18 @@ type BackupConfig struct {
 	MysqlBin     string `json:"MysqlBin"`
 }
 
+// PrinterConfig menyimpan setelan cetak struk langsung ke printer thermal lewat
+// serial/COM port (mis. EPPOS EP58M via Bluetooth SPP yang dipetakan ke COMx).
+// Jalur ini mengirim ESC/POS mentah sehingga hasil tajam & lebar pas (tidak
+// terpotong seperti saat lewat driver/dialog browser).
+//
+//	Port       : nama COM port, mis. "COM3". Kosongkan untuk menonaktifkan.
+//	CharPerLine: jumlah karakter per baris untuk kertas (58mm umumnya 32).
+type PrinterConfig struct {
+	Port        string `json:"Port"`
+	CharPerLine int    `json:"CharPerLine"`
+}
+
 type Config struct {
 	Timezone                   string         `json:"Timezone"`
 	SecretKey                  string         `json:"SecretKey"`
@@ -72,6 +84,7 @@ type Config struct {
 	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
 	Backup                     BackupConfig   `json:"Backup"`
+	Printer                    PrinterConfig  `json:"Printer"`
 }
 
 var (
@@ -143,6 +156,15 @@ func initConfig(releaseMode string) {
 			MysqldumpBin: v.GetString("Backup.MysqldumpBin"),
 			MysqlBin:     v.GetString("Backup.MysqlBin"),
 		},
+		Printer: PrinterConfig{
+			Port:        v.GetString("Printer.Port"),
+			CharPerLine: v.GetInt("Printer.CharPerLine"),
+		},
+	}
+
+	// Default karakter per baris bila tidak diset (58mm ~ 32 karakter).
+	if Cfg.Printer.CharPerLine <= 0 {
+		Cfg.Printer.CharPerLine = 32
 	}
 
 	// SecretKey wajib disuplai lewat environment variable SECRETKEY (viper.AutomaticEnv()

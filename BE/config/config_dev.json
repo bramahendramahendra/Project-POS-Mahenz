@@ -37,5 +37,10 @@
   "Backup": {
     "MysqldumpBin": "C:\\wamp64\\bin\\mysql\\mysql8.4.7\\bin\\mysqldump.exe",
     "MysqlBin": "C:\\wamp64\\bin\\mysql\\mysql8.4.7\\bin\\mysql.exe"
+  },
+
+  "Printer": {
+    "Port": "COM3",
+    "CharPerLine": 32
   }
 }
