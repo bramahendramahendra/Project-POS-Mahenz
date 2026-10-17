@@ -90,6 +90,7 @@ sudo chown -R $USER:$USER /opt/pos-mahenz
 sudo cp -a pos-mahenz pos-mahenz_20260930
 
 # ambil kodingan 
+git satsh # jika tidak bisa pull
 git pull
 sudo chown -R $USER:$USER /opt/sipaduke-testing
 ```
