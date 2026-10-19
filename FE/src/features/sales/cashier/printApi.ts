@@ -4,7 +4,7 @@ import type { ReceiptData } from './blePrinter'
 
 /**
  * Payload cetak struk ke BE, yang akan mengirim ESC/POS langsung ke printer
- * thermal via COM port (jalur paling tajam & tidak terpotong untuk desktop).
+ * thermal via COM port di komputer server (jalur "Cetak via Server").
  */
 interface PrintReceiptPayload {
   store_name: string
@@ -58,9 +58,10 @@ function toPayload(data: ReceiptData): PrintReceiptPayload {
 }
 
 /**
- * Kirim struk ke BE untuk dicetak langsung ke printer thermal (COM port).
- * Melempar error bila BE gagal mencetak — pemanggil bisa menyiapkan fallback.
+ * Kirim struk ke BE untuk dicetak langsung ke printer thermal (COM port di
+ * komputer server). Melempar error bila BE gagal mencetak, sehingga pemanggil
+ * bisa menampilkan pesan yang jelas.
  */
-export async function printViaSerialApi(data: ReceiptData): Promise<void> {
+export async function printViaServer(data: ReceiptData): Promise<void> {
   await api.post('/print/receipt', toPayload(data))
 }

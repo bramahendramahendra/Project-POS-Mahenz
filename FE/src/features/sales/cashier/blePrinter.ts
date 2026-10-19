@@ -94,6 +94,25 @@ export async function printViaBle(device: BluetoothDevice, text: string): Promis
   }
 }
 
+/**
+ * Kirim byte ESC/POS yang SUDAH jadi (dari buildReceiptEscposBytes) ke printer
+ * BLE. Berbeda dari printViaBle yang menerima teks lalu membungkusnya — di sini
+ * byte sudah lengkap termasuk init/align/bold/feed/cut, jadi hasilnya identik
+ * dengan jalur RawBT & Web Serial.
+ */
+export async function printViaBleBytes(device: BluetoothDevice, bytes: Uint8Array): Promise<void> {
+  if (!device.gatt) throw new Error('Device tidak punya GATT server.')
+  const server = device.gatt.connected ? device.gatt : await device.gatt.connect()
+  try {
+    const services = await server.getPrimaryServices()
+    const char = await findWritableCharacteristic(services)
+    if (!char) throw new Error('Tidak ditemukan characteristic yang bisa ditulis pada printer ini.')
+    await writeInChunks(char, bytes)
+  } finally {
+    server.disconnect()
+  }
+}
+
 function padLine(left: string, right: string, width: number): string {
   const space = Math.max(1, width - left.length - right.length)
   return left + ' '.repeat(space) + right + '\n'
@@ -158,7 +177,7 @@ export function receiptToPlainText(params: {
 }
 
 // ===========================================================================
-// Cetak ESC/POS native lintas-jalur (RawBT Android & Windows) — hasil setajam
+// Cetak ESC/POS native lintas-jalur (Web Bluetooth & Web Serial) — hasil setajam
 // e-nota karena printer memakai font internalnya, bukan render grafis browser.
 // ===========================================================================
 
@@ -255,26 +274,75 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
   return new Uint8Array(parts)
 }
 
-/** Encode byte ke base64 standar (untuk disematkan di URL intent RawBT). */
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  // btoa aman karena setiap byte sudah dipetakan ke char code 0-255.
-  return btoa(binary)
+// ===========================================================================
+// Web Serial API — cetak langsung ke COM port dari BROWSER di mesin kasir
+// (laptop/PC Windows). Ini pengganti jalur lama yang menitipkan cetak ke BE:
+// di production BE ada di server cloud yang tidak punya akses ke printer, jadi
+// COM port HARUS dibuka dari sisi klien. Web Serial hanya tersedia di konteks
+// aman (HTTPS atau localhost) pada Chrome/Edge desktop.
+// ===========================================================================
+
+// Minimal typing agar tidak bergantung pada lib DOM "serial" yang mungkin belum
+// aktif di tsconfig. Hanya method yang kita pakai yang dideklarasikan.
+interface MinimalSerialPort {
+  open(options: { baudRate: number }): Promise<void>
+  close(): Promise<void>
+  readonly writable: WritableStream<Uint8Array> | null
+}
+interface MinimalSerial {
+  getPorts(): Promise<MinimalSerialPort[]>
+  requestPort(): Promise<MinimalSerialPort>
+}
+
+function getSerial(): MinimalSerial | null {
+  const nav = navigator as unknown as { serial?: MinimalSerial }
+  return nav.serial ?? null
+}
+
+/** True bila browser mendukung Web Serial (Chrome/Edge desktop di konteks aman). */
+export function isWebSerialSupported(): boolean {
+  return typeof navigator !== 'undefined' && getSerial() !== null
 }
 
 /**
- * Cetak lewat aplikasi RawBT di Android. Membentuk URL intent sesuai skema resmi
- * RawBT (intent:base64,<data>#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;)
- * lalu mengarahkan browser ke sana. Android melempar ke RawBT yang mencetak via
- * Bluetooth Classic ke printer — hasil native, tidak lewat render grafis browser.
+ * Minta user memilih COM port printer (memicu dialog native browser). Harus
+ * dipanggil dari gesture klik. Browser mengingat izinnya sehingga pemanggilan
+ * berikutnya bisa pakai getRememberedSerialPort tanpa dialog lagi.
  */
-export function printViaRawBt(bytes: Uint8Array): void {
-  const b64 = bytesToBase64(bytes)
-  const intentUrl = `intent:base64,${b64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`
-  window.location.href = intentUrl
+export async function pickSerialPort(): Promise<MinimalSerialPort> {
+  const serial = getSerial()
+  if (!serial) throw new Error('Browser ini tidak mendukung Web Serial (butuh Chrome/Edge + HTTPS).')
+  return serial.requestPort()
+}
+
+/** Port serial yang izinnya sudah pernah diberikan user sebelumnya (bila ada). */
+export async function getRememberedSerialPort(): Promise<MinimalSerialPort | null> {
+  const serial = getSerial()
+  if (!serial) return null
+  try {
+    const ports = await serial.getPorts()
+    return ports[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Tulis byte ESC/POS ke COM port lewat Web Serial. baudRate umum printer: 9600. */
+export async function printViaWebSerial(port: MinimalSerialPort, bytes: Uint8Array): Promise<void> {
+  await port.open({ baudRate: 9600 })
+  try {
+    if (!port.writable) throw new Error('Port serial tidak bisa ditulis.')
+    const writer = port.writable.getWriter()
+    try {
+      await writer.write(bytes)
+      // Jeda singkat agar buffer terkirim sebelum port ditutup.
+      await new Promise((r) => setTimeout(r, 400))
+    } finally {
+      writer.releaseLock()
+    }
+  } finally {
+    await port.close()
+  }
 }
 
 /**
@@ -323,4 +391,38 @@ export function buildReceiptHtml(data: ReceiptData): string {
   if (data.footer) rows.push(`<div class="center">${esc(data.footer)}</div>`)
 
   return rows.join('\n')
+}
+
+// ===========================================================================
+// RawBT — cetak lewat aplikasi RawBT di Android. Aplikasi web membentuk URL
+// intent berisi data ESC/POS (base64) lalu mengarahkan browser ke sana; Android
+// melempar ke RawBT yang mencetak via Bluetooth Classic. Hanya untuk Android.
+// ===========================================================================
+
+/** Deteksi perangkat Android (untuk menandai ketersediaan jalur RawBT). */
+export function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)
+}
+
+/** Encode byte ke base64 standar untuk disematkan di URL intent RawBT. */
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
+/**
+ * Cetak lewat aplikasi RawBT di Android. Membentuk URL intent sesuai skema resmi
+ * RawBT lalu mengarahkan browser ke sana. Melempar error bila bukan Android
+ * (tidak ada handler intent rawbt di platform lain).
+ */
+export function printViaRawBt(bytes: Uint8Array): void {
+  if (!isAndroid()) {
+    throw new Error('Cetak via RawBT hanya tersedia di perangkat Android.')
+  }
+  const b64 = bytesToBase64(bytes)
+  const intentUrl = `intent:base64,${b64}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`
+  window.location.href = intentUrl
 }

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Printer, ShoppingCart, X, Wallet, Bluetooth, Monitor } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Printer, ShoppingCart, X, Wallet, Bluetooth, Monitor, FileText, Usb, Server, Smartphone } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 
 import { ActionModal } from '@/shared/components'
@@ -17,16 +17,21 @@ import type { PrinterSettings } from '@/features/settings/printer'
 
 import {
   getRememberedPrinter,
-  printViaBle,
-  receiptToPlainText,
+  printViaBleBytes,
+  isBlePrintSupported,
+  pickAndRememberPrinter,
   buildReceiptEscposBytes,
   buildReceiptHtml,
+  isWebSerialSupported,
+  getRememberedSerialPort,
+  pickSerialPort,
+  printViaWebSerial,
   printViaRawBt,
-  getPlatform,
   type ReceiptData,
 } from '../blePrinter'
 import { printReceiptHtml } from '../printFrame'
-import { printViaSerialApi } from '../printApi'
+import { saveReceiptPdf } from '../receiptPdf'
+import { printViaServer } from '../printApi'
 import type {
   CartItem,
   CartSummary,
@@ -49,6 +54,72 @@ interface ReceiptPrintProps {
   customerName?: string
   mode?: 'checkout' | 'reprint'
 }
+
+// Pilihan cetak yang ditampilkan ke user. Tiap pilihan melakukan SATU jalur
+// persis sesuai namanya — tidak ada fallback otomatis ke jalur lain, dan TIDAK
+// ada metode yang dipilih otomatis oleh sistem. User selalu memilih sendiri tiap
+// kali mencetak. Bila jalur tidak didukung perangkat, user diberi pesan jelas.
+//   server    : BE mengirim ESC/POS ke COM port di komputer server (paling andal)
+//   serial    : Web Serial langsung ke COM port (butuh HTTPS/localhost, desktop)
+//   bluetooth : Web Bluetooth langsung ke printer (butuh HTTPS/localhost + BLE)
+//   rawbt     : lewat aplikasi RawBT di Android (intent) — untuk printer Bluetooth
+//   pdf       : buat file PDF struk (selalu jalan, termasuk HTTP)
+//   browser   : dialog print bawaan browser (selalu jalan, termasuk HTTP)
+type PrintChoice = 'server' | 'serial' | 'bluetooth' | 'rawbt' | 'pdf' | 'browser'
+
+// Daftar opsi cetak yang ditampilkan ke user, apa adanya. User memilih sendiri
+// jalur mana yang dipakai setiap kali mencetak — tidak ada yang otomatis.
+// `devices` menandai perangkat yang cocok, sebagai petunjuk visual untuk kasir.
+const PRINT_OPTIONS: Array<{
+  key: PrintChoice
+  title: string
+  desc: string
+  devices: string
+  icon: typeof Bluetooth
+}> = [
+  {
+    key: 'server',
+    title: 'Cetak via Server (Printer di Komputer)',
+    desc: 'Kirim ke printer thermal yang terhubung di komputer server (COM/Bluetooth). Paling stabil, bisa dipakai laptop maupun tablet selama satu jaringan dengan server.',
+    devices: 'Desktop & Tablet',
+    icon: Server,
+  },
+  {
+    key: 'serial',
+    title: 'Printer USB / Kabel (Komputer ini)',
+    desc: 'Cetak langsung ke printer yang tercolok di komputer ini lewat port USB/COM. Hanya untuk desktop/laptop (Chrome/Edge).',
+    devices: 'Desktop',
+    icon: Usb,
+  },
+  {
+    key: 'bluetooth',
+    title: 'Printer Bluetooth (Langsung)',
+    desc: 'Cetak langsung ke printer thermal Bluetooth dari perangkat ini. Hanya untuk printer Bluetooth LE; printer Bluetooth lama mungkin tidak terdeteksi.',
+    devices: 'Desktop & Tablet (Chrome)',
+    icon: Bluetooth,
+  },
+  {
+    key: 'rawbt',
+    title: 'Printer via RawBT (Android)',
+    desc: 'Cetak ke printer Bluetooth lewat aplikasi RawBT. Perlu aplikasi RawBT terpasang di perangkat Android dan printer sudah dipilih di dalamnya.',
+    devices: 'Tablet / HP Android',
+    icon: Smartphone,
+  },
+  {
+    key: 'pdf',
+    title: 'Simpan / Bagikan PDF',
+    desc: 'Buat file PDF struk. Bisa diarsip, dikirim ke pelanggan, atau dicetak dari aplikasi perangkat. Jalan di semua perangkat.',
+    devices: 'Desktop & Tablet',
+    icon: FileText,
+  },
+  {
+    key: 'browser',
+    title: 'Browser / Dialog Print',
+    desc: 'Buka dialog print bawaan browser. Cadangan yang jalan di mana saja.',
+    devices: 'Desktop & Tablet',
+    icon: Monitor,
+  },
+]
 
 const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   paper_size: '80mm',
@@ -96,7 +167,6 @@ export function ReceiptPrint({
   const { data: storeProfile } = useStoreProfileQuery()
   const { data: printerSettingsData } = usePrinterSettingsQuery()
   const printerSettings = printerSettingsData ?? DEFAULT_PRINTER_SETTINGS
-  const autoPrinted = useRef(false)
 
   // Pilihan metode cetak yang muncul saat tombol Cetak ditekan.
   const [methodPickerOpen, setMethodPickerOpen] = useState(false)
@@ -112,43 +182,64 @@ export function ReceiptPrint({
     [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName],
   )
 
-  // Jalur THERMAL (native ESC/POS). Android => RawBT (kualitas setara e-nota).
-  // Windows/lainnya => coba printer BLE bila sudah dipilih, jika tidak fallback
-  // ke dialog print sistem. Tidak mengandalkan window.print() di Android, jadi
-  // tidak ada masalah nota tercetak dobel.
-  const printThermal = useCallback(async () => {
+  // Jalur SERVER: BE yang mengirim ESC/POS ke printer (COM port) di komputer
+  // server. Paling andal & tajam; dipakai laptop maupun tablet selama satu
+  // jaringan dengan server. Tanpa fallback otomatis.
+  const printServer = useCallback(async () => {
     const data = buildReceiptData()
-    const platform = getPlatform()
-
-    // Android: cetak lewat RawBT (ESC/POS native, kualitas e-nota).
-    if (platform === 'android') {
-      printViaRawBt(buildReceiptEscposBytes(data))
-      return
-    }
-
-    // Desktop/laptop: kirim ke BE untuk dicetak LANGSUNG ke printer thermal via
-    // COM port (ESC/POS native). Ini jalur paling tajam & tidak terpotong.
     try {
-      await printViaSerialApi(data)
+      await printViaServer(data)
       toast.success('Struk dikirim ke printer')
-      return
     } catch (err) {
-      // BE gagal cetak (printer mati / port salah). Jatuh ke jalur cadangan.
-      toast.error((err as Error)?.message || 'Gagal cetak ke printer thermal, memakai dialog print')
+      toast.error((err as Error)?.message || 'Gagal cetak via server. Pastikan printer di komputer server menyala.')
     }
+  }, [buildReceiptData])
 
-    // Cadangan 1: printer Bluetooth BLE yang sudah pernah dipilih (bila ada).
-    const bleDevice = await getRememberedPrinter()
-    if (bleDevice) {
-      try {
-        await printViaBle(bleDevice, receiptToPlainText(data))
-        return
-      } catch {
-        // lanjut ke cadangan berikutnya
-      }
+  // Jalur RAWBT: cetak lewat aplikasi RawBT di Android (intent). Hanya tersedia
+  // di Android; bila bukan Android, user diberi pesan. Tanpa fallback.
+  const printRawBt = useCallback(() => {
+    const data = buildReceiptData()
+    try {
+      printViaRawBt(buildReceiptEscposBytes(data))
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal cetak via RawBT')
     }
-    // Cadangan 2: dialog print via iframe.
-    printReceiptHtml(buildReceiptHtml(data), data.paperSize)
+  }, [buildReceiptData])
+
+  // Jalur BLUETOOTH (Web Bluetooth): kirim ESC/POS langsung ke printer. Hanya
+  // tersedia di konteks aman (HTTPS/localhost) & untuk printer Bluetooth LE.
+  // Tidak ada fallback — bila gagal, user diberi pesan dan bisa pilih metode
+  // lain sendiri.
+  const printBluetooth = useCallback(async () => {
+    const data = buildReceiptData()
+    if (!isBlePrintSupported()) {
+      toast.error('Cetak Bluetooth tidak tersedia di perangkat/alamat ini. Pilih metode lain (mis. Simpan PDF).')
+      return
+    }
+    try {
+      const ble = (await getRememberedPrinter()) ?? (await pickAndRememberPrinter())
+      await printViaBleBytes(ble, buildReceiptEscposBytes(data))
+      toast.success('Struk dikirim ke printer')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal cetak via Bluetooth')
+    }
+  }, [buildReceiptData])
+
+  // Jalur SERIAL (Web Serial): kirim ESC/POS langsung ke COM port. Hanya
+  // tersedia di konteks aman (HTTPS/localhost), umumnya desktop. Tanpa fallback.
+  const printSerial = useCallback(async () => {
+    const data = buildReceiptData()
+    if (!isWebSerialSupported()) {
+      toast.error('Cetak USB/Serial tidak tersedia di perangkat/alamat ini. Pilih metode lain (mis. Simpan PDF).')
+      return
+    }
+    try {
+      const port = (await getRememberedSerialPort()) ?? (await pickSerialPort())
+      await printViaWebSerial(port, buildReceiptEscposBytes(data))
+      toast.success('Struk dikirim ke printer')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal cetak via USB/Serial')
+    }
   }, [buildReceiptData])
 
   // Jalur BROWSER: cetak lewat iframe tersembunyi (deterministik, tidak
@@ -158,12 +249,44 @@ export function ReceiptPrint({
     printReceiptHtml(buildReceiptHtml(data), data.paperSize)
   }, [buildReceiptData])
 
+  // Jalur PDF: buat file PDF struk di browser (tanpa server/Bluetooth).
+  // Jalan di HTTP maupun HTTPS, di tablet maupun desktop. File bisa diarsip,
+  // dibagikan ke pelanggan, atau dibuka lalu dicetak ke printer thermal lewat
+  // aplikasi bawaan perangkat.
+  const printPdf = useCallback(() => {
+    const data = buildReceiptData()
+    try {
+      saveReceiptPdf(data)
+      toast.success('Struk PDF berhasil dibuat')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal membuat PDF struk')
+    }
+  }, [buildReceiptData])
+
   const runPrintMethod = useCallback(
-    (method: 'thermal' | 'browser') => {
-      if (method === 'thermal') void printThermal()
-      else printBrowser()
+    (method: PrintChoice) => {
+      switch (method) {
+        case 'server':
+          void printServer()
+          break
+        case 'serial':
+          void printSerial()
+          break
+        case 'bluetooth':
+          void printBluetooth()
+          break
+        case 'rawbt':
+          printRawBt()
+          break
+        case 'pdf':
+          printPdf()
+          break
+        case 'browser':
+          printBrowser()
+          break
+      }
     },
-    [printThermal, printBrowser],
+    [printServer, printSerial, printBluetooth, printRawBt, printPdf, printBrowser],
   )
 
   // Tombol Cetak: buka pemilih metode agar user tetap bisa memilih tiap cetak.
@@ -172,22 +295,15 @@ export function ReceiptPrint({
   }, [])
 
   const handlePickMethod = useCallback(
-    (method: 'thermal' | 'browser') => {
+    (method: PrintChoice) => {
       setMethodPickerOpen(false)
       runPrintMethod(method)
     },
     [runPrintMethod],
   )
 
-  useEffect(() => {
-    // Auto print setelah checkout: langsung pakai metode default dari pengaturan,
-    // tanpa membuka pemilih (supaya alur kasir tetap cepat).
-    if (open && mode === 'checkout' && printerSettings.auto_print && !autoPrinted.current) {
-      autoPrinted.current = true
-      runPrintMethod(printerSettings.print_method)
-    }
-    if (!open) autoPrinted.current = false
-  }, [open, mode, printerSettings.auto_print, printerSettings.print_method, runPrintMethod])
+  // Catatan: TIDAK ada auto-print. Sesuai permintaan, setiap cetak selalu lewat
+  // modal pemilih metode (handlePrint membuka pemilih), tidak pernah otomatis.
 
   // Save-to-balance feature
   const showSaveToBalance = mode === 'checkout' && !!customerName && paymentMethod === 'cash' && change > 0
@@ -404,13 +520,6 @@ export function ReceiptPrint({
 
   const receiptMaxWidth = printerSettings.paper_size === '58mm' ? '210px' : '300px'
 
-  const defaultMethod = printerSettings.print_method
-  const platform = getPlatform()
-  const thermalHint =
-    platform === 'android'
-      ? 'Cetak langsung via aplikasi RawBT (hasil tajam seperti e-nota).'
-      : 'Cetak ke printer thermal. Jika gagal, akan membuka dialog print sistem.'
-
   return (
     <>
     <ActionModal
@@ -445,43 +554,26 @@ export function ReceiptPrint({
       hideFooter
     >
       <div className="px-5 py-4 space-y-3">
-        <button
-          type="button"
-          onClick={() => handlePickMethod('thermal')}
-          className={`w-full rounded-lg border-2 p-3 text-left transition-colors hover:bg-gray-50 ${
-            defaultMethod === 'thermal' ? 'border-[#2c3e50]' : 'border-gray-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Bluetooth size={18} className="text-[#2c3e50]" />
-            <span className="text-sm font-semibold text-gray-800">Printer Thermal (EPPOS)</span>
-            {defaultMethod === 'thermal' && (
-              <span className="ml-auto text-[10px] font-medium text-[#2c3e50] bg-gray-100 px-1.5 py-0.5 rounded">
-                Default
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">{thermalHint}</p>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handlePickMethod('browser')}
-          className={`w-full rounded-lg border-2 p-3 text-left transition-colors hover:bg-gray-50 ${
-            defaultMethod === 'browser' ? 'border-[#2c3e50]' : 'border-gray-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Monitor size={18} className="text-[#2c3e50]" />
-            <span className="text-sm font-semibold text-gray-800">Browser / Dialog Print</span>
-            {defaultMethod === 'browser' && (
-              <span className="ml-auto text-[10px] font-medium text-[#2c3e50] bg-gray-100 px-1.5 py-0.5 rounded">
-                Default
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Membuka dialog print bawaan browser.</p>
-        </button>
+        {PRINT_OPTIONS.map((opt) => {
+          const Icon = opt.icon
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => handlePickMethod(opt.key)}
+              className="w-full rounded-lg border-2 border-gray-200 p-3 text-left transition-colors hover:bg-gray-50 hover:border-[#2c3e50]"
+            >
+              <div className="flex items-center gap-2">
+                <Icon size={18} className="text-[#2c3e50] shrink-0" />
+                <span className="text-sm font-semibold text-gray-800">{opt.title}</span>
+                <span className="ml-auto text-[10px] font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                  {opt.devices}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{opt.desc}</p>
+            </button>
+          )
+        })}
       </div>
     </ActionModal>
     </>

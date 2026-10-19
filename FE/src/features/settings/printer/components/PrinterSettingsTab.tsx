@@ -148,7 +148,8 @@ export function PrinterSettingsTab() {
   const liveSettings = useWatch({ control }) as PrinterSettings
 
   const onSubmit = (values: PrinterSettingsFormValues) => {
-    save(values)
+    // Auto print dimatikan sepenuhnya: cetak selalu manual lewat modal pemilih.
+    save({ ...values, auto_print: false })
   }
 
   if (isLoading) {
@@ -167,29 +168,11 @@ export function PrinterSettingsTab() {
         <div className="rounded-lg border bg-white p-5 space-y-4">
           <h3 className="text-sm font-semibold text-gray-700">Konfigurasi Struk</h3>
 
-          <div className="space-y-1.5">
-            <Label>Metode Cetak</Label>
-            <Select
-              value={liveSettings.print_method}
-              onValueChange={(v) => {
-                if (!v) return
-                setValue('print_method', v as 'browser' | 'thermal')
-                // Printer thermal (EPPOS EP58M) kertasnya 58mm — set otomatis.
-                if (v === 'thermal') setValue('paper_size', '58mm')
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="thermal">Printer Thermal (EPPOS)</SelectItem>
-                <SelectItem value="browser">Browser / Dialog Print</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500">
-              {liveSettings.print_method === 'thermal'
-                ? 'Default saat mencetak: printer thermal. Di tablet Android cetak lewat aplikasi RawBT (hasil tajam seperti e-nota); di desktop lewat printer Bluetooth/dialog sistem.'
-                : 'Default saat mencetak: dialog print browser. Saat mencetak, metode tetap bisa diganti.'}
+          <div className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2">
+            <p className="text-xs text-blue-800">
+              Metode cetak dipilih manual setiap kali mencetak struk (muncul pilihan:
+              Cetak via Server, USB/Kabel, Bluetooth, RawBT Android, PDF, atau
+              Browser). Tidak ada cetak otomatis.
             </p>
           </div>
 
@@ -237,7 +220,7 @@ export function PrinterSettingsTab() {
             Preferensi
           </h3>
 
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
+          <div className="flex items-center justify-between py-3">
             <div>
               <p className="text-sm font-medium text-gray-800">Tampilkan Logo</p>
               <p className="text-xs text-gray-500 mt-0.5">Tampilkan logo toko di bagian atas struk</p>
@@ -245,17 +228,6 @@ export function PrinterSettingsTab() {
             <Switch
               checked={liveSettings.show_logo}
               onCheckedChange={(v) => setValue('show_logo', v)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium text-gray-800">Auto Print</p>
-              <p className="text-xs text-gray-500 mt-0.5">Langsung cetak struk setelah transaksi selesai</p>
-            </div>
-            <Switch
-              checked={liveSettings.auto_print}
-              onCheckedChange={(v) => setValue('auto_print', v)}
             />
           </div>
         </div>
