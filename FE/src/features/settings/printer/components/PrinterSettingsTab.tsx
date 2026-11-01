@@ -171,8 +171,8 @@ export function PrinterSettingsTab() {
           <div className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2">
             <p className="text-xs text-blue-800">
               Metode cetak dipilih manual setiap kali mencetak struk (muncul pilihan:
-              Cetak via Server, USB/Kabel, Bluetooth, RawBT Android, PDF, atau
-              Browser). Tidak ada cetak otomatis.
+              Cetak via Server, Jaringan/LAN, USB/Kabel, Bluetooth, RawBT Android,
+              PDF, WhatsApp, atau Browser). Tidak ada cetak otomatis.
             </p>
           </div>
 

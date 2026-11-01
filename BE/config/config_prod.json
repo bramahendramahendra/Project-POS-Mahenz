@@ -39,6 +39,8 @@
 
   "Printer": {
     "Port": "COM3",
-    "CharPerLine": 32
+    "CharPerLine": 32,
+    "LanHost": "",
+    "LanPort": 9100
   }
 }

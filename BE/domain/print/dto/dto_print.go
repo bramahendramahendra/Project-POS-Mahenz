@@ -10,9 +10,19 @@ type PrintReceiptItem struct {
 }
 
 // PrintReceiptRequest adalah payload untuk mencetak struk langsung ke printer
-// thermal via COM port. FE mengirim data yang sudah siap tampil; BE yang
-// menyusun layout ESC/POS agar lebar pas kertas.
+// thermal. FE mengirim data yang sudah siap tampil; BE yang menyusun layout
+// ESC/POS agar lebar pas kertas.
+//
+// Target menentukan tujuan cetak:
+//
+//	"" atau "server" : printer di komputer server via COM port (default)
+//	"lan"            : printer jaringan via TCP ke LanHost:LanPort. Bila LanHost
+//	                   kosong, dipakai nilai dari config (Printer.LanHost/LanPort).
 type PrintReceiptRequest struct {
+	Target  string `json:"target"`
+	LanHost string `json:"lan_host"`
+	LanPort int    `json:"lan_port"`
+
 	StoreName       string             `json:"store_name"`
 	StoreSub        string             `json:"store_sub"`
 	Footer          string             `json:"footer"`

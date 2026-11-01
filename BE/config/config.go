@@ -67,9 +67,14 @@ type BackupConfig struct {
 //
 //	Port       : nama COM port, mis. "COM3". Kosongkan untuk menonaktifkan.
 //	CharPerLine: jumlah karakter per baris untuk kertas (58mm umumnya 32).
+//	LanHost    : IP printer jaringan/LAN (mis. "192.168.1.50"). Dipakai bila
+//	             request cetak bertarget "lan" dan tidak mengirim host sendiri.
+//	LanPort    : port printer jaringan (umumnya 9100). Default 9100 bila 0.
 type PrinterConfig struct {
 	Port        string `json:"Port"`
 	CharPerLine int    `json:"CharPerLine"`
+	LanHost     string `json:"LanHost"`
+	LanPort     int    `json:"LanPort"`
 }
 
 type Config struct {
@@ -159,7 +164,14 @@ func initConfig(releaseMode string) {
 		Printer: PrinterConfig{
 			Port:        v.GetString("Printer.Port"),
 			CharPerLine: v.GetInt("Printer.CharPerLine"),
+			LanHost:     v.GetString("Printer.LanHost"),
+			LanPort:     v.GetInt("Printer.LanPort"),
 		},
+	}
+
+	// Default port printer jaringan (umumnya 9100).
+	if Cfg.Printer.LanPort <= 0 {
+		Cfg.Printer.LanPort = 9100
 	}
 
 	// Default karakter per baris bila tidak diset (58mm ~ 32 karakter).

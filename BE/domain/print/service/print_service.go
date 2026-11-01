@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -34,24 +35,57 @@ var (
 	cutPaper       = []byte{0x1D, 0x56, 0x00} // GS V 0  — potong (diabaikan bila tak ada cutter)
 )
 
-// PrintReceipt menyusun struk sebagai ESC/POS lalu menulisnya langsung ke COM
-// port printer. Karena memakai font internal printer, hasilnya tajam dan lebar
-// otomatis pas (tidak terpotong seperti lewat driver/dialog browser).
+// PrintReceipt menyusun struk sebagai ESC/POS lalu mengirimnya ke printer. Tujuan
+// cetak ditentukan req.Target: "lan" ke printer jaringan (TCP), selain itu ke COM
+// port di komputer server. Karena memakai font internal printer, hasilnya tajam
+// dan lebar otomatis pas (tidak terpotong seperti lewat driver/dialog browser).
 func (s *printService) PrintReceipt(req *dto.PrintReceiptRequest) error {
-	port := config.Cfg.Printer.Port
-	if strings.TrimSpace(port) == "" {
-		return &errors.BadRequestError{Message: "Port printer belum dikonfigurasi (Printer.Port kosong)."}
-	}
 	width := config.Cfg.Printer.CharPerLine
 	if width <= 0 {
 		width = 32
 	}
-
 	payload := buildEscPos(req, width)
 
+	if strings.EqualFold(strings.TrimSpace(req.Target), "lan") {
+		return s.printToLan(req, payload)
+	}
+	return s.printToSerial(payload)
+}
+
+// printToSerial mengirim ke printer yang terhubung di COM port komputer server.
+func (s *printService) printToSerial(payload []byte) error {
+	port := config.Cfg.Printer.Port
+	if strings.TrimSpace(port) == "" {
+		return &errors.BadRequestError{Message: "Port printer belum dikonfigurasi (Printer.Port kosong)."}
+	}
 	if err := writeToSerial(port, payload); err != nil {
 		return &errors.BadRequestError{
 			Message: fmt.Sprintf("Gagal mencetak ke printer di %s: %v. Pastikan printer menyala & terhubung.", port, err),
+		}
+	}
+	return nil
+}
+
+// printToLan mengirim ke printer jaringan via TCP. Host/port diambil dari request,
+// jatuh ke config bila request tidak menyertakannya.
+func (s *printService) printToLan(req *dto.PrintReceiptRequest, payload []byte) error {
+	host := strings.TrimSpace(req.LanHost)
+	if host == "" {
+		host = strings.TrimSpace(config.Cfg.Printer.LanHost)
+	}
+	if host == "" {
+		return &errors.BadRequestError{Message: "Alamat IP printer jaringan belum diisi (lan_host kosong & config Printer.LanHost kosong)."}
+	}
+	port := req.LanPort
+	if port <= 0 {
+		port = config.Cfg.Printer.LanPort
+	}
+	if port <= 0 {
+		port = 9100
+	}
+	if err := writeToTCP(host, port, payload); err != nil {
+		return &errors.BadRequestError{
+			Message: fmt.Sprintf("Gagal mencetak ke printer jaringan %s:%d: %v. Pastikan printer menyala & satu jaringan.", host, port, err),
 		}
 	}
 	return nil
@@ -135,6 +169,25 @@ func writeToSerial(port string, data []byte) error {
 	}
 	// Beri jeda singkat agar buffer BT terkirim sebelum port ditutup.
 	time.Sleep(400 * time.Millisecond)
+	return nil
+}
+
+// writeToTCP mengirim byte ESC/POS ke printer jaringan (umumnya port RAW 9100)
+// lewat koneksi TCP. Timeout singkat agar tidak menggantung bila printer mati.
+func writeToTCP(host string, port int, data []byte) error {
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	conn, err := net.DialTimeout("tcp", addr, 5*time.Second)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	if _, err := conn.Write(data); err != nil {
+		return err
+	}
+	// Jeda singkat agar data benar-benar terkirim sebelum koneksi ditutup.
+	time.Sleep(300 * time.Millisecond)
 	return nil
 }
 

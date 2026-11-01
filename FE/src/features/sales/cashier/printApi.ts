@@ -7,6 +7,9 @@ import type { ReceiptData } from './blePrinter'
  * thermal via COM port di komputer server (jalur "Cetak via Server").
  */
 interface PrintReceiptPayload {
+  target?: 'server' | 'lan'
+  lan_host?: string
+  lan_port?: number
   store_name: string
   store_sub: string
   footer: string
@@ -63,5 +66,21 @@ function toPayload(data: ReceiptData): PrintReceiptPayload {
  * bisa menampilkan pesan yang jelas.
  */
 export async function printViaServer(data: ReceiptData): Promise<void> {
-  await api.post('/print/receipt', toPayload(data))
+  await api.post('/print/receipt', { ...toPayload(data), target: 'server' })
+}
+
+/**
+ * Kirim struk ke BE untuk diteruskan ke printer JARINGAN/LAN (TCP). Host & port
+ * boleh dikosongkan agar BE memakai nilai dari konfigurasi (Printer.LanHost/Port).
+ */
+export async function printViaLan(
+  data: ReceiptData,
+  opts?: { host?: string; port?: number },
+): Promise<void> {
+  await api.post('/print/receipt', {
+    ...toPayload(data),
+    target: 'lan',
+    lan_host: opts?.host,
+    lan_port: opts?.port,
+  })
 }

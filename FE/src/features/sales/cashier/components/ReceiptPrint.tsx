@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Printer, ShoppingCart, X, Wallet, Bluetooth, Monitor, FileText, Usb, Server, Smartphone } from 'lucide-react'
+import { Printer, ShoppingCart, X, Wallet, Bluetooth, Monitor, FileText, Usb, Server, Smartphone, Wifi, MessageCircle } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 
 import { ActionModal } from '@/shared/components'
@@ -31,7 +31,8 @@ import {
 } from '../blePrinter'
 import { printReceiptHtml } from '../printFrame'
 import { saveReceiptPdf } from '../receiptPdf'
-import { printViaServer } from '../printApi'
+import { printViaServer, printViaLan } from '../printApi'
+import { shareReceiptViaWhatsApp } from '../receiptWhatsApp'
 import type {
   CartItem,
   CartSummary,
@@ -60,12 +61,14 @@ interface ReceiptPrintProps {
 // ada metode yang dipilih otomatis oleh sistem. User selalu memilih sendiri tiap
 // kali mencetak. Bila jalur tidak didukung perangkat, user diberi pesan jelas.
 //   server    : BE mengirim ESC/POS ke COM port di komputer server (paling andal)
+//   lan       : BE mengirim ESC/POS ke printer jaringan (IP) via TCP
 //   serial    : Web Serial langsung ke COM port (butuh HTTPS/localhost, desktop)
 //   bluetooth : Web Bluetooth langsung ke printer (butuh HTTPS/localhost + BLE)
 //   rawbt     : lewat aplikasi RawBT di Android (intent) — untuk printer Bluetooth
 //   pdf       : buat file PDF struk (selalu jalan, termasuk HTTP)
+//   whatsapp  : bagikan ringkasan struk via WhatsApp (bukan cetak kertas)
 //   browser   : dialog print bawaan browser (selalu jalan, termasuk HTTP)
-type PrintChoice = 'server' | 'serial' | 'bluetooth' | 'rawbt' | 'pdf' | 'browser'
+type PrintChoice = 'server' | 'lan' | 'serial' | 'bluetooth' | 'rawbt' | 'pdf' | 'whatsapp' | 'browser'
 
 // Daftar opsi cetak yang ditampilkan ke user, apa adanya. User memilih sendiri
 // jalur mana yang dipakai setiap kali mencetak — tidak ada yang otomatis.
@@ -83,6 +86,13 @@ const PRINT_OPTIONS: Array<{
     desc: 'Kirim ke printer thermal yang terhubung di komputer server (COM/Bluetooth). Paling stabil, bisa dipakai laptop maupun tablet selama satu jaringan dengan server.',
     devices: 'Desktop & Tablet',
     icon: Server,
+  },
+  {
+    key: 'lan',
+    title: 'Printer Jaringan / WiFi (LAN)',
+    desc: 'Kirim ke printer yang punya alamat IP di jaringan (port 9100). Atur IP printer di pengaturan server. Bisa dipakai banyak perangkat sekaligus.',
+    devices: 'Desktop & Tablet',
+    icon: Wifi,
   },
   {
     key: 'serial',
@@ -111,6 +121,13 @@ const PRINT_OPTIONS: Array<{
     desc: 'Buat file PDF struk. Bisa diarsip, dikirim ke pelanggan, atau dicetak dari aplikasi perangkat. Jalan di semua perangkat.',
     devices: 'Desktop & Tablet',
     icon: FileText,
+  },
+  {
+    key: 'whatsapp',
+    title: 'Kirim via WhatsApp',
+    desc: 'Bagikan ringkasan struk ke pelanggan lewat WhatsApp (bukan cetak kertas). WhatsApp akan terbuka dengan teks struk siap kirim.',
+    devices: 'Desktop & Tablet',
+    icon: MessageCircle,
   },
   {
     key: 'browser',
@@ -195,6 +212,28 @@ export function ReceiptPrint({
     }
   }, [buildReceiptData])
 
+  // Jalur LAN: BE meneruskan ESC/POS ke printer jaringan (IP) via TCP. Host/port
+  // diambil dari konfigurasi server. Tanpa fallback otomatis.
+  const printLan = useCallback(async () => {
+    const data = buildReceiptData()
+    try {
+      await printViaLan(data)
+      toast.success('Struk dikirim ke printer jaringan')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal cetak ke printer jaringan. Pastikan IP printer benar & printer menyala.')
+    }
+  }, [buildReceiptData])
+
+  // Jalur WHATSAPP: bagikan ringkasan struk ke pelanggan (bukan cetak kertas).
+  const shareWhatsApp = useCallback(() => {
+    const data = buildReceiptData()
+    try {
+      shareReceiptViaWhatsApp(data)
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal membuka WhatsApp')
+    }
+  }, [buildReceiptData])
+
   // Jalur RAWBT: cetak lewat aplikasi RawBT di Android (intent). Hanya tersedia
   // di Android; bila bukan Android, user diberi pesan. Tanpa fallback.
   const printRawBt = useCallback(() => {
@@ -269,6 +308,9 @@ export function ReceiptPrint({
         case 'server':
           void printServer()
           break
+        case 'lan':
+          void printLan()
+          break
         case 'serial':
           void printSerial()
           break
@@ -281,12 +323,15 @@ export function ReceiptPrint({
         case 'pdf':
           printPdf()
           break
+        case 'whatsapp':
+          shareWhatsApp()
+          break
         case 'browser':
           printBrowser()
           break
       }
     },
-    [printServer, printSerial, printBluetooth, printRawBt, printPdf, printBrowser],
+    [printServer, printLan, printSerial, printBluetooth, printRawBt, printPdf, shareWhatsApp, printBrowser],
   )
 
   // Tombol Cetak: buka pemilih metode agar user tetap bisa memilih tiap cetak.
