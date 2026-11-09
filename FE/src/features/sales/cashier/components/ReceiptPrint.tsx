@@ -33,6 +33,7 @@ import { printReceiptHtml } from '../printFrame'
 import { saveReceiptPdf } from '../receiptPdf'
 import { printViaServer, printViaLan } from '../printApi'
 import { shareReceiptViaWhatsApp } from '../receiptWhatsApp'
+import { isNativeApp, printViaNativeBt } from '../printNativeBt'
 import type {
   CartItem,
   CartSummary,
@@ -64,22 +65,33 @@ interface ReceiptPrintProps {
 //   lan       : BE mengirim ESC/POS ke printer jaringan (IP) via TCP
 //   serial    : Web Serial langsung ke COM port (butuh HTTPS/localhost, desktop)
 //   bluetooth : Web Bluetooth langsung ke printer (butuh HTTPS/localhost + BLE)
+//   native-bt : cetak Bluetooth langsung lewat APK (Capacitor) — hanya muncul di APK
 //   rawbt     : lewat aplikasi RawBT di Android (intent) — untuk printer Bluetooth
 //   pdf       : buat file PDF struk (selalu jalan, termasuk HTTP)
 //   whatsapp  : bagikan ringkasan struk via WhatsApp (bukan cetak kertas)
 //   browser   : dialog print bawaan browser (selalu jalan, termasuk HTTP)
-type PrintChoice = 'server' | 'lan' | 'serial' | 'bluetooth' | 'rawbt' | 'pdf' | 'whatsapp' | 'browser'
+type PrintChoice = 'native-bt' | 'server' | 'lan' | 'serial' | 'bluetooth' | 'rawbt' | 'pdf' | 'whatsapp' | 'browser'
 
 // Daftar opsi cetak yang ditampilkan ke user, apa adanya. User memilih sendiri
 // jalur mana yang dipakai setiap kali mencetak — tidak ada yang otomatis.
 // `devices` menandai perangkat yang cocok, sebagai petunjuk visual untuk kasir.
+// `nativeOnly` = hanya ditampilkan bila berjalan di dalam APK (Capacitor).
 const PRINT_OPTIONS: Array<{
   key: PrintChoice
   title: string
   desc: string
   devices: string
   icon: typeof Bluetooth
+  nativeOnly?: boolean
 }> = [
+  {
+    key: 'native-bt',
+    title: 'Printer Bluetooth (Aplikasi)',
+    desc: 'Cetak langsung ke printer Bluetooth (mis. EP58M) lewat aplikasi. Hasil tajam & cepat. Hanya tersedia bila membuka lewat aplikasi (APK), bukan browser.',
+    devices: 'Tablet / HP (Aplikasi)',
+    icon: Bluetooth,
+    nativeOnly: true,
+  },
   {
     key: 'server',
     title: 'Cetak via Server (Printer di Komputer)',
@@ -199,6 +211,19 @@ export function ReceiptPrint({
     [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName],
   )
 
+  // Jalur NATIVE BLUETOOTH (APK): cetak langsung ke printer Bluetooth lewat
+  // plugin native Capacitor. Hanya aktif di dalam APK (kartunya pun hanya muncul
+  // di APK). Tanpa fallback otomatis.
+  const printNative = useCallback(async () => {
+    const data = buildReceiptData()
+    try {
+      await printViaNativeBt(data)
+      toast.success('Struk dikirim ke printer')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Gagal cetak via Bluetooth aplikasi.')
+    }
+  }, [buildReceiptData])
+
   // Jalur SERVER: BE yang mengirim ESC/POS ke printer (COM port) di komputer
   // server. Paling andal & tajam; dipakai laptop maupun tablet selama satu
   // jaringan dengan server. Tanpa fallback otomatis.
@@ -305,6 +330,9 @@ export function ReceiptPrint({
   const runPrintMethod = useCallback(
     (method: PrintChoice) => {
       switch (method) {
+        case 'native-bt':
+          void printNative()
+          break
         case 'server':
           void printServer()
           break
@@ -331,7 +359,7 @@ export function ReceiptPrint({
           break
       }
     },
-    [printServer, printLan, printSerial, printBluetooth, printRawBt, printPdf, shareWhatsApp, printBrowser],
+    [printNative, printServer, printLan, printSerial, printBluetooth, printRawBt, printPdf, shareWhatsApp, printBrowser],
   )
 
   // Tombol Cetak: buka pemilih metode agar user tetap bisa memilih tiap cetak.
@@ -599,7 +627,7 @@ export function ReceiptPrint({
       hideFooter
     >
       <div className="px-5 py-4 space-y-3">
-        {PRINT_OPTIONS.map((opt) => {
+        {PRINT_OPTIONS.filter((opt) => !opt.nativeOnly || isNativeApp()).map((opt) => {
           const Icon = opt.icon
           return (
             <button

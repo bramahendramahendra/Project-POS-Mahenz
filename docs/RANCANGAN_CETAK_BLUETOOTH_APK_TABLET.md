@@ -1,6 +1,8 @@
 # Rancangan Cetak Struk Bluetooth untuk Tablet (Bungkus Web jadi APK)
 
-> Status: **RANCANGAN — belum ada implementasi.**
+> Status: **LAPIS KODE SELESAI — tinggal build & uji APK oleh user.**
+> (Kode FE + folder `mobile/` + workflow CI sudah dibuat. Build/sideload/uji APK
+> dikerjakan user mengikuti panduan bagian 10.3. Lihat ringkasan bagian 12.)
 > Tujuan: papan kerja bersama untuk menambah cetak struk langsung ke printer
 > Bluetooth EP58M **dari tablet Android**, dengan cara membungkus aplikasi web
 > menjadi APK (WebView + jembatan Bluetooth native). Dibahas dulu sampai
@@ -185,12 +187,13 @@ plugin. **Belum ada kode ditulis** — ini blueprint untuk disepakati.
 - Alternatif cadangan bila plugin di atas bermasalah: `Glavotaner/bluetooth-serial`
   (Cordova→Capacitor, kompatibel Android API 31) atau `capacitor-thermal-printer`.
 
-### 8.2 Langkah setup Capacitor (di proyek FE)
-1. Install: `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`, dan plugin
+### 8.2 Langkah setup Capacitor (di folder `mobile/` — TERPISAH dari FE)
+1. Di `mobile/` buat `package.json` sendiri, install: `@capacitor/core`,
+   `@capacitor/cli`, `@capacitor/android`, dan plugin
    `@kduma-autoid/capacitor-bluetooth-printer`.
-2. `npx cap init` → buat `capacitor.config.ts`:
+2. `capacitor.config.ts` di `mobile/`:
    - `appId` (mis. `id.mahenz.pos`), `appName`.
-   - `server.url = https://<domain-produksi>` dan `server.cleartext = false`
+   - `server.url = https://mahenz.duckdns.org` dan `server.cleartext = false`
      (Opsi A: WebView membuka web produksi langsung).
 3. `npx cap add android` → membuat folder `android/` (proyek Gradle).
 4. `AndroidManifest.xml`: tambah izin Bluetooth
@@ -198,17 +201,40 @@ plugin. **Belum ada kode ditulis** — ini blueprint untuk disepakati.
    - Android 12+ (API 31+): `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN` (izin runtime).
 5. Signing key untuk rilis APK (keystore) — disimpan aman, dipakai tiap build rilis.
 
-### 8.3 Lapisan "jembatan cetak" di FE (kode baru, terisolasi)
-Buat modul baru, mis. `FE/src/features/sales/cashier/printNativeBt.ts`:
-- `isNativeApp(): boolean` — deteksi apakah jalan di dalam APK Capacitor
-  (`Capacitor.isNativePlatform()`), supaya pilihan hanya muncul di APK.
+### 8.3 Struktur folder: `mobile/` TERPISAH dari `FE/` (keputusan)
+Proyek Capacitor + Android **dipisah** ke folder sendiri `mobile/` (sejajar
+`BE/` & `FE/`), supaya FE tetap murni web. Karena **Opsi A** (WebView membuka
+domain produksi), APK tidak perlu meng-copy/build FE — `mobile/` cukup jadi
+"cangkang" + plugin + konfigurasi build.
+
+```
+Project_pos_mahenz/
+├── BE/
+├── FE/      ← hanya nambah 1 modul kecil jembatan cetak + kartu metode
+└── mobile/  ← Capacitor config + android/ + plugin BT + workflow build APK
+```
+
+### 8.4 Cara akses plugin dari FE: lewat GLOBAL Capacitor (Cara A, keputusan)
+Agar FE **tidak perlu menambah dependency** apa pun (pemisahan benar-benar bersih),
+modul jembatan cetak di FE mengakses plugin lewat objek global yang disuntikkan
+WebView saat runtime — bukan `import` paket npm.
+- Di dalam APK, WebView menyediakan `window.Capacitor` + plugin ter-registrasi.
+- Di browser biasa, `window.Capacitor` tidak ada → fungsi deteksi mengembalikan
+  `false`, metode cetak native **tidak ditampilkan**, tidak ada error.
+
+Modul baru: `FE/src/features/sales/cashier/printNativeBt.ts`
+- `isNativeApp(): boolean` — cek `window.Capacitor?.isNativePlatform?.()`.
 - `printViaNativeBt(data: ReceiptData, address?: string): Promise<void>`
-  - Susun byte via `buildReceiptEscposBytes(data)`.
-  - Encode ke format yang diminta plugin (mis. base64).
-  - Panggil `list()` → pilih device (ingat pilihan terakhir), lalu
-    `connectAndPrint({ address, data })`.
-- Impor plugin dibuat **dynamic import** / dibungkus try-catch agar di browser
-  (plugin tak ada) tidak error — cukup `isNativeApp()` false.
+  - Susun byte via `buildReceiptEscposBytes(data)` → encode base64.
+  - Panggil plugin global: `window.Capacitor.Plugins.BluetoothPrinter`
+    (`list()`, `connectAndPrint({ address, data })`).
+  - Semua akses global dibungkus pengecekan + try/catch agar aman di browser.
+
+> Konsekuensi jujur: pemisahan tidak 100% mutlak — kode yang MEMANGGIL plugin tetap
+> harus hidup di FE (karena FE-lah yang jalan di WebView). Tapi dengan Cara A, FE
+> tidak menambah dependency npm apa pun; ia hanya mengakses global runtime. Semua
+> "barang Android" (Gradle, config, plugin native, keystore, workflow) ada di
+> `mobile/`.
 
 ### 8.4 Integrasi ke modal cetak (`ReceiptPrint.tsx`)
 - Tambah `PrintChoice` baru: `'native-bt'`.
@@ -368,8 +394,8 @@ Setelah AI menambahkan file workflow & semua kode, dan Anda `git push`:
 - [x] Android: satu APK menangani versi lama & 12+.
 - [x] Build: **GitHub Actions** (cloud, gratis) — laptop tidak perlu Android Studio.
 - [x] Rencana teknis detail ditulis (bagian 8, 9, 10).
-- [ ] Konfirmasi format `data` plugin (base64 vs teks) — saat implementasi.
-- [ ] Siap mulai implementasi? (menunggu aba-aba user)
+- [x] **Lapis kode selesai** (lihat bagian 12).
+- [ ] Build & uji APK oleh user (panduan bagian 10.3).
 
 ---
 
@@ -383,3 +409,66 @@ Setelah AI menambahkan file workflow & semua kode, dan Anda `git push`:
   wajib diuji; siapkan fallback env URL absolut bila perlu.
 - **Signing key APK**: harus disimpan aman & konsisten; kalau hilang, update APK
   di perangkat lama bisa bermasalah.
+
+---
+
+## 12. Hasil Implementasi (Lapis Kode) — SELESAI
+
+Keputusan struktur: proyek Capacitor **dipisah** ke folder `mobile/` (sejajar
+`BE/` & `FE/`). FE mengakses plugin lewat **global `window.Capacitor`** (Cara A),
+sehingga FE **tidak menambah dependency npm** apa pun.
+
+### File yang dibuat/diubah
+**Folder `mobile/` (baru):**
+- `mobile/package.json` — dependency Capacitor v6 + plugin
+  `@kduma-autoid/capacitor-bluetooth-printer`.
+- `mobile/capacitor.config.ts` — `appId: id.mahenz.pos`, `server.url:
+  https://mahenz.duckdns.org` (Opsi A), `cleartext: false`.
+- `mobile/www/index.html` — placeholder (WebView memuat dari server.url).
+- `mobile/.gitignore` — abaikan `node_modules/`, `android/`, keystore, `*.apk`.
+- `mobile/README.md` — cara build ringkas.
+
+**FE (minimal, tetap murni web):**
+- `FE/src/features/sales/cashier/printNativeBt.ts` — jembatan cetak:
+  - `isNativeApp()` cek `window.Capacitor.isNativePlatform()`.
+  - `printViaNativeBt(data, address?)` → `buildReceiptEscposBytes` → base64 →
+    `BluetoothPrinter.connectAndPrint()`. Pilih printer otomatis (ingat terakhir;
+    prioritas device tipe `classic`/`dual` = SPP seperti EP58M). Simpan pilihan di
+    localStorage.
+  - Semua akses global dibungkus pengecekan → aman di browser (tak error).
+- `FE/src/features/sales/cashier/components/ReceiptPrint.tsx`:
+  - Tambah `PrintChoice` `'native-bt'` + kartu **"Printer Bluetooth (Aplikasi)"**
+    dengan flag `nativeOnly: true`.
+  - Kartu difilter: hanya tampil bila `isNativeApp()` true (tidak muncul di browser).
+  - Handler `printNative()` + cabang di `runPrintMethod`.
+  - **8 metode lama tidak diubah.**
+
+**CI (baru):**
+- `.github/workflows/android-apk.yml` — build APK di GitHub Actions:
+  - setup Node 20 + JDK 17 + Android SDK,
+  - `npm install` di `mobile/`, `npx cap add android` + `cap sync`,
+  - bila 4 secret keystore ada → **APK release** bertanda tangan; bila tidak →
+    **APK debug** (tetap bisa di-install untuk uji),
+  - unggah artifact `pos-mahenz-apk`.
+
+### Verifikasi
+- FE `type-check` + `lint` dijalankan setelah perubahan (lihat ringkasan di chat).
+- Modul native terisolasi: di browser, `isNativeApp()` = false → kartu tidak muncul,
+  8 metode lama tetap jalan.
+
+### Yang MASIH perlu dikerjakan user (tidak bisa oleh AI)
+1. Install JDK 17 (untuk `keytool`).
+2. Buat keystore + simpan 4 GitHub Secrets (panduan bagian 10.3 Langkah 1–4).
+3. `git push` → jalankan workflow di tab Actions → unduh APK.
+4. Sideload APK ke tablet, pair EP58M, uji cetak (bagian 10.3 Langkah 5–7).
+
+### Catatan teknis untuk verifikasi saat uji
+- **Format `data` plugin**: diasumsikan **base64** dari byte ESC/POS. Bila saat uji
+  hasil cetak kacau, kemungkinan plugin mengharapkan format lain (mis. string biasa /
+  hex) → sesuaikan di `printNativeBt.ts` (`bytesToBase64`).
+- **Izin Bluetooth Android 12+**: plugin biasanya minta izin saat `list()`/`connect()`.
+  Bila gagal diam-diam, cek apakah izin `BLUETOOTH_CONNECT` diberikan; mungkin perlu
+  ditambah ke `AndroidManifest` proyek android yang di-generate (langkah lanjut bila
+  perlu).
+- **Versi Capacitor/plugin**: dipin di `mobile/package.json` (Capacitor 6, plugin
+  0.0.5). Bila `npm install`/build CI gagal karena versi, sesuaikan di sana.
