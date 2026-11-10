@@ -1,0 +1,34 @@
+{
+  "SecretKey": "",
+  "TokenExpire": 28800,
+  "RefreshTokenExpire": 604800,
+  "FormatTime": "2006-01-02 15:04:05",
+  "FormatDate": "2006-01-02",
+  "Timezone": "Asia/Jakarta",
+  "MaxTimeoutGracefulShutdown": 5,
+
+  "Log": {
+    "Path": "logs",
+    "Level": "info",
+    "MaxSizeMB": 100,
+    "MaxBackups": 90,
+    "MaxAgeDays": 90
+  },
+
+  "Database": {
+    "Type": "mysql",
+    "Host": "127.0.0.1",
+    "Port": "3306",
+    "User": "portal_user",
+    "Password": "GANTI_PASSWORD_DB",
+    "Database": "pos_portal_db",
+    "MaxOpenConns": 50,
+    "MaxIdleConns": 10,
+    "MaxLifetime": 300,
+    "MaxIdleTime": 600
+  },
+
+  "CorsAllowOrigins": [
+    "https://mahenz.duckdns.org"
+  ]
+}

@@ -136,6 +136,29 @@ workspace di root.
 saat go-live Fase 3, bukan di Fase 1. Dengan begitu Fase 1 benar-benar tidak mengubah apa pun
 yang dilihat kasir.
 
+### 5.0 Tahapan Fase 2 (Portal), dikerjakan bertahap
+
+Cara membangun: salin `TOKO/BE` dan `TOKO/FE` ke `PORTAL/BE` dan `PORTAL/FE`, pangkas fitur retail, ganti
+identitas (module Go `portal_api`, package FE `portal-web`, database `pos_portal_db`, `SecretKey` JWT berbeda,
+port BE 8080 dan FE 3000, key browser `portal.*`). Struktur dan gaya kode wajib sama dengan Toko; desain UI/UX
+dibuat baru dan modern. Setiap tahap berhenti dan menunggu persetujuan user sebelum lanjut.
+
+| Tahap | Pekerjaan | Hasil yang dicek user |
+|-------|-----------|------------------------|
+| 2.1 **[SELESAI, menunggu persetujuan]** | Kerangka BE Portal: salin `TOKO/BE`, pangkas, ganti identitas, migrasi awal ke `pos_portal_db` | BE hidup di 8080, `/api/health` membalas, tabel terbentuk |
+| 2.2 **[SELESAI, menunggu persetujuan]** | Auth BE: login, sesi, user, role `admin`/`user`, seed akun awal | Login dan refresh/logout lewat API |
+| 2.3 | Kerangka FE Portal: salin `TOKO/FE`, pangkas, sistem desain baru, halaman login | Login berjalan di 3000 dengan tampilan baru |
+| 2.4 | Halaman pilih aplikasi: kartu aplikasi, menu pengguna | Daftar aplikasi tampil setelah login |
+| 2.5 | Aplikasi dan akses (BE): tabel `apps`, `user_apps`, `sso_codes`, kunci, `/sso/exchange` | Kode SSO dibuat dan ditukar lewat API |
+| 2.6 | Admin Portal (FE): kelola user, kelola aplikasi, atur akses, reset password | Admin mengatur semuanya lewat UI |
+| 2.7 | Ganti password sendiri dan toggle login langsung | Fitur akun berjalan |
+
+Keputusan teknis tahap 2.1-2.2:
+- Database `pos_portal_db` sudah disiapkan user; migrasi dibuat oleh AI.
+- Akun awal Portal sama dengan seed Toko (`002_seed_data.sql`): `owner` dan `admin` dengan hash Argon2id yang
+  sama, sehingga password awal sama dengan Toko. Role Portal hanya `admin` dan `user`; akun seed Toko dipetakan:
+  `owner` dan `admin` menjadi role `admin` Portal [USULAN].
+
 ### 5.1 Dampak Fase 1 (pemindahan folder)
 
 Kode tidak perlu diubah: module Go `pos_api` diimpor lewat nama module (bukan path folder), dan
@@ -213,7 +236,7 @@ Catatan:
 ### 6.4 Tabel Portal (gambaran awal, belum final)
 | Tabel | Isi |
 |-------|-----|
-| `users` | Akun Portal (username, nama, hash password bcrypt, aktif/tidak, role `admin`/`user`) |
+| `users` | Akun Portal (username, nama, hash password Argon2id, aktif/tidak, role `admin`/`user`) |
 | `sessions` | Sesi login Portal |
 | `apps` | Daftar aplikasi: id, kode, nama, path (mis. `/toko`), ikon, aktif/tidak, kunci (disimpan sebagai hash) |
 | `user_apps` | User mana boleh masuk aplikasi mana |
@@ -255,8 +278,9 @@ Login, halaman pilih aplikasi (selalu tampil), kelola user dan akses aplikasi (a
 
 Fakta Toko saat ini (dari kode): username 3-50 karakter alfanumerik; password minimal 6 karakter, tanpa aturan
 lain; password hanya diganti oleh pengelola user lewat `PUT` per user id (tidak ada ganti password sendiri dengan
-verifikasi password lama, tidak ada lupa password). Proteksi percobaan login berulang tidak ditemukan di kode yang
-dibaca.
+verifikasi password lama, tidak ada lupa password). **Koreksi:** Toko ternyata PUNYA pembatas login
+(`middleware/login_rate_limit_middleware.go`: 5 kali gagal per kombinasi IP+username dalam 15 menit, lalu
+ditahan); catatan awal yang menyebut tidak ada pembatas keliru.
 
 Keputusan:
 1. **[SEPAKAT]** Password minimal 8 karakter, tanpa syarat huruf besar/simbol. Password lama Toko (minimal 6)
@@ -264,7 +288,9 @@ Keputusan:
 2. **[SEPAKAT]** User dapat mengganti password sendiri di Portal dengan memasukkan password lama.
 3. **[SEPAKAT]** Admin Portal dapat menetapkan password sementara; user diminta menggantinya saat login berikutnya.
 4. **[SEPAKAT]** Lupa password: lewat admin (tanpa email/SMS).
-5. **[SEPAKAT, ditolak usulan AI]** **Tidak ada batas percobaan login salah.** Pesan error tetap generik
+5. **[SEPAKAT, diputuskan ulang]** Portal **memakai pembatas login seperti Toko** (5 kali gagal per kombinasi
+   IP+username dalam 15 menit, lalu ditahan). Keputusan semula "tanpa batas" dibatalkan karena dibuat atas info
+   keliru (Toko ternyata punya pembatas). Keputusan semula (dibatalkan): tidak ada batas percobaan login salah. Pesan error tetap generik
    ("Username atau password salah"). Risiko yang diterima: Portal terbuka dari internet sehingga password bisa
    ditebak berulang kali; pertimbangkan kembali bila ada indikasi penyalahgunaan (alternatif ringan: pembatasan
    di nginx atau jeda antar percobaan).
@@ -297,7 +323,7 @@ Disalin dan ditautkan, **bukan dipindah**: tabel `users` Toko dirujuk sesi (FK) 
 menyimpan `user_id`, sehingga barisnya tidak boleh hilang.
 
 - Skrip sekali jalan, bisa diulang aman, ada mode dry-run, didahului backup database.
-- Yang disalin: username, nama, status aktif, **hash bcrypt yang sama** (password tidak berubah).
+- Yang disalin: username, nama, status aktif, **hash Argon2id yang sama** (password tidak berubah).
 - Dibuat tautan `portal_user_id` di `users` Toko, plus akses aplikasi Toko di Portal.
 - Setelah itu identitas (nama, aktif/nonaktif, password SSO) dikelola di Portal; Toko menyimpan profil
   lokal, role, dan PIN.
@@ -453,7 +479,8 @@ Detail lain (isi nginx final) disusun setelah pengecekan VPS.
 ## 13. Fakta Kode Saat Ini (dasar rancangan)
 
 Terverifikasi dari kode/konfigurasi repo:
-- Password memakai **bcrypt** (`pkg/bcrypt`).
+- Password memakai **Argon2id** (package bernama `pkg/bcrypt`, tetapi isinya Argon2id format PHC; koreksi dari
+  catatan awal yang menulis bcrypt). Karena Portal menyalin package yang sama, hash bisa disalin apa adanya.
 - Token JWT berisi klaim `user_id`, `username`, role, dan `apps` (isinya `DeviceInfo`). Masa berlaku token
   dari `TokenExpire` (28800 detik = 8 jam); sesi di tabel `sessions` berakhir sesuai `RefreshTokenExpire`
   (604800 detik = 7 hari), diperbarui tiap refresh.
@@ -853,3 +880,7 @@ Usulan ([USULAN]) untuk bagian yang belum dijawab:
 | 25 | Implementasi Fase 1 (di repo): `BE/` dan `FE/` dipindah ke `TOKO/BE` dan `TOKO/FE`; `.gitignore` memakai pola `**/BE/...` dan `**/FE/...`; port dev/prod Toko 8081 (`.env*`, proxy Vite, `.env.development`); `nginx/pos-web.conf` menjadi sumber tunggal (Mode B dan `ver_bypass` dihapus, `proxy_pass` ke 8081), `nginx/pos-web-old.conf` dan `TOKO/FE/nginx.conf` dihapus; README, `mobile/README.md`, `docs/SOP_DEPLOY.md`, `docs/DEPLOYMENT_PROD.md`, `docs/DEPLOYMENT_REDEPLOY_FULL.md` diperbarui. Verifikasi: `go build ./...`, `type-check`, `lint`, `build` FE semua lolos. Belum: commit, deploy VPS, uji jalan BE (MySQL). |
 | 26 | Port dev diselaraskan: BE Portal 8080, Toko 8081, Coffee 8082; FE Portal 3000, Toko 3001, Coffee 3002. Port FE Toko diubah dari 3000 ke 3001 (vite.config, APP_HOST di .env, CORS dev, README). |
 | 27 | Usul user: Portal dibuat dengan menyalin Toko lalu memangkas, desain dirombak total dan bebas diserahkan ke AI, implementasi bertahap. Ditambahkan keputusan 46-48. Tanggapan AI dan tahapan diberikan di chat (belum implementasi). |
+| 28 | Tahapan Fase 2 (2.1-2.7) dicatat di bagian 5.0. User: database `pos_portal_db` sudah siap, migrasi dibuat AI, akun awal samakan dengan seed Toko. Koreksi fakta: hash password Toko adalah Argon2id (package `pkg/bcrypt` hanya namanya), bukan bcrypt; bagian 7, 13, dan tabel Portal diperbarui. |
+| 29 | Tahap 2.1 selesai: `PORTAL/BE` disalin dari `TOKO/BE` (module `portal_api`, port 8080, DB `pos_portal_db`), domain tersisa `auth`, `user`, `role` (role belum dirouting), scheduler/cmd/deploy/permission dibuang, `/users` hanya untuk role `admin`, migrasi 001 (roles, users, sessions, log_*) dan 002 (role `admin`/`user`, akun `owner` dan `admin` seperti seed Toko, keduanya role `admin`). Verifikasi: `go build`, `go vet`, BE hidup, `/api/health` 200, login `admin` berhasil. Ditemukan: pembatas login Toko ada (5 gagal/15 menit); bagian 6.9 poin 5 dibuka kembali. |
+| 30 | Keputusan user: Portal memakai pembatas login seperti Toko (5 gagal/15 menit); bagian 6.9 poin 5 diperbarui. Tidak ada perubahan kode (pembatas sudah ikut tersalin). |
+| 31 | Tahap 2.2 selesai (BE Portal). Migrasi 003 menambah `users.must_change_password`. Endpoint baru `POST /api/auth/change-password` (password lama wajib, baru minimal 8 dan harus berbeda). Admin reset lewat `POST /api/users/reset-password/:id` (menggantikan `change-password/:id`): menetapkan password sementara, menandai wajib ganti, menghapus sesi user itu, dan ditolak untuk akun sendiri. Selama wajib ganti, token hanya boleh ke `/auth/me`, `/auth/logout`, `/auth/change-password` (ditegakkan di middleware auth). Password baru (buat user dan reset) minimal 8 karakter. Istilah `owner` dibersihkan (admin terakhir dihitung dari role `admin`). Domain `role` hanya menyisakan `POST /api/roles/options` (admin). Terverifikasi lewat 16 skenario API; build dan vet lolos. Catatan: user baru yang dibuat admin belum ditandai wajib ganti (hanya hasil reset). |
