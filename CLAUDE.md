@@ -5,6 +5,16 @@ File ini dibaca otomatis oleh Claude Code. Baca juga, berurutan:
 2. `docs/RANCANGAN_PORTAL_TOKO_COFFEE.md` (sumber kebenaran: 52 keputusan, rancangan Coffee di bagian 14, riwayat)
 3. `README.md`
 
+## Ritme kerja (sama seperti sesi sebelumnya)
+Satu tahap sekali jalan, user menyetujui tiap tahap:
+- Kerjakan SATU tahap (urutan: 3.6, lalu Fase 4 Coffee sesuai `docs/RANCANGAN_PORTAL_TOKO_COFFEE.md`). Verifikasi nyata, catat ke dokumen rancangan (tabel tahap + riwayat) dan `docs/HANDOFF_AI.md`.
+- Setelah tahap selesai: BERHENTI, lapor jujur (apa dilakukan, apa diuji, apa belum diuji), sertakan pesan commit yang disarankan, lalu tanya "Lanjut ke tahap berikutnya?". Jangan mulai tahap berikutnya sebelum user menjawab.
+- Fase 4: sebelum kode, susun tahapan 4.1, 4.2, ... di bagian 5.0c dokumen rancangan (dengan hasil uji per tahap), tampilkan, dan tunggu persetujuan user.
+- Keputusan produk yang [TERBUKA] atau tidak ada di dokumen: tanyakan ke user (kumpulkan sekaligus), jangan menebak.
+- Tindakan di luar mesin dev (VPS, `--apply` DB produksi, uji tablet/APK) atau berisiko (hapus data, ubah history git, ganti rahasia): jelaskan dan tunggu persetujuan.
+- Jangan pernah `git commit`/`git push`; user yang commit.
+- File `.env*` dan `config_prod.json` sengaja ikut di-commit oleh user (keputusan user). Jangan dipersoalkan atau ditanyakan lagi; tetap jangan menampilkan isinya.
+
 ## Aturan wajib
 - Balas dan tulis dokumen dalam **bahasa Indonesia**.
 - Kerja **bertahap**. Selesai satu tahap: berhenti, lapor jujur (apa yang diuji, apa yang belum), tanya "lanjut?". Jangan lompat tahap.
