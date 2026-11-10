@@ -98,16 +98,16 @@ sudo chown -R $USER:$USER /opt/sipaduke-testing
 **5. Setup ulang BE seperti deploy pertama kali**
 
 ```bash
-cd /opt/pos-mahenz/BE
+cd /opt/pos-mahenz/TOKO/BE
 go mod tidy
 go build -o pos_api .
-sudo systemctl restart pos-backend
-sudo systemctl status pos-backend    # harus "active (running)"
+sudo systemctl restart pos-toko-backend
+sudo systemctl status pos-toko-backend    # harus "active (running)", port 8081
 ```
 **Frontend (tampilan):**
 
 ```bash
-cd /opt/pos-mahenz/FE
+cd /opt/pos-mahenz/TOKO/FE
 npm install
 npm run type-check
 npm run lint

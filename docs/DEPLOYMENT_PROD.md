@@ -2,6 +2,18 @@
 
 Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Frontend (Vite/React) ke server production, beserta penjelasan **kenapa** setiap langkah dilakukan — supaya bisa dipakai sebagai bahan belajar, bukan sekadar "copy-paste perintah".
 
+> **Perubahan struktur (Oktober 2026).** Folder `BE/` dan `FE/` kini berada di `TOKO/`. Saat membaca panduan ini, terapkan pemetaan berikut pada seluruh isinya:
+>
+> | Tertulis di panduan | Sekarang |
+> |---------------------|----------|
+> | `BE/`, `/opt/pos-mahenz/BE` | `TOKO/BE/`, `/opt/pos-mahenz/TOKO/BE` |
+> | `FE/`, `/opt/pos-mahenz/FE` | `TOKO/FE/`, `/opt/pos-mahenz/TOKO/FE` |
+> | service `pos-backend` | `pos-toko-backend` |
+> | port backend `8080` (`APP_PORT`, `proxy_pass`) | `8081` |
+> | `FE/nginx.conf` | `nginx/pos-web.conf` (di root repo) |
+>
+> Rancangan lengkap: [RANCANGAN_PORTAL_TOKO_COFFEE.md](RANCANGAN_PORTAL_TOKO_COFFEE.md).
+
 > Ditulis berdasarkan kondisi kode saat ini (Agustus 2026). Lihat bagian [Catatan Kondisi Kode Saat Ini](#catatan-kondisi-kode-saat-ini) untuk hal-hal yang perlu diperbaiki sebelum benar-benar deploy.
 
 ---

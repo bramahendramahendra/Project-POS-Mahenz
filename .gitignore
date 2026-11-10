@@ -1,47 +1,51 @@
+# Pola memakai prefix **/ agar berlaku untuk TOKO/, PORTAL/, COFFEE/ (struktur <APP>/BE dan <APP>/FE).
+
 # ========================
 # BE (Backend - Go)
 # ========================
-BE/vendor/
-BE/tmp/
-BE/.scannerwork/
-BE/logs/
+**/BE/vendor/
+**/BE/tmp/
+**/BE/.scannerwork/
+**/BE/logs/
 # Log buangan hasil menjalankan/menguji server di root BE (be_run*.log,
 # be_test_*.log, dsb) -- bukan log resmi aplikasi (itu di BE/logs/).
-BE/*.log
+**/BE/*.log
 # Artefak build & test (dihasilkan ulang, jangan di-commit)
-BE/*.exe
-BE/*.out
-BE/pos_api
+**/BE/*.exe
+**/BE/*.out
+**/BE/pos_api
+**/BE/portal_api
+**/BE/coffee_api
 
 # ========================
 # FE (Frontend - Node/Vite)
 # ========================
-FE/node_modules/
-FE/dist/
-FE/dist-ssr/
-FE/*.local
+**/FE/node_modules/
+**/FE/dist/
+**/FE/dist-ssr/
+**/FE/*.local
 # Cache build TypeScript (dihasilkan ulang, jangan di-commit)
-FE/*.tsbuildinfo
+**/FE/*.tsbuildinfo
 
 # FE Logs
-FE/logs/
-FE/*.log
-FE/npm-debug.log*
-FE/yarn-debug.log*
-FE/yarn-error.log*
-FE/pnpm-debug.log*
-FE/lerna-debug.log*
+**/FE/logs/
+**/FE/*.log
+**/FE/npm-debug.log*
+**/FE/yarn-debug.log*
+**/FE/yarn-error.log*
+**/FE/pnpm-debug.log*
+**/FE/lerna-debug.log*
 
 # FE Editor
-FE/.vscode/*
-!FE/.vscode/extensions.json
-FE/.idea
-FE/.DS_Store
-FE/*.suo
-FE/*.ntvs*
-FE/*.njsproj
-FE/*.sln
-FE/*.sw?
+**/FE/.vscode/*
+!**/FE/.vscode/extensions.json
+**/FE/.idea
+**/FE/.DS_Store
+**/FE/*.suo
+**/FE/*.ntvs*
+**/FE/*.njsproj
+**/FE/*.sln
+**/FE/*.sw?
 
 testing
 backups

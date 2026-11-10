@@ -1,5 +1,7 @@
 # Full Backup & Redeploy (FE, BE, DB) — POS Mahenz
 
+> **Catatan (Oktober 2026):** path `BE/`/`FE/` kini `TOKO/BE/`/`TOKO/FE/`, service `pos-backend` kini `pos-toko-backend` (port 8081). **"Mode B" (versi lama/baru berdampingan lewat cookie `ver_bypass`, port 8081, `dist_old`) tidak dipakai lagi** dan sudah dihapus dari `nginx/pos-web.conf`; abaikan bagian Mode B di bawah.
+
 Dokumen terpisah dari [DEPLOYMENT_PROD.md](DEPLOYMENT_PROD.md) khusus untuk skenario **redeploy total**: FE, BE, dan database sekaligus, dengan strategi *rename-lalu-clone-ulang* — versi lama tidak dihapus, hanya di-*rename*/duplicate jadi arsip bertanggal, lalu semuanya di-*clone*/dibuat ulang dari nol dengan nama folder & database yang sama seperti semula.
 
 **Kapan dipakai:** situasi yang lebih berat dari update biasa di [DEPLOYMENT_PROD.md §11](DEPLOYMENT_PROD.md#11-update--redeploy-selanjutnya) — misal ada perubahan besar di skema/kode yang ingin dites dari kondisi benar-benar bersih, tapi Anda tetap mau punya jejak/arsip penuh dari versi sebelumnya (kode maupun data) tanpa harus rely sepenuhnya ke git history atau file `.sql` backup saja.

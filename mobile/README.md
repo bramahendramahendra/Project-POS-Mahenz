@@ -30,7 +30,7 @@ cd android && ./gradlew assembleDebug
 ```
 
 ## Cetak Bluetooth di aplikasi
-- Kode jembatan cetak ada di FE: `FE/src/features/sales/cashier/printNativeBt.ts`
+- Kode jembatan cetak ada di FE: `TOKO/FE/src/features/sales/cashier/printNativeBt.ts`
   (mengakses plugin lewat `window.Capacitor` saat runtime).
 - Di modal cetak, pilihan **"Printer Bluetooth (Aplikasi)"** hanya muncul saat
   aplikasi dibuka lewat APK ini (bukan browser).

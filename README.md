@@ -27,21 +27,25 @@ Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan,
 ## Struktur
 
 ```
-BE/      Backend Go (domain-driven)
-FE/      Frontend React + Vite
-docs/    Dokumentasi
+TOKO/BE/   Backend Go POS Toko (domain-driven)
+TOKO/FE/   Frontend React + Vite POS Toko
+mobile/    Pembungkus APK (Capacitor)
+nginx/     Konfigurasi nginx
+docs/      Dokumentasi
 ```
+
+Rencana Portal dan POS Coffee: lihat [docs/RANCANGAN_PORTAL_TOKO_COFFEE.md](docs/RANCANGAN_PORTAL_TOKO_COFFEE.md).
 
 ## Quick Start
 
 ```bash
-# Backend (port 8080)
-cd BE
+# Backend Toko (port 8081)
+cd TOKO/BE
 cp .env.local .env        # sesuaikan config
 go run main.go            # migrasi DB otomatis saat startup
 
-# Frontend (port 3000)
-cd FE
+# Frontend Toko (port 3001)
+cd TOKO/FE
 npm install
 npm run type-check
 npm run lint

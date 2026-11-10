@@ -72,6 +72,9 @@ Aplikasi yang sudah ada (POS retail) disebut **POS Toko** dan dipindah ke folder
 | 43 | Varian barang jadi | Satu menu = satu stok, tanpa varian; rasa berbeda = menu terpisah. Tambahan boleh, tidak memengaruhi stok | SEPAKAT |
 | 44 | Pembatalan setelah barang diserahkan | Kasir memilih "kembali ke stok" atau "dibuang" | SEPAKAT |
 | 45 | Aturan pesanan melewati batas hari (pendamping opsi i) | Hanya bisa diselesaikan, tanpa tambah item; buka kas baru diblokir sampai kas tertunda ditutup; admin bisa menyelesaikan atas nama; ada daftar pesanan tertunda | SEPAKAT |
+| 46 | Cara membangun Portal | Usul user: struktur dan konsistensi kode BE dan FE Portal wajib sama dengan Toko; caranya menyalin `TOKO/BE` dan `TOKO/FE` ke `PORTAL/`, menghapus fitur yang tidak relevan, dan desain UI/UX diubah total. Implementasi dibuat bertahap | SEPAKAT (usulan user, ditanggapi AI) |
+| 47 | Desain Portal | Diserahkan ke AI (bebas); target tampilan modern dan canggih | SEPAKAT |
+| 48 | Skrip salin user Toko ke Portal | Dijalankan sebagai perintah terpisah (bukan otomatis saat Portal hidup); user menyerahkan keputusan ke AI | SEPAKAT |
 
 ---
 
@@ -101,7 +104,7 @@ workspace di root.
 - Nama module Go aplikasi baru diganti: `portal_api`, `coffee_api` (Toko tetap `pos_api`).
 - Nama package FE aplikasi baru diganti (mis. `portal-web`, `coffee-web`).
 - Port BE (diperbarui, lihat 10.1): Portal 8080, Toko 8081, Coffee 8082. Fitur versi lama/baru (Mode B) dihapus.
-- Port dev FE: Toko 3000, Coffee 3001, Portal 3002 (agar bisa jalan bersamaan di laptop).
+- Port dev FE (diperbarui, sejajar dengan port BE): Portal 3000, Toko 3001, Coffee 3002 (agar bisa jalan bersamaan di laptop).
 
 ---
 
@@ -124,7 +127,7 @@ workspace di root.
 
 | Fase | Pekerjaan | Catatan |
 |------|-----------|---------|
-| 1 | Pindahkan BE/FE ke `TOKO/` | Langkah murni (tanpa perubahan fungsi). Deploy ke VPS dan verifikasi POS Toko jalan sama seperti sebelumnya |
+| 1 | Pindahkan BE/FE ke `TOKO/` | **[KODE SELESAI, belum di-commit dan belum di-deploy]** Tanpa perubahan fungsi, tetapi port Toko menjadi 8081 dan service menjadi `pos-toko-backend`. Deploy ke VPS dan verifikasi POS Toko jalan sama seperti sebelumnya |
 | 2 | Bangun Portal | BE + FE + database baru |
 | 3 | Hubungkan Portal ke Toko | SSO, login langsung on/off, penyeragaman key, penyesuaian URL |
 | 4 | Bangun Coffee | Disalin dari `TOKO/BE` dan `TOKO/FE` di lokasi barunya, lalu fitur kopi |
@@ -847,3 +850,6 @@ Usulan ([USULAN]) untuk bagian yang belum dijawab:
 | 22 | Jawaban user: SOP deploy dipecah per aplikasi, deploy tetap manual tanpa CI; Husky belum berjalan di production dan ditunda, prioritas Portal dan Coffee. Bagian 15 diperbarui. |
 | 23 | Jawaban user: kunci aplikasi disimpan di database aplikasi (tabel baru), bukan `.env`. Ditambahkan bagian 6.10. |
 | 24 | Jawaban user: kunci diisi lewat SQL manual; `APP_ID` ikut pindah ke tabel kunci di database aplikasi. Keputusan 9 dan bagian 6.10 diperbarui. |
+| 25 | Implementasi Fase 1 (di repo): `BE/` dan `FE/` dipindah ke `TOKO/BE` dan `TOKO/FE`; `.gitignore` memakai pola `**/BE/...` dan `**/FE/...`; port dev/prod Toko 8081 (`.env*`, proxy Vite, `.env.development`); `nginx/pos-web.conf` menjadi sumber tunggal (Mode B dan `ver_bypass` dihapus, `proxy_pass` ke 8081), `nginx/pos-web-old.conf` dan `TOKO/FE/nginx.conf` dihapus; README, `mobile/README.md`, `docs/SOP_DEPLOY.md`, `docs/DEPLOYMENT_PROD.md`, `docs/DEPLOYMENT_REDEPLOY_FULL.md` diperbarui. Verifikasi: `go build ./...`, `type-check`, `lint`, `build` FE semua lolos. Belum: commit, deploy VPS, uji jalan BE (MySQL). |
+| 26 | Port dev diselaraskan: BE Portal 8080, Toko 8081, Coffee 8082; FE Portal 3000, Toko 3001, Coffee 3002. Port FE Toko diubah dari 3000 ke 3001 (vite.config, APP_HOST di .env, CORS dev, README). |
+| 27 | Usul user: Portal dibuat dengan menyalin Toko lalu memangkas, desain dirombak total dan bebas diserahkan ke AI, implementasi bertahap. Ditambahkan keputusan 46-48. Tanggapan AI dan tahapan diberikan di chat (belum implementasi). |
