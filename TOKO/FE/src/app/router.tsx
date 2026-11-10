@@ -2,7 +2,8 @@
 import { lazy } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 
-import { LoginPage, ProtectedRoute, RootRedirect } from '@/features/auth'
+import { LoginPage, PendingAccessPage, ProtectedRoute, RootRedirect, SsoPage } from '@/features/auth'
+import { routerBasename } from '@/shared/utils/appUrl'
 import { ROUTES } from '@/shared/constants/routes'
 
 import { LazyRoute } from './LazyRoute'
@@ -127,6 +128,8 @@ const PROTECTED_ROUTES: RouteDef[] = [
 export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: ROUTES.LOGIN, element: <LoginPage /> },
+  { path: ROUTES.SSO, element: <SsoPage /> },
+  { path: ROUTES.PENDING_ACCESS, element: <PendingAccessPage /> },
 
   ...PROTECTED_ROUTES.map(({ path, menuKey, element }) => ({
     path,
@@ -136,4 +139,7 @@ export const router = createBrowserRouter([
 
   // 404
   { path: '*', element: <Navigate to="/" replace /> },
-])
+], {
+  // undefined bila aplikasi di root domain; '/toko' saat disajikan di bawah Portal.
+  basename: routerBasename,
+})

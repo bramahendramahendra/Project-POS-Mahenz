@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, LogOut, Menu } from 'lucide-react'
+import { Bell, LayoutGrid, LogOut, Menu } from 'lucide-react'
 
 import { useLogoutMutation } from '@/features/auth/auth.api'
 import { useAuth } from '@/features/auth/hooks/useAuth'
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
+import { portalUrl } from '@/shared/utils/appUrl'
 
 function getRoleBadgeClass(role: string) {
   if (role === ROLES.OWNER) return 'bg-yellow-500 text-white border-transparent hover:bg-yellow-500'
@@ -72,6 +73,21 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 </Badge>
               </div>
             </div>
+          )}
+
+          {portalUrl && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={portalUrl}
+                  aria-label="Kembali ke Portal"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                >
+                  <LayoutGrid size={16} />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Kembali ke Portal</TooltipContent>
+            </Tooltip>
           )}
 
           <Tooltip>

@@ -1,5 +1,7 @@
 export const ROUTES = {
   LOGIN: '/login',
+  SSO: '/sso',
+  PENDING_ACCESS: '/menunggu-akses',
   DASHBOARD: '/dashboard',
   KASIR: '/kasir',
 

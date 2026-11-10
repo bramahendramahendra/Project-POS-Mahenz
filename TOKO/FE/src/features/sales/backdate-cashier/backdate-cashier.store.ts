@@ -153,7 +153,7 @@ export const useBackdateCashierStore = create<BackdateCashierState>()(
       closePaymentModal: () => set({ paymentModalOpen: false }),
     }),
     {
-      name: 'backdate-cashier-draft',
+      name: 'toko.backdate-cashier-draft',
       partialize: (state) => ({
         cart: state.cart,
         discount: state.discount,

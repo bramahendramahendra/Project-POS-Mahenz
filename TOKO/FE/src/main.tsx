@@ -1,3 +1,6 @@
+// Harus paling awal: memindahkan key localStorage lama ke nama baru sebelum store dibuat.
+import './bootstrap/migrateStorageKeys'
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 

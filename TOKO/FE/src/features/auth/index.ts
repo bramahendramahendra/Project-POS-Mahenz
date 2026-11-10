@@ -1,6 +1,8 @@
 export { useAuthStore } from './auth.store'
 export { useAuth } from './hooks/useAuth'
 export { LoginPage } from './LoginPage'
+export { SsoPage } from './SsoPage'
+export { PendingAccessPage } from './PendingAccessPage'
 export { ProtectedRoute } from './components/ProtectedRoute'
 export { RootRedirect } from './components/RootRedirect'
 export type { AuthUser, AuthState, LoginRequest } from './auth.types'

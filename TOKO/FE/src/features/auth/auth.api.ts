@@ -3,52 +3,86 @@ import { toast } from 'sonner'
 
 import { api, authApi } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import { appUrl, portalUrl } from '@/shared/utils/appUrl'
 import { useMenuStore } from '@/features/menu/menu.store'
 import { getDefaultRoute } from '@/features/menu/getDefaultRoute'
 
 import { useAuthStore } from './auth.store'
-import type { AuthUser, LoginRequest, LoginResponse } from './auth.types'
+import type {
+  AuthUser,
+  LoginOptions,
+  LoginRequest,
+  LoginResponse,
+  SsoRequest,
+} from './auth.types'
 import type { MenuItem } from '@/features/menu/menu.types'
 
-export function useLoginMutation() {
+// Dipakai bersama login langsung dan login lewat Portal: simpan sesi, muat menu, lalu
+// pindah (reload penuh) ke halaman tujuan agar state aplikasi bersih untuk sesi baru.
+function useCompleteLogin() {
   const setSession = useAuthStore((s) => s.setSession)
   const setMenus = useMenuStore((s) => s.setMenus)
 
+  return async (data: LoginResponse) => {
+    const user: AuthUser = {
+      id: data.user.id,
+      username: data.user.username,
+      fullName: data.user.full_name,
+      roleId: data.user.role_id,
+      roleName: data.user.role_name,
+      apps: 'web',
+    }
+
+    setSession({
+      accessToken: data.token,
+      refreshToken: data.refresh_token,
+      expiresAt: data.expires_at,
+      user,
+    })
+
+    // Fetch menu akses langsung setelah login — dipakai juga untuk menentukan halaman tujuan
+    let menus: MenuItem[] = []
+    try {
+      menus = await api.post<MenuItem[]>('/menus/my', {})
+      setMenus(menus)
+    } catch {
+      // Menu gagal diambil tidak menghentikan login
+    }
+
+    window.location.href = appUrl(getDefaultRoute(menus))
+  }
+}
+
+export function useLoginMutation() {
+  const completeLogin = useCompleteLogin()
+
   return useMutation({
     mutationFn: (payload: LoginRequest) => authApi.post<LoginResponse>('/auth/login', payload),
-
-    onSuccess: async (data) => {
-      const user: AuthUser = {
-        id: data.user.id,
-        username: data.user.username,
-        fullName: data.user.full_name,
-        roleId: data.user.role_id,
-        roleName: data.user.role_name,
-        apps: 'web',
-      }
-
-      setSession({
-        accessToken: data.token,
-        refreshToken: data.refresh_token,
-        expiresAt: data.expires_at,
-        user,
-      })
-
-      // Fetch menu akses langsung setelah login — dipakai juga untuk menentukan halaman tujuan
-      let menus: MenuItem[] = []
-      try {
-        menus = await api.post<MenuItem[]>('/menus/my', {})
-        setMenus(menus)
-      } catch {
-        // Menu gagal diambil tidak menghentikan login
-      }
-
-      window.location.href = getDefaultRoute(menus)
-    },
-
+    onSuccess: completeLogin,
     onError: (error: Error) => {
       toast.error(error.message)
     },
+  })
+}
+
+// Login lewat Portal: menukar kode sekali pakai (dari URL /sso?code=...) menjadi sesi Toko.
+export function useSsoLoginMutation() {
+  const completeLogin = useCompleteLogin()
+
+  return useMutation({
+    mutationFn: (payload: SsoRequest) => authApi.post<LoginResponse>('/auth/sso', payload),
+    onSuccess: completeLogin,
+  })
+}
+
+// Cara login yang tersedia (publik). Bila gagal diambil, halaman login tetap menampilkan form
+// login langsung agar tidak ada yang terkunci.
+export function useLoginOptionsQuery() {
+  return useQuery({
+    queryKey: queryKeys.auth.loginOptions(),
+    queryFn: () => authApi.get<LoginOptions>('/auth/login-options'),
+    staleTime: 0,
+    retry: false,
   })
 }
 
@@ -61,6 +95,8 @@ export function useLogoutMutation() {
     clearSession()
     clearMenus()
     queryClient.clear()
+    // Bila Portal terpasang, keluar dari aplikasi mengembalikan user ke Portal.
+    if (portalUrl) window.location.href = portalUrl
   }
 
   return useMutation({
@@ -92,5 +128,19 @@ export function useGetMeQuery() {
     queryKey: queryKeys.auth.profile(),
     queryFn: () => api.post<AuthUser>('/auth/me', {}),
     enabled: isAuthenticated,
+  })
+}
+
+// Menyalakan/mematikan login langsung (hanya admin; BE menolak role lain).
+export function useSetDirectLoginMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (enabled: boolean) => api.post<void>('/auth/direct-login', { enabled }),
+    onSuccess: (_data, enabled) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.loginOptions() })
+      toast.success(enabled ? 'Login langsung dinyalakan' : 'Login langsung dimatikan')
+    },
+    onError: (error: Error) => toast.error(error.message),
   })
 }

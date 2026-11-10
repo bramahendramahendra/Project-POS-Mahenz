@@ -11,15 +11,13 @@ INSERT IGNORE INTO roles (name, display_name, description, is_system, is_active)
     ('user',  'User',  'Pengguna biasa, memilih aplikasi yang diizinkan', 1, 1);
 
 -- -------------------------------------------------------------
--- Users default (disamakan dengan seed POS Toko)
--- password: admin -> 'admin123' | owner -> 'owner123'
--- Keduanya berperan admin di Portal.
--- Ganti password sebelum deploy ke production.
+-- Akun awal: satu admin agar Portal bisa dipakai pertama kali.
+-- password: admin -> 'admin123' (sama dengan seed POS Toko)
+-- WAJIB diganti sebelum production. Skrip cmd/migrate_users_to_portal (di TOKO/BE)
+-- mengambil alih akun ini bila ada user "admin" di Toko.
+-- Aturan role: hanya "admin" Toko yang menjadi admin Portal, sehingga
+-- akun "owner" TIDAK diseed di sini.
 -- -------------------------------------------------------------
-INSERT IGNORE INTO users (username, password, full_name, role_id)
-SELECT 'owner', '$argon2id$v=19$m=65536,t=3,p=4$gcWNYu+y/FCRuCT6WS/+eg$1qAjwCU3HoK87s/CbDPHYo06W6B4mhoHF1SQmkigukY', 'Owner', id
-FROM roles WHERE name = 'admin';
-
 INSERT IGNORE INTO users (username, password, full_name, role_id)
 SELECT 'admin', '$argon2id$v=19$m=65536,t=3,p=4$TJxWkwEYoSuvSZ0JtwrfJw$ne9pID5QjltGeu0cNxiKYGCOXkUCRRjunQUYvttxCsM', 'Administrator', id
 FROM roles WHERE name = 'admin';

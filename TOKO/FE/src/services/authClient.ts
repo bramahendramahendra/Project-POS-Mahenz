@@ -32,5 +32,6 @@ authClient.interceptors.response.use(
 export { authClient }
 
 export const authApi = {
+  get: <T>(url: string) => authClient.get<T>(url).then((r) => r.data),
   post: <T>(url: string, data?: unknown) => authClient.post<T>(url, data).then((r) => r.data),
 }

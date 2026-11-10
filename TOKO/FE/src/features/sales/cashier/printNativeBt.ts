@@ -65,7 +65,7 @@ function bytesToBase64(bytes: Uint8Array): string {
 
 // Mengingat printer terakhir yang dipilih user, agar cetak berikutnya tidak perlu
 // memilih ulang. Disimpan di localStorage (per perangkat).
-const LAST_PRINTER_KEY = 'pos.native_bt_printer_address'
+const LAST_PRINTER_KEY = 'toko.native_bt_printer_address'
 
 function getRememberedAddress(): string | null {
   try {

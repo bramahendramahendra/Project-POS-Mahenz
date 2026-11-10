@@ -3,6 +3,7 @@ type Filter = object | undefined
 export const queryKeys = {
   auth: {
     profile: () => ['auth', 'profile'] as const,
+    loginOptions: () => ['auth', 'loginOptions'] as const,
   },
 
   expiryBatches: {

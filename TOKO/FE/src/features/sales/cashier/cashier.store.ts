@@ -204,7 +204,7 @@ export const useCashierStore = create<CashierState>()(
       closePaymentModal: () => set({ paymentModalOpen: false }),
     }),
     {
-      name: 'cashier-draft',
+      name: 'toko.cashier-draft',
       partialize: (state) => ({
         cart: state.cart,
         discount: state.discount,

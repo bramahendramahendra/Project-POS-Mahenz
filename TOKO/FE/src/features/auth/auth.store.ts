@@ -30,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
         }),
     }),
-    { name: 'auth-session' }
+    // Format nama key browser: <app>.<nama> (key lama 'auth-session' dimigrasi oleh bootstrap/migrateStorageKeys)
+    { name: 'toko.auth-session' }
   )
 )

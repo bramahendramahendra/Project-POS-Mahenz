@@ -123,3 +123,87 @@ sudo chown -R $USER:$USER /var/www/pos-web
 ```bash
 sudo maintenance-off.sh
 ```
+
+
+---
+
+# SOP Deploy per Aplikasi (setelah Portal dipasang)
+
+Berlaku setelah cutover ([PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md)). Tiap aplikasi di-deploy sendiri;
+deploy Toko tidak menyentuh Portal, begitu juga sebaliknya. Langkah umum: backup database aplikasi itu,
+maintenance **hanya aplikasi itu**, tarik kode, build, restart service / salin FE, verifikasi, maintenance off.
+
+Perintah maintenance per aplikasi (skrip ada di `nginx/maintenance/`, terpasang di `/usr/local/bin`):
+
+```bash
+sudo maintenance-on.sh toko mahenz.duckdns.org     # hanya Toko (alternatif: portal, all)
+sudo maintenance-off.sh toko
+```
+
+## POS Toko
+
+Backend (service `pos-toko-backend`, port 8081):
+
+```bash
+cd /opt/pos-mahenz
+mysqldump -u pos_user -p --no-tablespaces pos_retail_db > ~/pos_retail_db_$(date +%Y%m%d_%H%M%S).sql
+git pull
+cd TOKO/BE
+go mod tidy
+go build -o pos_api .
+sudo systemctl restart pos-toko-backend
+sudo systemctl status pos-toko-backend      # harus "active (running)"
+```
+
+Frontend (disajikan di `/toko/`, folder `/var/www/pos-web/apps/toko`):
+
+```bash
+cd /opt/pos-mahenz/TOKO/FE
+npm ci
+npm run type-check
+npm run lint
+npm run build                               # memakai .env.production (base /toko/)
+sudo rm -rf /var/www/pos-web/apps/toko/*
+sudo cp -r dist/* /var/www/pos-web/apps/toko/
+sudo chown -R www-data:www-data /var/www/pos-web/apps/toko
+```
+
+## Portal
+
+Backend (service `pos-portal-backend`, port 8080; database `pos_portal_db`):
+
+```bash
+cd /opt/pos-mahenz
+mysqldump -u portal_user -p --no-tablespaces pos_portal_db > ~/pos_portal_db_$(date +%Y%m%d_%H%M%S).sql
+git pull
+cd PORTAL/BE
+go mod tidy
+go build -o portal_api .
+sudo systemctl restart pos-portal-backend
+sudo systemctl status pos-portal-backend
+```
+
+Frontend (root domain, folder `/var/www/pos-web/portal`):
+
+```bash
+cd /opt/pos-mahenz/PORTAL/FE
+npm ci
+npm run type-check
+npm run lint
+npm run build
+sudo rm -rf /var/www/pos-web/portal/*
+sudo cp -r dist/* /var/www/pos-web/portal/
+sudo chown -R www-data:www-data /var/www/pos-web/portal
+```
+
+## Kunci SSO aplikasi (diisi lewat SQL)
+
+Kunci dibuat di Portal (Kelola Aplikasi -> Buat kunci baru, tampil sekali), lalu dipasang di database aplikasi tujuan:
+
+```sql
+INSERT INTO portal_credentials (id, app_id, app_key) VALUES (1, 'toko', '<KUNCI>')
+ON DUPLICATE KEY UPDATE app_id = VALUES(app_id), app_key = VALUES(app_key);
+```
+
+Setelah kunci diganti di Portal, kunci lama langsung tidak berlaku: pasang kunci baru di aplikasi tujuan segera,
+kalau tidak login lewat Portal ke aplikasi itu gagal. File backup SQL aplikasi memuat kunci ini, jadi perlakukan sebagai rahasia.

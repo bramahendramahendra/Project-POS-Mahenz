@@ -33,6 +33,17 @@ export interface LoginRequest {
   device_info: 'web'
 }
 
+export interface LoginOptions {
+  direct_login_enabled: boolean
+  portal_login_enabled: boolean
+  direct_login_forced: boolean
+}
+
+export interface SsoRequest {
+  code: string
+  device_info: 'web'
+}
+
 export interface LoginResponse {
   token: string
   refresh_token: string

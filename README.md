@@ -27,6 +27,8 @@ Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan,
 ## Struktur
 
 ```
+PORTAL/BE/ Backend Go Portal (login terpusat / SSO)
+PORTAL/FE/ Frontend React + Vite Portal
 TOKO/BE/   Backend Go POS Toko (domain-driven)
 TOKO/FE/   Frontend React + Vite POS Toko
 mobile/    Pembungkus APK (Capacitor)
@@ -52,14 +54,24 @@ npm run lint
 npm run dev
 ```
 
+Portal (login terpusat) dijalankan dengan cara yang sama dari `PORTAL/BE` (port 8080, database `pos_portal_db`
+harus dibuat dulu) dan `PORTAL/FE` (port 3000). Untuk mencoba alur Portal ke Toko di laptop, isi alamat aplikasi
+POS Toko di Portal dengan `http://localhost:3001/` dan pasang kunci aplikasinya di tabel `portal_credentials` Toko
+(lihat [SOP Deploy](docs/SOP_DEPLOY.md), bagian "Kunci SSO aplikasi").
+
 **Prasyarat:** Go 1.24+, Node 20+, MySQL 8.0
 
 **Kredensial default (setelah seed):**
-- Owner: `owner` / `owner123`
-- Admin: `admin` / `admin123`
+- Toko: Owner `owner` / `owner123`, Admin `admin` / `admin123`
+- Portal: Admin `admin` / `admin123`
+
+Ganti semua password bawaan sebelum production.
 
 ## Dokumentasi
 
+- [Rancangan Portal, Toko, dan Coffee](docs/RANCANGAN_PORTAL_TOKO_COFFEE.md) (keputusan dan riwayat pengerjaan)
+- [Panduan Cutover VPS ke Portal + Toko](docs/PANDUAN_CUTOVER_PORTAL.md)
+- [SOP Deploy](docs/SOP_DEPLOY.md)
 - [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md)
 - [Setup User Server](docs/SETUP_USER_SERVER.md)
 - [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)

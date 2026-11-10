@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import { PageHeader, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
+import { DirectLoginCard } from './components/DirectLoginCard'
 import { UserTable } from './components/UserTable'
 import type { UserTableHandle } from './components/UserTable'
 
@@ -24,6 +25,7 @@ export function UserManagementPage() {
           </RoleGuard>
         }
       />
+      <DirectLoginCard />
       <UserTable ref={tableRef} />
     </div>
   )

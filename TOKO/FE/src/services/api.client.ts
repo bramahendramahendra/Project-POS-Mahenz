@@ -3,6 +3,7 @@ import axios from 'axios'
 
 import { useAuthStore } from '@/features/auth/auth.store'
 import { ApiError } from '@/shared/types'
+import { appUrl } from '@/shared/utils/appUrl'
 
 import { authApi } from './authClient'
 
@@ -118,7 +119,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null)
         clearSession()
-        window.location.href = '/login'
+        window.location.href = appUrl('/login')
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

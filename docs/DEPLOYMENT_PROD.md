@@ -11,6 +11,10 @@ Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Front
 > | service `pos-backend` | `pos-toko-backend` |
 > | port backend `8080` (`APP_PORT`, `proxy_pass`) | `8081` |
 > | `FE/nginx.conf` | `nginx/pos-web.conf` (di root repo) |
+> | `FE/maintenance/*` (skrip dan `maintenance.html`) | `nginx/maintenance/*` (skrip kini menerima nama aplikasi) |
+> | FE disajikan dari `/var/www/pos-web/dist` | Toko: `/var/www/pos-web/apps/toko` (di `/toko/`); Portal: `/var/www/pos-web/portal` (di `/`) |
+>
+> Setelah Portal dipasang, ikuti [PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md) dan [SOP_DEPLOY.md](SOP_DEPLOY.md) (bagian "SOP Deploy per Aplikasi"); panduan instalasi di bawah ini menggambarkan kondisi sebelum Portal.
 >
 > Rancangan lengkap: [RANCANGAN_PORTAL_TOKO_COFFEE.md](RANCANGAN_PORTAL_TOKO_COFFEE.md).
 
