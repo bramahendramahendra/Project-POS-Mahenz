@@ -1,6 +1,6 @@
 // Skrip one-off: koreksi HPP/modal historis pada transaction_items.purchase_price.
 //
-// LATAR BELAKANG (lihat docs/RANCANGAN_KOREKSI_HPP_HISTORIS.md):
+// LATAR BELAKANG (dokumen rancangannya sudah dihapus setelah selesai):
 // Sebagian transaksi lama menyimpan transaction_items.purchase_price (modal per
 // satuan JUAL) dengan level satuan yang SALAH -- memakai harga satuan BESAR
 // (mis. per Slop) untuk penjualan satuan KECIL (mis. per Pack/Batang) tanpa

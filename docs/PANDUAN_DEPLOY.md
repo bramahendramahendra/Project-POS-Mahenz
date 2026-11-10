@@ -8,6 +8,21 @@ keterangan singkat "untuk apa", bukan teori panjang.
 > `DEPLOYMENT_PROD.md` (instalasi lengkap) dan `DEPLOYMENT_REDEPLOY_FULL.md` (redeploy total).
 > Untuk pemakaian sehari-hari, cukup file ini saja.
 
+> **Perubahan struktur (Oktober 2026).** Repo kini berisi beberapa aplikasi. Saat mengikuti panduan ini,
+> terapkan pemetaan berikut pada seluruh isinya (dan lihat `SOP_DEPLOY.md` bagian "SOP Deploy per Aplikasi"
+> serta `PANDUAN_CUTOVER_PORTAL.md` untuk urutan resmi):
+>
+> | Tertulis di panduan | Sekarang |
+> |---------------------|----------|
+> | `/opt/pos-mahenz/BE` | `/opt/pos-mahenz/TOKO/BE` (Portal: `/opt/pos-mahenz/PORTAL/BE`) |
+> | `/opt/pos-mahenz/FE` | `/opt/pos-mahenz/TOKO/FE` (Portal: `/opt/pos-mahenz/PORTAL/FE`) |
+> | service `pos-backend` | `pos-toko-backend` (port 8081); Portal: `pos-portal-backend` (port 8080) |
+> | `FE/nginx.conf` | sudah dihapus; nginx memakai satu file `nginx/pos-web.conf` di root repo |
+> | `/var/www/pos-web/dist` | Portal: `/var/www/pos-web/portal`; Toko: `/var/www/pos-web/apps/toko` |
+> | Toko di root domain | Toko di `/toko/`, Portal di `/` (setelah cutover) |
+>
+> Panduan ini belum ditulis ulang; sebelum cutover, perilaku lama (Toko di root) masih berlaku.
+
 ---
 
 ## Isi Panduan

@@ -17,7 +17,7 @@
 // yang benar-benar BELUM punya baris 'in' sama sekali (idempotent via NOT
 // EXISTS) -- jadi aman dijalankan berulang.
 //
-// URUTAN dalam alur migrasi (lihat docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md):
+// URUTAN dalam alur migrasi (panduan lamanya sudah dihapus; skrip ini sekali jalan):
 //  1. Restore prod -> pos_retail_db
 //  2. CREATE TABLE products_stock_backup (SEBELUM BE jalan)
 //  3. Jalankan BE sekali (migrasi 003-009, products.stock di-drop)

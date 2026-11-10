@@ -6,6 +6,13 @@ Tanggal: 17 Oktober 2026. Sumber kebenaran keputusan tetap `docs/RANCANGAN_PORTA
 Dokumen ini hanya merangkum status dan konteks yang tidak ada di sana. Bila bertentangan, dokumen rancangan menang;
 bila kode bertentangan dengan dokumen, periksa kode lalu tanyakan ke user.
 
+## 0. Dokumen yang ada di `docs/`
+- Inti proyek: `RANCANGAN_PORTAL_TOKO_COFFEE.md` (sumber kebenaran), `HANDOFF_AI.md` (ini), `PROMPT_AI_BARU.md`.
+- Deploy aktual: `PANDUAN_CUTOVER_PORTAL.md`, `SOP_DEPLOY.md` (bagian "SOP Deploy per Aplikasi").
+- Deploy lama (diberi catatan pemetaan path/service baru, belum ditulis ulang): `PANDUAN_DEPLOY.md`, `DEPLOYMENT_PROD.md`, `DEPLOYMENT_REDEPLOY_FULL.md`, `SETUP_USER_SERVER.md`.
+- APK tablet: `PANDUAN_BUILD_APK_TABLET.md`, `RANCANGAN_CETAK_BLUETOOTH_APK_TABLET.md`.
+- Dokumen lama yang sudah selesai/usang (Sync Center, migrasi stok, laba rugi, pelaporan, HPP, piutang) sudah dihapus atas keputusan user; riwayatnya ada di git.
+
 ## 1. Tujuan besar
 Satu repo, tiga aplikasi POS retail (Go/Gin/GORM/MySQL + React/Vite):
 - **Portal**: login terpusat (SSO), halaman pilih aplikasi, admin user dan aplikasi.

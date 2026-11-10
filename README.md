@@ -75,4 +75,3 @@ Ganti semua password bawaan sebelum production.
 - [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md)
 - [Setup User Server](docs/SETUP_USER_SERVER.md)
 - [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)
-- [Panduan Migrasi Stok ke Skema Baru](docs/MIGRASI_STOK_PROD_KE_SKEMA_BARU.md)
