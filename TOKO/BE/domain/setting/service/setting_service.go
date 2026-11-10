@@ -30,7 +30,20 @@ func (s *settingService) GetByKey(key string) (string, error) {
 	return setting.Value, nil
 }
 
+// protectedSettingKeys: key yang punya endpoint khusus dengan hak akses sendiri,
+// sehingga tidak boleh diubah lewat penyimpanan pengaturan umum (yang terbuka untuk owner dan admin).
+var protectedSettingKeys = map[string]bool{
+	"direct_login_enabled": true, // diubah lewat POST /auth/direct-login (hanya admin)
+}
+
 func (s *settingService) Save(data map[string]string) error {
+	// Validasi dulu sebelum menulis apa pun agar tidak ada penyimpanan sebagian.
+	for key := range data {
+		if protectedSettingKeys[key] {
+			return &errors.BadRequestError{Message: "Pengaturan '" + key + "' tidak dapat diubah lewat sini"}
+		}
+	}
+
 	for key, value := range data {
 		if err := s.repo.Upsert(key, value); err != nil {
 			return err

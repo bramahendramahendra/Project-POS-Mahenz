@@ -28,6 +28,9 @@
     "MaxIdleTime": 600
   },
 
+  "PortalUrl": "http://localhost:8080/api",
+  "DirectLoginForceEnabled": false,
+
   "CorsAllowOrigins": [
     "http://localhost:3000",
     "http://localhost:3001",

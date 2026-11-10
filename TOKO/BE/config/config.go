@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -88,8 +89,15 @@ type Config struct {
 	Log                        LogConfig      `json:"Log"`
 	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
-	Backup                     BackupConfig   `json:"Backup"`
-	Printer                    PrinterConfig  `json:"Printer"`
+	// PortalUrl: alamat API Portal untuk panggilan server ke server (penukaran kode SSO),
+	// mis. "http://127.0.0.1:8080/api". Kosong = login lewat Portal tidak tersedia.
+	PortalUrl string `json:"PortalUrl"`
+	// DirectLoginForceEnabled: flag darurat. true = login langsung (username + password)
+	// SELALU aktif walau dimatikan di pengaturan. Dipakai bila Portal mati saat login
+	// langsung dimatikan (nyalakan lewat SSH, lalu restart service).
+	DirectLoginForceEnabled bool          `json:"DirectLoginForceEnabled"`
+	Backup                  BackupConfig  `json:"Backup"`
+	Printer                 PrinterConfig `json:"Printer"`
 }
 
 var (
@@ -156,7 +164,9 @@ func initConfig(releaseMode string) {
 			MaxBackups: v.GetInt("Log.MaxBackups"),
 			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
 		},
-		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
+		CorsAllowOrigins:        v.GetStringSlice("CorsAllowOrigins"),
+		PortalUrl:               strings.TrimRight(v.GetString("PortalUrl"), "/"),
+		DirectLoginForceEnabled: v.GetBool("DirectLoginForceEnabled"),
 		Backup: BackupConfig{
 			MysqldumpBin: v.GetString("Backup.MysqldumpBin"),
 			MysqlBin:     v.GetString("Backup.MysqlBin"),

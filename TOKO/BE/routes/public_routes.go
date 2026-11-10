@@ -20,6 +20,9 @@ func publicRoutes(r *gin.RouterGroup) {
 
 	authGroup := r.Group("/auth")
 	authGroup.POST("/login", middleware.LoginRateLimitMiddleware(), authHand.Login)
+	// Login lewat Portal: kode sekali pakai (berentropi tinggi), jadi tanpa pembatas percobaan.
+	authGroup.POST("/sso", authHand.SSO)
+	authGroup.GET("/login-options", authHand.GetLoginOptions)
 	authGroup.POST("/refresh", authHand.RefreshToken)
 	authGroup.POST("/verify-token", authHand.VerifyToken)
 

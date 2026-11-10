@@ -13,6 +13,12 @@ type User struct {
 	CreatedAt time.Time `gorm:"column:created_at"`
 }
 
+// PortalCredentials: kredensial aplikasi ini untuk menukar kode SSO ke Portal (tabel portal_credentials).
+type PortalCredentials struct {
+	AppID  string `gorm:"column:app_id"`
+	AppKey string `gorm:"column:app_key"`
+}
+
 type Session struct {
 	ID           int       `gorm:"column:id"`
 	UserID       int       `gorm:"column:user_id"`

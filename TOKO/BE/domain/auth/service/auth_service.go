@@ -15,6 +15,10 @@ import (
 )
 
 func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginResponse, error) {
+	if !s.directLoginEnabled() {
+		return nil, &errors.UnauthorizededError{Message: "Login langsung dinonaktifkan. Silakan masuk lewat Portal"}
+	}
+
 	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {
 		return nil, err
@@ -29,6 +33,12 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
 	}
 
+	return s.issueSession(user, req.DeviceInfo, ip)
+}
+
+// issueSession membuat token + sesi untuk user yang identitasnya sudah terverifikasi
+// (dipakai login langsung dan login lewat Portal). Satu user satu sesi aktif.
+func (s *authService) issueSession(user *model.User, deviceInfo, ip string) (*dto.LoginResponse, error) {
 	now := time_helper.GetTimeNow()
 	expiresAt := now.Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
 
@@ -37,7 +47,7 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		"username":  user.Username,
 		"full_name": user.FullName,
 		"role":      user.RoleName,
-		"apps":      req.DeviceInfo,
+		"apps":      deviceInfo,
 	}
 	jwt.CreateClaims(claims)
 	token, err := jwt.GenerateToken()
@@ -59,7 +69,7 @@ func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginRespons
 		UserRole:     user.RoleName,
 		Token:        token,
 		RefreshToken: refreshToken,
-		DeviceInfo:   req.DeviceInfo,
+		DeviceInfo:   deviceInfo,
 		IPAddress:    ip,
 		ExpiresAt:    expiresAt,
 		CreatedAt:    now,
