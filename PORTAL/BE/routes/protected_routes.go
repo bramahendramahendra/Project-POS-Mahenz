@@ -19,4 +19,6 @@ func protectedRoutes(r *gin.RouterGroup) {
 	segment.AuthRoutes(r)
 	segment.UserRoutes(r)
 	segment.RoleRoutes(r)
+	segment.AppRoutes(r)
+	segment.SSOLaunchRoutes(r)
 }

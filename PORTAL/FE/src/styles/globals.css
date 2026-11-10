@@ -1,0 +1,95 @@
+@import './tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 228 33% 97%;
+    --foreground: 232 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 232 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 232 30% 12%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 228 33% 94%;
+    --secondary-foreground: 232 30% 18%;
+    --muted: 228 33% 94%;
+    --muted-foreground: 230 12% 45%;
+    --accent: 243 80% 96%;
+    --accent-foreground: 243 60% 40%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 228 24% 90%;
+    --input: 228 24% 88%;
+    --ring: 243 75% 59%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: hsl(var(--foreground));
+    margin: 0;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-muted);
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Latar gelap bermotif untuk halaman login */
+  .portal-hero {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.55), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, rgba(124, 58, 237, 0.5), transparent 60%),
+      linear-gradient(160deg, #0f1033 0%, #1b1a55 55%, #2a1b6b 100%);
+  }
+  .portal-grid-pattern {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%);
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .text-gradient {
+    background: linear-gradient(90deg, #a5b4fc, #c4b5fd 50%, #f0abfc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

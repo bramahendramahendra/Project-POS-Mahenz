@@ -6,6 +6,7 @@ import (
 	auth_service "portal_api/domain/auth/service"
 	"portal_api/middleware"
 	pkgdatabase "portal_api/pkg/database"
+	segment "portal_api/routes/segment"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +20,9 @@ func publicRoutes(r *gin.RouterGroup) {
 	authGroup.POST("/login", middleware.LoginRateLimitMiddleware(), authHand.Login)
 	authGroup.POST("/refresh", authHand.RefreshToken)
 	authGroup.POST("/verify-token", authHand.VerifyToken)
+
+	// Dipanggil BE aplikasi lain (server ke server), diamankan kunci aplikasi.
+	segment.SSOExchangeRoutes(r)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

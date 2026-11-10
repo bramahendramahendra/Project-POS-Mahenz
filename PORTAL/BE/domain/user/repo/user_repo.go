@@ -12,7 +12,7 @@ const (
 	getAllUsersQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.must_change_password, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE 1=1`
 	getUserByIDQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.must_change_password, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
 	getUserByUsernameQuery = `SELECT u.id FROM users u WHERE u.username = ? AND u.id != ? LIMIT 1`
-	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
+	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id, must_change_password) VALUES (?, ?, ?, ?, 1)`
 	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = ? WHERE id = ?`
 	updatePasswordQuery    = `UPDATE users SET password = ?, must_change_password = ?, updated_at = ? WHERE id = ?`
 	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
