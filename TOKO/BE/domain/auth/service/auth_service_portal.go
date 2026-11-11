@@ -27,7 +27,7 @@ func (s *authService) LoginSSO(ctx context.Context, req *dto.SSORequest, ip stri
 		return nil, err
 	}
 	if creds == nil {
-		return nil, &errors.InternalServerError{Message: "Login lewat Portal belum diatur di server ini"}
+		return nil, &errors.ServiceUnavailableError{Message: "Login lewat Portal belum diatur di server ini"}
 	}
 
 	result, err := portal.NewClient(config.Cfg.PortalUrl).Exchange(ctx, creds.AppID, creds.AppKey, strings.TrimSpace(req.Code))
@@ -36,7 +36,7 @@ func (s *authService) LoginSSO(ctx context.Context, req *dto.SSORequest, ip stri
 		case stderrors.Is(err, portal.ErrRejected):
 			return nil, &errors.UnauthenticatedError{Message: "Kode login tidak valid atau sudah kedaluwarsa. Silakan buka lagi dari Portal"}
 		default:
-			return nil, &errors.InternalServerError{Message: "Portal tidak dapat dihubungi. Coba lagi beberapa saat"}
+			return nil, &errors.ServiceUnavailableError{Message: "Portal tidak dapat dihubungi. Coba lagi beberapa saat"}
 		}
 	}
 

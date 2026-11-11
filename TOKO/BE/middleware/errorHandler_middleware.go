@@ -61,6 +61,12 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				responseMessage = errMessage500
 				entry := log_helper.FromContext(c, "Internal Error", "Service/Database Error", e.Message)
 				log_helper.LogError(entry)
+			case *errors.ServiceUnavailableError:
+				code = helper.StatusServiceUnavailable
+				httpCode = http.StatusServiceUnavailable
+				responseMessage = actualMessage
+				entry := log_helper.FromContext(c, "Service Unavailable", "Service Unavailable", e.Message)
+				log_helper.LogError(entry)
 			case *errors.ValidationError:
 				code = helper.StatusUnprocessableEntity
 				httpCode = http.StatusUnprocessableEntity

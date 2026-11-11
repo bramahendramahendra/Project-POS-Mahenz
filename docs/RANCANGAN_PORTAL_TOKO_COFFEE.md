@@ -1,7 +1,7 @@
 # Rancangan Portal + POS Toko + POS Coffee
 
-> Status: **RANCANGAN / CATATAN DISKUSI - belum ada implementasi.**
-> Dokumen ini adalah catatan hidup sebelum implementasi. Setiap kali ada diskusi atau
+> Status: **Fase 1-3 (Portal dan Toko) sudah diimplementasi; Fase 4 (Coffee) masih rancangan.**
+> Status tiap tahap ada di bagian 5.0 dan 5.0b. Dokumen ini catatan hidup: setiap kali ada diskusi atau
 > keputusan baru, dokumen ini diperbarui (lihat "Riwayat Pembaruan" di bagian akhir).
 >
 > Label status yang dipakai:
@@ -104,6 +104,27 @@ Project_pos_mahenz/
 Prinsip: tiap aplikasi berdiri sendiri (`go.mod` dan `package.json` masing-masing), tanpa
 workspace di root.
 
+### 3.1 Standar konsistensi kode antaraplikasi [SEPAKAT]
+
+Toko, Portal, dan Coffee wajib sama dalam bahasa, framework, versi pustaka, struktur folder, dan gaya kode.
+Yang boleh berbeda hanya fitur sesuai kebutuhan tiap aplikasi. Kode disalin per aplikasi (tanpa pustaka
+bersama), sehingga perbaikan bug di satu aplikasi wajib dicek manual di aplikasi lain.
+
+| Lapisan | Standar (terverifikasi sama di Toko dan Portal) |
+|---------|-------------------------------------------------|
+| BE stack | Go 1.24.5, Gin 1.11.0, GORM 1.31.1, golang-jwt v5, Viper 1.21.0; module `pos_api` / `portal_api` / `coffee_api` |
+| BE folder | `config`, `database/migrations`, `domain`, `dto`, `errors`, `helper`, `middleware`, `model`, `pkg`, `repository`, `routes`, `server`, `validation`; tambahan per kebutuhan (Toko: `scheduler`, `cmd`, `deploy`, `backups`) |
+| BE domain | Tiap domain berisi `dto/`, `handler/`, `model/`, `repo/`, `service/` (repo dan service memakai interface) |
+| BE config | Port dari `APP_PORT` di `.env`; database dan setelan lain di `config/config_{dev,prod}.json` |
+| FE stack | React 19, Vite 8, TypeScript 6, TanStack Query 5, Zustand 5, React Router 7, Tailwind 3, axios, zod, react-hook-form; ESLint flat config `eslint.config.js` |
+| FE folder | `src/app` (App, router, providers, LazyRoute), `src/features/<fitur>`, `src/shared/{components,constants,hooks,types,utils}`, `src/services` (api client), `src/styles` |
+| FE fitur | Pola file `<fitur>.api.ts`, `.schema.ts`, `.store.ts`, `.types.ts`, `components/`, `hooks/`, `index.ts` |
+| Browser | Key localStorage berawalan nama aplikasi (`toko.*`, `portal.*`, `coffee.*`) |
+
+Daftar modul infrastruktur yang disalin antaraplikasi (acuan cek bug lintas aplikasi): `auth`, `user`, `role`,
+middleware auth/role/pembatas login, `pkg/bcrypt` (Argon2id), `errors`, `helper`, `validation`, `services/api.client.ts`,
+`services/authClient.ts`, `shared/components/ui`. Daftar ini diperluas saat Coffee dibuat.
+
 **[USULAN]** Detail tambahan:
 - Nama module Go aplikasi baru diganti: `portal_api`, `coffee_api` (Toko tetap `pos_api`).
 - Nama package FE aplikasi baru diganti (mis. `portal-web`, `coffee-web`).
@@ -131,7 +152,7 @@ workspace di root.
 
 | Fase | Pekerjaan | Catatan |
 |------|-----------|---------|
-| 1 | Pindahkan BE/FE ke `TOKO/` | **[KODE SELESAI, belum di-commit dan belum di-deploy]** Tanpa perubahan fungsi, tetapi port Toko menjadi 8081 dan service menjadi `pos-toko-backend`. Deploy ke VPS dan verifikasi POS Toko jalan sama seperti sebelumnya |
+| 1 | Pindahkan BE/FE ke `TOKO/` | **[KODE SELESAI dan sudah di-commit user, belum di-deploy]** Tanpa perubahan fungsi, tetapi port Toko menjadi 8081 dan service menjadi `pos-toko-backend`. Deploy ke VPS dan verifikasi POS Toko jalan sama seperti sebelumnya |
 | 2 | Bangun Portal | BE + FE + database baru |
 | 3 | Hubungkan Portal ke Toko | SSO, login langsung on/off, penyeragaman key, penyesuaian URL |
 | 4 | Bangun Coffee | Disalin dari `TOKO/BE` dan `TOKO/FE` di lokasi barunya, lalu fitur kopi |
@@ -149,19 +170,18 @@ dibuat baru dan modern. Setiap tahap berhenti dan menunggu persetujuan user sebe
 
 | Tahap | Pekerjaan | Hasil yang dicek user |
 |-------|-----------|------------------------|
-| 2.1 **[SELESAI, menunggu persetujuan]** | Kerangka BE Portal: salin `TOKO/BE`, pangkas, ganti identitas, migrasi awal ke `pos_portal_db` | BE hidup di 8080, `/api/health` membalas, tabel terbentuk |
-| 2.2 **[SELESAI, menunggu persetujuan]** | Auth BE: login, sesi, user, role `admin`/`user`, seed akun awal | Login dan refresh/logout lewat API |
-| 2.3 **[SELESAI, menunggu persetujuan]** | Kerangka FE Portal: salin `TOKO/FE`, pangkas, sistem desain baru, halaman login | Login berjalan di 3000 dengan tampilan baru |
-| 2.4 **[SELESAI, menunggu persetujuan]** | Halaman pilih aplikasi: kartu aplikasi, menu pengguna | Daftar aplikasi tampil setelah login. **Dikerjakan setelah 2.5** (urutan ditukar agar memakai data asli, bukan daftar sementara) |
-| 2.5 **[SELESAI, menunggu persetujuan]** | Aplikasi dan akses (BE): tabel `apps`, `user_apps`, `sso_codes`, kunci, `/sso/exchange` | Kode SSO dibuat dan ditukar lewat API |
-| 2.6 | Admin Portal: kelola user, kelola aplikasi, atur akses, reset password | Admin mengatur semuanya lewat UI. **Dibagi: 2.6a BE [SELESAI], 2.6b FE [SELESAI, menunggu persetujuan]** |
-| 2.7 | Ganti password sendiri dan toggle login langsung | Fitur akun berjalan |
+| 2.1 **[SELESAI]** | Kerangka BE Portal: salin `TOKO/BE`, pangkas, ganti identitas, migrasi awal ke `pos_portal_db` | BE hidup di 8080, `/api/health` membalas, tabel terbentuk |
+| 2.2 **[SELESAI]** | Auth BE: login, sesi, user, role `admin`/`user`, seed akun awal | Login dan refresh/logout lewat API |
+| 2.3 **[SELESAI]** | Kerangka FE Portal: salin `TOKO/FE`, pangkas, sistem desain baru, halaman login | Login berjalan di 3000 dengan tampilan baru |
+| 2.4 **[SELESAI]** | Halaman pilih aplikasi: kartu aplikasi, menu pengguna | Daftar aplikasi tampil setelah login. **Dikerjakan setelah 2.5** (urutan ditukar agar memakai data asli, bukan daftar sementara) |
+| 2.5 **[SELESAI]** | Aplikasi dan akses (BE): tabel `apps`, `user_apps`, `sso_codes`, kunci, `/sso/exchange` | Kode SSO dibuat dan ditukar lewat API |
+| 2.6 **[SELESAI]** | Admin Portal: kelola user, kelola aplikasi, atur akses, reset password | Admin mengatur semuanya lewat UI. Dibagi: 2.6a BE, 2.6b FE |
+| 2.7 **[DIGABUNG ke Fase 3]** | Ganti password sendiri (sudah ada sejak 2.2) dan toggle login langsung (tahap 3.2-3.3) | Fitur akun berjalan |
 
 Keputusan teknis tahap 2.1-2.2:
 - Database `pos_portal_db` sudah disiapkan user; migrasi dibuat oleh AI.
-- Akun awal Portal sama dengan seed Toko (`002_seed_data.sql`): `owner` dan `admin` dengan hash Argon2id yang
-  sama, sehingga password awal sama dengan Toko. Role Portal hanya `admin` dan `user`; akun seed Toko dipetakan:
-  `owner` dan `admin` menjadi role `admin` Portal [USULAN].
+- Akun awal Portal semula sama dengan seed Toko (`owner` dan `admin`, hash Argon2id sama). **Diperbarui (riwayat
+  #42-#43):** seed Portal kini hanya akun `admin` (role `admin`), sesuai keputusan 52. Role Portal hanya `admin` dan `user`.
 
 ### 5.0b Tahapan Fase 3 (hubungkan Portal ke Toko), dikerjakan bertahap
 
@@ -170,12 +190,13 @@ Perubahan di Toko bersifat **aditif**: login lama tetap berfungsi sampai toggle 
 
 | Tahap | Pekerjaan | Hasil yang dicek |
 |-------|-----------|------------------|
-| 3.1 **[SELESAI, menunggu persetujuan]** | BE Toko: migrasi (`users.portal_user_id`, role "menunggu akses", tabel `portal_credentials`, setting `direct_login_enabled`), config alamat Portal, `POST /api/auth/sso` (tukar kode ke Portal, cari/buat user lokal, buat sesi) | Kode asli dari Portal menghasilkan sesi Toko lewat API |
-| 3.2 **[SELESAI, menunggu persetujuan]** | BE Toko: toggle login langsung (endpoint status publik, login ditolak saat off, endpoint ubah untuk admin, flag darurat di config) | Toggle bekerja, flag darurat mengalahkan setelan DB |
-| 3.3 **[SELESAI, menunggu persetujuan]** | FE Toko: migrasi key browser ke `toko.*`, halaman `/sso`, tombol "Masuk lewat Portal" dan tombol kembali ke Portal, form login mengikuti toggle, UI toggle di Pengaturan, base path `/toko/` (lewat env) | Alur Portal ke Toko berjalan di browser (dev) |
-| 3.4 **[SELESAI, menunggu persetujuan]** | Skrip sekali jalan: salin user Toko ke Portal dan tautkan `portal_user_id` (dry-run, backup) | Dry-run dan eksekusi pada DB dev |
-| 3.5 **[SELESAI, menunggu persetujuan]** | Nginx (path `/`, `/portal-api/`, `/toko/`, `/toko/api/`), SOP deploy, panduan cutover VPS | Konfigurasi dan panduan siap, divalidasi `nginx -t` bila tersedia |
-| 3.6 | Uji ujung ke ujung di dev (Portal 3000/8080 ke Toko 3001/8081) | Skenario lengkap lolos |
+| 3.1 **[SELESAI]** | BE Toko: migrasi (`users.portal_user_id`, role "menunggu akses", tabel `portal_credentials`, setting `direct_login_enabled`), config alamat Portal, `POST /api/auth/sso` (tukar kode ke Portal, cari/buat user lokal, buat sesi) | Kode asli dari Portal menghasilkan sesi Toko lewat API |
+| 3.2 **[SELESAI]** | BE Toko: toggle login langsung (endpoint status publik, login ditolak saat off, endpoint ubah untuk admin, flag darurat di config) | Toggle bekerja, flag darurat mengalahkan setelan DB |
+| 3.3 **[SELESAI]** | FE Toko: migrasi key browser ke `toko.*`, halaman `/sso`, tombol "Masuk lewat Portal" dan tombol kembali ke Portal, form login mengikuti toggle, UI toggle di Pengaturan, base path `/toko/` (lewat env) | Alur Portal ke Toko berjalan di browser (dev) |
+| 3.4 **[SELESAI]** | Skrip sekali jalan: salin user Toko ke Portal dan tautkan `portal_user_id` (dry-run, backup) | Dry-run dan eksekusi pada DB dev |
+| 3.5 **[SELESAI, disetujui user]** | Nginx (path `/`, `/portal-api/`, `/toko/`, `/toko/api/`), SOP deploy, panduan cutover VPS | Konfigurasi dan panduan siap, divalidasi `nginx -t` bila tersedia (belum: nginx tidak ada di mesin dev) |
+| 3.6 **[SELESAI]** | Uji ujung ke ujung di dev (Portal 3000/8080 ke Toko 3001/8081) | 66 pemeriksaan API + browser; semua lolos kecuali bug pesan galat SSO di Toko (riwayat #46, diperbaiki di 3.6b) |
+| 3.6b **[SELESAI, menunggu persetujuan]** | Perbaikan bug pesan galat SSO Toko + hapus 4 file sisa (riwayat #47) | Pesan "belum diatur" / "Portal tidak dapat dihubungi" sampai ke pengguna (503); regresi API 33/33 dan browser 21/21 lolos |
 
 ### 5.1 Dampak Fase 1 (pemindahan folder)
 
@@ -222,9 +243,9 @@ lama dibiarkan sebagai jalur rollback. Pakai maintenance mode yang sudah ada sel
 6. BE Toko bertanya ke BE Portal (server ke server, tidak lewat browser):
      POST /portal-api/sso/exchange
      Header: X-App-Key: <kunci rahasia milik Toko>
-     Body  : { "app_id": 1, "code": "XXXX" }
+     Body  : { "app_id": "toko", "code": "XXXX" }
 7. BE Portal menjawab:
-     { "valid": true, "app_id": 1,
+     { "valid": true, "app_id": "toko",
        "user": { "portal_user_id": 12, "username": "budi",
                  "full_name": "Budi Santoso", "is_active": true } }
 8. BE Toko mencari user lokal yang tertaut ke portal_user_id tersebut (membuat profil
@@ -240,13 +261,14 @@ Hal penting:
 ### 6.3 Pengecekan `app_id` (berlapis)
 1. Portal saat membuat kode: kode terikat ke `app_id` tujuan, dan Portal memastikan user punya
    akses ke aplikasi itu.
-2. Saat penukaran kode: BE aplikasi mengirim `APP_ID` (dari `.env`-nya) dan kunci rahasia. Portal
-   mencocokkan keduanya dengan kode tadi.
-3. Jawaban Portal memuat `app_id`; BE aplikasi membandingkannya dengan `APP_ID` di `.env`. Tidak
+2. Saat penukaran kode: BE aplikasi mengirim `app_id` dan kunci rahasia dari tabel `portal_credentials` di
+   database aplikasi (bukan `.env`, lihat 6.10). Portal mencocokkan keduanya dengan kode tadi.
+3. Jawaban Portal memuat `app_id`; BE aplikasi membandingkannya dengan `app_id` di `portal_credentials`. Tidak
    sama = ditolak.
 
 Catatan:
-- ID seperti 1 atau 2 bukan rahasia, jadi **kunci rahasia (`X-App-Key`) tetap wajib**.
+- `app_id` adalah **kode teks** aplikasi di Portal (kolom `apps.code`, mis. `"toko"`, `"coffee"`), bukan id angka.
+- Kode aplikasi bukan rahasia, jadi **kunci rahasia (`X-App-Key`) tetap wajib**.
 - `app_id` yang dipercaya adalah yang datang dari jawaban Portal, bukan yang tertulis di URL.
 - Di token Toko sekarang sudah ada klaim `apps`, tetapi isinya info perangkat (`DeviceInfo`),
   bukan ID aplikasi. Agar tidak rancu, konsep baru ini disebut `app_id`.
@@ -262,7 +284,8 @@ Catatan:
 
 ### 6.5 Perubahan di tiap aplikasi (Toko dan Coffee)
 - Kolom baru `portal_user_id` (nullable) di tabel `users` sebagai tautan ke akun Portal.
-- Konfigurasi `.env`: `APP_ID`, alamat Portal, dan kunci rahasia aplikasi.
+- Alamat Portal di config (`PortalUrl`); `app_id` dan kunci rahasia aplikasi di tabel `portal_credentials` database
+  aplikasi (diperbarui sesuai 6.10; semula direncanakan di `.env`).
 - Endpoint SSO baru dan halaman FE `/sso`. **Aditif**: login lama tetap berfungsi.
 - Role baru **"menunggu akses"** (tanpa izin menu apa pun) dibuat lewat migrasi; dipakai sebagai role
   default saat profil lokal dibuat otomatis pada SSO pertama.
@@ -517,7 +540,7 @@ Terverifikasi dari kode/konfigurasi repo:
 
 ### 14.1 Pemetaan modul Toko ke Coffee
 
-Berdasarkan daftar domain BE Toko (`BE/domain/`):
+Berdasarkan daftar domain BE Toko (`TOKO/BE/domain/`):
 
 | Kelompok | Modul Toko | Usulan untuk Coffee |
 |----------|------------|---------------------|
@@ -589,7 +612,7 @@ Catatan AI (menunggu konfirmasi user):
    dibawa ke Coffee; lihat 14.10.)
 3. **Database Coffee memakai migrasi baseline baru** yang hanya berisi tabel yang dibutuhkan, bukan
    menyalin 10 migrasi retail Toko (agar tidak ada tabel dan data seed retail yang tidak terpakai).
-4. **Daftar yang wajib diganti setelah salin:** module Go, nama package FE, `APP_ID`, port, nama database
+4. **Daftar yang wajib diganti setelah salin:** module Go, nama package FE, `app_id` (baris `portal_credentials`), port, nama database
    dan user MySQL, `SecretKey` JWT (harus berbeda per aplikasi), prefix key browser `toko.` menjadi
    `coffee.`, Vite `base` dan router `basename`, path API, judul/branding, file config.
 5. **Menu Pembelian bergantung pada model stok bahan baku** (di Toko, satu produk dibeli sekaligus dijual;
@@ -915,3 +938,6 @@ Usulan ([USULAN]) untuk bagian yang belum dijawab:
 | 42 | Keputusan user soal pemetaan role saat migrasi user Toko ke Portal: role `admin` di Toko menjadi `admin` di Portal; semua role lain (termasuk `owner` dan `kasir`) menjadi `user` di Portal. Konsekuensi yang dicatat AI: akun seed `owner` di Portal (role admin) tidak sesuai aturan ini sehingga seed Portal dipangkas hanya `admin`. Tahap 3.4 dimulai. |
 | 43 | Tahap 3.4 selesai: skrip `TOKO/BE/cmd/migrate_users_to_portal` (dijalankan dari `TOKO/BE`). Default dry-run (hanya laporan); `--apply` wajib disertai `--i-have-backup` (backup `pos_retail_db` dan `pos_portal_db` dibuat manual dulu, perintah mysqldump ada di komentar file). Koneksi Toko seperti skrip cmd lain; Portal lewat `--portal-db` (kredensial Toko) atau `--portal-dsn`/`PORTAL_MIGRATION_DSN`. Aturan: hash Argon2id disalin apa adanya; role Toko `admin` menjadi `admin` Portal, semua role lain `user` (keputusan 52); akun Portal baru tidak wajib ganti password; akses aplikasi `toko` diberikan; `users.portal_user_id` diisi. Username sudah ada di Portal: password bawaan seed (admin123/owner123) diambil alih (password, nama, role, status disamakan, sesi lama dihapus); password sama langsung ditautkan; password lain = KONFLIK, dilewati dan dilaporkan (tidak menebak). Portal ditulis lebih dulu (satu transaksi), lalu Toko (satu transaksi); aman diulang. Peringatan dicetak untuk akun Portal berpassword bawaan yang tersisa. Seed Portal (`002_seed_data.sql`) dipangkas menjadi hanya akun `admin` (akun `owner` dihapus dari seed agar sesuai aturan; hanya memengaruhi database baru). Terverifikasi pada SALINAN database: BUAT, AMBIL ALIH, KONFLIK, penolakan `--apply` tanpa konfirmasi backup, hash identik, role sesuai aturan, akses diberikan, dan `--apply` kedua tidak mengubah apa pun; salinan dihapus. Catatan: DB dev Portal masih memuat akun `owner` (role admin, password sudah bukan bawaan) dari seed lama; tidak terkait user Toko mana pun dan tidak disentuh. |
 | 44 | Tahap 3.5 selesai: `nginx/pos-web.conf` baru (Portal di `/`, API Portal `/portal-api/`, Toko di `/toko/`, API Toko `/toko/api/`, `/api/` lama tetap ke Toko 8081, cache aset 1 tahun), maintenance global dan per aplikasi (`nginx/maintenance/maintenance-{on,off}.sh` menerima `all|portal|toko|coffee`), `TOKO/FE/.env.production` kini `/toko/` (`VITE_API_URL=/toko/api`, `VITE_BASE_PATH=/toko/`, `VITE_PORTAL_URL=/`), `docs/PANDUAN_CUTOVER_PORTAL.md`, bagian "SOP Deploy per Aplikasi" di `SOP_DEPLOY.md`, README dan catatan pemetaan di dokumen deploy lama. Terverifikasi: build produksi Toko (aset `/toko/assets/`) dan Portal (aset `/assets/`) lolos. BELUM terverifikasi: `nginx -t` (nginx tidak terpasang di mesin dev) dan panduan cutover belum dijalankan di VPS. Peringatan: build Toko dari commit ini hanya cocok dengan nginx baru; jangan dipakai untuk deploy gaya Fase 1. |
+| 45 | Serah terima ke AI baru (Claude); user menyetujui tahap 3.5. Dokumen dirapikan agar tidak rancu dengan kode (dicek langsung ke kode): kepala dokumen (implementasi Fase 1-3 sudah ada); status tahap 2.1-2.6 dan 3.1-3.5 diseragamkan menjadi SELESAI (sudah di-commit user), 2.7 ditandai digabung ke Fase 3; contoh `app_id` di 6.2 diganti kode teks `"toko"` (sesuai `apps.code` dan `portal_credentials.app_id` VARCHAR); 6.3, 6.5, dan 14.5 tidak lagi menyebut `APP_ID` di `.env`; catatan seed Portal di 5.0 disesuaikan (hanya `admin`); path 14.1 menjadi `TOKO/BE/domain/`. Ditambahkan bagian 3.1 "Standar konsistensi kode antaraplikasi" atas permintaan user (stack dan versi, struktur folder BE/FE, pola domain/fitur, daftar modul salinan), hasil cek kode Toko vs Portal: stack, versi, dan struktur sudah sama. Ditemukan file sisa yang membingungkan: `eslint.config.ts` di Toko dan Portal (tidak terbaca ESLint karena `eslint.config.js` didahulukan; berisi aturan lebih ketat yang tidak pernah aktif), `TOKO/FE/src/App.tsx` (re-export sisa, tidak dipakai), `TOKO/FE/nginx example.conf` (pola nginx lama). User setuju dihapus. |
+| 46 | Tahap 3.6 selesai (uji ujung ke ujung di dev, keempat server dijalankan; backup DB dev dibuat lebih dulu). Persiapan data dev: alamat aplikasi `toko` di Portal diubah ke `http://localhost:3001/` lewat API admin, kunci dibuat lewat rotate-key lalu diisi ke `portal_credentials` Toko lewat SQL, skrip `migrate_users_to_portal` dijalankan (dry-run, penolakan `--apply` tanpa `--i-have-backup`, `--apply` pada DB dev: Banana/BramaGanteng BUAT sebagai `user`, `admin` AMBIL ALIH; hash identik; `--apply` kedua tidak mengubah apa pun). **Lolos (API):** login-options sebelum/sesudah kunci terpasang; mematikan login langsung saat Portal belum siap ditolak 400; username sama yang belum tertaut ditolak (tidak auto-link); admin tertaut masuk dengan role lokal; kode sekali pakai, kode ngawur, kode kedaluwarsa >60 detik ditolak; user baru buatan admin wajib ganti password (launch ditolak 403 selama itu), tanpa akses kartu kosong dan launch ditolak, setelah diberi akses SSO pertama membuat profil `menunggu_akses` dengan `portal_user_id`, role lokal kasir dipakai pada SSO berikutnya, nama dari Portal diperbarui di Toko; akses dicabut / user nonaktif / aplikasi nonaktif: kode yang sudah dibuat pun ditolak; kunci salah dan `app_id` salah ditolak seragam 401; owner tidak boleh mengubah toggle (403), admin mematikan -> login langsung 403 dan SSO tetap jalan, dinyalakan lagi; logout Toko mengakhiri sesi Toko tetapi sesi Portal tetap; satu user satu sesi (SSO kedua mematikan token pertama); sesi Toko yang sudah berjalan tetap hidup walau user dinonaktifkan di Portal (sesuai 6.8). **Lolos (browser Chrome):** login Portal -> kartu -> `/sso` -> dashboard Toko di tab yang sama; key `portal.*` dan `toko.*` tanpa key lama; tombol "Kembali ke Portal" dan buka Toko lagi tanpa login ulang; logout Toko kembali ke Portal; kode ngawur menampilkan galat + tombol kembali; user baru dipaksa ganti password lewat UI lalu sampai ke halaman Menunggu Akses; kartu toggle hanya untuk admin (owner tidak melihat); halaman login mengikuti toggle; tanpa scroll horizontal di 390px; tanpa error JavaScript. **BUG (belum diperbaiki, menunggu keputusan user):** di BE Toko, pesan SSO "Login lewat Portal belum diatur di server ini" dan "Portal tidak dapat dihubungi" dibungkus `InternalServerError`, sedangkan middleware error sengaja mengganti pesan semua galat 500 menjadi "Internal Server Error"; pengguna di `/sso` hanya melihat "Internal Server Error" (bertentangan dengan 6.10 dan bagian 11). Kasus "Portal tidak dapat dihubungi" dipastikan dari kode (jalur sama), tidak diuji dengan mematikan Portal. Tidak diuji ulang di tahap ini (sudah di 3.2): flag darurat `DirectLoginForceEnabled` dan proteksi key toggle di `POST /settings`. Data uji dibiarkan di DB dev: user Portal+Toko `kasir72589`, `web12286`, user Toko `owner72589`. |
+| 47 | Tahap 3.6b selesai atas persetujuan user. **Perbaikan bug:** tipe galat baru `ServiceUnavailableError` di package `errors` (HTTP 503, kode respons `"53"` = `helper.StatusServiceUnavailable` yang sudah ada); berbeda dari `InternalServerError`, pesannya diteruskan ke pengguna (tetap dicatat di log). Ditambahkan sama persis di Toko dan Portal (package `errors`, tesnya, dan `middleware/errorHandler_middleware.go` tetap identik antaraplikasi, sesuai bagian 3.1); di Portal belum dipakai. Toko `auth_service_portal.go` memakai tipe ini untuk "Login lewat Portal belum diatur di server ini" dan "Portal tidak dapat dihubungi. Coba lagi beberapa saat". Galat internal lain (mis. gagal membuat profil lokal) tetap `InternalServerError`. Catatan nginx: `pos-web.conf` tidak memakai `proxy_intercept_errors`, jadi 503 dari BE diteruskan apa adanya dan tidak tertimpa halaman maintenance (berdasarkan perilaku nginx, belum diuji karena nginx tidak ada di mesin dev). **Hapus file sisa** (disetujui user): `PORTAL/FE/eslint.config.ts`, `TOKO/FE/eslint.config.ts`, `TOKO/FE/src/App.tsx`, `TOKO/FE/nginx example.conf`. Terverifikasi: `go build`, `go vet`, `go test ./errors/` (Toko dan Portal); `type-check`, `lint`, `build` FE Toko dan Portal; kredensial kosong -> 503 + pesan "belum diatur" (API dan tampilan `/sso` di browser); Portal BE dimatikan -> 503 + "Portal tidak dapat dihubungi" (diuji langsung); regresi penuh API 33/33 dan browser 21/21 lolos. Data uji tambahan di DB dev: `kasir63112`, `owner63112`, `web16889`. |

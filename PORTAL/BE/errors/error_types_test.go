@@ -108,6 +108,16 @@ func TestErrorTypes_ErrorMethod(t *testing.T) {
 			err:      &ValidationError{Message: ""},
 			expected: "",
 		},
+		{
+			name:     "ServiceUnavailableError returns correct message",
+			err:      &ServiceUnavailableError{Message: "service unavailable"},
+			expected: "service unavailable",
+		},
+		{
+			name:     "ServiceUnavailableError with empty message",
+			err:      &ServiceUnavailableError{Message: ""},
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -165,5 +175,16 @@ func TestValidationError_Error(t *testing.T) {
 	err := &ValidationError{Message: "field required"}
 	if err.Error() != "field required" {
 		t.Errorf("Expected 'field required', got '%s'", err.Error())
+	}
+}
+
+func TestServiceUnavailableError_ImplementsError(t *testing.T) {
+	var _ error = &ServiceUnavailableError{}
+}
+
+func TestServiceUnavailableError_Error(t *testing.T) {
+	err := &ServiceUnavailableError{Message: "portal unreachable"}
+	if err.Error() != "portal unreachable" {
+		t.Errorf("Expected 'portal unreachable', got '%s'", err.Error())
 	}
 }

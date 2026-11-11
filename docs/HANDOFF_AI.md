@@ -32,11 +32,13 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.2: toggle login langsung (`direct_login_enabled`) | SELESAI |
 | Fase 3.3: FE Toko (base path, `/sso`, `/menunggu-akses`, toggle UI) | SELESAI, e2e browser dev lolos |
 | Fase 3.4: skrip `TOKO/BE/cmd/migrate_users_to_portal` | SELESAI, diuji pada salinan DB |
-| Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, **menunggu persetujuan user** |
-| **Fase 3.6: uji ujung ke ujung di dev** | **BELUM, ini langkah berikutnya** |
+| Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, disetujui user |
+| Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
+| Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
 | Fase 4: POS Coffee | BELUM (rancangan di bagian 14 dokumen rancangan) |
 
-Belum ada commit untuk seluruh pekerjaan ini (user akan commit sendiri). Belum ada deploy ke VPS.
+Pekerjaan Fase 1-3.5 sudah di-commit user (commit berikutnya juga oleh user). Belum ada deploy ke VPS.
+Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.
 
 ## 3. Hal yang BELUM terverifikasi (jujur)
 - `nginx/pos-web.conf` belum divalidasi `nginx -t` (nginx tidak ada di mesin dev).
@@ -45,7 +47,7 @@ Belum ada commit untuk seluruh pekerjaan ini (user akan commit sendiri). Belum a
 - Build Toko dari kondisi sekarang memakai base `/toko/` sehingga hanya cocok dengan nginx baru.
 
 ## 4. Keputusan kunci (ringkas; rincian di dokumen rancangan)
-- **SSO**: kode acak 32 byte sekali pakai, TTL 60 detik, hash disimpan. `POST /api/sso/launch` (user login) menghasilkan `redirect_url = <path app>sso?code=...`. `POST /api/sso/exchange` publik dengan header `X-App-Key` dan body `{app_id, code}`; penolakan seragam 401. App key `pak_<64 hex>`, Portal hanya menyimpan hash SHA-256, tampil sekali. Kunci aplikasi disimpan di tabel DB aplikasi (Toko: `portal_credentials`), bukan `.env`, diisi lewat SQL manual.
+- **SSO**: kode acak 32 byte sekali pakai, TTL 60 detik, hash disimpan. `POST /api/sso/launch` (user login) menghasilkan `redirect_url = <path app>sso?code=...`. `POST /api/sso/exchange` publik dengan header `X-App-Key` dan body `{app_id, code}` (`app_id` = kode teks aplikasi, mis. `"toko"`); penolakan seragam 401. App key `pak_<64 hex>`, Portal hanya menyimpan hash SHA-256, tampil sekali. Kunci aplikasi disimpan di tabel DB aplikasi (Toko: `portal_credentials`), bukan `.env`, diisi lewat SQL manual.
 - **Role Portal**: hanya `admin` dan `user`. Migrasi: `admin` Toko menjadi `admin`; semua role lain menjadi `user`. Seed Portal hanya akun `admin`.
 - **Admin buat user / reset password**: user wajib ganti password di login pertama (`must_change_password`); selama itu token hanya boleh ke `/auth/me`, `/auth/logout`, `/auth/change-password`.
 - **Login Portal**: pembatas 5 gagal per 15 menit, password minimal 8, lupa password lewat admin.
@@ -73,7 +75,7 @@ Salin `TOKO/BE` dan `TOKO/FE` ke `COFFEE/`, pangkas modul `supplier_return, expi
 - Di DB dev, Portal masih punya akun `owner` (role admin) dari seed lama; hanya data dev.
 
 ## 8. Data dev
-User Toko dev: `Banana`, `BramaGanteng` (owner), `admin` (password `admin123`). Portal dev: aplikasi `toko` dengan path `/toko/`; kunci aplikasi Portal untuk Toko mungkin masih kosong di dev (isi lewat rotate-key di halaman admin Portal lalu simpan ke tabel `portal_credentials` Toko dengan SQL manual).
+User Toko dev: `Banana`, `BramaGanteng` (owner), `admin` (password `admin123`). Sejak tahap 3.6 (11 Nov 2026): skrip migrasi user sudah di-`--apply` pada DB dev (ketiga user Toko tertaut ke Portal), aplikasi `toko` di Portal dev memakai path `http://localhost:3001/`, dan `portal_credentials` Toko dev sudah terisi (kunci hasil rotate-key). Data uji: `kasir72589`, `web12286` (Portal+Toko, password `Baru12345`), `owner72589` (Toko saja, role owner, password `Owner12345`). Untuk produksi path tetap `/toko/` dan kunci dibuat ulang saat cutover.
 
 ## 9. Cara menjalankan dev
 Jalankan di 4 terminal terpisah (MySQL WAMP harus hidup):
@@ -86,4 +88,6 @@ Bila perintah berbeda, lihat README di masing-masing folder.
 - Jangan menunggu dengan sleep di terminal yang sama; baca output/log sesudahnya.
 - Editor sering menambah import otomatis (pernah menggandakan import `validator` di Go/TS); bila build gagal, cek import ganda.
 - `gofmt -w` pernah memformat ulang banyak file `PORTAL/BE`; hati-hati membuat diff besar tanpa alasan.
-- Skrip uji dan playwright ada di `testing/` (di-gitignore). Hapus file sementara setelah verifikasi.
+- Skrip uji dan playwright ada di `testing/` (di-gitignore). **Semua file uji/sementara (skrip, log server dev,
+  screenshot, dump DB sebelum uji) wajib di `testing/<nama-uji>/`, jangan pernah di disk C** (keputusan user).
+  Skrip regresi Portal ke Toko: `testing/portal_toko_e2e/` (lihat README di sana).
