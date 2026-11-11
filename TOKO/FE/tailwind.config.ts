@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import plugin from 'tailwindcss/plugin'
 
 export default {
   darkMode: ['class'],
@@ -68,5 +69,10 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    // `touch:` = perangkat layar sentuh (HP, tablet, APK). Dipakai untuk memperbesar target sentuh
+    // tanpa mengubah tampilan laptop yang memakai mouse.
+    plugin(({ addVariant }) => addVariant('touch', '@media (pointer: coarse)')),
+  ],
 } satisfies Config

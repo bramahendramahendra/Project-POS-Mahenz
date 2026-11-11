@@ -61,7 +61,8 @@ export function PortalLayout({ children }: { children: ReactNode }) {
             <BrandMark />
 
             {isAdmin && !mustChangePassword && (
-              <nav className="hidden items-center gap-1 md:flex" aria-label="Navigasi utama">
+              // Mulai lg (1024px): di tablet tegak menu header terlalu sempit, jadi masuk ke menu akun.
+              <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigasi utama">
                 {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
                   <NavLink
                     key={to}
@@ -116,7 +117,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
               {isAdmin &&
                 !mustChangePassword &&
                 NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-                  <DropdownMenuItem key={to} onSelect={() => navigate(to)} className="md:hidden">
+                  <DropdownMenuItem key={to} onSelect={() => navigate(to)} className="lg:hidden">
                     <Icon size={16} className="mr-2" /> {label}
                   </DropdownMenuItem>
                 ))}

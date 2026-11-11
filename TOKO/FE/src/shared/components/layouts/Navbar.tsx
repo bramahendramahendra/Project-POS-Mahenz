@@ -46,7 +46,8 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
           <button
             type="button"
             onClick={onMenuClick}
-            className="text-white/70 hover:text-white transition-colors p-1 lg:hidden"
+            aria-label="Buka menu"
+            className="text-white/70 hover:text-white transition-colors p-1 touch:p-2.5 lg:hidden"
           >
             <Menu size={20} />
           </button>
@@ -55,7 +56,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
         {/* Kanan */}
         <div className="flex items-center gap-3">
-          <button className="text-white/70 hover:text-white transition-colors p-1 relative">
+          <button aria-label="Notifikasi" className="text-white/70 hover:text-white transition-colors p-1 touch:p-[11px] relative">
             <Bell size={18} />
           </button>
 
@@ -81,7 +82,7 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <a
                   href={portalUrl}
                   aria-label="Kembali ke Portal"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  className="flex h-8 w-8 touch:h-10 touch:w-10 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 >
                   <LayoutGrid size={16} />
                 </a>
@@ -97,7 +98,8 @@ export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 size="icon"
                 onClick={() => setLogoutDialogOpen(true)}
                 disabled={isPending}
-                className="text-white/80 hover:text-white hover:bg-red-500/20 h-8 w-8"
+                aria-label="Logout"
+                className="text-white/80 hover:text-white hover:bg-red-500/20 h-8 w-8 touch:h-10 touch:w-10"
               >
                 <LogOut size={16} />
               </Button>

@@ -126,6 +126,7 @@ export function AdminAppsPage() {
         columns={columns}
         data={data ?? []}
         isLoading={isLoading}
+        cardBreakpoint="lg"
         emptyMessage="Belum ada aplikasi"
         emptyDescription="Tambahkan aplikasi pertama agar bisa dibuka dari Portal."
       />

@@ -148,7 +148,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
         </div>
         <button
           onClick={() => removeFromCart(item.product_id, item.unit_id)}
-          className="text-gray-300 hover:text-red-500 transition-colors mt-0.5 shrink-0"
+          aria-label="Hapus item"
+          className="text-gray-300 hover:text-red-500 transition-colors mt-0.5 shrink-0 touch:flex touch:min-w-10 touch:items-center touch:justify-center"
         >
           <Trash2 size={14} />
         </button>

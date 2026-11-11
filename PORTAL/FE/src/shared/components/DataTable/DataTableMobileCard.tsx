@@ -27,6 +27,12 @@ export function DataTableMobileCard({ row, columns, rowSelection }: DataTableMob
         <div className="flex-1 min-w-0">
           {titleCol.cell ? titleCol.cell(row) : String(row[titleCol.key] ?? '')}
         </div>
+        {/* Aksi di pojok kanan atas agar card tidak menyisakan baris kosong di bawah */}
+        {actionsCol && (
+          <div className="-mr-1 -mt-1 flex shrink-0 items-center gap-1">
+            {actionsCol.cell ? actionsCol.cell(row) : null}
+          </div>
+        )}
       </div>
 
       {bodyCols.length > 0 && (
@@ -40,12 +46,6 @@ export function DataTableMobileCard({ row, columns, rowSelection }: DataTableMob
             </div>
           ))}
         </dl>
-      )}
-
-      {actionsCol && (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-1 border-t pt-2">
-          {actionsCol.cell ? actionsCol.cell(row) : null}
-        </div>
       )}
     </div>
   )

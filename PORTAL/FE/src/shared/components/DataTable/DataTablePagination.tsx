@@ -59,7 +59,7 @@ export function DataTablePagination({
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">Tampilkan</span>
             <Select value={String(pageSize)} onValueChange={(v) => onPageSizeChange(Number(v))}>
-              <SelectTrigger className="h-8 w-16 text-sm">
+              <SelectTrigger className="h-10 w-[72px] text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -77,7 +77,7 @@ export function DataTablePagination({
         <Button
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-10 w-10"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
@@ -104,7 +104,7 @@ export function DataTablePagination({
                 key={p}
                 variant={p === page ? 'default' : 'outline'}
                 size="icon"
-                className="h-8 w-8 text-sm"
+                className="h-10 w-10 text-sm"
                 onClick={() => onPageChange(p)}
               >
                 {p}
@@ -117,7 +117,7 @@ export function DataTablePagination({
         <Button
           variant="outline"
           size="icon"
-          className="h-8 w-8"
+          className="h-10 w-10"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >

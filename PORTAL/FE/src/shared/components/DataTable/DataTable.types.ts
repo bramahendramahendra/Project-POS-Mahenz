@@ -45,4 +45,6 @@ export interface DataTableProps<TData> {
   currentSort?: SortState
   onSort?: (sort: SortState) => void
   className?: string
+  /** Lebar minimal tampilan tabel; di bawahnya tampil sebagai card. Default 'md'. */
+  cardBreakpoint?: 'md' | 'lg'
 }

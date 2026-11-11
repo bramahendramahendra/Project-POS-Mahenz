@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 
 import { useBreakpoint } from '@/shared/hooks'
@@ -18,6 +19,9 @@ import { DataTableMobileCard } from './DataTableMobileCard'
 import { DataTablePagination } from './DataTablePagination'
 import { DataTableSkeleton } from './DataTableSkeleton'
 
+/** Tombol ikon aksi diperbesar di perangkat sentuh (tampilan laptop tidak berubah). */
+const ACTIONS_TOUCH = 'touch:[&_button]:min-h-10 touch:[&_button]:min-w-10'
+
 export function DataTable<TData extends Record<string, unknown>>({
   columns,
   data,
@@ -31,6 +35,36 @@ export function DataTable<TData extends Record<string, unknown>>({
   className,
 }: DataTableProps<TData>) {
   const isDesktopTable = useBreakpoint('md')
+
+  // ─── Kolom aksi dibekukan di kanan ──────────────────────────────────────
+  // Tabel lebar (tablet / laptop kecil) harus digeser; kolom 'actions' tetap terlihat di kanan.
+  // Bayangan di sisi kiri kolom aksi hanya tampil bila masih ada kolom yang tertutup.
+  const tableRef = useRef<HTMLTableElement>(null)
+  const [hasHiddenRight, setHasHiddenRight] = useState(false)
+  useEffect(() => {
+    const scroller = tableRef.current?.parentElement
+    if (!scroller) return
+    const update = () =>
+      setHasHiddenRight(scroller.scrollWidth - scroller.clientWidth - scroller.scrollLeft > 1)
+    update()
+    scroller.addEventListener('scroll', update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    return () => {
+      scroller.removeEventListener('scroll', update)
+      observer.disconnect()
+    }
+  }, [isDesktopTable, data, columns])
+
+  const stickyActions = (isHeader: boolean) =>
+    cn(
+      'sticky right-0 bg-white',
+      isHeader ? 'z-[2]' : 'z-[1]',
+      // Latar hover/terpilih baris ikut tampil di kolom beku (latar sel harus padat agar isi di bawahnya tertutup)
+      !isHeader &&
+        "before:pointer-events-none before:absolute before:inset-0 before:content-[''] group-hover:before:bg-muted/50 group-data-[state=selected]:before:bg-muted",
+      hasHiddenRight && 'shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.25)]'
+    )
 
   // ─── Row selection helpers ──────────────────────────────────────────────
   const allRowKeys = data.map((row) => row[rowSelection?.rowKey as keyof TData] as string | number)
@@ -119,7 +153,7 @@ export function DataTable<TData extends Record<string, unknown>>({
 
   return (
     <div className={cn('rounded-md border bg-white', className)}>
-      <Table>
+      <Table ref={tableRef}>
         <TableHeader className="sticky top-0 bg-white z-10">
           <TableRow>
             {rowSelection?.enabled && (
@@ -134,7 +168,10 @@ export function DataTable<TData extends Record<string, unknown>>({
               <TableHead
                 key={col.key}
                 style={{ width: col.width, textAlign: col.align ?? 'left' }}
-                className={col.sortable ? 'cursor-pointer select-none' : ''}
+                className={cn(
+                  col.sortable && 'cursor-pointer select-none',
+                  col.key === 'actions' && stickyActions(true)
+                )}
                 onClick={col.sortable ? () => handleSort(col.key) : undefined}
               >
                 <span className="inline-flex items-center gap-1">
@@ -153,7 +190,7 @@ export function DataTable<TData extends Record<string, unknown>>({
             const isSelected = rowSelection?.selectedKeys?.has(rowKey) ?? false
 
             return (
-              <TableRow key={String(rowKey)} data-state={isSelected ? 'selected' : undefined}>
+              <TableRow key={String(rowKey)} data-state={isSelected ? 'selected' : undefined} className="group">
                 {rowSelection?.enabled && (
                   <TableCell className="w-10">
                     <Checkbox
@@ -163,8 +200,19 @@ export function DataTable<TData extends Record<string, unknown>>({
                   </TableCell>
                 )}
                 {columns.map((col) => (
-                  <TableCell key={col.key} style={{ textAlign: col.align ?? 'left' }}>
-                    {col.cell ? col.cell(row) : String(row[col.key as keyof TData] ?? '')}
+                  <TableCell
+                    key={col.key}
+                    style={{ textAlign: col.align ?? 'left' }}
+                    className={cn(col.key === 'actions' && [stickyActions(false), ACTIONS_TOUCH])}
+                  >
+                    {col.key === 'actions' ? (
+                      // Isi di atas lapisan hover kolom beku
+                      <div className="relative">{col.cell ? col.cell(row) : null}</div>
+                    ) : col.cell ? (
+                      col.cell(row)
+                    ) : (
+                      String(row[col.key as keyof TData] ?? '')
+                    )}
                   </TableCell>
                 ))}
               </TableRow>

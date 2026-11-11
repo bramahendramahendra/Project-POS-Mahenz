@@ -216,7 +216,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
         submitDisabled={!sufficient || isPending || !kasOpen}
       >
             <ScrollArea style={{ maxHeight: '70vh' }}>
-            <div className="px-6 py-4 space-y-5">
+            <div className="px-6 py-4 space-y-5 touch:[&_button:not([role=checkbox])]:min-h-10">
               {/* Guard kas belum buka */}
               {!kasOpen && (
                 <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-700">

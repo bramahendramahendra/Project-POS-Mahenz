@@ -28,6 +28,9 @@ export function CashierPage() {
 
   return (
     <div
+      // Perangkat sentuh (tablet/HP/APK): tombol dan input kasir minimal 40px agar mudah ditekan.
+      // Kotak centang dikecualikan (barisnya sudah bisa ditekan; bila ditarik bentuknya rusak).
+      className="touch:[&_button:not([role=checkbox])]:min-h-10 touch:[&_button:not([role=checkbox])]:min-w-10 touch:[&_input]:min-h-10"
       style={{
         display: 'flex',
         flexDirection: isDesktop ? 'row' : 'column',

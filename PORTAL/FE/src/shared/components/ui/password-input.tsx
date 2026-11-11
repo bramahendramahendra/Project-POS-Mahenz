@@ -14,13 +14,14 @@ const PasswordInput = React.forwardRef<HTMLInputElement, React.ComponentProps<'i
           {...props}
           ref={ref}
           type={showPassword ? 'text' : 'password'}
-          className={cn('pr-10', className)}
+          className={cn('pr-12', className)}
         />
         <button
           type="button"
           tabIndex={-1}
           onClick={() => setShowPassword((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+          className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600"
         >
           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>

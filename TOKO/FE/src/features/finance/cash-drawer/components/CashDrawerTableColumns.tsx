@@ -109,7 +109,7 @@ export function buildCashDrawerColumns(
         ),
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Aksi',
       align: 'center',
       width: '100px',

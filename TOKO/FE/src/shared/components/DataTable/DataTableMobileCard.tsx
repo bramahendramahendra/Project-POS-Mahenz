@@ -43,7 +43,7 @@ export function DataTableMobileCard({ row, columns, rowSelection }: DataTableMob
       )}
 
       {actionsCol && (
-        <div className="mt-2 flex flex-wrap items-center justify-end gap-1 border-t pt-2">
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-1 border-t pt-2 touch:[&_button]:min-h-10 touch:[&_button]:min-w-10">
           {actionsCol.cell ? actionsCol.cell(row) : null}
         </div>
       )}

@@ -62,7 +62,7 @@ export function buildReturnColumns(handlers: ReturnColumnHandlers): ColumnDef<Su
       cell: (row) => <StatusBadge status={row.status} />,
     },
     {
-      key: 'id',
+      key: 'actions',
       header: 'Aksi',
       align: 'center',
       cell: (row) => (

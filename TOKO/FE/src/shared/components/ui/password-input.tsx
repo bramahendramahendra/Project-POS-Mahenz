@@ -20,7 +20,8 @@ const PasswordInput = React.forwardRef<HTMLInputElement, React.ComponentProps<'i
           type="button"
           tabIndex={-1}
           onClick={() => setShowPassword((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch:right-0 touch:flex touch:h-10 touch:w-10 touch:items-center touch:justify-center"
         >
           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>

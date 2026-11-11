@@ -29,8 +29,9 @@ export function DataTable<TData extends Record<string, unknown>>({
   currentSort,
   onSort,
   className,
+  cardBreakpoint = 'md',
 }: DataTableProps<TData>) {
-  const isDesktopTable = useBreakpoint('md')
+  const isDesktopTable = useBreakpoint(cardBreakpoint)
 
   // ─── Row selection helpers ──────────────────────────────────────────────
   const allRowKeys = data.map((row) => row[rowSelection?.rowKey as keyof TData] as string | number)
