@@ -3,7 +3,6 @@ package service
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"strings"
 	"time"
@@ -47,27 +46,16 @@ func (s *ssoService) Launch(userID int, req *dto.LaunchRequest) (*dto.LaunchResp
 	}, nil
 }
 
-func (s *ssoService) Exchange(appKey string, req *dto.ExchangeRequest) (*dto.ExchangeResponse, error) {
+// Exchange: kunci aplikasi sudah diperiksa middleware AppKey; di sini kode harus milik
+// aplikasi pemanggil itu sendiri (kode untuk Toko tidak bisa ditukar oleh Coffee).
+func (s *ssoService) Exchange(callerAppID int, req *dto.ExchangeRequest) (*dto.ExchangeResponse, error) {
 	reject := &errors.UnauthenticatedError{Message: exchangeRejected}
-
-	if appKey == "" {
-		return nil, reject
-	}
 
 	row, err := s.repo.GetCodeByHash(hashHex(strings.TrimSpace(req.Code)))
 	if err != nil {
 		return nil, err
 	}
-	if row == nil {
-		return nil, reject
-	}
-
-	// Kunci aplikasi harus cocok dengan aplikasi pemilik kode, dan app_id di permintaan
-	// harus sama dengan aplikasi yang dituju kode tersebut.
-	if row.AppKeyHash == "" || subtle.ConstantTimeCompare([]byte(hashHex(appKey)), []byte(row.AppKeyHash)) != 1 {
-		return nil, reject
-	}
-	if req.AppID != row.AppCode {
+	if row == nil || row.AppID != callerAppID {
 		return nil, reject
 	}
 
@@ -100,10 +88,10 @@ func (s *ssoService) Exchange(appKey string, req *dto.ExchangeRequest) (*dto.Exc
 		Valid: true,
 		AppID: row.AppCode,
 		User: dto.ExchangeUser{
-			PortalUserID: row.UserID,
-			Username:     row.Username,
-			FullName:     row.FullName,
-			IsActive:     row.UserActive,
+			ID:       row.UserID,
+			Username: row.Username,
+			FullName: row.FullName,
+			IsActive: row.UserActive,
 		},
 	}, nil
 }

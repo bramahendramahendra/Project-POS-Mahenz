@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"strings"
 
 	"portal_api/domain/auth/dto"
@@ -30,7 +31,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Login(&req, c.ClientIP())
+	data, err := h.service.Login(c.Request.Context(), &req, c.ClientIP())
 	if err != nil {
 		c.Error(err)
 		return
@@ -70,7 +71,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.RefreshToken(req.RefreshToken)
+	data, err := h.service.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		c.Error(err)
 		return
@@ -84,21 +85,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
+// GetMe: profil akun terbaru dari BE User, diteruskan apa adanya.
 func (h *AuthHandler) GetMe(c *gin.Context) {
-	userID := helper.GetUserID(c)
-
-	data, err := h.service.GetMe(userID)
+	resp, err := h.service.GetMe(c.Request.Context(), helper.GetAuthUserID(c))
 	if err != nil {
 		c.Error(err)
 		return
 	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Data user",
-		Data:    data,
-	})
+	response_helper.WriteRaw(c, resp.StatusCode, resp.Body)
 }
 
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
@@ -113,16 +107,18 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.ChangeMyPassword(helper.GetUserID(c), &req); err != nil {
+	body, err := json.Marshal(req)
+	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Password berhasil diubah",
-	})
+	resp, err := h.service.ChangeMyPassword(c.Request.Context(), helper.GetUserID(c), helper.GetAuthUserID(c), body)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	response_helper.WriteRaw(c, resp.StatusCode, resp.Body)
 }
 
 func (h *AuthHandler) VerifyToken(c *gin.Context) {

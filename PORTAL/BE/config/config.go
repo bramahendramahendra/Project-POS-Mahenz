@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -61,6 +62,9 @@ type Config struct {
 	Log                        LogConfig      `json:"Log"`
 	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
+	// AuthUrl: alamat API BE User (layanan akun) untuk panggilan server ke server,
+	// mis. "http://127.0.0.1:8080/api". Kunci aplikasi Portal disimpan di tabel auth_credentials.
+	AuthUrl string `json:"AuthUrl"`
 }
 
 var (
@@ -125,6 +129,7 @@ func initConfig(releaseMode string) {
 			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
 		},
 		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
+		AuthUrl:          strings.TrimRight(v.GetString("AuthUrl"), "/"),
 	}
 
 	// SecretKey wajib disuplai lewat environment variable SECRETKEY (viper.AutomaticEnv()

@@ -1,29 +1,22 @@
 package service
 
 import (
-	dto "portal_api/domain/app/dto"
-	repo "portal_api/domain/app/repo"
+	"context"
+
+	"portal_api/pkg/authclient"
 )
 
 type (
+	// AppServiceInterface: permintaan diteruskan ke BE User atas nama user yang sedang login.
 	AppServiceInterface interface {
-		GetMyApps(userID int) ([]*dto.MyAppResponse, error)
-
-		// Khusus admin
-		GetAll() ([]*dto.AppAdminResponse, error)
-		Create(req *dto.CreateRequest) (*dto.CreateAppResponse, error)
-		Update(id int, req *dto.UpdateRequest) error
-		ToggleStatus(id int) error
-		RotateKey(id int) (*dto.RotateKeyResponse, error)
-		GetUserAccess(userID int) ([]*dto.UserAccessItem, error)
-		SetUserAccess(userID int, req *dto.SetUserAccessRequest) error
+		Forward(ctx context.Context, actingUserID int, path string, body []byte) (*authclient.Response, error)
 	}
 
 	appService struct {
-		repo repo.AppRepoInterface
+		client *authclient.Client
 	}
 )
 
-func NewAppService(repo repo.AppRepoInterface) *appService {
-	return &appService{repo: repo}
+func NewAppService(client *authclient.Client) *appService {
+	return &appService{client: client}
 }

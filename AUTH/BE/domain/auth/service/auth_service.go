@@ -1,155 +1,46 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"time"
-
-	"auth_api/config"
 	dto "auth_api/domain/auth/dto"
 	model "auth_api/domain/auth/model"
 	"auth_api/errors"
-	time_helper "auth_api/helper/time"
+	"auth_api/helper"
 	"auth_api/pkg/bcrypt"
-	"auth_api/pkg/jwt"
 )
 
-func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginResponse, error) {
+// Pesan seragam untuk username tidak ada / password salah agar tidak membocorkan keberadaan akun.
+const wrongCredentials = "Username atau password salah"
+
+// Verify memeriksa username + password untuk aplikasi pemanggil (keputusan 63).
+// Urutan: akun ada dan password benar -> aktif -> wajib ganti password -> akses aplikasi.
+// Portal boleh menerima akun yang wajib ganti password (Portal memaksa ganti password);
+// aplikasi lain menolaknya (keputusan 70). Akses aplikasi tidak diperiksa untuk Portal.
+func (s *authService) Verify(req *dto.VerifyRequest, caller helper.CallerApp) (*dto.UserData, error) {
 	user, err := s.repo.GetUserByUsername(req.Username)
 	if err != nil {
 		return nil, err
 	}
-	if user == nil {
-		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
+	if user == nil || !bcrypt.VerifyPassword(req.Password, user.Password) {
+		return nil, &errors.UnauthenticatedError{Message: wrongCredentials}
 	}
 	if !user.IsActive {
 		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
 	}
-	if !bcrypt.VerifyPassword(req.Password, user.Password) {
-		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
+
+	if caller.Code != helper.PortalAppCode {
+		if user.MustChangePassword {
+			return nil, &errors.UnauthorizededError{Message: "Ganti password dulu di Portal"}
+		}
+		ok, err := s.repo.HasAccess(user.ID, caller.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke aplikasi ini"}
+		}
 	}
 
-	now := time_helper.GetTimeNow()
-	expiresAt := now.Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
-
-	claims := map[string]any{
-		"user_id":   user.ID,
-		"username":  user.Username,
-		"full_name": user.FullName,
-		"role":      user.RoleName,
-		"apps":      req.DeviceInfo,
-	}
-	jwt.CreateClaims(claims)
-	token, err := jwt.GenerateToken()
-	if err != nil {
-		return nil, err
-	}
-
-	refreshToken, err := generateRefreshToken()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.repo.DeleteSessionByUserID(user.ID); err != nil {
-		return nil, err
-	}
-
-	session := &model.Session{
-		UserID:       user.ID,
-		UserRole:     user.RoleName,
-		Token:        token,
-		RefreshToken: refreshToken,
-		DeviceInfo:   req.DeviceInfo,
-		IPAddress:    ip,
-		ExpiresAt:    expiresAt,
-		CreatedAt:    now,
-	}
-	if err := s.repo.CreateSession(session); err != nil {
-		return nil, err
-	}
-
-	return &dto.LoginResponse{
-		Token:        token,
-		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt,
-		User: dto.UserData{
-			ID:                 user.ID,
-			Username:           user.Username,
-			FullName:           user.FullName,
-			RoleID:             user.RoleID,
-			RoleName:           user.RoleName,
-			MustChangePassword: user.MustChangePassword,
-		},
-	}, nil
-}
-
-func (s *authService) Logout(token string) error {
-	return s.repo.DeleteSessionByToken(token)
-}
-
-func (s *authService) RefreshToken(refreshToken string) (*dto.RefreshResponse, error) {
-	session, err := s.repo.GetSessionByRefreshToken(refreshToken)
-	if err != nil {
-		return nil, err
-	}
-	if session == nil {
-		return nil, &errors.UnauthenticatedError{Message: "Refresh token tidak valid"}
-	}
-	if time_helper.GetTimeNow().After(session.ExpiresAt) {
-		return nil, &errors.UnauthenticatedError{Message: "Refresh token sudah expired"}
-	}
-
-	user, err := s.repo.GetUserByID(session.UserID)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil || !user.IsActive {
-		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
-	}
-
-	now := time_helper.GetTimeNow()
-	expiresAt := now.Add(time.Second * time.Duration(config.Cfg.RefreshTokenExpire))
-
-	claims := map[string]any{
-		"user_id":   user.ID,
-		"username":  user.Username,
-		"full_name": user.FullName,
-		"role":      user.RoleName,
-		"apps":      session.DeviceInfo,
-	}
-	jwt.CreateClaims(claims)
-	newToken, err := jwt.GenerateToken()
-	if err != nil {
-		return nil, err
-	}
-
-	newRefreshToken, err := generateRefreshToken()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.repo.DeleteSessionByUserID(user.ID); err != nil {
-		return nil, err
-	}
-
-	newSession := &model.Session{
-		UserID:       user.ID,
-		UserRole:     user.RoleName,
-		Token:        newToken,
-		RefreshToken: newRefreshToken,
-		DeviceInfo:   session.DeviceInfo,
-		ExpiresAt:    expiresAt,
-		CreatedAt:    now,
-	}
-	if err := s.repo.CreateSession(newSession); err != nil {
-		return nil, err
-	}
-
-	return &dto.RefreshResponse{
-		Token:        newToken,
-		RefreshToken: newRefreshToken,
-		ExpiresAt:    expiresAt,
-	}, nil
+	return toUserData(user), nil
 }
 
 func (s *authService) GetMe(userID int) (*dto.UserData, error) {
@@ -160,18 +51,11 @@ func (s *authService) GetMe(userID int) (*dto.UserData, error) {
 	if user == nil {
 		return nil, &errors.NotFoundError{Message: "User tidak ditemukan"}
 	}
-	return &dto.UserData{
-		ID:                 user.ID,
-		Username:           user.Username,
-		FullName:           user.FullName,
-		RoleID:             user.RoleID,
-		RoleName:           user.RoleName,
-		MustChangePassword: user.MustChangePassword,
-	}, nil
+	return toUserData(user), nil
 }
 
 // ChangeMyPassword mengganti password milik sendiri. Password lama wajib benar
-// dan password baru harus berbeda. Sesi yang sedang berjalan tetap aktif.
+// dan password baru harus berbeda.
 func (s *authService) ChangeMyPassword(userID int, req *dto.ChangeMyPasswordRequest) error {
 	currentHash, err := s.repo.GetPasswordHashByID(userID)
 	if err != nil {
@@ -194,52 +78,14 @@ func (s *authService) ChangeMyPassword(userID int, req *dto.ChangeMyPasswordRequ
 	return s.repo.UpdateOwnPassword(userID, hashed)
 }
 
-func (s *authService) VerifyToken(token string) (*dto.VerifyTokenResponse, error) {
-	claims, err := jwt.VerifyToken(token)
-	if err != nil {
-		return &dto.VerifyTokenResponse{Valid: false, Error: err.Error()}, nil
+func toUserData(u *model.User) *dto.UserData {
+	return &dto.UserData{
+		ID:                 u.ID,
+		Username:           u.Username,
+		FullName:           u.FullName,
+		RoleID:             u.RoleID,
+		RoleName:           u.RoleName,
+		IsActive:           u.IsActive,
+		MustChangePassword: u.MustChangePassword,
 	}
-
-	claimsMap := make(map[string]any)
-	for k, v := range *claims {
-		claimsMap[k] = v
-	}
-
-	expReadable := ""
-	if exp, ok := (*claims)["exp"].(float64); ok {
-		expReadable = time.Unix(int64(exp), 0).Format(time.RFC3339)
-	}
-
-	return &dto.VerifyTokenResponse{
-		Valid:       true,
-		Claims:      claimsMap,
-		ExpReadable: expReadable,
-	}, nil
-}
-
-func (s *authService) ValidateToken(token string) (*model.Session, error) {
-	if _, err := jwt.VerifyToken(token); err != nil {
-		return nil, err
-	}
-
-	session, err := s.repo.GetSessionByToken(token)
-	if err != nil {
-		return nil, err
-	}
-	if session == nil {
-		return nil, &errors.UnauthenticatedError{Message: "Token tidak valid atau sudah logout"}
-	}
-	if time_helper.GetTimeNow().After(session.ExpiresAt) {
-		return nil, &errors.UnauthenticatedError{Message: "Token expired"}
-	}
-
-	return session, nil
-}
-
-func generateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

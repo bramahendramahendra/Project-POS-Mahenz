@@ -1,24 +1,12 @@
 package repo
 
-import (
-	dto "portal_api/domain/user/dto"
-	model "portal_api/domain/user/model"
-
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type (
+	// UserRepoInterface: data lokal Portal yang ikut berubah saat akun dikelola di BE User.
 	UserRepoInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error)
-		GetByID(id int) (*model.User, error)
-		GetByUsername(username string, excludeID int) (*model.User, error)
-		Create(user *model.User) (int64, error)
-		Update(id int, req *dto.UpdateRequest) error
-		UpdatePassword(id int, hashedPassword string, mustChange bool) error
-		Delete(id int) error
-		ToggleStatus(id int) error
-		DeleteSessionByUserID(userID int) error
-		CountActiveAdmins(excludeID int) (int64, error)
+		DeleteSessionByAuthUserID(authUserID int) error
+		DeleteProfileByAuthUserID(authUserID int) error
 	}
 
 	userRepo struct {

@@ -101,7 +101,8 @@ func (s *userService) Update(id, currentUserID int, req *dto.UpdateRequest) erro
 }
 
 // ResetPassword: admin menetapkan password sementara untuk user lain. User wajib
-// menggantinya saat login berikutnya, dan sesi aktifnya dihapus. Untuk akun sendiri
+// menggantinya saat login berikutnya. BE User tidak memegang sesi: Portal yang
+// memanggil endpoint ini menghapus sesi Portal user tersebut. Untuk akun sendiri
 // dipakai fitur ganti password di domain auth (membutuhkan password lama).
 func (s *userService) ResetPassword(id, currentUserID int, req *dto.ResetPasswordRequest) error {
 	if id == currentUserID {
@@ -120,10 +121,7 @@ func (s *userService) ResetPassword(id, currentUserID int, req *dto.ResetPasswor
 	if err != nil {
 		return err
 	}
-	if err := s.repo.UpdatePassword(id, hashed, true); err != nil {
-		return err
-	}
-	return s.repo.DeleteSessionByUserID(id)
+	return s.repo.UpdatePassword(id, hashed, true)
 }
 
 func (s *userService) Delete(id, currentUserID int) error {
@@ -149,9 +147,6 @@ func (s *userService) Delete(id, currentUserID int) error {
 		}
 	}
 
-	if err := s.repo.DeleteSessionByUserID(id); err != nil {
-		return err
-	}
 	return s.repo.Delete(id)
 }
 

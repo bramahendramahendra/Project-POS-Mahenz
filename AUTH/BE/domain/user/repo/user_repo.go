@@ -17,7 +17,6 @@ const (
 	updatePasswordQuery    = `UPDATE users SET password = ?, must_change_password = ?, updated_at = ? WHERE id = ?`
 	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
 	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
-	deleteSessionQuery     = `DELETE FROM sessions WHERE user_id = ?`
 	countActiveAdminsQuery = `SELECT COUNT(*) FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE r.name = 'admin' AND u.is_active = 1 AND u.id != ?`
 )
 
@@ -118,10 +117,6 @@ func (r *userRepo) Delete(id int) error {
 
 func (r *userRepo) ToggleStatus(id int) error {
 	return r.db.Exec(toggleUserStatusQuery, time_helper.GetTimeNow(), id).Error
-}
-
-func (r *userRepo) DeleteSessionByUserID(userID int) error {
-	return r.db.Exec(deleteSessionQuery, userID).Error
 }
 
 func (r *userRepo) CountActiveAdmins(excludeID int) (int64, error) {

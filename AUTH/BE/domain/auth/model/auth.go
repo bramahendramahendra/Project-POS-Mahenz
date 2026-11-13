@@ -13,16 +13,3 @@ type User struct {
 	MustChangePassword bool      `gorm:"column:must_change_password"`
 	CreatedAt          time.Time `gorm:"column:created_at"`
 }
-
-type Session struct {
-	ID                 int       `gorm:"column:id"`
-	UserID             int       `gorm:"column:user_id"`
-	UserRole           string    `gorm:"column:user_role"`
-	Token              string    `gorm:"column:token"`
-	RefreshToken       string    `gorm:"column:refresh_token"`
-	DeviceInfo         string    `gorm:"column:device_info"`
-	IPAddress          string    `gorm:"column:ip_address"`
-	CreatedAt          time.Time `gorm:"column:created_at"`
-	ExpiresAt          time.Time `gorm:"column:expires_at"`
-	MustChangePassword bool      `gorm:"column:must_change_password"` // hanya terisi saat validasi token (join users)
-}

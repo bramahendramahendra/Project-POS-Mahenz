@@ -67,6 +67,12 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				responseMessage = actualMessage
 				entry := log_helper.FromContext(c, "Service Unavailable", "Service Unavailable", e.Message)
 				log_helper.LogError(entry)
+			case *errors.UpstreamError:
+				// Penolakan dari BE User: kode HTTP, kode, pesan, dan rincian diteruskan apa adanya.
+				code = e.Code
+				httpCode = e.HTTPCode
+				responseMessage = actualMessage
+				error = e.Errors
 			case *errors.ValidationError:
 				code = helper.StatusUnprocessableEntity
 				httpCode = http.StatusUnprocessableEntity

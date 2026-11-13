@@ -4,20 +4,34 @@ import (
 	auth_handler "auth_api/domain/auth/handler"
 	auth_repo "auth_api/domain/auth/repo"
 	auth_service "auth_api/domain/auth/service"
+	"auth_api/middleware"
 	pkgdatabase "auth_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AuthRoutes(r *gin.RouterGroup) {
+func newAuthHandler() *auth_handler.AuthHandler {
 	authRepo := auth_repo.NewAuthRepo(pkgdatabase.DB)
-	authService := auth_service.NewAuthService(authRepo)
-	authHandler := auth_handler.NewAuthHandler(authService)
+	return auth_handler.NewAuthHandler(auth_service.NewAuthService(authRepo))
+}
 
-	g := r.Group("/auth")
+// LoginRoutes: verifikasi username + password untuk semua aplikasi (Portal, Toko, Coffee).
+func LoginRoutes(r *gin.RouterGroup) {
+	h := newAuthHandler()
+
+	g := r.Group("/login")
 	{
-		g.POST("/me", authHandler.GetMe)
-		g.POST("/logout", authHandler.Logout)
-		g.POST("/change-password", authHandler.ChangePassword)
+		g.POST("/verify", middleware.LoginRateLimitMiddleware(), h.Verify)
+	}
+}
+
+// AccountRoutes: akun milik user yang bertindak (Portal atas nama user).
+func AccountRoutes(r *gin.RouterGroup) {
+	h := newAuthHandler()
+
+	g := r.Group("/account")
+	{
+		g.POST("/profile", h.Me)
+		g.POST("/change-password", h.ChangePassword)
 	}
 }

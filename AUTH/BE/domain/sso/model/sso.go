@@ -10,7 +10,6 @@ type Code struct {
 	ExpiresAt  time.Time  `gorm:"column:expires_at"`
 	UsedAt     *time.Time `gorm:"column:used_at"`
 	AppCode    string     `gorm:"column:app_code"`
-	AppKeyHash string     `gorm:"column:app_key_hash"`
 	AppActive  bool       `gorm:"column:app_active"`
 	Username   string     `gorm:"column:username"`
 	FullName   string     `gorm:"column:full_name"`

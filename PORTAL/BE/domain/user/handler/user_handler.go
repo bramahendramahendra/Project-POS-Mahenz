@@ -1,18 +1,19 @@
 package handler
 
 import (
-	dto "portal_api/domain/user/dto"
+	"fmt"
+
 	service "portal_api/domain/user/service"
-	global_dto "portal_api/dto"
-	"portal_api/errors"
 	"portal_api/helper"
-	response_helper "portal_api/helper/response"
-	binder "portal_api/pkg/binder"
-	validator "portal_api/validation"
+	"portal_api/helper/forward"
+	"portal_api/pkg/authclient"
 
 	"github.com/gin-gonic/gin"
 )
 
+// UserHandler: kelola user Portal. Permintaan diteruskan ke BE User atas nama user yang
+// sedang login; BE User yang memeriksa role admin, validasi, dan aturan (admin terakhir,
+// akun sendiri, dst). Jawaban BE User dikembalikan apa adanya.
 type UserHandler struct {
 	service service.UserServiceInterface
 }
@@ -22,198 +23,43 @@ func NewUserHandler(service service.UserServiceInterface) *UserHandler {
 }
 
 func (h *UserHandler) GetAll(c *gin.Context) {
-	req, err := binder.BindJSON[dto.GetAllRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, total, svcErr := h.service.GetAll(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:       helper.StatusOk,
-		Status:     true,
-		Message:    "Daftar user",
-		Data:       data,
-		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	forward.Handle(c, func(body []byte) (*authclient.Response, error) {
+		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), "/users/list", body)
 	})
 }
 
 func (h *UserHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail user",
-		Data:    data,
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), fmt.Sprintf("/users/detail/%d", id), body)
 	})
 }
 
 func (h *UserHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "User berhasil dibuat",
-		Data:    data,
+	forward.Handle(c, func(body []byte) (*authclient.Response, error) {
+		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), "/users/create", body)
 	})
 }
 
 func (h *UserHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.UpdateRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(bodyReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.Update(uriReq.ID, helper.GetUserID(c), &bodyReq); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "User berhasil diperbarui",
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), fmt.Sprintf("/users/update/%d", id), body)
 	})
 }
 
 func (h *UserHandler) ResetPassword(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.ResetPasswordUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.ResetPasswordRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(bodyReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.ResetPassword(uriReq.ID, helper.GetUserID(c), &bodyReq); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Password sementara berhasil ditetapkan. User wajib menggantinya saat login berikutnya",
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.service.ResetPassword(c.Request.Context(), helper.GetAuthUserID(c), id, body)
 	})
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {
-	req, err := binder.BindURI[dto.DeleteRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.Delete(req.ID, helper.GetUserID(c)); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "User berhasil dihapus",
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.service.Delete(c.Request.Context(), helper.GetAuthUserID(c), id, body)
 	})
 }
 
 func (h *UserHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.ToggleStatus(req.ID, helper.GetUserID(c)); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Status user berhasil diubah",
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.service.ToggleStatus(c.Request.Context(), helper.GetAuthUserID(c), id, body)
 	})
 }

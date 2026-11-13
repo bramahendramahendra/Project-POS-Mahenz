@@ -8,7 +8,11 @@ import (
 )
 
 const (
-	getMyAppsQuery = `SELECT a.id, a.code, a.name, COALESCE(a.description, '') AS description, a.path, a.icon, a.sort_order, a.is_active FROM apps a INNER JOIN user_apps ua ON ua.app_id = a.id WHERE ua.user_id = ? AND a.is_active = 1 ORDER BY a.sort_order ASC, a.name ASC`
+	// Hanya aplikasi yang tampil sebagai kartu (Portal sendiri tidak: show_in_portal = 0).
+	getMyAppsQuery = `SELECT a.id, a.code, a.name, COALESCE(a.description, '') AS description, a.path, a.icon, a.sort_order, a.is_active FROM apps a INNER JOIN user_apps ua ON ua.app_id = a.id WHERE ua.user_id = ? AND a.is_active = 1 AND a.show_in_portal = 1 ORDER BY a.sort_order ASC, a.name ASC`
+
+	// Pengenal aplikasi pemanggil dari hash kunci (middleware AppKey).
+	getActiveByKeyHashQuery = `SELECT id, code FROM apps WHERE app_key_hash = ? AND is_active = 1 LIMIT 1`
 
 	adminSelect = `SELECT a.id, a.code, a.name, COALESCE(a.description, '') AS description, a.path, a.icon, a.sort_order, a.is_active,
 		(a.app_key_hash IS NOT NULL AND a.app_key_hash <> '') AS has_key,
@@ -29,6 +33,18 @@ const (
 	insertUserAppQuery  = `INSERT INTO user_apps (user_id, app_id) SELECT ?, id FROM apps WHERE id = ?`
 	userExistsQuery     = `SELECT COUNT(*) FROM users WHERE id = ?`
 )
+
+// GetActiveByKeyHash: aplikasi aktif pemilik kunci (hash SHA-256 hex). nil bila tidak ada.
+func (r *appRepo) GetActiveByKeyHash(keyHash string) (*model.App, error) {
+	var app model.App
+	if err := r.db.Raw(getActiveByKeyHashQuery, keyHash).Scan(&app).Error; err != nil {
+		return nil, err
+	}
+	if app.ID == 0 {
+		return nil, nil
+	}
+	return &app, nil
+}
 
 func (r *appRepo) GetMyApps(userID int) ([]*model.App, error) {
 	var rows []*model.App

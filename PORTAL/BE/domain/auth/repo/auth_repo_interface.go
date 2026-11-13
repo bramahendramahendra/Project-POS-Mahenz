@@ -8,13 +8,15 @@ import (
 
 type (
 	AuthRepoInterface interface {
-		GetUserByUsername(username string) (*model.User, error)
-		GetUserByID(id int) (*model.User, error)
-		GetPasswordHashByID(id int) (string, error)
-		UpdateOwnPassword(id int, hashedPassword string) error
+		GetProfileByAuthUserID(authUserID int) (*model.User, error)
+		GetUnlinkedProfileByUsername(username string) (*model.User, error)
+		LinkProfile(id, authUserID int, username, fullName string) error
+		UpdateProfile(id int, username, fullName string) error
+		CreateProfile(authUserID int, username, fullName string) (int, error)
 		CreateSession(session *model.Session) error
 		GetSessionByToken(token string) (*model.Session, error)
 		GetSessionByRefreshToken(token string) (*model.Session, error)
+		ClearSessionMustChangePassword(userID int) error
 		DeleteSessionByUserID(userID int) error
 		DeleteSessionByToken(token string) error
 	}

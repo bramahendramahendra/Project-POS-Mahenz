@@ -1,25 +1,22 @@
 package segment
 
 import (
-	role_repo "portal_api/domain/role/repo"
 	user_handler "portal_api/domain/user/handler"
 	user_repo "portal_api/domain/user/repo"
 	user_service "portal_api/domain/user/service"
-	middleware "portal_api/middleware"
+	"portal_api/pkg/authclient"
 	pkgdatabase "portal_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-// UserRoutes: pengelolaan user Portal. Hanya role admin yang boleh mengakses.
-// (Portal tidak memakai sistem permission per menu seperti Toko.)
-func UserRoutes(r *gin.RouterGroup) {
+// UserRoutes: pengelolaan akun, diteruskan ke BE User. Hanya admin (diperiksa BE User).
+func UserRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	userRepo := user_repo.NewUserRepo(pkgdatabase.DB)
-	roleRepo := role_repo.NewRoleRepo(pkgdatabase.DB)
-	userService := user_service.NewUserService(userRepo, roleRepo)
+	userService := user_service.NewUserService(userRepo, authClient)
 	userHandler := user_handler.NewUserHandler(userService)
 
-	g := r.Group("/users", middleware.RoleMiddleware("admin"))
+	g := r.Group("/users")
 	{
 		g.POST("/list", userHandler.GetAll)
 		g.POST("/detail/:id", userHandler.GetByID)

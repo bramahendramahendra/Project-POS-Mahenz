@@ -6,20 +6,22 @@ import (
 )
 
 const (
-	getUserByUsernameQuery        = `SELECT u.id, u.username, u.password, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.must_change_password FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.username = ? LIMIT 1`
-	getUserByIDQuery              = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.must_change_password FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
-	getPasswordHashByIDQuery      = `SELECT password FROM users WHERE id = ? LIMIT 1`
-	updateOwnPasswordQuery        = `UPDATE users SET password = ?, must_change_password = 0, updated_at = ? WHERE id = ?`
-	createSessionQuery            = `INSERT INTO sessions (user_id, user_role, token, refresh_token, device_info, ip_address, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE user_role=VALUES(user_role), token=VALUES(token), refresh_token=VALUES(refresh_token), device_info=VALUES(device_info), ip_address=VALUES(ip_address), expires_at=VALUES(expires_at), created_at=VALUES(created_at)`
-	getSessionByTokenQuery        = `SELECT s.id, s.user_id, s.user_role, s.token, s.device_info, s.expires_at, u.must_change_password FROM sessions s INNER JOIN users u ON u.id = s.user_id WHERE s.token = ? LIMIT 1`
-	getSessionByRefreshTokenQuery = `SELECT id, user_id, refresh_token, expires_at FROM sessions WHERE refresh_token = ? LIMIT 1`
-	deleteSessionByUserIDQuery    = `DELETE FROM sessions WHERE user_id = ?`
-	deleteSessionByTokenQuery     = `DELETE FROM sessions WHERE token = ?`
+	getProfileByAuthUserIDQuery       = `SELECT id, auth_user_id, username, full_name FROM users WHERE auth_user_id = ? LIMIT 1`
+	getUnlinkedProfileByUsernameQuery = `SELECT id, username, full_name FROM users WHERE username = ? AND auth_user_id IS NULL ORDER BY id LIMIT 1`
+	linkProfileQuery                  = `UPDATE users SET auth_user_id = ?, username = ?, full_name = ?, updated_at = ? WHERE id = ? AND auth_user_id IS NULL`
+	updateProfileQuery                = `UPDATE users SET username = ?, full_name = ?, updated_at = ? WHERE id = ?`
+	createProfileQuery                = `INSERT INTO users (auth_user_id, username, full_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`
+	createSessionQuery                = `INSERT INTO sessions (user_id, user_role, must_change_password, token, refresh_token, device_info, ip_address, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE user_role=VALUES(user_role), must_change_password=VALUES(must_change_password), token=VALUES(token), refresh_token=VALUES(refresh_token), device_info=VALUES(device_info), ip_address=VALUES(ip_address), expires_at=VALUES(expires_at), created_at=VALUES(created_at)`
+	getSessionByTokenQuery            = `SELECT s.id, s.user_id, u.auth_user_id, s.user_role, s.must_change_password, s.token, s.device_info, s.expires_at FROM sessions s INNER JOIN users u ON u.id = s.user_id WHERE s.token = ? AND u.auth_user_id IS NOT NULL LIMIT 1`
+	getSessionByRefreshTokenQuery     = `SELECT s.id, s.user_id, u.auth_user_id, s.device_info, s.refresh_token, s.expires_at FROM sessions s INNER JOIN users u ON u.id = s.user_id WHERE s.refresh_token = ? AND u.auth_user_id IS NOT NULL LIMIT 1`
+	clearSessionMustChangeQuery       = `UPDATE sessions SET must_change_password = 0 WHERE user_id = ?`
+	deleteSessionByUserIDQuery        = `DELETE FROM sessions WHERE user_id = ?`
+	deleteSessionByTokenQuery         = `DELETE FROM sessions WHERE token = ?`
 )
 
-func (r *authRepo) GetUserByUsername(username string) (*model.User, error) {
+func (r *authRepo) GetProfileByAuthUserID(authUserID int) (*model.User, error) {
 	var user model.User
-	if err := r.db.Raw(getUserByUsernameQuery, username).Scan(&user).Error; err != nil {
+	if err := r.db.Raw(getProfileByAuthUserIDQuery, authUserID).Scan(&user).Error; err != nil {
 		return nil, err
 	}
 	if user.ID == 0 {
@@ -28,9 +30,10 @@ func (r *authRepo) GetUserByUsername(username string) (*model.User, error) {
 	return &user, nil
 }
 
-func (r *authRepo) GetUserByID(id int) (*model.User, error) {
+// GetUnlinkedProfileByUsername: profil lama Portal (sebelum BE User) yang belum ditautkan.
+func (r *authRepo) GetUnlinkedProfileByUsername(username string) (*model.User, error) {
 	var user model.User
-	if err := r.db.Raw(getUserByIDQuery, id).Scan(&user).Error; err != nil {
+	if err := r.db.Raw(getUnlinkedProfileByUsernameQuery, username).Scan(&user).Error; err != nil {
 		return nil, err
 	}
 	if user.ID == 0 {
@@ -39,23 +42,30 @@ func (r *authRepo) GetUserByID(id int) (*model.User, error) {
 	return &user, nil
 }
 
-func (r *authRepo) GetPasswordHashByID(id int) (string, error) {
-	var hash string
-	if err := r.db.Raw(getPasswordHashByIDQuery, id).Scan(&hash).Error; err != nil {
-		return "", err
-	}
-	return hash, nil
+func (r *authRepo) LinkProfile(id, authUserID int, username, fullName string) error {
+	return r.db.Exec(linkProfileQuery, authUserID, username, fullName, time_helper.GetTimeNow(), id).Error
 }
 
-// UpdateOwnPassword mengganti password milik sendiri sekaligus menghapus
-// penanda "wajib ganti password".
-func (r *authRepo) UpdateOwnPassword(id int, hashedPassword string) error {
-	return r.db.Exec(updateOwnPasswordQuery, hashedPassword, time_helper.GetTimeNow(), id).Error
+func (r *authRepo) UpdateProfile(id int, username, fullName string) error {
+	return r.db.Exec(updateProfileQuery, username, fullName, time_helper.GetTimeNow(), id).Error
+}
+
+func (r *authRepo) CreateProfile(authUserID int, username, fullName string) (int, error) {
+	now := time_helper.GetTimeNow()
+	result := r.db.Exec(createProfileQuery, authUserID, username, fullName, now, now)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	var id int
+	if err := r.db.Raw(`SELECT id FROM users WHERE auth_user_id = ? LIMIT 1`, authUserID).Scan(&id).Error; err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func (r *authRepo) CreateSession(session *model.Session) error {
 	return r.db.Exec(createSessionQuery,
-		session.UserID, session.UserRole, session.Token, session.RefreshToken,
+		session.UserID, session.UserRole, session.MustChangePassword, session.Token, session.RefreshToken,
 		session.DeviceInfo, session.IPAddress, session.ExpiresAt, session.CreatedAt,
 	).Error
 }
@@ -80,6 +90,10 @@ func (r *authRepo) GetSessionByRefreshToken(token string) (*model.Session, error
 		return nil, nil
 	}
 	return &session, nil
+}
+
+func (r *authRepo) ClearSessionMustChangePassword(userID int) error {
+	return r.db.Exec(clearSessionMustChangeQuery, userID).Error
 }
 
 func (r *authRepo) DeleteSessionByUserID(userID int) error {

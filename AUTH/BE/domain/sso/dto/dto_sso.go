@@ -1,6 +1,7 @@
 package dto
 
 // LaunchRequest: user (sudah login di Portal) ingin membuka sebuah aplikasi.
+// Dikirim BE Portal atas nama user (header X-Acting-User-Id).
 type LaunchRequest struct {
 	AppCode string `json:"app_code" validate:"required,max=50"`
 }
@@ -11,17 +12,17 @@ type LaunchResponse struct {
 }
 
 // ExchangeRequest: dikirim BE aplikasi (server ke server) untuk menukar kode SSO.
-// Kunci aplikasi dikirim lewat header X-App-Key, bukan di body.
+// Aplikasi pemanggil dikenali dari kunci aplikasi (header X-App-Key), bukan dari body.
 type ExchangeRequest struct {
-	AppID string `json:"app_id" validate:"required,max=50"`
-	Code  string `json:"code"   validate:"required,max=128"`
+	Code string `json:"code" validate:"required,max=128"`
 }
 
+// ExchangeUser: identitas akun di BE User. Aplikasi menautkan profil lokalnya lewat id (auth_user_id).
 type ExchangeUser struct {
-	PortalUserID int    `json:"portal_user_id"`
-	Username     string `json:"username"`
-	FullName     string `json:"full_name"`
-	IsActive     bool   `json:"is_active"`
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	FullName string `json:"full_name"`
+	IsActive bool   `json:"is_active"`
 }
 
 type ExchangeResponse struct {

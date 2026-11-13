@@ -9,6 +9,7 @@ import (
 type (
 	AppRepoInterface interface {
 		GetMyApps(userID int) ([]*model.App, error)
+		GetActiveByKeyHash(keyHash string) (*model.App, error)
 
 		// Khusus admin
 		GetAll() ([]*model.AppAdmin, error)

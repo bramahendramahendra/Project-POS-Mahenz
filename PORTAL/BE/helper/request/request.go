@@ -47,3 +47,14 @@ func GetRequestContextData(c *gin.Context) map[string]string {
 		"req_body_str":   c.GetString("req_body_str"),
 	}
 }
+
+// ReadRawBody membaca body permintaan apa adanya (untuk diteruskan ke layanan lain) dan
+// mengembalikannya ke request agar bisa dibaca lagi.
+func ReadRawBody(c *gin.Context) ([]byte, error) {
+	bodyBytes, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		return nil, err
+	}
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	return bodyBytes, nil
+}

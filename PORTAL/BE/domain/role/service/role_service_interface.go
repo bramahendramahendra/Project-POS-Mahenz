@@ -1,26 +1,22 @@
 package service
 
 import (
-	dto "portal_api/domain/role/dto"
-	repo "portal_api/domain/role/repo"
+	"context"
+
+	"portal_api/pkg/authclient"
 )
 
 type (
+	// RoleServiceInterface: permintaan diteruskan ke BE User atas nama user yang sedang login.
 	RoleServiceInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*dto.RoleResponse, int64, error)
-		GetActiveOptions() ([]*dto.RoleOptionResponse, error)
-		GetByID(id int) (*dto.RoleResponse, error)
-		Create(req *dto.CreateRequest) (*dto.RoleResponse, error)
-		Update(req *dto.UpdateRequest) error
-		Delete(id int) error
-		ToggleStatus(id int) error
+		Forward(ctx context.Context, actingUserID int, path string, body []byte) (*authclient.Response, error)
 	}
 
 	roleService struct {
-		repo repo.RoleRepoInterface
+		client *authclient.Client
 	}
 )
 
-func NewRoleService(repo repo.RoleRepoInterface) *roleService {
-	return &roleService{repo: repo}
+func NewRoleService(client *authclient.Client) *roleService {
+	return &roleService{client: client}
 }

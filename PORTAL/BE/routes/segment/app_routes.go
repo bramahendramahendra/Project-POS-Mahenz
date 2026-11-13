@@ -2,34 +2,27 @@ package segment
 
 import (
 	app_handler "portal_api/domain/app/handler"
-	app_repo "portal_api/domain/app/repo"
 	app_service "portal_api/domain/app/service"
-	middleware "portal_api/middleware"
-	pkgdatabase "portal_api/pkg/database"
+	"portal_api/pkg/authclient"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AppRoutes(r *gin.RouterGroup) {
-	appRepo := app_repo.NewAppRepo(pkgdatabase.DB)
-	appService := app_service.NewAppService(appRepo)
-	appHandler := app_handler.NewAppHandler(appService)
+func AppRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
+	appHandler := app_handler.NewAppHandler(app_service.NewAppService(authClient))
 
 	g := r.Group("/apps")
 	{
 		// Semua user login: aplikasi miliknya.
 		g.POST("/my", appHandler.GetMy)
 
-		// Khusus admin: kelola aplikasi dan akses user.
-		admin := g.Group("", middleware.RoleMiddleware("admin"))
-		{
-			admin.POST("/list", appHandler.GetAll)
-			admin.POST("/create", appHandler.Create)
-			admin.POST("/update/:id", appHandler.Update)
-			admin.POST("/toggle-status/:id", appHandler.ToggleStatus)
-			admin.POST("/rotate-key/:id", appHandler.RotateKey)
-			admin.POST("/access/:user_id", appHandler.GetUserAccess)
-			admin.POST("/access/:user_id/set", appHandler.SetUserAccess)
-		}
+		// Khusus admin (diperiksa BE User): kelola aplikasi dan akses user.
+		g.POST("/list", appHandler.GetAll)
+		g.POST("/create", appHandler.Create)
+		g.POST("/update/:id", appHandler.Update)
+		g.POST("/toggle-status/:id", appHandler.ToggleStatus)
+		g.POST("/rotate-key/:id", appHandler.RotateKey)
+		g.POST("/access/:user_id", appHandler.GetUserAccess)
+		g.POST("/access/:user_id/set", appHandler.SetUserAccess)
 	}
 }

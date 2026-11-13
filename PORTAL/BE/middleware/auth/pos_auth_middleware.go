@@ -17,6 +17,7 @@ var allowedWhenMustChangePassword = map[string]bool{
 }
 
 // POSBearerAuthMiddleware validates JWT + single active session via sessions table.
+// Context: user_id = id profil lokal, auth_user_id = id akun BE User (untuk X-Acting-User-Id).
 // Bila user wajib mengganti password (password sementara hasil reset admin),
 // hanya endpoint pada allowedWhenMustChangePassword yang boleh diakses.
 func POSBearerAuthMiddleware(authService service_auth.AuthServiceInterface) gin.HandlerFunc {
@@ -44,6 +45,7 @@ func POSBearerAuthMiddleware(authService service_auth.AuthServiceInterface) gin.
 		}
 
 		c.Set("user_id", session.UserID)
+		c.Set("auth_user_id", session.AuthUserID)
 		c.Set("user_role", session.UserRole)
 		c.Set("device_info", session.DeviceInfo)
 		c.Set("token", token)

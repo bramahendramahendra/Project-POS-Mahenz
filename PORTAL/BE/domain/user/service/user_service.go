@@ -1,199 +1,54 @@
 package service
 
 import (
-	dto "portal_api/domain/user/dto"
-	model "portal_api/domain/user/model"
-	"portal_api/errors"
-	"portal_api/pkg/bcrypt"
+	"context"
+	"fmt"
+
+	"portal_api/pkg/authclient"
 )
 
-func (s *userService) GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, int64, error) {
-	users, total, err := s.repo.GetAll(req)
+func (s *userService) Forward(ctx context.Context, actingUserID int, path string, body []byte) (*authclient.Response, error) {
+	resp, err := s.client.Post(ctx, path, actingUserID, body)
 	if err != nil {
-		return nil, 0, err
+		return nil, authclient.ToServiceError(err)
 	}
-	result := make([]*dto.UserResponse, 0, len(users))
-	for _, u := range users {
-		result = append(result, toUserResponse(u))
-	}
-	return result, total, nil
+	return resp, nil
 }
 
-func (s *userService) GetByID(id int) (*dto.UserResponse, error) {
-	u, err := s.repo.GetByID(id)
+// ResetPassword: admin menetapkan password sementara. User wajib menggantinya saat login
+// berikutnya, dan sesi Portal-nya dihapus.
+func (s *userService) ResetPassword(ctx context.Context, actingUserID, id int, body []byte) (*authclient.Response, error) {
+	resp, err := s.Forward(ctx, actingUserID, fmt.Sprintf("/users/reset-password/%d", id), body)
 	if err != nil {
 		return nil, err
 	}
-	if u == nil {
-		return nil, &errors.NotFoundError{Message: "User tidak ditemukan"}
+	if err := s.repo.DeleteSessionByAuthUserID(id); err != nil {
+		return nil, err
 	}
-	return toUserResponse(u), nil
+	return resp, nil
 }
 
-func (s *userService) Create(req *dto.CreateRequest) (*dto.UserResponse, error) {
-	existing, err := s.repo.GetByUsername(req.Username, 0)
+// ToggleStatus: user yang dinonaktifkan langsung dikeluarkan dari Portal. (User yang
+// diaktifkan kembali tidak punya sesi, jadi penghapusan sesi tidak berdampak.)
+func (s *userService) ToggleStatus(ctx context.Context, actingUserID, id int, body []byte) (*authclient.Response, error) {
+	resp, err := s.Forward(ctx, actingUserID, fmt.Sprintf("/users/toggle-status/%d", id), body)
 	if err != nil {
 		return nil, err
 	}
-	if existing != nil {
-		return nil, &errors.BadRequestError{Message: "Username sudah digunakan"}
+	if err := s.repo.DeleteSessionByAuthUserID(id); err != nil {
+		return nil, err
 	}
+	return resp, nil
+}
 
-	hashed, err := bcrypt.HashPassword(req.Password)
+// Delete: akun dihapus di BE User, profil dan sesi lokal Portal ikut dihapus.
+func (s *userService) Delete(ctx context.Context, actingUserID, id int, body []byte) (*authclient.Response, error) {
+	resp, err := s.Forward(ctx, actingUserID, fmt.Sprintf("/users/delete/%d", id), body)
 	if err != nil {
 		return nil, err
 	}
-
-	user := &model.User{
-		Username: req.Username,
-		Password: hashed,
-		FullName: req.FullName,
-		RoleID:   req.RoleID,
-	}
-
-	newID, err := s.repo.Create(user)
-	if err != nil {
+	if err := s.repo.DeleteProfileByAuthUserID(id); err != nil {
 		return nil, err
 	}
-
-	created, err := s.repo.GetByID(int(newID))
-	if err != nil || created == nil {
-		return nil, &errors.InternalServerError{Message: "Gagal mengambil data user baru"}
-	}
-	return toUserResponse(created), nil
-}
-
-func (s *userService) Update(id, currentUserID int, req *dto.UpdateRequest) error {
-	u, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if u == nil {
-		return &errors.NotFoundError{Message: "User tidak ditemukan"}
-	}
-
-	if req.RoleID != u.RoleID {
-		if id == currentUserID {
-			return &errors.BadRequestError{Message: "Tidak bisa mengubah role akun sendiri"}
-		}
-
-		if u.IsActive && isAdminRoleName(u.RoleName) {
-			newRole, err := s.roleRepo.GetByID(req.RoleID)
-			if err != nil {
-				return err
-			}
-			if newRole == nil {
-				return &errors.NotFoundError{Message: "Role tidak ditemukan"}
-			}
-			if !isAdminRoleName(newRole.Name) {
-				remaining, err := s.repo.CountActiveAdmins(id)
-				if err != nil {
-					return err
-				}
-				if remaining == 0 {
-					return &errors.BadRequestError{Message: "Tidak bisa mengubah role admin aktif terakhir"}
-				}
-			}
-		}
-	}
-
-	return s.repo.Update(id, req)
-}
-
-// ResetPassword: admin menetapkan password sementara untuk user lain. User wajib
-// menggantinya saat login berikutnya, dan sesi aktifnya dihapus. Untuk akun sendiri
-// dipakai fitur ganti password di domain auth (membutuhkan password lama).
-func (s *userService) ResetPassword(id, currentUserID int, req *dto.ResetPasswordRequest) error {
-	if id == currentUserID {
-		return &errors.BadRequestError{Message: "Gunakan menu ganti password untuk akun sendiri"}
-	}
-
-	u, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if u == nil {
-		return &errors.NotFoundError{Message: "User tidak ditemukan"}
-	}
-
-	hashed, err := bcrypt.HashPassword(req.Password)
-	if err != nil {
-		return err
-	}
-	if err := s.repo.UpdatePassword(id, hashed, true); err != nil {
-		return err
-	}
-	return s.repo.DeleteSessionByUserID(id)
-}
-
-func (s *userService) Delete(id, currentUserID int) error {
-	if id == currentUserID {
-		return &errors.BadRequestError{Message: "Tidak bisa menghapus akun sendiri"}
-	}
-
-	u, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if u == nil {
-		return &errors.NotFoundError{Message: "User tidak ditemukan"}
-	}
-
-	if u.IsActive && isAdminRoleName(u.RoleName) {
-		remaining, err := s.repo.CountActiveAdmins(id)
-		if err != nil {
-			return err
-		}
-		if remaining == 0 {
-			return &errors.BadRequestError{Message: "Tidak bisa menghapus admin aktif terakhir"}
-		}
-	}
-
-	if err := s.repo.DeleteSessionByUserID(id); err != nil {
-		return err
-	}
-	return s.repo.Delete(id)
-}
-
-func (s *userService) ToggleStatus(id, currentUserID int) error {
-	if id == currentUserID {
-		return &errors.BadRequestError{Message: "Tidak bisa mengubah status akun sendiri"}
-	}
-
-	u, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if u == nil {
-		return &errors.NotFoundError{Message: "User tidak ditemukan"}
-	}
-
-	if u.IsActive && isAdminRoleName(u.RoleName) {
-		remaining, err := s.repo.CountActiveAdmins(id)
-		if err != nil {
-			return err
-		}
-		if remaining == 0 {
-			return &errors.BadRequestError{Message: "Tidak bisa menonaktifkan admin aktif terakhir"}
-		}
-	}
-
-	return s.repo.ToggleStatus(id)
-}
-
-func isAdminRoleName(name string) bool {
-	return name == "admin"
-}
-
-func toUserResponse(u *model.User) *dto.UserResponse {
-	return &dto.UserResponse{
-		ID:                 u.ID,
-		Username:           u.Username,
-		FullName:           u.FullName,
-		RoleID:             u.RoleID,
-		RoleName:           u.RoleName,
-		IsActive:           u.IsActive,
-		MustChangePassword: u.MustChangePassword,
-		CreatedAt:          u.CreatedAt,
-	}
+	return resp, nil
 }

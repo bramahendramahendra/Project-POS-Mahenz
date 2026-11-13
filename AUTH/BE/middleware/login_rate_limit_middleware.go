@@ -60,6 +60,8 @@ func (t *loginAttemptTracker) reset(key string) {
 
 // LoginRateLimitMiddleware membatasi percobaan login gagal per kombinasi IP+username
 // dalam sebuah window waktu, untuk mengurangi risiko brute-force password.
+// Di BE User koneksi selalu datang dari BE aplikasi, jadi IP yang dipakai adalah
+// client_ip (IP browser pengguna) yang diteruskan aplikasi; bila kosong, IP koneksi.
 func LoginRateLimitMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bodyBytes, _ := io.ReadAll(c.Request.Body)
@@ -67,10 +69,15 @@ func LoginRateLimitMiddleware() gin.HandlerFunc {
 
 		var body struct {
 			Username string `json:"username"`
+			ClientIP string `json:"client_ip"`
 		}
 		_ = json.Unmarshal(bodyBytes, &body)
 
-		key := c.ClientIP() + "|" + strings.ToLower(strings.TrimSpace(body.Username))
+		ip := strings.TrimSpace(body.ClientIP)
+		if ip == "" {
+			ip = c.ClientIP()
+		}
+		key := ip + "|" + strings.ToLower(strings.TrimSpace(body.Username))
 
 		if loginTracker.isBlocked(key) {
 			response_helper.WrapResponse(c, http.StatusTooManyRequests, "json", &global_dto.ResponseParams{

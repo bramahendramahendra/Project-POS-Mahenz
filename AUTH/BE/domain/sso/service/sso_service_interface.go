@@ -8,7 +8,7 @@ import (
 type (
 	SSOServiceInterface interface {
 		Launch(userID int, req *dto.LaunchRequest) (*dto.LaunchResponse, error)
-		Exchange(appKey string, req *dto.ExchangeRequest) (*dto.ExchangeResponse, error)
+		Exchange(callerAppID int, req *dto.ExchangeRequest) (*dto.ExchangeResponse, error)
 	}
 
 	ssoService struct {

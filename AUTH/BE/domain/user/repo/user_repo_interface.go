@@ -17,7 +17,6 @@ type (
 		UpdatePassword(id int, hashedPassword string, mustChange bool) error
 		Delete(id int) error
 		ToggleStatus(id int) error
-		DeleteSessionByUserID(userID int) error
 		CountActiveAdmins(excludeID int) (int64, error)
 	}
 

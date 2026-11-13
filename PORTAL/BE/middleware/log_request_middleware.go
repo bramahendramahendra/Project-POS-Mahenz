@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"portal_api/helper"
+	"portal_api/helper/logmask"
 	request_helper "portal_api/helper/request"
 	time_helper "portal_api/helper/time"
 	"portal_api/model"
@@ -69,7 +70,8 @@ func saveLogRequest(c *gin.Context, reqId, reqBodyStr string, blw *bodyLogWriter
 	method := c.Request.Method
 	endpoint := c.Request.RequestURI
 	statusCode := c.Writer.Status()
-	resBodyStr := blw.body.String()
+	reqBodyStr = logmask.Mask(reqBodyStr)
+	resBodyStr := logmask.Mask(blw.body.String())
 	ipAddress := c.ClientIP()
 	createdAt := time_helper.GetTimeNow()
 

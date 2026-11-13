@@ -48,7 +48,7 @@ func (h *SSOHandler) Launch(c *gin.Context) {
 }
 
 // Exchange: dipanggil BE aplikasi (server ke server) untuk menukar kode SSO menjadi identitas user.
-// Autentikasi memakai kunci aplikasi pada header X-App-Key.
+// Kunci aplikasi (X-App-Key) sudah diperiksa middleware AppKey.
 func (h *SSOHandler) Exchange(c *gin.Context) {
 	req, err := binder.BindJSON[dto.ExchangeRequest](c)
 	if err != nil {
@@ -60,7 +60,7 @@ func (h *SSOHandler) Exchange(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Exchange(c.GetHeader("X-App-Key"), &req)
+	data, err := h.service.Exchange(helper.GetCallerApp(c).ID, &req)
 	if err != nil {
 		c.Error(err)
 		return

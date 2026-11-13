@@ -1,18 +1,18 @@
 package handler
 
 import (
-	dto "portal_api/domain/app/dto"
-	"portal_api/domain/app/service"
-	global_dto "portal_api/dto"
-	"portal_api/errors"
+	"fmt"
+
+	service "portal_api/domain/app/service"
 	"portal_api/helper"
-	response_helper "portal_api/helper/response"
-	binder "portal_api/pkg/binder"
-	validator "portal_api/validation"
+	"portal_api/helper/forward"
+	"portal_api/pkg/authclient"
 
 	"github.com/gin-gonic/gin"
 )
 
+// AppHandler: daftar aplikasi, kunci aplikasi, dan akses user dikelola BE User.
+// Portal meneruskan permintaan atas nama user yang sedang login (admin diperiksa BE User).
 type AppHandler struct {
 	service service.AppServiceInterface
 }
@@ -21,163 +21,49 @@ func NewAppHandler(svc service.AppServiceInterface) *AppHandler {
 	return &AppHandler{service: svc}
 }
 
-func ok(c *gin.Context, status int, message string, data any) {
-	response_helper.WrapResponse(c, status, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: message,
-		Data:    data,
-	})
+func (h *AppHandler) send(c *gin.Context, path string, body []byte) (*authclient.Response, error) {
+	return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), path, body)
 }
 
-// GetMy mengembalikan aplikasi yang boleh dibuka oleh user yang sedang login.
+// GetMy: kartu aplikasi milik user yang sedang login (semua user).
 func (h *AppHandler) GetMy(c *gin.Context) {
-	data, err := h.service.GetMyApps(helper.GetUserID(c))
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	ok(c, 200, "Daftar aplikasi", data)
+	forward.Handle(c, func(body []byte) (*authclient.Response, error) { return h.send(c, "/apps/my", body) })
 }
-
-// ---- Khusus admin ----
 
 func (h *AppHandler) GetAll(c *gin.Context) {
-	data, err := h.service.GetAll()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	ok(c, 200, "Daftar aplikasi (admin)", data)
+	forward.Handle(c, func(body []byte) (*authclient.Response, error) { return h.send(c, "/apps/list", body) })
 }
 
 func (h *AppHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 201, "Aplikasi dibuat. Simpan kunci aplikasi sekarang, kunci tidak akan ditampilkan lagi", data)
+	forward.Handle(c, func(body []byte) (*authclient.Response, error) { return h.send(c, "/apps/create", body) })
 }
 
 func (h *AppHandler) Update(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.IDUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.UpdateRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(bodyReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.Update(uriReq.ID, &bodyReq); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 200, "Aplikasi diperbarui", nil)
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.send(c, fmt.Sprintf("/apps/update/%d", id), body)
+	})
 }
 
 func (h *AppHandler) ToggleStatus(c *gin.Context) {
-	req, err := binder.BindURI[dto.IDUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.ToggleStatus(req.ID); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 200, "Status aplikasi diubah", nil)
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.send(c, fmt.Sprintf("/apps/toggle-status/%d", id), body)
+	})
 }
 
 func (h *AppHandler) RotateKey(c *gin.Context) {
-	req, err := binder.BindURI[dto.IDUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.RotateKey(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 200, "Kunci baru dibuat. Simpan sekarang, kunci lama sudah tidak berlaku", data)
+	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.send(c, fmt.Sprintf("/apps/rotate-key/%d", id), body)
+	})
 }
 
 func (h *AppHandler) GetUserAccess(c *gin.Context) {
-	req, err := binder.BindURI[dto.UserUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.GetUserAccess(req.UserID)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 200, "Akses aplikasi user", data)
+	forward.HandleWithID(c, "user_id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.send(c, fmt.Sprintf("/apps/access/%d", id), body)
+	})
 }
 
 func (h *AppHandler) SetUserAccess(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.UserUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.SetUserAccessRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-	if err := validator.Validate.Struct(bodyReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.SetUserAccess(uriReq.UserID, &bodyReq); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-	ok(c, 200, "Akses aplikasi user diperbarui", nil)
+	forward.HandleWithID(c, "user_id", func(id int, body []byte) (*authclient.Response, error) {
+		return h.send(c, fmt.Sprintf("/apps/access/%d/set", id), body)
+	})
 }

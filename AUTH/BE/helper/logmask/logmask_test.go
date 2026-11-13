@@ -22,7 +22,7 @@ func TestMask_MasksSecretsAtAnyDepth(t *testing.T) {
 func TestMask_SSOCodeMaskedButStatusCodeKept(t *testing.T) {
 	ssoCode := strings.Repeat("ab", 32)
 	in := `{"code":"00","data":{"redirect_url":"/toko/sso?code=` + ssoCode + `"}}`
-	out := Mask(`{"code":"` + ssoCode + `"}`) + Mask(in)
+	out := Mask(`{"code":"`+ssoCode+`"}`) + Mask(in)
 
 	if strings.Contains(out, ssoCode) {
 		t.Errorf("kode SSO masih muncul di log: %s", out)

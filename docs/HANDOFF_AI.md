@@ -19,7 +19,7 @@ Satu repo, tiga aplikasi POS retail (Go/Gin/GORM/MySQL + React/Vite):
 - **Toko**: aplikasi POS lama (dipindah ke `TOKO/`), kini bisa login lewat Portal.
 - **Coffee**: POS kedai kopi baru (BELUM dibuat).
 
-Port: BE Portal 8080, Toko 8081, Coffee 8082. FE Portal 3000, Toko 3001, Coffee 3002.
+Port (Fase 3B, berlaku bertahap): BE User 8080 (hanya 127.0.0.1), Portal 8081 (sudah sejak 3B.3), Toko 8082 (3B.4, sementara masih 8081), Coffee 8083. FE Portal 3000, Toko 3001, Coffee 3002.
 Service systemd: `pos-portal-backend`, `pos-toko-backend`, `pos-coffee-backend`. DB berbeda per aplikasi.
 URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`, Toko `/toko/`, API Toko `/toko/api/`, Coffee kelak `/coffee/` dan `/coffee/api/`.
 
@@ -36,7 +36,8 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
 | Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
 | Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui). **4.1 berjalan sebagian lalu dihentikan** (riwayat #55): `COFFEE/BE` sudah ada (port lama 8082), menunggu Fase 3B |
-| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-73; rancangan rinci di bagian 5.0d **disetujui**; langkah berikutnya tahap 3B.1. Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
+| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1 dan 3B.2 selesai. **3B.3 selesai, menunggu persetujuan** (riwayat #59): BE Portal di 8081 menjadi klien BE User (uji API 53/53, browser 40/40). SSO Portal -> Toko di dev terputus sampai 3B.4. Berikutnya 3B.4 (Toko menjadi klien BE User, port 8082). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
+| Temuan keamanan | Password tersimpan asli di `log_requests` Toko/Portal/Coffee (riwayat #56). Keputusan 74: log lama dibiarkan; penyamaran (`helper/logmask`) sudah dipasang di BE User dan Portal (3B.3); berikutnya Toko (3B.4), Coffee (4.1 diulang) |
 | Deploy VPS (Portal, Toko, Coffee) | Ditunda sampai Coffee selesai di dev (keputusan 61) |
 
 Pekerjaan Fase 1-3.5 sudah di-commit user (commit berikutnya juga oleh user). Belum ada deploy ke VPS.
@@ -80,8 +81,9 @@ Salin `TOKO/BE` dan `TOKO/FE` ke `COFFEE/`, pangkas modul `supplier_return, expi
 User Toko dev: `Banana`, `BramaGanteng` (owner), `admin` (password `admin123`). Sejak tahap 3.6 (11 Nov 2026): skrip migrasi user sudah di-`--apply` pada DB dev (ketiga user Toko tertaut ke Portal), aplikasi `toko` di Portal dev memakai path `http://localhost:3001/`, dan `portal_credentials` Toko dev sudah terisi (kunci hasil rotate-key). Data uji: `kasir72589`, `web12286` (Portal+Toko, password `Baru12345`), `owner72589` (Toko saja, role owner, password `Owner12345`). Untuk produksi path tetap `/toko/` dan kunci dibuat ulang saat cutover.
 
 ## 9. Cara menjalankan dev
-Jalankan di 4 terminal terpisah (MySQL WAMP harus hidup):
-- `PORTAL/BE`: `go run main.go` (8080); `PORTAL/FE`: `npm.cmd run dev` (3000)
+Jalankan di terminal terpisah (MySQL WAMP harus hidup):
+- `AUTH/BE` (BE User): `go run main.go` (`127.0.0.1:8080`, wajib hidup sebelum Portal dipakai)
+- `PORTAL/BE`: `go run main.go` (8081 sejak 3B.3; kunci Portal di tabel `auth_credentials`); `PORTAL/FE`: `npm.cmd run dev` (3000)
 - `TOKO/BE`: `go run main.go` (8081; migrasi DB otomatis saat startup); `TOKO/FE`: `npm.cmd run dev` (3001)
 Bila perintah berbeda, lihat README di masing-masing folder.
 

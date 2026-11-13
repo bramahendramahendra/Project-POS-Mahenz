@@ -14,7 +14,7 @@ func newSSOHandler() *sso_handler.SSOHandler {
 	return sso_handler.NewSSOHandler(sso_service.NewSSOService(repo))
 }
 
-// SSOLaunchRoutes: butuh login Portal (dipasang di grup protected).
+// SSOLaunchRoutes: Portal meminta kode SSO atas nama user yang bertindak.
 func SSOLaunchRoutes(r *gin.RouterGroup) {
 	h := newSSOHandler()
 
@@ -24,7 +24,7 @@ func SSOLaunchRoutes(r *gin.RouterGroup) {
 	}
 }
 
-// SSOExchangeRoutes: dipanggil BE aplikasi, diamankan kunci aplikasi (dipasang di grup public).
+// SSOExchangeRoutes: BE aplikasi menukar kode SSO (kode harus milik aplikasi pemanggil).
 func SSOExchangeRoutes(r *gin.RouterGroup) {
 	h := newSSOHandler()
 

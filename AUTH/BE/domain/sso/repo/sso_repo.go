@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	getLaunchAppQuery  = `SELECT a.id, a.code, a.path FROM apps a INNER JOIN user_apps ua ON ua.app_id = a.id WHERE ua.user_id = ? AND a.code = ? AND a.is_active = 1 LIMIT 1`
+	getLaunchAppQuery  = `SELECT a.id, a.code, a.path FROM apps a INNER JOIN user_apps ua ON ua.app_id = a.id WHERE ua.user_id = ? AND a.code = ? AND a.is_active = 1 AND a.show_in_portal = 1 LIMIT 1`
 	createCodeQuery    = `INSERT INTO sso_codes (code_hash, user_id, app_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
-	getCodeByHashQuery = `SELECT c.id, c.user_id, c.app_id, c.expires_at, c.used_at, a.code AS app_code, COALESCE(a.app_key_hash, '') AS app_key_hash, a.is_active AS app_active, u.username, u.full_name, u.is_active AS user_active FROM sso_codes c INNER JOIN apps a ON a.id = c.app_id INNER JOIN users u ON u.id = c.user_id WHERE c.code_hash = ? LIMIT 1`
+	getCodeByHashQuery = `SELECT c.id, c.user_id, c.app_id, c.expires_at, c.used_at, a.code AS app_code, a.is_active AS app_active, u.username, u.full_name, u.is_active AS user_active FROM sso_codes c INNER JOIN apps a ON a.id = c.app_id INNER JOIN users u ON u.id = c.user_id WHERE c.code_hash = ? LIMIT 1`
 	markUsedQuery      = `UPDATE sso_codes SET used_at = ? WHERE id = ? AND used_at IS NULL`
 	hasAccessQuery     = `SELECT COUNT(*) FROM user_apps WHERE user_id = ? AND app_id = ?`
 	deleteExpiredQuery = `DELETE FROM sso_codes WHERE expires_at < ?`

@@ -1,21 +1,22 @@
 package service
 
 import (
-	dto "portal_api/domain/sso/dto"
-	repo "portal_api/domain/sso/repo"
+	"context"
+
+	"portal_api/pkg/authclient"
 )
 
 type (
+	// SSOServiceInterface: permintaan diteruskan ke BE User atas nama user yang sedang login.
 	SSOServiceInterface interface {
-		Launch(userID int, req *dto.LaunchRequest) (*dto.LaunchResponse, error)
-		Exchange(appKey string, req *dto.ExchangeRequest) (*dto.ExchangeResponse, error)
+		Forward(ctx context.Context, actingUserID int, path string, body []byte) (*authclient.Response, error)
 	}
 
 	ssoService struct {
-		repo repo.SSORepoInterface
+		client *authclient.Client
 	}
 )
 
-func NewSSOService(repo repo.SSORepoInterface) *ssoService {
-	return &ssoService{repo: repo}
+func NewSSOService(client *authclient.Client) *ssoService {
+	return &ssoService{client: client}
 }

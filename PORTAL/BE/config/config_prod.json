@@ -1,5 +1,6 @@
 {
   "SecretKey": "",
+  "AuthUrl": "http://127.0.0.1:8080/api",
   "TokenExpire": 28800,
   "RefreshTokenExpire": 604800,
   "FormatTime": "2006-01-02 15:04:05",

@@ -71,3 +71,10 @@ func setJsonResponse(c *gin.Context, statusCode int, data *global_dto.ResponsePa
 	}
 	c.JSON(statusCode, responseData)
 }
+
+// WriteRaw menulis body JSON yang sudah jadi (mis. jawaban BE User yang diteruskan apa adanya),
+// dengan header keamanan yang sama seperti WrapResponse.
+func WriteRaw(c *gin.Context, statusCode int, body []byte) {
+	ensureSecurityHeaders(c)
+	c.Data(statusCode, "application/json; charset=utf-8", body)
+}

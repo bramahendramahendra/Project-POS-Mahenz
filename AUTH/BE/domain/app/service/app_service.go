@@ -10,6 +10,7 @@ import (
 	dto "auth_api/domain/app/dto"
 	model "auth_api/domain/app/model"
 	"auth_api/errors"
+	"auth_api/helper"
 )
 
 // code aplikasi dipakai sebagai app_id pada SSO: huruf kecil, angka, dan strip.
@@ -108,15 +109,17 @@ func (s *appService) Update(id int, req *dto.UpdateRequest) error {
 }
 
 func (s *appService) ToggleStatus(id int) error {
-	if err := s.mustExist(id); err != nil {
+	if err := s.mustNotBePortal(id, "Aplikasi Portal tidak bisa dinonaktifkan: semua login akan berhenti"); err != nil {
 		return err
 	}
 	return s.repo.ToggleStatus(id)
 }
 
 // RotateKey membuat kunci baru. Kunci lama langsung tidak berlaku.
+// Kunci Portal tidak diputar dari sini (Portal akan langsung terputus); pakai perintah
+// server cmd/set_app_key lalu pasang kunci baru di database Portal.
 func (s *appService) RotateKey(id int) (*dto.RotateKeyResponse, error) {
-	if err := s.mustExist(id); err != nil {
+	if err := s.mustNotBePortal(id, "Kunci Portal hanya bisa diganti lewat perintah di server"); err != nil {
 		return nil, err
 	}
 
@@ -178,6 +181,21 @@ func (s *appService) mustExist(id int) error {
 	}
 	if app == nil {
 		return &errors.NotFoundError{Message: "Aplikasi tidak ditemukan"}
+	}
+	return nil
+}
+
+// mustNotBePortal: aplikasi harus ada dan bukan Portal (aksi yang memutus Portal ditolak).
+func (s *appService) mustNotBePortal(id int, message string) error {
+	app, err := s.repo.GetByID(id)
+	if err != nil {
+		return err
+	}
+	if app == nil {
+		return &errors.NotFoundError{Message: "Aplikasi tidak ditemukan"}
+	}
+	if app.Code == helper.PortalAppCode {
+		return &errors.BadRequestError{Message: message}
 	}
 	return nil
 }

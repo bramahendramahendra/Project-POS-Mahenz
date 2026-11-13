@@ -4,32 +4,38 @@ import (
 	app_handler "auth_api/domain/app/handler"
 	app_repo "auth_api/domain/app/repo"
 	app_service "auth_api/domain/app/service"
-	middleware "auth_api/middleware"
 	pkgdatabase "auth_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-func AppRoutes(r *gin.RouterGroup) {
+func newAppHandler() *app_handler.AppHandler {
 	appRepo := app_repo.NewAppRepo(pkgdatabase.DB)
-	appService := app_service.NewAppService(appRepo)
-	appHandler := app_handler.NewAppHandler(appService)
+	return app_handler.NewAppHandler(app_service.NewAppService(appRepo))
+}
+
+// MyAppRoutes: aplikasi milik user yang bertindak (kartu di halaman Aplikasi Portal).
+func MyAppRoutes(r *gin.RouterGroup) {
+	h := newAppHandler()
 
 	g := r.Group("/apps")
 	{
-		// Semua user login: aplikasi miliknya.
-		g.POST("/my", appHandler.GetMy)
+		g.POST("/my", h.GetMy)
+	}
+}
 
-		// Khusus admin: kelola aplikasi dan akses user.
-		admin := g.Group("", middleware.RoleMiddleware("admin"))
-		{
-			admin.POST("/list", appHandler.GetAll)
-			admin.POST("/create", appHandler.Create)
-			admin.POST("/update/:id", appHandler.Update)
-			admin.POST("/toggle-status/:id", appHandler.ToggleStatus)
-			admin.POST("/rotate-key/:id", appHandler.RotateKey)
-			admin.POST("/access/:user_id", appHandler.GetUserAccess)
-			admin.POST("/access/:user_id/set", appHandler.SetUserAccess)
-		}
+// AppAdminRoutes: kelola aplikasi dan akses user (grup sudah dibatasi Portal + admin).
+func AppAdminRoutes(r *gin.RouterGroup) {
+	h := newAppHandler()
+
+	g := r.Group("/apps")
+	{
+		g.POST("/list", h.GetAll)
+		g.POST("/create", h.Create)
+		g.POST("/update/:id", h.Update)
+		g.POST("/toggle-status/:id", h.ToggleStatus)
+		g.POST("/rotate-key/:id", h.RotateKey)
+		g.POST("/access/:user_id", h.GetUserAccess)
+		g.POST("/access/:user_id/set", h.SetUserAccess)
 	}
 }
