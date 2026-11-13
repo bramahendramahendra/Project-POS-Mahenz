@@ -36,7 +36,6 @@ export interface LoginRequest {
 export interface LoginOptions {
   direct_login_enabled: boolean
   portal_login_enabled: boolean
-  direct_login_forced: boolean
 }
 
 export interface SsoRequest {

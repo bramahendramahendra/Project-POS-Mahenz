@@ -25,19 +25,19 @@ type UserData struct {
 
 // LoginOptionsResponse: pilihan cara login yang tersedia (endpoint publik untuk halaman login).
 type LoginOptionsResponse struct {
-	// DirectLoginEnabled: true = form username + password boleh dipakai.
+	// DirectLoginEnabled: true = form username + password boleh dipakai (diperiksa BE User).
 	DirectLoginEnabled bool `json:"direct_login_enabled"`
-	// PortalLoginEnabled: true = login lewat Portal sudah diatur di server ini.
+	// PortalLoginEnabled: true = layanan akun (BE User) sudah diatur di server ini, sehingga
+	// login lewat Portal (SSO) bisa dipakai.
 	PortalLoginEnabled bool `json:"portal_login_enabled"`
-	// DirectLoginForced: true = login langsung dipaksa aktif oleh flag darurat di config server.
-	DirectLoginForced bool `json:"direct_login_forced"`
 }
 
 type SetDirectLoginRequest struct {
 	Enabled *bool `json:"enabled" validate:"required"`
 }
 
-// SSORequest: kode sekali pakai dari Portal untuk ditukar menjadi sesi Toko.
+// SSORequest: kode sekali pakai (dibuat BE User saat kartu Toko dibuka di Portal) untuk
+// ditukar menjadi sesi Toko.
 type SSORequest struct {
 	Code       string `json:"code" validate:"required,max=128"`
 	DeviceInfo string `json:"device_info" validate:"omitempty,oneof=desktop web android"`
@@ -62,4 +62,31 @@ type RefreshResponse struct {
 	Token        string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+// VerifyRequest: body POST /login/verify ke BE User. client_ip = IP pengguna (pembatas login).
+type VerifyRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	ClientIP string `json:"client_ip"`
+}
+
+// AccountData: akun dari BE User (jawaban /login/verify dan bagian user dari /sso/exchange).
+type AccountData struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	FullName string `json:"full_name"`
+	IsActive bool   `json:"is_active"`
+}
+
+// ExchangeRequest: body POST /sso/exchange ke BE User.
+type ExchangeRequest struct {
+	Code string `json:"code"`
+}
+
+// ExchangeResult: jawaban /sso/exchange dari BE User.
+type ExchangeResult struct {
+	Valid bool        `json:"valid"`
+	AppID string      `json:"app_id"` // kode aplikasi, mis. "toko"
+	User  AccountData `json:"user"`
 }

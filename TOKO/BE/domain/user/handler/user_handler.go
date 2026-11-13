@@ -74,32 +74,6 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 	})
 }
 
-func (h *UserHandler) Create(c *gin.Context) {
-	req, err := binder.BindJSON[dto.CreateRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.Create(&req)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "User berhasil dibuat",
-		Data:    data,
-	})
-}
-
 func (h *UserHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {
@@ -132,41 +106,6 @@ func (h *UserHandler) Update(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "User berhasil diperbarui",
-	})
-}
-
-func (h *UserHandler) ChangePassword(c *gin.Context) {
-	uriReq, err := binder.BindURI[dto.ChangePasswordUriRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(uriReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	bodyReq, err := binder.BindJSON[dto.ChangePasswordRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(bodyReq); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.ChangePassword(uriReq.ID, &bodyReq); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Password berhasil diubah",
 	})
 }
 

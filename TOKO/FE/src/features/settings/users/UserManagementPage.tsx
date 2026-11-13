@@ -1,32 +1,20 @@
-import { useRef } from 'react'
-import { Plus } from 'lucide-react'
-
-import { PageHeader, RoleGuard } from '@/shared/components'
-import { Button } from '@/shared/components/ui/button'
+import { PageHeader } from '@/shared/components'
 
 import { DirectLoginCard } from './components/DirectLoginCard'
 import { UserTable } from './components/UserTable'
-import type { UserTableHandle } from './components/UserTable'
 
+// Akun baru dan password diatur di Portal (keputusan 69). User yang pertama kali masuk ke Toko
+// muncul di sini dengan role "Menunggu Akses"; admin Toko mengatur role-nya.
 export function UserManagementPage() {
-  const tableRef = useRef<UserTableHandle>(null)
-
   return (
     <div className="space-y-4">
       <PageHeader
         title="Manajemen User"
+        description="Akun baru dan password diatur di Portal. User yang pertama kali masuk ke Toko muncul di sini dengan role Menunggu Akses."
         breadcrumbs={[{ label: 'Sistem' }, { label: 'Manajemen User' }]}
-        actions={
-          <RoleGuard menuKey="sistem.users" action="can_create">
-            <Button onClick={() => tableRef.current?.openAdd()} className="gap-1">
-              <Plus size={16} />
-              Tambah User
-            </Button>
-          </RoleGuard>
-        }
       />
       <DirectLoginCard />
-      <UserTable ref={tableRef} />
+      <UserTable />
     </div>
   )
 }

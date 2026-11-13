@@ -20,15 +20,7 @@ export interface UserListFilter {
   sort_order?: 'asc' | 'desc'
 }
 
-export interface CreateUserPayload {
-  username: string
-  password: string
-  full_name: string
+// Toko hanya mengubah role profil lokal (keputusan 76).
+export interface UpdateUserPayload {
   role_id: number
-}
-
-export type UpdateUserPayload = Omit<CreateUserPayload, 'username' | 'password'>
-
-export interface ChangePasswordPayload {
-  password: string
 }

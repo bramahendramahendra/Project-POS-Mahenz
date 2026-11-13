@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"pos_api/helper"
+	"pos_api/helper/logmask"
 	request_helper "pos_api/helper/request"
 	time_helper "pos_api/helper/time"
 	"pos_api/model"
@@ -69,7 +70,8 @@ func saveLogRequest(c *gin.Context, reqId, reqBodyStr string, blw *bodyLogWriter
 	method := c.Request.Method
 	endpoint := c.Request.RequestURI
 	statusCode := c.Writer.Status()
-	resBodyStr := blw.body.String()
+	reqBodyStr = logmask.Mask(reqBodyStr)
+	resBodyStr := logmask.Mask(blw.body.String())
 	ipAddress := c.ClientIP()
 	createdAt := time_helper.GetTimeNow()
 

@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useState } from 'react'
+import { useState } from 'react'
 
 import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
@@ -11,16 +11,11 @@ import {
   useUserListQuery,
 } from '../users.api'
 import type { AppUser, UserListFilter } from '../users.types'
-import { ChangePasswordModal } from './ChangePasswordModal'
 import { UserFilterBar } from './UserFilterBar'
 import { UserFormModal } from './UserFormModal'
 import { buildUserColumns } from './UserTableColumns'
 
-export interface UserTableHandle {
-  openAdd: () => void
-}
-
-export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(_, ref) {
+export function UserTable() {
   const { user: currentUser } = useAuth()
 
   const [filter, setFilter] = useState<UserListFilter>({ page: 1, limit: 10, search: '' })
@@ -30,12 +25,10 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
   const pageSizeOptions = usePageSizeOptions()
 
   const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
-  const { isOpen: changePassOpen, open: openChangePass, close: closeChangePass } = useDisclosure()
   const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
   const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
 
   const [editingUser, setEditingUser] = useState<AppUser | null>(null)
-  const [changePassUser, setChangePassUser] = useState<AppUser | null>(null)
   const [deletingUser, setDeletingUser] = useState<AppUser | null>(null)
   const [togglingUser, setTogglingUser] = useState<AppUser | null>(null)
 
@@ -45,13 +38,6 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
 
   const { mutate: deleteUser, isPending: isDeleting } = useDeleteUserMutation()
   const { mutate: toggleStatus, isPending: isToggling } = useToggleUserStatusMutation()
-
-  const handleOpenAdd = () => {
-    setEditingUser(null)
-    openForm()
-  }
-
-  useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd }))
 
   const handleFilterChange = (newFilter: UserListFilter) => {
     setFilter(newFilter)
@@ -78,16 +64,6 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
   const handleCloseForm = () => {
     closeForm()
     setEditingUser(null)
-  }
-
-  const handleOpenChangePassword = (user: AppUser) => {
-    setChangePassUser(user)
-    openChangePass()
-  }
-
-  const handleCloseChangePassword = () => {
-    closeChangePass()
-    setChangePassUser(null)
   }
 
   const handleOpenDelete = (user: AppUser) => {
@@ -129,7 +105,6 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
   const columns = buildUserColumns({
     currentUserId: currentUser?.id,
     onEdit: handleOpenEdit,
-    onChangePassword: handleOpenChangePassword,
     onToggleStatus: handleOpenToggle,
     onDelete: handleOpenDelete,
   })
@@ -148,7 +123,7 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
         emptyDescription={
           hasFilter
             ? 'Coba ubah kata kunci atau filter pencarian Anda.'
-            : 'Tambah user pertama Anda untuk memulai.'
+            : 'User muncul di sini setelah pertama kali masuk ke Toko.'
         }
         pagination={{
           page,
@@ -166,14 +141,6 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
           if (!open) handleCloseForm()
         }}
         user={editingUser}
-      />
-
-      <ChangePasswordModal
-        open={changePassOpen}
-        onOpenChange={(open) => {
-          if (!open) handleCloseChangePassword()
-        }}
-        user={changePassUser}
       />
 
       <ConfirmDialog
@@ -203,4 +170,4 @@ export const UserTable = forwardRef<UserTableHandle, object>(function UserTable(
       />
     </div>
   )
-})
+}

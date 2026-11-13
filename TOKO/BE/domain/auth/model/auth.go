@@ -2,21 +2,17 @@ package model
 
 import "time"
 
+// User: profil lokal Toko. Ditautkan ke akun BE User lewat AuthUserID; role, PIN, dan
+// aktif/nonaktif milik Toko, sedangkan username, password, dan nama dikelola BE User.
 type User struct {
-	ID        int       `gorm:"column:id"`
-	Username  string    `gorm:"column:username"`
-	Password  string    `gorm:"column:password"`
-	FullName  string    `gorm:"column:full_name"`
-	RoleID    int       `gorm:"column:role_id"`
-	RoleName  string    `gorm:"column:role_name"`
-	IsActive  bool      `gorm:"column:is_active"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-}
-
-// PortalCredentials: kredensial aplikasi ini untuk menukar kode SSO ke Portal (tabel portal_credentials).
-type PortalCredentials struct {
-	AppID  string `gorm:"column:app_id"`
-	AppKey string `gorm:"column:app_key"`
+	ID         int       `gorm:"column:id"`
+	AuthUserID int       `gorm:"column:auth_user_id"`
+	Username   string    `gorm:"column:username"`
+	FullName   string    `gorm:"column:full_name"`
+	RoleID     int       `gorm:"column:role_id"`
+	RoleName   string    `gorm:"column:role_name"`
+	IsActive   bool      `gorm:"column:is_active"`
+	CreatedAt  time.Time `gorm:"column:created_at"`
 }
 
 type Session struct {

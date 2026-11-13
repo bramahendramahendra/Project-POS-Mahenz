@@ -1,4 +1,4 @@
-import { KeyRound, Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
+import { Lock, LockOpen, Pencil, Trash2 } from 'lucide-react'
 
 import { RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
@@ -20,13 +20,12 @@ function roleBadgeClass(roleName: string): string {
 export interface UserColumnHandlers {
   currentUserId?: number
   onEdit: (user: AppUser) => void
-  onChangePassword: (user: AppUser) => void
   onToggleStatus: (user: AppUser) => void
   onDelete: (user: AppUser) => void
 }
 
 export function buildUserColumns(handlers: UserColumnHandlers): ColumnDef<AppUser>[] {
-  const { currentUserId, onEdit, onChangePassword, onToggleStatus, onDelete } = handlers
+  const { currentUserId, onEdit, onToggleStatus, onDelete } = handlers
 
   return [
     {
@@ -67,7 +66,7 @@ export function buildUserColumns(handlers: UserColumnHandlers): ColumnDef<AppUse
       key: 'actions',
       header: 'Aksi',
       align: 'center',
-      width: '160px',
+      width: '130px',
       cell: (row) => {
         const isSelf = row.id === currentUserId
         return (
@@ -80,14 +79,6 @@ export function buildUserColumns(handlers: UserColumnHandlers): ColumnDef<AppUse
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Edit</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={() => onChangePassword(row)}>
-                    <KeyRound size={14} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Ganti Password</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

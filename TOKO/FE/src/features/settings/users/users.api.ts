@@ -7,8 +7,6 @@ import type { PaginatedData } from '@/shared/types'
 
 import type {
   AppUser,
-  ChangePasswordPayload,
-  CreateUserPayload,
   UpdateUserPayload,
   UserListFilter,
 } from './users.types'
@@ -17,18 +15,6 @@ export function useUserListQuery(filter: UserListFilter) {
   return useQuery({
     queryKey: queryKeys.users.list(filter as unknown as Record<string, unknown>),
     queryFn: () => api.post<PaginatedData<AppUser>>('/users/list', filter),
-  })
-}
-
-export function useCreateUserMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateUserPayload) => api.post<AppUser>('/users/create', payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.users.all() })
-      toast.success('User berhasil ditambahkan')
-    },
-    onError: (e: Error) => toast.error(e.message),
   })
 }
 
@@ -41,15 +27,6 @@ export function useUpdateUserMutation() {
       qc.invalidateQueries({ queryKey: queryKeys.users.all() })
       toast.success('User berhasil diperbarui')
     },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useChangePasswordMutation() {
-  return useMutation({
-    mutationFn: ({ id, ...payload }: ChangePasswordPayload & { id: number }) =>
-      api.post<void>(`/users/change-password/${id}`, payload),
-    onSuccess: () => toast.success('Password berhasil diubah'),
     onError: (e: Error) => toast.error(e.message),
   })
 }

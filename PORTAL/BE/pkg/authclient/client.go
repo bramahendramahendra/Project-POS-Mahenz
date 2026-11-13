@@ -83,6 +83,18 @@ func NewClient(baseURL string, creds CredentialsReader) *Client {
 	}
 }
 
+// Configured: alamat BE User dan kunci aplikasi sudah diatur (belum menjamin kuncinya benar).
+func (c *Client) Configured() (bool, error) {
+	if c.baseURL == "" {
+		return false, nil
+	}
+	creds, err := c.creds.GetAuthCredentials()
+	if err != nil {
+		return false, err
+	}
+	return creds != nil && creds.AppKey != "", nil
+}
+
 // Post mengirim body JSON ke path (mis. "/users/list"). actingUserID 0 = tanpa user
 // (verifikasi login). Hasil:
 //   - 2xx: *Response.

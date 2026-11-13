@@ -11,10 +11,7 @@ type (
 	UserRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error)
 		GetByID(id int) (*model.User, error)
-		GetByUsername(username string, excludeID int) (*model.User, error)
-		Create(user *model.User) (int64, error)
 		Update(id int, req *dto.UpdateRequest) error
-		UpdatePassword(id int, hashedPassword string) error
 		Delete(id int) error
 		ToggleStatus(id int) error
 		DeleteSessionByUserID(userID int) error

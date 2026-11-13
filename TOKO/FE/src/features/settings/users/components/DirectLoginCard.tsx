@@ -18,7 +18,6 @@ export function DirectLoginCard() {
 
   const enabled = options.direct_login_enabled
   const portalReady = options.portal_login_enabled
-  const forced = options.direct_login_forced
 
   const handleChange = (next: boolean) => {
     if (next) {
@@ -30,9 +29,7 @@ export function DirectLoginCard() {
 
   let hint = 'Bila dimatikan, semua orang masuk lewat Portal dan form username + password disembunyikan.'
   if (!portalReady) {
-    hint = 'Login lewat Portal belum diatur di server ini, sehingga login langsung tidak dapat dimatikan.'
-  } else if (forced) {
-    hint = 'Dipaksa aktif oleh pengaturan darurat di server. Setelan ini baru berlaku setelah pengaturan darurat dimatikan.'
+    hint = 'Layanan akun belum diatur di server ini, sehingga login langsung tidak dapat dimatikan.'
   }
 
   return (

@@ -6,6 +6,7 @@ import (
 	error_helper "pos_api/helper/error"
 	log_helper "pos_api/helper/log"
 	"pos_api/middleware"
+	"pos_api/pkg/authclient"
 	"pos_api/pkg/database"
 	"pos_api/repository"
 
@@ -34,8 +35,9 @@ func Router(r *gin.Engine) {
 	r.NoMethod(methodNotAllowedHandler)
 
 	api := r.Group("/api")
-	publicRoutes(api)
-	protectedRoutes(api)
+	authClient := authclient.NewClient(config.Cfg.AuthUrl, repository.NewAuthCredentialsRepository(database.DB))
+	publicRoutes(api, authClient)
+	protectedRoutes(api, authClient)
 }
 
 func notFoundHandler(c *gin.Context) {

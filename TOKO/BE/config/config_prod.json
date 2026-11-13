@@ -28,8 +28,7 @@
     "MaxIdleTime": 600
   },
 
-  "PortalUrl": "http://127.0.0.1:8080/api",
-  "DirectLoginForceEnabled": false,
+  "AuthUrl": "http://127.0.0.1:8080/api",
 
   "CorsAllowOrigins": [
     "http://139.180.214.187"

@@ -8,14 +8,15 @@ import (
 	version_repo "pos_api/domain/version/repo"
 	version_service "pos_api/domain/version/service"
 	"pos_api/middleware"
+	"pos_api/pkg/authclient"
 	pkgdatabase "pos_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-func publicRoutes(r *gin.RouterGroup) {
+func publicRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	authRepo := auth_repo.NewAuthRepo(pkgdatabase.DB)
-	authSvc := auth_service.NewAuthService(authRepo)
+	authSvc := auth_service.NewAuthService(authRepo, authClient)
 	authHand := auth_handler.NewAuthHandler(authSvc)
 
 	authGroup := r.Group("/auth")
