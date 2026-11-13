@@ -31,12 +31,12 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.1: SSO di BE Toko (`/api/auth/sso`, migrasi 011) | SELESAI |
 | Fase 3.2: toggle login langsung (`direct_login_enabled`) | SELESAI |
 | Fase 3.3: FE Toko (base path, `/sso`, `/menunggu-akses`, toggle UI) | SELESAI, e2e browser dev lolos |
-| Fase 3.4: skrip `TOKO/BE/cmd/migrate_users_to_portal` | SELESAI, diuji pada salinan DB |
+| Fase 3.4: skrip `TOKO/BE/cmd/migrate_users_to_portal` | SELESAI, diuji pada salinan DB. **Digantikan** `cmd/migrate_users_to_auth` di 3B.5 (tujuan BE User) |
 | Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, disetujui user |
 | Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
 | Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
 | Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui). **4.1 berjalan sebagian lalu dihentikan** (riwayat #55): `COFFEE/BE` sudah ada (port lama 8082), menunggu Fase 3B |
-| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.3 selesai. **3B.4 selesai, menunggu persetujuan** (riwayat #60): BE/FE Toko di 8082 menjadi klien BE User (login form dan SSO lewat BE User, tautan otomatis, Manajemen User hanya role/status/hapus; uji API 31/31, browser v_toko 31/32 dengan 1 gagal karena data kas dev, browser Manajemen User 4/4). Keputusan 75-77. Berikutnya 3B.5 (skrip salin user Toko ke BE User, pindah data dev Portal). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
+| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.4 selesai (Toko klien BE User, riwayat #60). **3B.5 selesai, menunggu persetujuan** (riwayat #61): skrip `TOKO/BE/cmd/migrate_users_to_auth` (salin user Toko ke BE User, hash apa adanya) di-`--apply` di dev, password lama Toko berlaku (8/8); kolom/tabel lama dibuang (Portal migrasi 006, Toko 013); regresi API Portal 53/53 dan Toko 31/31. Keputusan 78-79. Berikutnya 3B.6 (konfigurasi menyeluruh, nginx, README, uji ujung ke ujung laptop/tablet/HP). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
 | Temuan keamanan | Password tersimpan asli di `log_requests` Toko/Portal/Coffee (riwayat #56). Keputusan 74: log lama dibiarkan; penyamaran (`helper/logmask`) sudah dipasang di BE User, Portal (3B.3), dan Toko (3B.4); berikutnya Coffee (4.1 diulang) |
 | Deploy VPS (Portal, Toko, Coffee) | Ditunda sampai Coffee selesai di dev (keputusan 61) |
 
