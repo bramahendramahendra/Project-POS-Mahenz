@@ -1,0 +1,125 @@
+import { Banknote, Eye } from 'lucide-react'
+
+import { StatusBadge } from '@/shared/components'
+import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
+import { formatDate, formatRupiah, getWIBNow } from '@/shared/utils'
+import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
+
+import type { Receivable } from '../receivables.types'
+
+interface ReceivableColumnHandlers {
+  onPay: (receivable: Receivable) => void
+  onDetail: (receivable: Receivable) => void
+}
+
+function isOverdue(dueDate?: string): boolean {
+  if (!dueDate) return false
+  return getWIBNow().isAfter(dueDate)
+}
+
+export function buildReceivableColumns({ onPay, onDetail }: ReceivableColumnHandlers): ColumnDef<Receivable>[] {
+  return [
+    {
+      key: 'transaction_code',
+      header: 'Kode Transaksi',
+      mobileHidden: true,
+      cell: (row) => (
+        <span className="font-mono font-semibold text-sm text-gray-800">
+          {row.transaction_code}
+        </span>
+      ),
+    },
+    {
+      key: 'customer_name',
+      header: 'Pelanggan',
+      mobileLabel: true,
+      cell: (row) => <span className="font-medium">{row.customer_name}</span>,
+    },
+    {
+      key: 'total_amount',
+      header: 'Total Piutang',
+      align: 'right',
+      cell: (row) => <span>{formatRupiah(row.total_amount)}</span>,
+    },
+    {
+      key: 'paid_amount',
+      header: 'Sudah Dibayar',
+      align: 'right',
+      cell: (row) => <span className="text-green-600">{formatRupiah(row.paid_amount)}</span>,
+    },
+    {
+      key: 'remaining_amount',
+      header: 'Sisa',
+      align: 'right',
+      cell: (row) => (
+        <span className={row.remaining_amount > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}>
+          {formatRupiah(row.remaining_amount)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: 'due_date',
+      header: 'Jatuh Tempo',
+      cell: (row) =>
+        row.due_date ? (
+          <span
+            className={
+              isOverdue(row.due_date) && row.status !== 'paid' && row.status !== 'void'
+                ? 'text-red-600 font-medium'
+                : 'text-gray-600'
+            }
+          >
+            {formatDate(row.due_date)}
+            {isOverdue(row.due_date) && row.status !== 'paid' && row.status !== 'void' && ' ⚠'}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-sm">—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      align: 'center',
+      width: '100px',
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-500 hover:text-blue-600"
+                onClick={() => onDetail(row)}
+              >
+                <Eye size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Detail</TooltipContent>
+          </Tooltip>
+          {row.status !== 'paid' && row.status !== 'void' && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-gray-500 hover:text-green-600"
+                  onClick={() => onPay(row)}
+                >
+                  <Banknote size={14} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Bayar</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+  ]
+}

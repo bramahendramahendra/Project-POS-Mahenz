@@ -1,0 +1,187 @@
+import { FormModal, StatusBadge, SummaryCard } from '@/shared/components'
+import { Button } from '@/shared/components/ui/button'
+import { formatDate, formatRupiah } from '@/shared/utils'
+
+import { useSupplierPurchaseDetailQuery, useSupplierPurchasePaymentsQuery } from '../purchases.api'
+interface PurchaseDetailModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  purchaseId: number | null
+}
+
+
+export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: PurchaseDetailModalProps) {
+  const enabled = open && (purchaseId ?? 0) > 0
+
+  const { data: purchase, isLoading: loadingPurchase } = useSupplierPurchaseDetailQuery(
+    enabled ? purchaseId : null,
+  )
+  const { data: payments, isLoading: loadingPayments } = useSupplierPurchasePaymentsQuery(
+    enabled ? purchaseId : null,
+  )
+
+  const isLoading = loadingPurchase || loadingPayments
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Detail Pembelian"
+      size="lg"
+      hideFooter
+    >
+      {isLoading || !purchase ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-8 animate-pulse rounded-md bg-gray-100" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-5 text-sm">
+          {/* Info Header */}
+          <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <InfoField label="Kode PO">
+              <span className="font-mono font-semibold text-blue-700">{purchase.purchase_code}</span>
+            </InfoField>
+            <InfoField label="No. Faktur">
+              <span className="font-medium">{purchase.invoice_number}</span>
+            </InfoField>
+            <InfoField label="Tanggal Pembelian" value={formatDate(purchase.purchase_date)} />
+            <InfoField label="Supplier" value={purchase.supplier_name || '—'} />
+            <InfoField label="Dicatat Oleh" value={purchase.user_name || '—'} />
+            <InfoField label="Status">
+              <div className="flex gap-1.5">
+                <StatusBadge status={purchase.payment_status} />
+                {purchase.status === 'void' && <StatusBadge status="void" />}
+              </div>
+            </InfoField>
+            {purchase.notes && (
+              <div className="col-span-2">
+                <InfoField label="Catatan" value={purchase.notes} />
+              </div>
+            )}
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 gap-2 border-t pt-4 sm:grid-cols-4">
+            <SummaryCard label="Subtotal" value={formatRupiah(purchase.total_amount + purchase.discount_amount)} color="gray" />
+            <SummaryCard label="Diskon" value={formatRupiah(purchase.discount_amount)} color="orange" />
+            <SummaryCard label="Total" value={formatRupiah(purchase.total_amount)} color="blue" />
+            <SummaryCard
+              label="Sisa Hutang"
+              value={formatRupiah(purchase.remaining_amount)}
+              color={purchase.remaining_amount > 0 ? 'red' : 'green'}
+              sub={`Dibayar: ${formatRupiah(purchase.paid_amount)}`}
+            />
+          </div>
+
+          {/* Tabel Item */}
+          <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              Item Produk
+            </p>
+            {!purchase.items || purchase.items.length === 0 ? (
+              <p className="text-xs text-gray-400 py-2">Tidak ada item.</p>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['Produk', 'Qty', 'Satuan', 'Harga Beli', 'Subtotal'].map((h) => (
+                        <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchase.items.map((item, i) => (
+                      <tr key={item.id ?? i} className="border-t">
+                        <td className="px-2 py-1.5 font-medium">
+                          {item.product_name || `Produk #${item.product_id}`}
+                        </td>
+                        <td className="px-2 py-1.5 text-gray-700">{item.quantity}</td>
+                        <td className="px-2 py-1.5 text-gray-600">{item.unit}</td>
+                        <td className="px-2 py-1.5">{formatRupiah(item.purchase_price)}</td>
+                        <td className="px-2 py-1.5 font-medium">{formatRupiah(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Riwayat Pembayaran */}
+          <div className="border-t pt-4 space-y-2">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              Riwayat Pembayaran
+            </p>
+            {!payments || payments.length === 0 ? (
+              <p className="text-xs text-gray-400 py-2">Belum ada pembayaran yang dicatat.</p>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['#', 'Tanggal', 'Jumlah', 'Metode', 'Dicatat Oleh', 'Catatan'].map((h) => (
+                        <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((p, i) => (
+                      <tr key={p.id} className="border-t">
+                        <td className="px-2 py-1.5 text-gray-400">{i + 1}</td>
+                        <td className="px-2 py-1.5 text-gray-600">{formatDate(p.payment_date)}</td>
+                        <td className="px-2 py-1.5 font-semibold text-green-700">{formatRupiah(p.amount)}</td>
+                        <td className="px-2 py-1.5 text-gray-600 capitalize">{p.payment_method || '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-600">{p.user_name || '—'}</td>
+                        <td className="px-2 py-1.5 text-gray-500">{p.notes || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50 border-t">
+                    <tr>
+                      <td colSpan={2} className="px-2 py-1.5 font-medium text-gray-600">Total Dibayar</td>
+                      <td className="px-2 py-1.5 font-bold text-green-700">
+                        {formatRupiah(payments.reduce((s, p) => s + p.amount, 0))}
+                      </td>
+                      <td colSpan={3} />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end border-t pt-3">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Tutup
+            </Button>
+          </div>
+        </div>
+      )}
+    </FormModal>
+  )
+}
+
+function InfoField({
+  label,
+  value,
+  children,
+}: {
+  label: string
+  value?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-gray-500">{label}</p>
+      {children ?? <p className="font-medium text-gray-800">{value ?? '—'}</p>}
+    </div>
+  )
+}
+

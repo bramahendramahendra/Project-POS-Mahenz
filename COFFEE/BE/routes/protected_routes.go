@@ -22,6 +22,7 @@ func protectedRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	segment.UserRoutes(r)
 	segment.ProductCategoryRoutes(r)
 	segment.ProductUnitRoutes(r)
+	segment.IngredientRoutes(r)
 	segment.ProductRoutes(r)
 	segment.TransactionRoutes(r)
 	segment.CashDrawerRoutes(r)

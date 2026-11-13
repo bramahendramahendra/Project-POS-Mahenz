@@ -1,0 +1,76 @@
+/*
+ * Aturan cetak untuk komponen yang masih memakai window.print() langsung dengan
+ * pola .print-root (mis. PaymentReceiptModal, LabelPrintModal).
+ *
+ * Catatan: struk kasir (ReceiptPrint) TIDAK lagi mengandalkan @media print ini —
+ * ia dicetak lewat iframe tersembunyi (lihat printFrame.ts) yang punya CSS sendiri,
+ * sehingga bebas dari masalah halaman kosong/dobel.
+ *
+ * Pola di bawah: saat print, sembunyikan semua secara visual, tampilkan hanya
+ * subtree .print-root, lalu lepaskan .print-root dengan position: fixed agar tidak
+ * menambah tinggi dokumen (mencegah halaman kedua kosong).
+ */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .print-root {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 2mm !important;
+    transform: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  [role='dialog'] {
+    position: static !important;
+    transform: none !important;
+    inset: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  [data-radix-scroll-area-viewport] {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}
+
+@page {
+  margin: 4mm;
+}

@@ -1,0 +1,220 @@
+import { useEffect } from 'react'
+import { useForm, useWatch, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+
+import { FormModal } from '@/shared/components'
+import { Button } from '@/shared/components/ui/button'
+import { Separator } from '@/shared/components/ui/separator'
+import { Input } from '@/shared/components/ui/input'
+import { RupiahInput } from '@/shared/components/ui/rupiah-input'
+import { Label } from '@/shared/components/ui/label'
+import { Textarea } from '@/shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select'
+import { formatRupiah, todayStr } from '@/shared/utils'
+
+import { usePaySupplierPurchaseMutation } from '../purchases.api'
+import { usePaymentMethodsQuery } from '../payment-methods.api'
+import type { SupplierPurchase } from '../purchases.types'
+import { paymentSchema, type PaymentFormValues } from '../payment.schema'
+
+interface PaymentModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  purchase: SupplierPurchase | null
+}
+
+
+export function PaymentModal({ open, onOpenChange, purchase }: PaymentModalProps) {
+  const { mutate: pay, isPending } = usePaySupplierPurchaseMutation(purchase?.id ?? 0)
+  const { data: paymentMethods = [] } = usePaymentMethodsQuery()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    control,
+    formState: { errors },
+  } = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      amount: 0,
+      payment_date: todayStr(),
+      payment_method: 'cash',
+      notes: '',
+    },
+  })
+
+  useEffect(() => {
+    if (!open) return
+    reset({
+      amount: 0,
+      payment_date: todayStr(),
+      payment_method: 'cash',
+      notes: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  function handleBayarLunas() {
+    if (purchase) setValue('amount', purchase.remaining_amount)
+  }
+
+  function onSubmit(values: PaymentFormValues) {
+    pay(
+      {
+        amount:         values.amount,
+        payment_date:   values.payment_date,
+        payment_method: values.payment_method,
+        notes:          values.notes || undefined,
+      },
+      {
+        onSuccess: () => onOpenChange(false),
+      },
+    )
+  }
+
+  const amountValue = useWatch({ control, name: 'amount' })
+  const paymentMethodValue = useWatch({ control, name: 'payment_method' })
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Catat Pembayaran"
+      size="sm"
+      isLoading={isPending}
+      onSubmit={handleSubmit(onSubmit)}
+      submitLabel="Simpan Pembayaran"
+    >
+      {purchase && (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-gray-50 p-3 space-y-1.5 text-sm">
+            <InfoRow label="Supplier" value={purchase.supplier_name || '—'} />
+            <InfoRow label="No. Faktur" value={purchase.invoice_number} />
+            <Separator className="my-1" />
+            <InfoRow label="Total Tagihan" value={formatRupiah(purchase.total_amount)} />
+            <InfoRow
+              label="Sudah Dibayar"
+              value={formatRupiah(purchase.paid_amount)}
+              valueClass="text-green-600"
+            />
+            <InfoRow
+              label="Sisa Hutang"
+              value={formatRupiah(purchase.remaining_amount)}
+              valueClass="font-bold text-red-600"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pay-date">
+              Tanggal Pembayaran <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="pay-date"
+              type="date"
+              {...register('payment_date')}
+              className={errors.payment_date ? 'border-red-500' : ''}
+            />
+            {errors.payment_date && (
+              <p className="text-xs text-red-500">{errors.payment_date.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Metode Pembayaran <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={paymentMethodValue}
+              onValueChange={(v) => setValue('payment_method', v)}
+            >
+              <SelectTrigger className={errors.payment_method ? 'border-red-500' : ''}>
+                <SelectValue placeholder="Pilih metode" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((m) => (
+                  <SelectItem key={m.code} value={m.code}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.payment_method && (
+              <p className="text-xs text-red-500">{errors.payment_method.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="pay-amount">
+                Jumlah Bayar (Rp) <span className="text-red-500">*</span>
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                onClick={handleBayarLunas}
+              >
+                Bayar Lunas
+              </Button>
+            </div>
+            <Controller
+              control={control}
+              name="amount"
+              render={({ field }) => (
+                <RupiahInput
+                  id="pay-amount"
+                  value={field.value}
+                  onChange={field.onChange}
+                  className={errors.amount ? 'border-red-500' : ''}
+                />
+              )}
+            />
+            {errors.amount && <p className="text-xs text-red-500">{errors.amount.message}</p>}
+            {amountValue > 0 && amountValue < purchase.remaining_amount && (
+              <p className="text-xs text-yellow-600">
+                Sisa setelah bayar: {formatRupiah(purchase.remaining_amount - amountValue)}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="pay-notes">Catatan</Label>
+            <Textarea
+              id="pay-notes"
+              {...register('notes')}
+              placeholder="Catatan pembayaran (opsional)"
+              className="resize-none"
+              rows={2}
+            />
+          </div>
+        </div>
+      )}
+    </FormModal>
+  )
+}
+
+function InfoRow({
+  label,
+  value,
+  valueClass = 'font-medium',
+}: {
+  label: string
+  value: string
+  valueClass?: string
+}) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-gray-500">{label}</span>
+      <span className={valueClass}>{value}</span>
+    </div>
+  )
+}

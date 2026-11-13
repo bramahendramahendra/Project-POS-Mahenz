@@ -1,0 +1,310 @@
+import { forwardRef, useImperativeHandle, useState } from 'react'
+
+import { ConfirmDialog, DataTable } from '@/shared/components'
+import { useDisclosure, usePagination, usePageSizeOptions, useTableSelection } from '@/shared/hooks'
+import type { SortState } from '@/shared/components/DataTable/DataTable.types'
+import { useCategoryOptionsQuery } from '@/features/products/categories'
+
+import {
+  useProductListQuery,
+  useDeleteProductMutation,
+  useBulkToggleProductStatusMutation,
+  useToggleProductStatusMutation,
+} from '../products.api'
+import type { Product, ProductListFilter } from '../products.types'
+import { exportProductsToExcel } from '../products.utils'
+import { buildProductColumns } from './ProductTableColumns'
+import { ImportCsvModal } from './ImportCsvModal'
+import { LabelPrintModal } from './LabelPrintModal'
+import { ProductDetailModal } from './ProductDetailModal'
+import { ProductBulkActionBar } from './ProductBulkActionBar'
+import { ProductFilterBar } from './ProductFilterBar'
+import { ProductFormModal } from './ProductFormModal'
+
+export interface ProductTableHandle {
+  openAdd: () => void
+  openImport: () => void
+}
+
+export const ProductTable = forwardRef<ProductTableHandle, object>(function ProductTable(_, ref) {
+  const [filter, setFilter] = useState<ProductListFilter>({ page: 1, limit: 10, search: '' })
+  const [sortState, setSortState] = useState<SortState | undefined>(undefined)
+  
+  const { page, pageSize, onPageChange, onPageSizeChange, reset } = usePagination()
+  const pageSizeOptions = usePageSizeOptions()
+
+  const { isOpen: formOpen, open: openForm, close: closeForm } = useDisclosure()
+  const { isOpen: deleteOpen, open: openDelete, close: closeDelete } = useDisclosure()
+  const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
+  const { isOpen: importOpen, open: openImport, close: closeImport } = useDisclosure()
+  const { isOpen: labelOpen, open: openLabel, close: closeLabel } = useDisclosure()
+  const { isOpen: toggleOpen, open: openToggle, close: closeToggle } = useDisclosure()
+  const { isOpen: bulkToggleOpen, open: openBulkToggle, close: closeBulkToggle } = useDisclosure()
+
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null)
+  const [singleLabelProduct, setSingleLabelProduct] = useState<Product | null>(null)
+  const [togglingProduct, setTogglingProduct] = useState<Product | null>(null)
+
+  const { data: productData, isLoading } = useProductListQuery({ ...filter, page, limit: pageSize })
+  const products = productData?.data ?? []
+  const total = productData?.total ?? 0
+
+  const { data: categories = [] } = useCategoryOptionsQuery()
+
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProductMutation()
+  const { mutate: toggleStatus, isPending: isToggling } = useToggleProductStatusMutation()
+  const { mutate: bulkToggleStatus, isPending: isBulkToggling } = useBulkToggleProductStatusMutation()
+  const { selectedKeys, toggle, selectAll, clearSelection, hasSelection, count } =
+    useTableSelection<Product & { id: number }>()
+
+  const selectedProducts = products.filter((p) => selectedKeys.has(p.id))
+  const allActive = selectedProducts.length > 0 && selectedProducts.every((p) => p.is_active)
+  const allInactive = selectedProducts.length > 0 && selectedProducts.every((p) => !p.is_active)
+
+  const handleOpenAdd = () => {
+    setEditingProduct(null)
+    openForm()
+  }
+
+  useImperativeHandle(ref, () => ({ openAdd: handleOpenAdd, openImport }))
+
+  const handleFilterChange = (newFilter: ProductListFilter) => {
+    setFilter(newFilter)
+    reset()
+  }
+
+  const handleReset = () => {
+    setFilter({ page: 1, limit: 10, search: '' })
+    setSortState(undefined)
+    reset()
+  }
+
+  const handleSort = (sort: SortState) => {
+    setSortState(sort)
+    setFilter((prev) => ({ ...prev, sort_by: sort.key, sort_order: sort.order }))
+    reset()
+  }
+
+  const handleOpenEdit = (product: Product) => {
+    setEditingProduct(product)
+    openForm()
+  }
+
+  const handleCloseForm = () => {
+    closeForm()
+    setEditingProduct(null)
+  }
+
+  const handleOpenDetail = (product: Product) => {
+    setDetailProduct(product)
+    openDetail()
+  }
+
+  const handleCloseDetail = () => {
+    closeDetail()
+    setDetailProduct(null)
+  }
+
+
+  const handleOpenDelete = (product: Product) => {
+    setDeletingProduct(product)
+    openDelete()
+  }
+
+  const handleCloseDelete = () => {
+    closeDelete()
+    setDeletingProduct(null)
+  }
+
+  const handleCloseLabel = () => {
+    closeLabel()
+    setSingleLabelProduct(null)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deletingProduct) return
+    deleteProduct(deletingProduct.id, {
+      onSuccess: () => handleCloseDelete(),
+    })
+  }
+
+  function handleExportExcel() {
+    exportProductsToExcel(selectedProducts)
+  }
+
+  function handleBulkToggleStatus() {
+    openBulkToggle()
+  }
+
+  const handleCloseBulkToggle = () => {
+    closeBulkToggle()
+  }
+
+  const handleConfirmBulkToggle = () => {
+    const ids = selectedProducts.map((p) => p.id)
+    const label = allActive ? 'dinonaktifkan' : 'diaktifkan'
+    bulkToggleStatus(
+      { ids, label },
+      {
+        onSuccess: () => {
+          clearSelection()
+          handleCloseBulkToggle()
+        },
+      }
+    )
+  }
+
+  const handleToggleStatus = (id: number) => {
+    const product = products.find((p) => p.id === id)
+    if (!product) return
+    setTogglingProduct(product)
+    openToggle()
+  }
+
+  const handleCloseToggle = () => {
+    closeToggle()
+    setTogglingProduct(null)
+  }
+
+  const handleConfirmToggle = () => {
+    if (!togglingProduct) return
+    toggleStatus(
+      { id: togglingProduct.id, isActive: togglingProduct.is_active },
+      { onSuccess: () => handleCloseToggle() }
+    )
+  }
+
+  const hasFilter = filter.search || filter.category_id || filter.is_active !== undefined
+
+  const columns = buildProductColumns({
+    onDetail: handleOpenDetail,
+    onEdit: handleOpenEdit,
+    onDelete: handleOpenDelete,
+    onLabel: (product) => {
+      setSingleLabelProduct(product)
+      openLabel()
+    },
+    onToggleStatus: handleToggleStatus,
+  })
+
+  return (
+    <div className="space-y-4">
+      <ProductFilterBar
+        filter={filter}
+        onChange={handleFilterChange}
+        onReset={handleReset}
+        categories={categories}
+      />
+
+      {hasSelection && (
+        <ProductBulkActionBar
+          count={count}
+          allActive={allActive}
+          allInactive={allInactive}
+          isBulkToggling={isBulkToggling}
+          onToggleStatus={handleBulkToggleStatus}
+          onExport={handleExportExcel}
+          onPrintLabel={openLabel}
+          onClear={clearSelection}
+        />
+      )}
+
+      <DataTable<Product & Record<string, unknown>>
+        columns={columns}
+        data={products as (Product & Record<string, unknown>)[]}
+        isLoading={isLoading}
+        currentSort={sortState}
+        onSort={handleSort}
+        emptyMessage={hasFilter ? 'Produk tidak ditemukan' : 'Belum ada produk'}
+        emptyDescription={
+          hasFilter 
+            ? 'Coba ubah filter atau kata kunci pencarian Anda.' 
+            : 'Tambah produk pertama Anda untuk memulai.'
+        }
+        pagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange,
+          onPageSizeChange,
+          pageSizeOptions,
+        }}
+        rowSelection={{
+          enabled: true,
+          rowKey: 'id',
+          selectedKeys,
+          onSelectionChange: (keys) => {
+            if (keys.size === 0) {
+              clearSelection()
+            } else if (keys.size >= products.length) {
+              selectAll(products as (Product & { id: number })[])
+            } else {
+              const added = [...keys].find((k) => !selectedKeys.has(k))
+              const removed = [...selectedKeys].find((k) => !keys.has(k))
+              if (added !== undefined) toggle(added)
+              else if (removed !== undefined) toggle(removed)
+            }
+          },
+        }}
+      />
+
+      <ProductFormModal
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) handleCloseForm() }}
+        product={editingProduct}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={(open) => { if (!open) handleCloseDelete() }}
+        title="Hapus Produk"
+        description={`Yakin ingin menghapus produk "${deletingProduct?.name}"? Tindakan ini tidak bisa dibatalkan.`}
+        confirmLabel="Ya, Hapus"
+        variant="destructive"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+      />
+
+      <ConfirmDialog
+        open={toggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseToggle() }}
+        title={togglingProduct?.is_active ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}
+        description={`Produk "${togglingProduct?.name}" akan di${togglingProduct?.is_active ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={togglingProduct?.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={togglingProduct?.is_active ? 'destructive' : 'default'}
+        isLoading={isToggling}
+        onConfirm={handleConfirmToggle}
+      />
+
+      <ConfirmDialog
+        open={bulkToggleOpen}
+        onOpenChange={(open) => { if (!open) handleCloseBulkToggle() }}
+        title={allActive ? 'Nonaktifkan Produk' : 'Aktifkan Produk'}
+        description={`${count} produk akan di${allActive ? 'nonaktifkan' : 'aktifkan'}. Lanjutkan?`}
+        confirmLabel={allActive ? 'Nonaktifkan' : 'Aktifkan'}
+        variant={allActive ? 'destructive' : 'default'}
+        isLoading={isBulkToggling}
+        onConfirm={handleConfirmBulkToggle}
+      />
+
+      <ImportCsvModal
+        open={importOpen}
+        onOpenChange={(open) => { if (!open) closeImport() }}
+      />
+
+      <LabelPrintModal
+        open={labelOpen}
+        onOpenChange={(open) => { if (!open) handleCloseLabel() }}
+        products={singleLabelProduct ? [singleLabelProduct] : selectedProducts}
+      />
+
+      <ProductDetailModal
+        open={detailOpen}
+        onOpenChange={(open) => { if (!open) handleCloseDetail() }}
+        productId={detailProduct?.id}
+      />
+    </div>
+  )
+})

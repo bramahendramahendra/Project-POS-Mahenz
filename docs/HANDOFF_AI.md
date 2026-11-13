@@ -35,7 +35,7 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, disetujui user |
 | Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
 | Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
-| Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui; baris 4.1 diperbarui setelah Fase 3B dan disetujui). **4.1 (diulang) selesai, menunggu persetujuan** (riwayat #63): BE Coffee di 8083 klien BE User, uji API 20/20; ikut memperbaiki bug Edit User Toko dari 3B.4. Berikutnya 4.2 (FE Coffee). Riwayat lama: (riwayat #55): `COFFEE/BE` sudah ada (`.env` sudah digeser ke 8083 di 3B.6; isi lain diulang di 4.1), menunggu Fase 3B |
+| Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui; baris 4.1 diperbarui setelah Fase 3B dan disetujui). 4.1 (diulang) selesai (riwayat #63). 4.2 selesai (riwayat #64). **4.3 selesai, menunggu persetujuan** (riwayat #65): bahan baku (keputusan 80-84, tanpa opname), uji API 33/33, browser 10/10 laptop/tablet/HP. Temuan: `Combobox` Toko mencari berdasarkan id (diperbaiki di Coffee saja). Temuan: skrip `type-check` lama tidak memeriksa apa pun; sudah diperbaiki di Toko, Portal, Coffee (`tsc -p tsconfig.app.json --noEmit`, disetujui user). Berikutnya 4.4 (menu jualan). Riwayat lama: (riwayat #55): `COFFEE/BE` sudah ada (`.env` sudah digeser ke 8083 di 3B.6; isi lain diulang di 4.1), menunggu Fase 3B |
 | **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.5 selesai (riwayat #56-#61; skrip `TOKO/BE/cmd/migrate_users_to_auth` sudah di-`--apply` di dev). **3B.6 selesai; Fase 3B SELESAI** (riwayat #62, disetujui user): nginx, README, CLAUDE.md, port Coffee 8083; uji ujung ke ujung Portal 40/40 dan Toko 31/32 (1 karena data kas dev) di laptop, tablet, HP. Dokumen deploy menyusul di fase deploy. Berikutnya: Fase 4 tahap 4.1 Coffee diulang (port 8083). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
 | Temuan keamanan | Password tersimpan asli di `log_requests` Toko/Portal/Coffee (riwayat #56). Keputusan 74: log lama dibiarkan; penyamaran (`helper/logmask`) sudah dipasang di BE User, Portal (3B.3), dan Toko (3B.4); berikutnya Coffee (4.1 diulang) |
 | Deploy VPS (Portal, Toko, Coffee) | Ditunda sampai Coffee selesai di dev (keputusan 61) |
@@ -86,6 +86,7 @@ Jalankan di terminal terpisah (MySQL WAMP harus hidup):
 - `AUTH/BE` (BE User): `go run main.go` (`127.0.0.1:8080`, wajib hidup sebelum Portal dipakai)
 - `PORTAL/BE`: `go run main.go` (8081 sejak 3B.3; kunci Portal di tabel `auth_credentials`); `PORTAL/FE`: `npm.cmd run dev` (3000)
 - `TOKO/BE`: `go run main.go` (8082 sejak 3B.4; migrasi DB otomatis saat startup; kunci Toko di tabel `auth_credentials`); `TOKO/FE`: `npm.cmd run dev` (3001)
+- `COFFEE/BE`: `go run main.go` (8083; kunci di `auth_credentials`); `COFFEE/FE`: `npm.cmd run dev` (3002). Path aplikasi `coffee` di BE User dev: `http://localhost:3002/`
 Bila perintah berbeda, lihat README di masing-masing folder.
 
 ## 10. Catatan lingkungan (Windows)

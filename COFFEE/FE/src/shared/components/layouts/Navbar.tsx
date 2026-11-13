@@ -1,0 +1,124 @@
+import { useState } from 'react'
+import { Bell, LayoutGrid, LogOut, Menu } from 'lucide-react'
+
+import { useLogoutMutation } from '@/features/auth/auth.api'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { config, ROLES } from '@/shared/constants'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
+import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar'
+import { Badge } from '@/shared/components/ui/badge'
+import { Button } from '@/shared/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/tooltip'
+import { portalUrl } from '@/shared/utils/appUrl'
+
+function getRoleBadgeClass(role: string) {
+  if (role === ROLES.OWNER) return 'bg-yellow-500 text-white border-transparent hover:bg-yellow-500'
+  if (role === ROLES.ADMIN) return 'bg-blue-500 text-white border-transparent hover:bg-blue-500'
+  return 'bg-green-500 text-white border-transparent hover:bg-green-500'
+}
+
+function getInitials(fullName: string) {
+  return fullName
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+}
+
+export function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const { user } = useAuth()
+  const { mutate: logout, isPending } = useLogoutMutation()
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+
+  return (
+    <>
+      <header
+        className="fixed top-0 left-0 right-0 z-[1000] flex items-center justify-between px-4"
+        style={{
+          height: 'var(--navbar-height)',
+          backgroundColor: 'var(--color-primary)',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        }}
+      >
+        {/* Kiri */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            aria-label="Buka menu"
+            className="text-white/70 hover:text-white transition-colors p-1 touch:p-2.5 lg:hidden"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="text-white font-bold text-lg tracking-wide">{config.appName}</span>
+        </div>
+
+        {/* Kanan */}
+        <div className="flex items-center gap-3">
+          <button aria-label="Notifikasi" className="text-white/70 hover:text-white transition-colors p-1 touch:p-[11px] relative">
+            <Bell size={18} />
+          </button>
+
+          {user && (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-[#3498db] text-white text-xs font-semibold">
+                  {getInitials(user.fullName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden sm:flex flex-col leading-none">
+                <span className="text-white text-sm font-medium">{user.fullName}</span>
+                <Badge className={`mt-0.5 text-[10px] px-1.5 py-0 ${getRoleBadgeClass(user.roleName)}`}>
+                  {user.roleName}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          {portalUrl && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={portalUrl}
+                  aria-label="Kembali ke Portal"
+                  className="flex h-8 w-8 touch:h-10 touch:w-10 items-center justify-center rounded-md text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                >
+                  <LayoutGrid size={16} />
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>Kembali ke Portal</TooltipContent>
+            </Tooltip>
+          )}
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLogoutDialogOpen(true)}
+                disabled={isPending}
+                aria-label="Logout"
+                className="text-white/80 hover:text-white hover:bg-red-500/20 h-8 w-8 touch:h-10 touch:w-10"
+              >
+                <LogOut size={16} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Logout</TooltipContent>
+          </Tooltip>
+        </div>
+      </header>
+
+      <ConfirmDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+        title="Keluar dari Aplikasi"
+        description="Anda akan keluar dari sesi ini. Lanjutkan?"
+        confirmLabel="Ya, Keluar"
+        variant="default"
+        isLoading={isPending}
+        onConfirm={() => logout()}
+      />
+    </>
+  )
+}
