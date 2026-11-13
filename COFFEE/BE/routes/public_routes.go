@@ -5,14 +5,15 @@ import (
 	auth_repo "coffee_api/domain/auth/repo"
 	auth_service "coffee_api/domain/auth/service"
 	"coffee_api/middleware"
+	"coffee_api/pkg/authclient"
 	pkgdatabase "coffee_api/pkg/database"
 
 	"github.com/gin-gonic/gin"
 )
 
-func publicRoutes(r *gin.RouterGroup) {
+func publicRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	authRepo := auth_repo.NewAuthRepo(pkgdatabase.DB)
-	authSvc := auth_service.NewAuthService(authRepo)
+	authSvc := auth_service.NewAuthService(authRepo, authClient)
 	authHand := auth_handler.NewAuthHandler(authSvc)
 
 	authGroup := r.Group("/auth")

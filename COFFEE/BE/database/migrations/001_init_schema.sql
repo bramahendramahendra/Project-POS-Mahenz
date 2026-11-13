@@ -1,6 +1,7 @@
 -- =============================================================
 -- Migration 001: Skema awal POS Coffee (baseline)
--- Diambil dari skema Toko yang sudah melalui migrasi 001-011, hanya tabel yang
+-- Diambil dari skema Toko yang sudah melalui migrasi 001-013 (Fase 3B: akun di BE User,
+-- profil lokal ditautkan lewat auth_user_id, password lokal tidak dipakai), hanya tabel yang
 -- dipakai Coffee (keputusan 26/60). Tabel modul yang dipangkas tidak dibuat.
 -- Kolom sisa yang sengaja dipertahankan sementara (nilai default, dibersihkan
 -- saat modulnya dirombak): customers.balance, transactions.balance_used
@@ -23,17 +24,17 @@ CREATE TABLE IF NOT EXISTS `roles` (
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `full_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `role_id` int DEFAULT NULL,
   `pin_hash` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `portal_user_id` int DEFAULT NULL,
+  `auth_user_id` int DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `username` (`username`) USING BTREE,
-  UNIQUE KEY `uq_users_portal_user_id` (`portal_user_id`),
+  UNIQUE KEY `uq_users_auth_user_id` (`auth_user_id`),
   KEY `fk_users_role_id` (`role_id`) USING BTREE,
   CONSTRAINT `fk_users_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC;
@@ -524,7 +525,12 @@ CREATE TABLE IF NOT EXISTS `log_requests` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC;
 
-CREATE TABLE IF NOT EXISTS `portal_credentials` (
+-- Kunci aplikasi Coffee untuk memanggil BE User (header X-App-Key). Isi setelah kunci dibuat
+-- (cd AUTH/BE lalu go run ./cmd/set_app_key --app coffee --confirm)
+--   INSERT INTO auth_credentials (id, app_id, app_key) VALUES (1, 'coffee', 'pak_xxx')
+--   ON DUPLICATE KEY UPDATE app_id = VALUES(app_id), app_key = VALUES(app_key)
+-- Kunci tersimpan apa adanya, jadi file backup SQL harus diperlakukan rahasia.
+CREATE TABLE IF NOT EXISTS `auth_credentials` (
   `id` int NOT NULL DEFAULT '1',
   `app_id` varchar(50) NOT NULL,
   `app_key` varchar(255) NOT NULL,

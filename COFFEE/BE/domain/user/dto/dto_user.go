@@ -16,21 +16,15 @@ type GetByIDRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
 }
 
-type CreateRequest struct {
-	Username string `json:"username"  validate:"required,min=3,max=50,alphanum"`
-	Password string `json:"password"  validate:"required,min=6"`
-	FullName string `json:"full_name" validate:"required,max=100"`
-	RoleID   int    `json:"role_id"   validate:"required,gt=0"`
-}
-
 type UpdateUriRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
 }
 
+// UpdateRequest: hanya role profil lokal. Nama dikelola di Portal/BE User dan disalin saat
+// user login (keputusan 76); buat user dan password hanya lewat Portal (keputusan 69).
 type UpdateRequest struct {
-	ID       int    `json:"-"`
-	FullName string `json:"full_name" validate:"required,max=100"`
-	RoleID   int    `json:"role_id"   validate:"required,gt=0"`
+	ID     int `json:"-"`
+	RoleID int `json:"role_id" validate:"required,gt=0"`
 }
 
 type DeleteRequest struct {
@@ -39,15 +33,6 @@ type DeleteRequest struct {
 
 type ToggleStatusRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
-}
-
-type ChangePasswordUriRequest struct {
-	ID int `uri:"id" validate:"required,gt=0"`
-}
-
-type ChangePasswordRequest struct {
-	ID       int    `json:"-"`
-	Password string `json:"password" validate:"required,min=6"`
 }
 
 type UserResponse struct {

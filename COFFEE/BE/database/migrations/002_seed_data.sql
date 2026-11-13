@@ -35,17 +35,16 @@ INSERT IGNORE INTO roles (name, display_name, description, is_system, is_active)
     ('menunggu_akses', 'Menunggu Akses', 'Akun baru dari Portal, belum diberi izin oleh admin', 1, 1);
 
 -- -------------------------------------------------------------
--- Users default (sama seperti Toko)
--- password: admin → 'admin123' | owner → 'owner123'
--- Ganti password sebelum deploy ke production. Tautkan ke Portal dengan
--- skrip cmd/migrate_users_to_portal (keputusan 62).
+-- Profil lokal awal (keputusan 62, diperbarui setelah Fase 3B): tanpa password lokal.
+-- Akun dan password ada di BE User, profil ini ditautkan otomatis saat login pertama
+-- akun BE User dengan username sama (keputusan 67).
 -- -------------------------------------------------------------
 INSERT IGNORE INTO users (username, password, full_name, role_id)
-SELECT 'owner', '$argon2id$v=19$m=65536,t=3,p=4$gcWNYu+y/FCRuCT6WS/+eg$1qAjwCU3HoK87s/CbDPHYo06W6B4mhoHF1SQmkigukY', 'Owner', id
+SELECT 'owner', NULL, 'Owner', id
 FROM roles WHERE name = 'owner';
 
 INSERT IGNORE INTO users (username, password, full_name, role_id)
-SELECT 'admin', '$argon2id$v=19$m=65536,t=3,p=4$TJxWkwEYoSuvSZ0JtwrfJw$ne9pID5QjltGeu0cNxiKYGCOXkUCRRjunQUYvttxCsM', 'Administrator', id
+SELECT 'admin', NULL, 'Administrator', id
 FROM roles WHERE name = 'admin';
 
 -- -------------------------------------------------------------

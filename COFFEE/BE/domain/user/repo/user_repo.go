@@ -1,9 +1,9 @@
 package repo
 
 import (
-	request_helper "coffee_api/helper/request"
 	dto "coffee_api/domain/user/dto"
 	model "coffee_api/domain/user/model"
+	request_helper "coffee_api/helper/request"
 	time_helper "coffee_api/helper/time"
 )
 
@@ -11,10 +11,7 @@ const (
 	countUsersQuery        = `SELECT COUNT(*) FROM users u WHERE 1=1`
 	getAllUsersQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE 1=1`
 	getUserByIDQuery       = `SELECT u.id, u.username, u.full_name, u.role_id, r.name AS role_name, u.is_active, u.created_at, u.updated_at FROM users u INNER JOIN roles r ON r.id = u.role_id WHERE u.id = ? LIMIT 1`
-	getUserByUsernameQuery = `SELECT u.id FROM users u WHERE u.username = ? AND u.id != ? LIMIT 1`
-	createUserQuery        = `INSERT INTO users (username, password, full_name, role_id) VALUES (?, ?, ?, ?)`
-	updateUserQuery        = `UPDATE users SET full_name = ?, role_id = ?, updated_at = ? WHERE id = ?`
-	updatePasswordQuery    = `UPDATE users SET password = ?, updated_at = ? WHERE id = ?`
+	updateUserQuery        = `UPDATE users SET role_id = ?, updated_at = ? WHERE id = ?`
 	deleteUserQuery        = `DELETE FROM users WHERE id = ?`
 	toggleUserStatusQuery  = `UPDATE users SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	deleteSessionQuery     = `DELETE FROM sessions WHERE user_id = ?`
@@ -82,34 +79,8 @@ func (r *userRepo) GetByID(id int) (*model.User, error) {
 	return &u, nil
 }
 
-func (r *userRepo) GetByUsername(username string, excludeID int) (*model.User, error) {
-	var u model.User
-	if err := r.db.Raw(getUserByUsernameQuery, username, excludeID).Scan(&u).Error; err != nil {
-		return nil, err
-	}
-	if u.ID == 0 {
-		return nil, nil
-	}
-	return &u, nil
-}
-
-func (r *userRepo) Create(user *model.User) (int64, error) {
-	if err := r.db.Exec(createUserQuery, user.Username, user.Password, user.FullName, user.RoleID).Error; err != nil {
-		return 0, err
-	}
-	var id int64
-	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error; err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
 func (r *userRepo) Update(id int, req *dto.UpdateRequest) error {
-	return r.db.Exec(updateUserQuery, req.FullName, req.RoleID, time_helper.GetTimeNow(), id).Error
-}
-
-func (r *userRepo) UpdatePassword(id int, hashedPassword string) error {
-	return r.db.Exec(updatePasswordQuery, hashedPassword, time_helper.GetTimeNow(), id).Error
+	return r.db.Exec(updateUserQuery, req.RoleID, time_helper.GetTimeNow(), id).Error
 }
 
 func (r *userRepo) Delete(id int) error {

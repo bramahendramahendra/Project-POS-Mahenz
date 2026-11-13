@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"coffee_api/config"
@@ -10,29 +12,37 @@ import (
 	model "coffee_api/domain/auth/model"
 	"coffee_api/errors"
 	time_helper "coffee_api/helper/time"
-	"coffee_api/pkg/bcrypt"
+	"coffee_api/pkg/authclient"
 	"coffee_api/pkg/jwt"
 )
 
-func (s *authService) Login(req *dto.LoginRequest, ip string) (*dto.LoginResponse, error) {
+func (s *authService) Login(ctx context.Context, req *dto.LoginRequest, ip string) (*dto.LoginResponse, error) {
 	if !s.directLoginEnabled() {
 		return nil, &errors.UnauthorizededError{Message: "Login langsung dinonaktifkan. Silakan masuk lewat Portal"}
 	}
 
-	user, err := s.repo.GetUserByUsername(req.Username)
+	// Username + password diperiksa BE User (keputusan 66): salah, nonaktif, tanpa akses ke
+	// Coffee, dan wajib ganti password ditolak di sana, pesannya diteruskan apa adanya.
+	body, err := json.Marshal(dto.VerifyRequest{Username: req.Username, Password: req.Password, ClientIP: ip})
 	if err != nil {
 		return nil, err
 	}
-	if user == nil {
-		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
+	resp, err := s.client.Post(ctx, "/login/verify", 0, body)
+	if err != nil {
+		return nil, authclient.ToServiceError(err)
 	}
-	if !user.IsActive {
+	var account dto.AccountData
+	if err := resp.DecodeData(&account); err != nil {
+		return nil, authclient.ToServiceError(err)
+	}
+	if account.ID <= 0 || !account.IsActive {
 		return nil, &errors.UnauthenticatedError{Message: "Akun tidak aktif"}
 	}
-	if !bcrypt.VerifyPassword(req.Password, user.Password) {
-		return nil, &errors.UnauthenticatedError{Message: "Username atau password salah"}
-	}
 
+	user, err := s.resolveLocalUser(&account)
+	if err != nil {
+		return nil, err
+	}
 	return s.issueSession(user, req.DeviceInfo, ip)
 }
 

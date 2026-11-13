@@ -2,12 +2,13 @@ package middleware
 
 import (
 	"bytes"
-	"context"
 	"coffee_api/helper"
+	"coffee_api/helper/logmask"
 	request_helper "coffee_api/helper/request"
 	time_helper "coffee_api/helper/time"
 	"coffee_api/model"
 	"coffee_api/repository"
+	"context"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -69,7 +70,8 @@ func saveLogRequest(c *gin.Context, reqId, reqBodyStr string, blw *bodyLogWriter
 	method := c.Request.Method
 	endpoint := c.Request.RequestURI
 	statusCode := c.Writer.Status()
-	resBodyStr := blw.body.String()
+	reqBodyStr = logmask.Mask(reqBodyStr)
+	resBodyStr := logmask.Mask(blw.body.String())
 	ipAddress := c.ClientIP()
 	createdAt := time_helper.GetTimeNow()
 

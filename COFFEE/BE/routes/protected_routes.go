@@ -4,19 +4,20 @@ import (
 	auth_repo "coffee_api/domain/auth/repo"
 	auth_service "coffee_api/domain/auth/service"
 	pos_middleware "coffee_api/middleware/auth"
+	"coffee_api/pkg/authclient"
 	pkgdatabase "coffee_api/pkg/database"
 	segment "coffee_api/routes/segment"
 
 	"github.com/gin-gonic/gin"
 )
 
-func protectedRoutes(r *gin.RouterGroup) {
+func protectedRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	authRepo := auth_repo.NewAuthRepo(pkgdatabase.DB)
-	authSvc := auth_service.NewAuthService(authRepo)
+	authSvc := auth_service.NewAuthService(authRepo, authClient)
 
 	r.Use(pos_middleware.POSBearerAuthMiddleware(authSvc))
 
-	segment.AuthRoutes(r)
+	segment.AuthRoutes(r, authClient)
 	segment.PinRoutes(r)
 	segment.UserRoutes(r)
 	segment.ProductCategoryRoutes(r)

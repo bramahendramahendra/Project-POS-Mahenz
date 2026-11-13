@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-	"net/http"
 	global_dto "coffee_api/dto"
 	"coffee_api/errors"
 	"coffee_api/helper"
@@ -10,6 +8,8 @@ import (
 	log_helper "coffee_api/helper/log"
 	response_helper "coffee_api/helper/response"
 	"coffee_api/validation"
+	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -67,6 +67,12 @@ func ErrorHandlerMiddleware() gin.HandlerFunc {
 				responseMessage = actualMessage
 				entry := log_helper.FromContext(c, "Service Unavailable", "Service Unavailable", e.Message)
 				log_helper.LogError(entry)
+			case *errors.UpstreamError:
+				// Penolakan dari BE User: kode HTTP, kode, pesan, dan rincian diteruskan apa adanya.
+				code = e.Code
+				httpCode = e.HTTPCode
+				responseMessage = actualMessage
+				error = e.Errors
 			case *errors.ValidationError:
 				code = helper.StatusUnprocessableEntity
 				httpCode = http.StatusUnprocessableEntity

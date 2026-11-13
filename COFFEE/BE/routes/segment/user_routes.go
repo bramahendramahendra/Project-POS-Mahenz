@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// UserRoutes: profil lokal Coffee. Buat user dan ganti/reset password hanya lewat Portal
+// (keputusan 69); di sini hanya role, aktif/nonaktif, dan hapus profil lokal (keputusan 75).
 func UserRoutes(r *gin.RouterGroup) {
 	userRepo := user_repo.NewUserRepo(pkgdatabase.DB)
 	roleRepo := role_repo.NewRoleRepo(pkgdatabase.DB)
@@ -26,9 +28,7 @@ func UserRoutes(r *gin.RouterGroup) {
 	{
 		g.POST("/list", perm("can_view"), userHandler.GetAll)
 		g.POST("/detail/:id", perm("can_view"), userHandler.GetByID)
-		g.POST("/create", perm("can_create"), userHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), userHandler.Update)
-		g.POST("/change-password/:id", perm("can_edit"), userHandler.ChangePassword)
 		g.POST("/delete/:id", perm("can_delete"), userHandler.Delete)
 		g.POST("/toggle-status/:id", perm("can_edit"), userHandler.ToggleStatus)
 	}

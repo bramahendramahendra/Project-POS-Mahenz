@@ -25,8 +25,7 @@
     "MaxLifetime": 300,
     "MaxIdleTime": 600
   },
-  "PortalUrl": "http://localhost:8080/api",
-  "DirectLoginForceEnabled": false,
+  "AuthUrl": "http://127.0.0.1:8080/api",
   "CorsAllowOrigins": [
     "http://localhost:3000",
     "http://localhost:3002",

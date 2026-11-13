@@ -30,7 +30,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	data, err := h.service.Login(&req, c.ClientIP())
+	data, err := h.service.Login(c.Request.Context(), &req, c.ClientIP())
 	if err != nil {
 		c.Error(err)
 		return
@@ -145,7 +145,7 @@ func (h *AuthHandler) SetDirectLogin(c *gin.Context) {
 	})
 }
 
-// SSO: login lewat Portal. Menerima kode sekali pakai, mengembalikan sesi Toko
+// SSO: login lewat Portal. Menerima kode sekali pakai, mengembalikan sesi Coffee
 // dengan bentuk yang sama seperti Login.
 func (h *AuthHandler) SSO(c *gin.Context) {
 	req, err := binder.BindJSON[dto.SSORequest](c)
