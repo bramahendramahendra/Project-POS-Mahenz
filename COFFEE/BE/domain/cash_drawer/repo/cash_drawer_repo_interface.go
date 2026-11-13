@@ -1,0 +1,50 @@
+package repo
+
+import (
+	dto "coffee_api/domain/cash_drawer/dto"
+	model "coffee_api/domain/cash_drawer/model"
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type (
+	CashDrawerRepoInterface interface {
+		GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error)
+		GetOpenCashDrawer(userID int) (*model.CashDrawer, error)
+		GetByID(id int) (*model.CashDrawer, error)
+		GetDetailByID(id int, now time.Time) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
+		GetHistory(req *dto.GetHistoryRequest) ([]*dto.CashDrawerHistoryResponse, int64, error)
+		Open(userID int, shiftID *int, openingBalance float64, notes string, openTime time.Time) (int64, error)
+		Close(id int, closingBalance, expectedBalance, difference float64, notes string, closeTime time.Time) error
+		UpdateSales(id int, totalSales, totalCashSales float64, updatedAt time.Time) error
+		UpdateExpenses(id int, totalExpenses float64, updatedAt time.Time) error
+		GetMyCash(userID int, now time.Time) (*model.CashDrawerDetail, []model.CashDrawerTransactionItem, []model.CashDrawerExpenseItem, error)
+		GetNonCashSales(userID int, openTime string, closeTime *string, now time.Time) ([]dto.NonCashSaleItem, error)
+		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string, now time.Time) ([]model.CashDrawerNonCashTransactionItem, error)
+		AutoCloseYesterday(now time.Time) (int, error)
+		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
+		GetKasirOptions() ([]dto.KasirOptionResponse, error)
+
+		GetDB() *gorm.DB
+		WithTx(tx *gorm.DB) CashDrawerRepoInterface
+	}
+
+	cashDrawerRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewCashDrawerRepo(db *gorm.DB) *cashDrawerRepo {
+	return &cashDrawerRepo{db: db}
+}
+
+func (r *cashDrawerRepo) GetDB() *gorm.DB {
+	return r.db
+}
+
+// WithTx mengembalikan repo instance baru yang terikat ke transaksi tx, supaya operasi
+// cash_drawer bisa digabung dalam satu DB transaction bersama repo lain (mis. expense).
+func (r *cashDrawerRepo) WithTx(tx *gorm.DB) CashDrawerRepoInterface {
+	return &cashDrawerRepo{db: tx}
+}

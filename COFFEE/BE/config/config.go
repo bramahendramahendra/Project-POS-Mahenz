@@ -1,0 +1,222 @@
+package config
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/spf13/viper"
+)
+
+const (
+	envPath = "./.env"
+)
+
+type Env struct {
+	AppName     string
+	AppAuthor   string
+	AppVersion  string
+	AppHost     string
+	AppPort     string
+	ReleaseMode string
+}
+
+type DatabaseConfig struct {
+	Type         string `json:"Type"`
+	Host         string `json:"Host"`
+	Port         string `json:"Port"`
+	User         string `json:"User"`
+	Password     string `json:"Password"`
+	Database     string `json:"Database"`
+	MaxOpenConns int    `json:"MaxOpenConns"`
+	MaxIdleConns int    `json:"MaxIdleConns"`
+	MaxLifetime  int    `json:"MaxLifetime"`
+	MaxIdleTime  int    `json:"MaxIdleTime"`
+}
+
+type RedisConfig struct {
+	Host         string
+	Port         string
+	Password     string
+	Db           int
+	PoolSize     int
+	MinIdleConns int
+}
+
+type LogConfig struct {
+	Path       string `json:"Path"`
+	Level      string `json:"Level"`
+	MaxSizeMB  int    `json:"MaxSizeMB"`
+	MaxBackups int    `json:"MaxBackups"`
+	MaxAgeDays int    `json:"MaxAgeDays"`
+}
+
+// BackupConfig menyimpan path binary mysqldump/mysql yang dipakai fitur
+// Backup & Restore. Diisi per environment (lihat config_dev.json vs
+// config_prod.json) karena lokasi binary ini beda-beda tergantung cara MySQL
+// diinstal (mis. WAMPP di lokal punya path panjang, sedangkan di server
+// biasanya sudah ada di PATH sehingga cukup nama command polos).
+type BackupConfig struct {
+	MysqldumpBin string `json:"MysqldumpBin"`
+	MysqlBin     string `json:"MysqlBin"`
+}
+
+// PrinterConfig menyimpan setelan cetak struk langsung ke printer thermal lewat
+// serial/COM port (mis. EPPOS EP58M via Bluetooth SPP yang dipetakan ke COMx).
+// Jalur ini mengirim ESC/POS mentah sehingga hasil tajam & lebar pas (tidak
+// terpotong seperti saat lewat driver/dialog browser).
+//
+//	Port       : nama COM port, mis. "COM3". Kosongkan untuk menonaktifkan.
+//	CharPerLine: jumlah karakter per baris untuk kertas (58mm umumnya 32).
+//	LanHost    : IP printer jaringan/LAN (mis. "192.168.1.50"). Dipakai bila
+//	             request cetak bertarget "lan" dan tidak mengirim host sendiri.
+//	LanPort    : port printer jaringan (umumnya 9100). Default 9100 bila 0.
+type PrinterConfig struct {
+	Port        string `json:"Port"`
+	CharPerLine int    `json:"CharPerLine"`
+	LanHost     string `json:"LanHost"`
+	LanPort     int    `json:"LanPort"`
+}
+
+type Config struct {
+	Timezone                   string         `json:"Timezone"`
+	SecretKey                  string         `json:"SecretKey"`
+	TokenExpire                int            `json:"TokenExpire"`
+	RefreshTokenExpire         int            `json:"RefreshTokenExpire"`
+	FormatTime                 string         `json:"FormatTime"`
+	FormatDate                 string         `json:"FormatDate"`
+	MaxTimeoutGracefulShutdown int            `json:"MaxTimeoutGracefulShutdown"`
+	Log                        LogConfig      `json:"Log"`
+	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
+	Database                   DatabaseConfig `json:"Database"`
+	// PortalUrl: alamat API Portal untuk panggilan server ke server (penukaran kode SSO),
+	// mis. "http://127.0.0.1:8080/api". Kosong = login lewat Portal tidak tersedia.
+	PortalUrl string `json:"PortalUrl"`
+	// DirectLoginForceEnabled: flag darurat. true = login langsung (username + password)
+	// SELALU aktif walau dimatikan di pengaturan. Dipakai bila Portal mati saat login
+	// langsung dimatikan (nyalakan lewat SSH, lalu restart service).
+	DirectLoginForceEnabled bool          `json:"DirectLoginForceEnabled"`
+	Backup                  BackupConfig  `json:"Backup"`
+	Printer                 PrinterConfig `json:"Printer"`
+}
+
+var (
+	configMap = map[string]string{
+		"dev":   "./config/config_dev.json",
+		"prod":  "./config/config_prod.json",
+		"uat":   "./config/config_uat.json",
+		"local": "./config/config_local.json",
+		"bors":  "./config/config_bors_kost.json",
+	}
+	ENV        *Env
+	Cfg        *Config
+	Db         *DatabaseConfig
+	Location   *time.Location
+	FormatTime string
+)
+
+func init() {
+	initEnv()
+	initConfig(ENV.ReleaseMode)
+	initTimeConfig()
+}
+
+func initEnv() {
+	v := viper.New()
+	v.SetConfigFile(envPath)
+	v.AutomaticEnv()
+
+	if err := v.ReadInConfig(); err != nil {
+		panic(fmt.Sprintf("Error reading Env file : %v", err))
+	}
+
+	ENV = &Env{
+		AppName:     v.GetString("APP_NAME"),
+		AppAuthor:   v.GetString("APP_AUTHOR"),
+		AppVersion:  v.GetString("APP_VERSION"),
+		AppHost:     v.GetString("APP_HOST"),
+		AppPort:     v.GetString("APP_PORT"),
+		ReleaseMode: v.GetString("RELEASE_MODE"),
+	}
+}
+
+func initConfig(releaseMode string) {
+	v := viper.New()
+	v.SetConfigFile(configMap[releaseMode])
+	v.AutomaticEnv()
+
+	if err := v.ReadInConfig(); err != nil {
+		panic(fmt.Sprintf("Error reading config file : %v", err))
+	}
+
+	Cfg = &Config{
+		Timezone:                   v.GetString("Timezone"),
+		SecretKey:                  v.GetString("SecretKey"),
+		TokenExpire:                v.GetInt("TokenExpire"),
+		RefreshTokenExpire:         v.GetInt("RefreshTokenExpire"),
+		FormatTime:                 v.GetString("FormatTime"),
+		FormatDate:                 v.GetString("FormatDate"),
+		MaxTimeoutGracefulShutdown: v.GetInt("MaxTimeoutGracefulShutdown"),
+		Log: LogConfig{
+			Path:       v.GetString("Log.Path"),
+			Level:      v.GetString("Log.Level"),
+			MaxSizeMB:  v.GetInt("Log.MaxSizeMB"),
+			MaxBackups: v.GetInt("Log.MaxBackups"),
+			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
+		},
+		CorsAllowOrigins:        v.GetStringSlice("CorsAllowOrigins"),
+		PortalUrl:               strings.TrimRight(v.GetString("PortalUrl"), "/"),
+		DirectLoginForceEnabled: v.GetBool("DirectLoginForceEnabled"),
+		Backup: BackupConfig{
+			MysqldumpBin: v.GetString("Backup.MysqldumpBin"),
+			MysqlBin:     v.GetString("Backup.MysqlBin"),
+		},
+		Printer: PrinterConfig{
+			Port:        v.GetString("Printer.Port"),
+			CharPerLine: v.GetInt("Printer.CharPerLine"),
+			LanHost:     v.GetString("Printer.LanHost"),
+			LanPort:     v.GetInt("Printer.LanPort"),
+		},
+	}
+
+	// Default port printer jaringan (umumnya 9100).
+	if Cfg.Printer.LanPort <= 0 {
+		Cfg.Printer.LanPort = 9100
+	}
+
+	// Default karakter per baris bila tidak diset (58mm ~ 32 karakter).
+	if Cfg.Printer.CharPerLine <= 0 {
+		Cfg.Printer.CharPerLine = 32
+	}
+
+	// SecretKey wajib disuplai lewat environment variable SECRETKEY (viper.AutomaticEnv()
+	// membaca env var ini secara otomatis, prioritas di atas nilai di file config json).
+	// File config_prod.json sengaja tidak menyimpan secret asli agar tidak ter-commit ke repo.
+	if Cfg.SecretKey == "" {
+		panic("SecretKey belum diset. Set environment variable SECRETKEY sebelum menjalankan aplikasi.")
+	}
+
+	Db = &DatabaseConfig{
+		Type:         v.GetString("Database.Type"),
+		Host:         v.GetString("Database.Host"),
+		Port:         v.GetString("Database.Port"),
+		User:         v.GetString("Database.User"),
+		Password:     v.GetString("Database.Password"),
+		Database:     v.GetString("Database.Database"),
+		MaxOpenConns: v.GetInt("Database.MaxOpenConns"),
+		MaxIdleConns: v.GetInt("Database.MaxIdleConns"),
+		MaxLifetime:  v.GetInt("Database.MaxLifetime"),
+		MaxIdleTime:  v.GetInt("Database.MaxIdleTime"),
+	}
+
+	Cfg.Database = *Db
+}
+
+func initTimeConfig() {
+	loc, err := time.LoadLocation(Cfg.Timezone)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load location: %s", err.Error()))
+	}
+	Location = loc
+	FormatTime = Cfg.FormatTime
+}

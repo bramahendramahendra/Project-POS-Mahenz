@@ -1,0 +1,389 @@
+package model
+
+import (
+	"errors"
+	"fmt"
+	"math"
+	"sort"
+)
+
+// StockDelta -- fungsi terpusat perhitungan stok per-level (Fase 2,
+// docs/RENCANA_PERBAIKAN_STOK_PRESISI.md). Ini murni logika kalkulasi, tidak
+// menyentuh DB sama sekali, supaya bisa diuji langsung tanpa mock/koneksi --
+// pemanggilan DB (locking FOR UPDATE, baca/tulis) ada di lapisan repo
+// terpisah yang memanggil ComputeStockDelta setelah data dimuat.
+
+type StockDirection string
+
+const (
+	StockIn  StockDirection = "in"  // pembelian, restore/void penjualan, release retur
+	StockOut StockDirection = "out" // penjualan, reduce retur, write-off
+)
+
+var (
+	ErrInsufficientStock = errors.New("stok tidak mencukupi")
+	// Dipertahankan untuk kompatibilitas wrapper error (WrapStockError dll) &
+	// jalur lain yang mungkin memakainya. CATATAN: analyzePackageChain TIDAK
+	// LAGI melempar error ini untuk faktor konversi kembar -- dua satuan
+	// berfaktor sama kini diperlakukan sebagai alias & diproses normal
+	// (deterministik lewat tie-break ID). Lihat komentar di analyzePackageChain.
+	ErrBranchingChain   = errors.New("dua satuan produk punya faktor konversi sama persis (ambigu), tidak bisa diproses otomatis")
+	ErrNeedsStockReview = errors.New("produk ini ditandai perlu ditinjau manual (needs_stock_review), operasi stok diblokir")
+	ErrPackageNotFound  = errors.New("paket satuan tidak ditemukan pada produk ini")
+	ErrNoAnchorPackage  = errors.New("produk tidak punya baris satuan anchor (is_default)")
+	ErrNoPackages       = errors.New("produk tidak punya baris product_packages sama sekali")
+)
+
+// StockDeltaInput adalah input murni (in-memory) untuk satu operasi perubahan
+// stok pada satu produk. Packages harus berisi SEMUA baris product_packages
+// aktif (is_active=true) milik produk itu, sudah dimuat FOR UPDATE oleh
+// pemanggil (lapisan repo) sebelum function ini dipanggil -- supaya locking
+// dan kalkulasi konsisten dalam satu transaksi DB yang sama.
+type StockDeltaInput struct {
+	Packages         []*ProductPackage
+	ContinuousUnitID map[int]bool // unit_id -> units.is_continuous
+	PackageID        int          // paket acuan transaksi (mis. yang dijual/dibeli/diretur)
+	Quantity         float64      // qty di satuan PackageID (integer untuk satuan diskrit)
+	Direction        StockDirection
+	NeedsStockReview bool // products.needs_stock_review milik produk ini
+}
+
+// PackageStockUpdate adalah nilai stok baru untuk satu baris product_packages,
+// siap dipakai pemanggil untuk UPDATE ke DB.
+type PackageStockUpdate struct {
+	PackageID int
+	Stock     float64
+}
+
+// StockDeltaResult adalah hasil kalkulasi lengkap. StockBeforeAnchor/After/
+// MutationQtyAnchor dinyatakan dalam satuan anchor produk (bukan satuan
+// terkecil) supaya konsisten dengan semantik lama stock_mutations
+// (Aturan Operasional #5 di dokumen) -- audit trail tetap "total di satuan
+// anchor", sekarang plus package_id per baris (celah #16) yang diisi
+// pemanggil dari PackageID input asli (bukan dari sini).
+type StockDeltaResult struct {
+	Updates           []PackageStockUpdate
+	AnchorPackageID   int
+	StockBeforeAnchor float64
+	StockAfterAnchor  float64
+	MutationQtyAnchor float64
+}
+
+// ComputeStockDelta menghitung perubahan stok lintas-level untuk satu
+// transaksi (Aturan Operasional #3, #4, #5, #6, #7 di dokumen desain):
+//  1. Tolak total kalau produk ditandai needs_stock_review (celah #20).
+//  2. Tolak total HANYA kalau ada dua satuan berfaktor konversi sama persis
+//     (ambigu). Struktur bercabang yang faktornya berbeda (mis. anchor di
+//     tengah, atau beberapa turunan langsung menunjuk anchor) tetap diproses
+//     karena bisa diurutkan unik berdasarkan faktor (celah #10 -- revisi).
+//  3. Kurangi reserved_qty dulu dari pool yang boleh dipakai (celah #13).
+//  4. Turunkan semua level ke total di satuan terkecil (integer, kecuali
+//     level kontinu di posisi terkecil boleh desimal) -- Aturan #4.
+//  5. Faktor konversi SELALU dihitung ulang fresh dari qty/ref_qty (lewat
+//     ResolvePackageFactor), TIDAK PERNAH membaca nilai tersimpan yang
+//     berpotensi sudah dibulatkan -- ini yang menutup celah #21 (drift saat
+//     void) sekaligus bug precision utama yang jadi alasan seluruh rencana
+//     ini (docs/RENCANA_PERBAIKAN_STOK_PRESISI.md bagian "Masalah").
+func ComputeStockDelta(in StockDeltaInput) (*StockDeltaResult, error) {
+	if in.NeedsStockReview {
+		return nil, ErrNeedsStockReview
+	}
+	if len(in.Packages) == 0 {
+		return nil, ErrNoPackages
+	}
+
+	anchor, smallest, factorToAnchor, err := analyzePackageChain(in.Packages)
+	if err != nil {
+		return nil, err
+	}
+
+	byID := make(map[int]*ProductPackage, len(in.Packages))
+	for _, p := range in.Packages {
+		byID[p.ID] = p
+	}
+	target, ok := byID[in.PackageID]
+	if !ok {
+		return nil, ErrPackageNotFound
+	}
+
+	smallestFactor := factorToAnchor[smallest.ID]
+
+	unitsPerSmallest := func(p *ProductPackage) float64 {
+		return factorToAnchor[p.ID] / smallestFactor
+	}
+
+	const epsilon = 1e-6
+
+	var totalSmallestBefore, freeSmallestBefore float64
+	for _, p := range in.Packages {
+		ups := unitsPerSmallest(p)
+		totalSmallestBefore += p.Stock * ups
+		free := p.Stock - p.ReservedQty
+		if free < 0 {
+			free = 0
+		}
+		freeSmallestBefore += free * ups
+	}
+
+	targetUPS := unitsPerSmallest(target)
+	deltaSmallest := in.Quantity * targetUPS
+
+	var totalSmallestAfter, freeSmallestAfter float64
+	switch in.Direction {
+	case StockOut:
+		if deltaSmallest > freeSmallestBefore+epsilon {
+			return nil, ErrInsufficientStock
+		}
+		totalSmallestAfter = totalSmallestBefore - deltaSmallest
+		freeSmallestAfter = freeSmallestBefore - deltaSmallest
+	case StockIn:
+		totalSmallestAfter = totalSmallestBefore + deltaSmallest
+		freeSmallestAfter = freeSmallestBefore + deltaSmallest
+	default:
+		return nil, fmt.Errorf("arah stok tidak dikenal: %q", in.Direction)
+	}
+	if freeSmallestAfter < 0 {
+		freeSmallestAfter = 0
+	}
+	if totalSmallestAfter < 0 {
+		totalSmallestAfter = 0
+	}
+
+	// Breakdown ulang pool bebas (freeSmallestAfter) ke tiap level, dari
+	// satuan terbesar ke terkecil (cascading floor) -- Aturan Operasional #4.
+	// reserved_qty tiap baris TIDAK ikut dipecah ulang, ditambahkan balik
+	// utuh di akhir supaya bagian yang ditahan retur tetap protected (celah #13).
+	ordered := make([]*ProductPackage, len(in.Packages))
+	copy(ordered, in.Packages)
+	// Urut dari faktor terbesar ke terkecil. Tie-breaker berbasis ID (paket ID
+	// terbesar didahulukan) supaya deterministik saat ada faktor KEMBAR (alias,
+	// mis. Krak & Kilogram pada Telur): tanpa tie-breaker, sort.Slice tidak
+	// stabil sehingga alias mana yang "menampung" stok bisa berpindah antar
+	// operasi (jual vs void). Total stok tetap benar tanpa ini, tapi tie-breaker
+	// menjaga baris tujuan stok konsisten.
+	const factorEqEps = 1e-9
+	sort.Slice(ordered, func(i, j int) bool {
+		fi := factorToAnchor[ordered[i].ID]
+		fj := factorToAnchor[ordered[j].ID]
+		scale := math.Max(math.Abs(fi), math.Abs(fj))
+		if scale < 1 {
+			scale = 1
+		}
+		if math.Abs(fi-fj) <= factorEqEps*scale {
+			return ordered[i].ID > ordered[j].ID // faktor kembar -> tie-break stabil by ID
+		}
+		return fi > fj
+	})
+
+	remaining := freeSmallestAfter
+	updates := make([]PackageStockUpdate, 0, len(ordered))
+	for i, p := range ordered {
+		ups := unitsPerSmallest(p)
+		isLast := i == len(ordered)-1
+		continuous := in.ContinuousUnitID[p.UnitID]
+
+		var freeQty float64
+		if isLast && continuous {
+			freeQty = remaining / ups
+			remaining = 0
+		} else {
+			freeQty = math.Floor(remaining/ups + epsilon)
+			remaining -= freeQty * ups
+		}
+		updates = append(updates, PackageStockUpdate{
+			PackageID: p.ID,
+			Stock:     freeQty + p.ReservedQty,
+		})
+	}
+	// Sisa pecahan yang tidak habis dibagi (kasus satuan terkecil bukan
+	// kontinu tapi rasio rantainya tidak bulat -- data lama yang belum
+	// dibetulkan) numpuk ke level terkecil apa adanya, supaya tidak ada
+	// stok yang hilang diam-diam tanpa jejak.
+	if remaining > epsilon && len(updates) > 0 {
+		lastUPS := unitsPerSmallest(ordered[len(ordered)-1])
+		updates[len(updates)-1].Stock += remaining / lastUPS
+	}
+
+	anchorUPS := unitsPerSmallest(anchor)
+	return &StockDeltaResult{
+		Updates:           updates,
+		AnchorPackageID:   anchor.ID,
+		StockBeforeAnchor: totalSmallestBefore / anchorUPS,
+		StockAfterAnchor:  totalSmallestAfter / anchorUPS,
+		MutationQtyAnchor: deltaSmallest / anchorUPS,
+	}, nil
+}
+
+// analyzePackageChain menemukan baris anchor & satuan terkecil (leaf) pada
+// rantai product_packages sebuah produk, plus faktor konversi tiap baris
+// relatif ke anchor (dihitung ulang fresh lewat ResolvePackageFactor, bukan
+// baca nilai tersimpan). Dipakai bersama oleh ComputeStockDelta (jalur tulis)
+// dan ComputeStockSummary (jalur baca, Fase 5) supaya logika "apa itu
+// anchor/leaf/faktor" cuma ada satu tempat.
+func analyzePackageChain(packages []*ProductPackage) (anchor, smallest *ProductPackage, factorToAnchor map[int]float64, err error) {
+	for _, p := range packages {
+		if p.IsDefault {
+			anchor = p
+		}
+	}
+	if anchor == nil {
+		return nil, nil, nil, ErrNoAnchorPackage
+	}
+
+	// Hitung faktor konversi tiap paket ke anchor (fresh dari qty/ref_qty,
+	// bukan nilai tersimpan). Karena tiap paket cuma punya satu ref_package_id
+	// (satu induk), rantai selalu berbentuk pohon -- ResolvePackageFactor juga
+	// sudah menolak siklus.
+	factorToAnchor = make(map[int]float64, len(packages))
+	for _, p := range packages {
+		f, ferr := ResolvePackageFactor(packages, p.ID)
+		if ferr != nil {
+			return nil, nil, nil, fmt.Errorf("resolve factor paket %d: %w", p.ID, ferr)
+		}
+		factorToAnchor[p.ID] = f
+	}
+
+	// Faktor konversi KEMBAR (dua satuan dengan faktor-ke-anchor sama persis)
+	// TIDAK LAGI ditolak. Alasannya: kalau dua satuan punya faktor identik,
+	// keduanya adalah "alias" satu sama lain (kasus nyata: Telur dengan
+	// "1 Krak = 1 Kilogram" -- bagi toko, Krak dan Kilogram memang satuan yang
+	// sama). Secara matematis ini AMAN karena unitsPerSmallest tiap paket
+	// dihitung dari factorToAnchor/smallestFactor; kalau ada faktor kembar,
+	// nilai smallestFactor identik siapa pun yang terpilih sebagai smallest,
+	// jadi hasil agregasi total stok (di satuan anchor) SELALU sama.
+	//
+	// Satu-satunya efek samping faktor kembar adalah distribusi stok per-baris
+	// bisa tidak deterministik saat dipecah ulang (semua stok bisa masuk ke
+	// salah satu alias, 0 di yang lain -- total tetap benar). Untuk membuatnya
+	// DETERMINISTIK (baris tujuan stok selalu konsisten antar-operasi, mis.
+	// jual lalu void tidak memindah stok antar-alias), kita pakai TIE-BREAKER
+	// stabil berbasis ID paket di pemilihan smallest (sini) dan di sort
+	// breakdown (ComputeStockDelta) -- lihat komentar di sana.
+	//
+	// Catatan: guard "percabangan" lama (dua satuan ambigu -> ditolak total)
+	// dihapus karena breakdown stok hanya butuh SATU urutan satuan dari
+	// terkecil ke terbesar; struktur pohon yang bercabang tetap bisa diurut
+	// unik selama faktornya bisa diurutkan (dengan tie-breaker ID untuk yang
+	// kembar). Contoh valid: Surya 12 (Batang & Slop ref ke Pack),
+	// Kardus/Renteng/Sachet, dan alias faktor-kembar seperti Telur.
+
+	// Satuan terkecil = paket dengan faktor-ke-anchor TERKECIL. smallestFactor
+	// dipakai sebagai pembagi unitsPerSmallest, jadi harus yang paling kecil
+	// supaya semua unitsPerSmallest >= 1. Tie-breaker: kalau faktor sama persis
+	// (alias), pilih ID paket terkecil supaya deterministik & tidak bergantung
+	// urutan baris dari DB.
+	const factorEqEps = 1e-9
+	for _, p := range packages {
+		if smallest == nil {
+			smallest = p
+			continue
+		}
+		fp := factorToAnchor[p.ID]
+		fs := factorToAnchor[smallest.ID]
+		scale := math.Max(math.Abs(fp), math.Abs(fs))
+		if scale < 1 {
+			scale = 1
+		}
+		if fp < fs-factorEqEps*scale {
+			smallest = p // faktor jelas lebih kecil
+		} else if math.Abs(fp-fs) <= factorEqEps*scale && p.ID < smallest.ID {
+			smallest = p // faktor kembar -> tie-break by ID terkecil
+		}
+	}
+	if smallest == nil {
+		return nil, nil, nil, errors.New("tidak ditemukan satuan terkecil pada rantai produk ini")
+	}
+	if factorToAnchor[smallest.ID] <= 0 {
+		return nil, nil, nil, errors.New("faktor satuan terkecil tidak valid (<= 0)")
+	}
+
+	return anchor, smallest, factorToAnchor, nil
+}
+
+// StockSummary adalah hasil agregasi baca-saja lintas semua level satuan
+// aktif sebuah produk (Fase 5, docs/RENCANA_PERBAIKAN_STOK_PRESISI.md).
+// Tidak pernah menulis apa pun -- murni untuk jalur baca (list/detail produk,
+// laporan, dashboard low-stock).
+// Status stok kualitatif (dipakai laporan & dashboard). Dihitung dari sisa
+// stok bebas dibanding ambang minimum, di satuan TERKECIL (sama dgn IsLowStock).
+const (
+	StockStatusOut     = "out" // habis: sisa stok bebas = 0
+	StockStatusLow     = "low" // menipis: 0 < sisa <= ambang minimum
+	StockStatusOK      = "ok"  // aman: sisa > ambang minimum
+	StockStatusUnknown = ""    // datanya diragukan (rantai paket tak bisa dianalisis) -> jangan beri alarm
+)
+
+type StockSummary struct {
+	AnchorStock    float64 // total semua level, dikonversi ke satuan anchor -- untuk tampilan angka tunggal (kompatibel dengan products.stock lama)
+	AnchorReserved float64 // total reserved_qty semua level, dikonversi ke satuan anchor
+	IsLowStock     bool    // celah #12: dibandingkan di satuan TERKECIL, bukan anchor-vs-anchor, supaya sisa < 1 unit anchor tidak salah alarm
+	// Status: pemisahan kualitatif "out"/"low"/"ok" untuk penyajian (menu Stok
+	// membedakan Habis vs Menipis vs Aman). IsLowStock tetap = (Status==out||low)
+	// supaya pemakai lama tidak berubah maknanya.
+	Status string
+}
+
+// ComputeStockSummary menghitung StockSummary sebuah produk dari baris
+// product_packages aktifnya. minStockAnchor adalah products.min_stock (selalu
+// diinput di satuan anchor per Aturan Operasional #dsb) -- dikonversi ke
+// satuan terkecil di sini sebelum dibandingkan (celah #12).
+func ComputeStockSummary(packages []*ProductPackage, continuousUnitID map[int]bool, minStockAnchor float64) (*StockSummary, error) {
+	active := make([]*ProductPackage, 0, len(packages))
+	for _, p := range packages {
+		if p.IsActive {
+			active = append(active, p)
+		}
+	}
+	if len(active) == 0 {
+		return nil, ErrNoPackages
+	}
+
+	_, smallest, factorToAnchor, err := analyzePackageChain(active)
+	if err != nil {
+		return nil, err
+	}
+	smallestFactor := factorToAnchor[smallest.ID]
+
+	unitsPerSmallest := func(p *ProductPackage) float64 {
+		return factorToAnchor[p.ID] / smallestFactor
+	}
+
+	var anchorStock, anchorReserved, smallestFree float64
+	for _, p := range active {
+		f := factorToAnchor[p.ID]
+		anchorStock += p.Stock * f
+		anchorReserved += p.ReservedQty * f
+
+		free := p.Stock - p.ReservedQty
+		if free < 0 {
+			free = 0
+		}
+		smallestFree += free * unitsPerSmallest(p)
+	}
+
+	// minStockAnchor (satuan anchor) -> satuan terkecil: kalikan dengan
+	// unitsPerSmallest(anchor) = 1/smallestFactor (anchor punya factorToAnchor=1).
+	minStockSmallest := minStockAnchor / smallestFactor
+	const epsilon = 1e-6
+	isLowStock := smallestFree <= minStockSmallest+epsilon
+
+	// Status kualitatif: pisahkan "habis" (sisa 0) dari "menipis" (sisa > 0 tapi
+	// masih di bawah/sama ambang). Dibandingkan di satuan terkecil, sama seperti
+	// isLowStock, agar konsisten.
+	var status string
+	switch {
+	case smallestFree <= epsilon:
+		status = StockStatusOut
+	case isLowStock:
+		status = StockStatusLow
+	default:
+		status = StockStatusOK
+	}
+
+	return &StockSummary{
+		AnchorStock:    anchorStock,
+		AnchorReserved: anchorReserved,
+		IsLowStock:     isLowStock,
+		Status:         status,
+	}, nil
+}

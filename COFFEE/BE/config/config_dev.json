@@ -1,0 +1,46 @@
+{
+  "SecretKey": "9f12341ba4ab43a526f83518a5ceb19de7117a56d1e58e907864c5a140570b2d",
+  "TokenExpire": 28800,
+  "RefreshTokenExpire": 604800,
+  "FormatTime": "2006-01-02 15:04:05",
+  "FormatDate": "2006-01-02",
+  "Timezone": "Asia/Jakarta",
+  "MaxTimeoutGracefulShutdown": 5,
+  "Log": {
+    "Path": "logs",
+    "Level": "debug",
+    "MaxSizeMB": 50,
+    "MaxBackups": 30,
+    "MaxAgeDays": 30
+  },
+  "Database": {
+    "Type": "mysql",
+    "Host": "127.0.0.1",
+    "Port": "3306",
+    "User": "root",
+    "Password": "",
+    "Database": "pos_coffee_db",
+    "MaxOpenConns": 50,
+    "MaxIdleConns": 10,
+    "MaxLifetime": 300,
+    "MaxIdleTime": 600
+  },
+  "PortalUrl": "http://localhost:8080/api",
+  "DirectLoginForceEnabled": false,
+  "CorsAllowOrigins": [
+    "http://localhost:3000",
+    "http://localhost:3002",
+    "http://localhost:5173",
+    "http://localhost:8080"
+  ],
+  "Backup": {
+    "MysqldumpBin": "C:\\wamp64\\bin\\mysql\\mysql8.4.7\\bin\\mysqldump.exe",
+    "MysqlBin": "C:\\wamp64\\bin\\mysql\\mysql8.4.7\\bin\\mysql.exe"
+  },
+  "Printer": {
+    "Port": "COM3",
+    "CharPerLine": 32,
+    "LanHost": "",
+    "LanPort": 9100
+  }
+}

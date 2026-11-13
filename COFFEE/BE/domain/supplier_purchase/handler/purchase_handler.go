@@ -1,0 +1,289 @@
+package handler
+
+import (
+	dto "coffee_api/domain/supplier_purchase/dto"
+	service "coffee_api/domain/supplier_purchase/service"
+	global_dto "coffee_api/dto"
+	"coffee_api/errors"
+	"coffee_api/helper"
+	response_helper "coffee_api/helper/response"
+	binder "coffee_api/pkg/binder"
+	"coffee_api/validation"
+
+	"github.com/gin-gonic/gin"
+)
+
+type PurchaseHandler struct {
+	service service.PurchaseServiceInterface
+}
+
+func NewPurchaseHandler(service service.PurchaseServiceInterface) *PurchaseHandler {
+	return &PurchaseHandler{service: service}
+}
+
+func (h *PurchaseHandler) GenerateCode(c *gin.Context) {
+	data, err := h.service.GenerateCode()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Generate kode PO",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) GetAll(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar purchase order",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *PurchaseHandler) GetByID(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail purchase order",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) Create(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+	req.UserID = helper.GetUserID(c)
+
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusCreated,
+		Status:  true,
+		Message: "Purchase order berhasil dibuat",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) Update(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Update(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Purchase order berhasil diperbarui",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) Delete(c *gin.Context) {
+	req, err := binder.BindURI[dto.DeleteRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Delete(req.ID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Purchase order berhasil dihapus",
+	})
+}
+
+func (h *PurchaseHandler) Void(c *gin.Context) {
+	req, err := binder.BindURI[dto.VoidUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	userID := helper.GetUserID(c)
+	if err := h.service.Void(req.ID, userID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Purchase order berhasil di-void",
+	})
+}
+
+func (h *PurchaseHandler) AddItems(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.AddItemsUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.AddItemsRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.AddItems(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Item berhasil ditambahkan ke purchase order",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) GetPayments(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetPayments(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Riwayat pembayaran purchase order",
+		Data:    data,
+	})
+}
+
+func (h *PurchaseHandler) Pay(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.PayRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
+
+	if err := validation.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Pay(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Pembayaran purchase order berhasil dicatat",
+	})
+}

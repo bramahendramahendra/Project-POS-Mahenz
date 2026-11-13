@@ -1,0 +1,599 @@
+package repo
+
+import (
+	"sort"
+	"time"
+
+	product_repo "coffee_api/domain/product/repo"
+	dto "coffee_api/domain/report/dto"
+	request_helper "coffee_api/helper/request"
+	time_helper "coffee_api/helper/time"
+)
+
+const (
+	salesReportQuery = `
+		SELECT t.id, t.transaction_code, DATE_FORMAT(t.transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date,
+		       u.full_name as cashier_name, COALESCE(cu.name,'') as customer_name,
+		       t.total_amount, t.discount, t.payment_method, t.status
+		FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
+		ORDER BY t.transaction_date DESC`
+
+	salesListBase = `
+		SELECT t.id, t.transaction_code, DATE_FORMAT(t.transaction_date, '%Y-%m-%d %H:%i:%s') as transaction_date,
+		       u.full_name as cashier_name, COALESCE(cu.name,'') as customer_name,
+		       t.total_amount, t.discount, t.payment_method, t.status
+		FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
+
+	salesListCountBase = `
+		SELECT COUNT(*) FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		LEFT JOIN customers cu ON t.customer_id = cu.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
+
+	salesSummaryQuery = `
+		SELECT COUNT(*) as total_transactions,
+		       COALESCE(SUM(total_amount),0) as total_revenue,
+		       COALESCE(AVG(total_amount),0) as avg_per_transaction,
+		       COALESCE(SUM(discount),0) as total_discount, COALESCE(SUM(tax),0) as total_tax
+		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?`
+
+	salesSummaryBase = `
+		SELECT COUNT(*) as total_transactions,
+		       COALESCE(SUM(t.total_amount),0) as total_revenue,
+		       COALESCE(AVG(t.total_amount),0) as avg_per_transaction,
+		       COALESCE(SUM(t.discount),0) as total_discount, COALESCE(SUM(t.tax),0) as total_tax
+		FROM transactions t
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
+
+	salesChartQuery = `
+		SELECT DATE(transaction_date) as label, COALESCE(SUM(total_amount),0) as total_sales, COUNT(*) as total_transactions
+		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?
+		GROUP BY DATE(transaction_date) ORDER BY label`
+
+	profitLossQuery = `
+		SELECT ti.product_id, p.name as product_name,
+		       SUM(ti.quantity) as qty_sold,
+		       COALESCE(SUM(ti.quantity * ti.purchase_price) / NULLIF(SUM(ti.quantity),0),0) as purchase_price,
+		       COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs,
+		       COALESCE(SUM(ti.subtotal * (t.total_amount - t.tax) / NULLIF(t.subtotal,0)),0) as total_revenue
+		FROM transaction_items ti
+		LEFT JOIN products p ON ti.product_id = p.id
+		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
+		GROUP BY ti.product_id, p.name`
+
+	expenseSummaryQuery = `
+		SELECT category, COALESCE(SUM(amount),0) as total
+		FROM expenses WHERE expense_date BETWEEN ? AND ?
+		GROUP BY category`
+
+	stockReportQuery = `
+		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
+		       COALESCE(c.name,'') as category_name, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.is_active = 1`
+
+	stockListBase = `
+		SELECT p.id, COALESCE(p.sku,'') as product_code, p.name as product_name,
+		       COALESCE(c.name,'') as category_name, p.min_stock,
+		       COALESCE(u.name,'') as unit, p.purchase_price as cost_price
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN units u ON u.id = p.unit_id
+		WHERE p.is_active = 1`
+
+	stockSummaryCandidatesBase = `
+		SELECT p.id, p.min_stock, p.purchase_price as cost_price
+		FROM products p
+		LEFT JOIN categories c ON p.category_id = c.id
+		WHERE p.is_active = 1`
+
+	cashierReportBase = `
+		SELECT t.user_id, u.full_name as cashier_name,
+		       COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as total_transactions,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' THEN t.total_amount ELSE 0 END),0) as total_sales,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' AND t.payment_method='cash' THEN t.total_amount ELSE 0 END),0) as total_cash,
+		       COALESCE(SUM(CASE WHEN t.status = 'completed' AND t.payment_method!='cash' THEN t.total_amount ELSE 0 END),0) as total_non_cash,
+		       COALESCE(AVG(CASE WHEN t.status = 'completed' THEN t.total_amount END),0) as avg_per_transaction,
+		       COUNT(CASE WHEN t.status = 'void' THEN 1 END) as void_count
+		FROM transactions t
+		LEFT JOIN users u ON t.user_id = u.id
+		WHERE t.transaction_date BETWEEN ? AND ?`
+
+	cashierReportGroupBy = ` GROUP BY t.user_id, u.full_name`
+
+	cashierCountBase = `
+		SELECT COUNT(DISTINCT t.user_id)
+		FROM transactions t
+		WHERE t.transaction_date BETWEEN ? AND ?`
+)
+
+func (r *reportRepo) GetSalesItems(params dto.FilterParams) ([]dto.SalesItem, error) {
+	rows, err := r.db.Raw(salesReportQuery, params.DateFrom, params.DateTo).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.SalesItem
+	for rows.Next() {
+		var item dto.SalesItem
+		if err := rows.Scan(&item.ID, &item.TransactionCode, &item.TransactionDate,
+			&item.CashierName, &item.CustomerName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.SalesItem{}
+	}
+	return items, nil
+}
+
+func (r *reportRepo) GetSalesItemsPaginated(req *dto.SalesListRequest) ([]dto.SalesItem, int64, error) {
+	dateFrom, dateTo := resolveSalesDates(req.DateFrom, req.DateTo)
+	args := []any{dateFrom, dateTo}
+	conditions := ""
+
+	if req.PaymentMethod != "" {
+		conditions += " AND t.payment_method = ?"
+		args = append(args, req.PaymentMethod)
+	}
+	if req.UserID != nil {
+		conditions += " AND t.user_id = ?"
+		args = append(args, *req.UserID)
+	}
+
+	var total int64
+	r.db.Raw(salesListCountBase+conditions, args...).Scan(&total)
+
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
+
+	allowedSortFields := map[string]string{
+		"transaction_date": "t.transaction_date",
+		"transaction_code": "t.transaction_code",
+		"cashier_name":     "u.full_name",
+		"customer_name":    "cu.name",
+		"total_amount":     "t.total_amount",
+		"payment_method":   "t.payment_method",
+		"status":           "t.status",
+	}
+	const salesListDefaultOrder = " ORDER BY t.transaction_date DESC"
+	listArgs := append(args, limit, offset)
+	query := salesListBase + conditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedSortFields, salesListDefaultOrder) +
+		" LIMIT ? OFFSET ?"
+
+	rows, err := r.db.Raw(query, listArgs...).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.SalesItem
+	for rows.Next() {
+		var item dto.SalesItem
+		if err := rows.Scan(&item.ID, &item.TransactionCode, &item.TransactionDate,
+			&item.CashierName, &item.CustomerName, &item.TotalAmount, &item.Discount, &item.PaymentMethod, &item.Status); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.SalesItem{}
+	}
+	return items, total, nil
+}
+
+func (r *reportRepo) GetSalesSummaryWithFilters(req *dto.SalesListRequest) (*dto.SalesSummary, error) {
+	dateFrom, dateTo := resolveSalesDates(req.DateFrom, req.DateTo)
+	args := []any{dateFrom, dateTo}
+	conditions := ""
+
+	if req.PaymentMethod != "" {
+		conditions += " AND t.payment_method = ?"
+		args = append(args, req.PaymentMethod)
+	}
+	if req.UserID != nil {
+		conditions += " AND t.user_id = ?"
+		args = append(args, *req.UserID)
+	}
+
+	var summary dto.SalesSummary
+	if err := r.db.Raw(salesSummaryBase+conditions, args...).Scan(&summary).Error; err != nil {
+		return nil, err
+	}
+
+	// Pembanding periode sebelumnya (durasi sama, tepat sebelum periode ini).
+	// Filter lain (metode bayar, kasir) tetap ikut supaya apple-to-apple.
+	if prevFrom, prevTo, ok := prevSalesRange(dateFrom, dateTo); ok {
+		prevArgs := append([]any{prevFrom, prevTo}, args[2:]...) // ganti tanggal, pertahankan kondisi lain
+		var prev dto.SalesSummary
+		if err := r.db.Raw(salesSummaryBase+conditions, prevArgs...).Scan(&prev).Error; err == nil {
+			summary.PrevTransactions = prev.TotalTransactions
+			summary.PrevRevenue = prev.TotalRevenue
+			summary.PrevAvgPerTx = prev.AvgPerTransaction
+			summary.PrevAvailable = prev.TotalTransactions > 0
+		}
+	}
+	return &summary, nil
+}
+
+func resolveSalesDates(dateFrom, dateTo string) (string, string) {
+	return time_helper.NormalizeDateRange(dateFrom, dateTo)
+}
+
+// prevSalesRange menghitung rentang periode SEBELUMNYA berdurasi sama, tepat
+// berakhir sehari sebelum periode saat ini dimulai. Input format hasil
+// NormalizeDateRange ("2006-01-02 15:04:05").
+func prevSalesRange(dateFrom, dateTo string) (string, string, bool) {
+	const layout = "2006-01-02 15:04:05"
+	from, err1 := time.Parse(layout, dateFrom)
+	to, err2 := time.Parse(layout, dateTo)
+	if err1 != nil || err2 != nil || !to.After(from) {
+		return "", "", false
+	}
+	days := int(to.Sub(from).Hours()/24) + 1
+	if days <= 0 {
+		return "", "", false
+	}
+	prevTo := from.AddDate(0, 0, -1)
+	prevFrom := prevTo.AddDate(0, 0, -(days - 1))
+	return prevFrom.Format("2006-01-02") + " 00:00:00", prevTo.Format("2006-01-02") + " 23:59:59", true
+}
+
+func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary, error) {
+	var summary dto.SalesSummary
+	if err := r.db.Raw(salesSummaryQuery, params.DateFrom, params.DateTo).Scan(&summary).Error; err != nil {
+		return nil, err
+	}
+	return &summary, nil
+}
+
+func (r *reportRepo) GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error) {
+	rows, err := r.db.Raw(salesChartQuery, params.DateFrom, params.DateTo).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.SalesChartItem
+	for rows.Next() {
+		var item dto.SalesChartItem
+		if err := rows.Scan(&item.Label, &item.TotalSales, &item.TotalTransactions); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.SalesChartItem{}
+	}
+	return items, nil
+}
+
+func (r *reportRepo) GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error) {
+	rows, err := r.db.Raw(profitLossQuery, params.DateFrom, params.DateTo).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.ProfitLossItem
+	for rows.Next() {
+		var item dto.ProfitLossItem
+		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.QtySold,
+			&item.PurchasePrice, &item.TotalCOGS, &item.TotalRevenue); err != nil {
+			return nil, err
+		}
+		item.GrossProfit = item.TotalRevenue - item.TotalCOGS
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.ProfitLossItem{}
+	}
+	return items, nil
+}
+
+func (r *reportRepo) GetExpenseSummary(params dto.FilterParams) ([]dto.ExpenseSummaryItem, error) {
+	rows, err := r.db.Raw(expenseSummaryQuery, params.DateFrom, params.DateTo).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.ExpenseSummaryItem
+	for rows.Next() {
+		var item dto.ExpenseSummaryItem
+		if err := rows.Scan(&item.Category, &item.Total); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.ExpenseSummaryItem{}
+	}
+	return items, nil
+}
+
+func (r *reportRepo) GetStockItems() ([]dto.StockItem, error) {
+	rows, err := r.db.Raw(stockReportQuery).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.StockItem
+	for rows.Next() {
+		var item dto.StockItem
+		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
+			&item.MinStock, &item.Unit, &item.CostPrice); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.StockItem{}
+	}
+	if err := r.attachStockToItems(items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+func (r *reportRepo) attachStockToItems(items []dto.StockItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	minStockByProduct := make(map[int]float64, len(items))
+	for _, it := range items {
+		minStockByProduct[it.ID] = it.MinStock
+	}
+	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
+	if err != nil {
+		return err
+	}
+	for i := range items {
+		if s, ok := summaries[items[i].ID]; ok {
+			items[i].CurrentStock = s.AnchorStock
+			items[i].StockValue = s.AnchorStock * items[i].CostPrice
+			items[i].IsLowStock = s.IsLowStock
+			items[i].StockStatus = s.Status
+		}
+	}
+	return nil
+}
+
+func (r *reportRepo) GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error) {
+	args := []any{}
+	listConditions := ""
+
+	if req.Search != "" {
+		listConditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
+		like := "%" + req.Search + "%"
+		args = append(args, like, like)
+	}
+	if req.CategoryID != nil {
+		listConditions += " AND p.category_id = ?"
+		args = append(args, *req.CategoryID)
+	}
+
+	allowedStockSortFields := map[string]string{
+		"product_code":  "p.sku",
+		"product_name":  "p.name",
+		"category_name": "c.name",
+	}
+	const stockListDefaultOrder = " ORDER BY p.name ASC"
+	query := stockListBase + listConditions +
+		request_helper.BuildOrderClause(req.SortBy, req.SortOrder, allowedStockSortFields, stockListDefaultOrder)
+
+	rows, err := r.db.Raw(query, args...).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.StockItem
+	for rows.Next() {
+		var item dto.StockItem
+		if err := rows.Scan(&item.ID, &item.ProductCode, &item.ProductName, &item.CategoryName,
+			&item.MinStock, &item.Unit, &item.CostPrice); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.StockItem{}
+	}
+	if err := r.attachStockToItems(items); err != nil {
+		return nil, 0, err
+	}
+
+	// Filter cepat berdasarkan status stok (dihitung di Go, bukan SQL).
+	if req.StockStatus != "" {
+		items = filterByStockStatus(items, req.StockStatus)
+	}
+
+	switch req.SortBy {
+	case "current_stock":
+		sort.Slice(items, func(i, j int) bool {
+			if req.SortOrder == "desc" {
+				return items[i].CurrentStock > items[j].CurrentStock
+			}
+			return items[i].CurrentStock < items[j].CurrentStock
+		})
+	case "stock_value":
+		sort.Slice(items, func(i, j int) bool {
+			if req.SortOrder == "desc" {
+				return items[i].StockValue > items[j].StockValue
+			}
+			return items[i].StockValue < items[j].StockValue
+		})
+	}
+
+	total := int64(len(items))
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
+	if offset >= len(items) {
+		return []dto.StockItem{}, total, nil
+	}
+	end := offset + limit
+	if end > len(items) {
+		end = len(items)
+	}
+	return items[offset:end], total, nil
+}
+
+func (r *reportRepo) GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error) {
+	args := []any{}
+	conditions := ""
+
+	if req.Search != "" {
+		conditions += " AND (p.name LIKE ? OR p.sku LIKE ?)"
+		like := "%" + req.Search + "%"
+		args = append(args, like, like)
+	}
+	if req.CategoryID != nil {
+		conditions += " AND p.category_id = ?"
+		args = append(args, *req.CategoryID)
+	}
+
+	type summaryCandidate struct {
+		ID        int     `gorm:"column:id"`
+		MinStock  float64 `gorm:"column:min_stock"`
+		CostPrice float64 `gorm:"column:cost_price"`
+	}
+	var candidates []*summaryCandidate
+	if err := r.db.Raw(stockSummaryCandidatesBase+conditions, args...).Scan(&candidates).Error; err != nil {
+		return nil, err
+	}
+
+	summary := dto.StockSummary{TotalProducts: len(candidates)}
+	if len(candidates) == 0 {
+		return &summary, nil
+	}
+
+	minStockByProduct := make(map[int]float64, len(candidates))
+	for _, c := range candidates {
+		minStockByProduct[c.ID] = c.MinStock
+	}
+	summaries, err := product_repo.BuildStockSummaries(r.db, minStockByProduct)
+	if err != nil {
+		return nil, err
+	}
+	// Kalau ada filter status, hitung ringkasan HANYA untuk produk yang cocok.
+	matched := 0
+	for _, c := range candidates {
+		s, ok := summaries[c.ID]
+		if !ok {
+			continue
+		}
+		if req.StockStatus != "" && s.Status != req.StockStatus {
+			continue
+		}
+		matched++
+		summary.TotalStockValue += s.AnchorStock * c.CostPrice
+		switch s.Status {
+		case "out": // model_product.StockStatusOut
+			summary.OutOfStockCount++
+			summary.LowStockCount++
+		case "low": // model_product.StockStatusLow
+			summary.LowOnlyCount++
+			summary.LowStockCount++
+		}
+	}
+	if req.StockStatus != "" {
+		summary.TotalProducts = matched
+	}
+	return &summary, nil
+}
+
+// filterByStockStatus menyaring daftar item ke satu status ("out"/"low"/"ok").
+func filterByStockStatus(items []dto.StockItem, status string) []dto.StockItem {
+	out := make([]dto.StockItem, 0, len(items))
+	for _, it := range items {
+		if it.StockStatus == status {
+			out = append(out, it)
+		}
+	}
+	return out
+}
+
+func (r *reportRepo) GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error) {
+	query := cashierReportBase + cashierReportGroupBy + " ORDER BY total_sales DESC"
+	rows, err := r.db.Raw(query, params.DateFrom, params.DateTo).Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []dto.CashierItem
+	for rows.Next() {
+		var item dto.CashierItem
+		if err := rows.Scan(&item.UserID, &item.CashierName, &item.TotalTransactions,
+			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgPerTransaction, &item.VoidCount); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.CashierItem{}
+	}
+	return items, nil
+}
+
+func (r *reportRepo) GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error) {
+	dateFrom, dateTo := time_helper.NormalizeDateRange(req.DateFrom, req.DateTo)
+
+	var total int64
+	if err := r.db.Raw(cashierCountBase, dateFrom, dateTo).Scan(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
+
+	allowedSortColumns := map[string]string{
+		"cashier_name":        "cashier_name",
+		"total_transactions":  "total_transactions",
+		"total_sales":         "total_sales",
+		"avg_per_transaction": "avg_per_transaction",
+		"void_count":          "void_count",
+	}
+	sortCol := "total_sales"
+	if col, ok := allowedSortColumns[req.SortBy]; ok {
+		sortCol = col
+	}
+	sortDir := "DESC"
+	if req.SortOrder == "asc" {
+		sortDir = "ASC"
+	}
+
+	query := cashierReportBase + cashierReportGroupBy +
+		" ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
+	rows, err := r.db.Raw(query, dateFrom, dateTo, limit, offset).Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []dto.CashierItem
+	for rows.Next() {
+		var item dto.CashierItem
+		if err := rows.Scan(&item.UserID, &item.CashierName, &item.TotalTransactions,
+			&item.TotalSales, &item.TotalCash, &item.TotalNonCash, &item.AvgPerTransaction, &item.VoidCount); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, item)
+	}
+	if items == nil {
+		items = []dto.CashierItem{}
+	}
+	return items, total, nil
+}

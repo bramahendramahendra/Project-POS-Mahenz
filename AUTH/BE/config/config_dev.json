@@ -1,0 +1,29 @@
+{
+  "SecretKey": "4629a7a72781d932839c4524d1f36729ed78684ca147d8cd63f73182d128b25a",
+  "TokenExpire": 28800,
+  "RefreshTokenExpire": 604800,
+  "FormatTime": "2006-01-02 15:04:05",
+  "FormatDate": "2006-01-02",
+  "Timezone": "Asia/Jakarta",
+  "MaxTimeoutGracefulShutdown": 5,
+  "Log": {
+    "Path": "logs",
+    "Level": "debug",
+    "MaxSizeMB": 50,
+    "MaxBackups": 30,
+    "MaxAgeDays": 30
+  },
+  "Database": {
+    "Type": "mysql",
+    "Host": "127.0.0.1",
+    "Port": "3306",
+    "User": "root",
+    "Password": "",
+    "Database": "pos_auth_db",
+    "MaxOpenConns": 50,
+    "MaxIdleConns": 10,
+    "MaxLifetime": 300,
+    "MaxIdleTime": 600
+  },
+  "CorsAllowOrigins": []
+}

@@ -1,0 +1,139 @@
+package service
+
+import (
+	"fmt"
+	"coffee_api/domain/setting/dto"
+	"coffee_api/errors"
+	"strconv"
+)
+
+func (s *settingService) GetAll() (map[string]string, error) {
+	settings, err := s.repo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]string)
+	for _, item := range settings {
+		result[item.Key] = item.Value
+	}
+	return result, nil
+}
+
+func (s *settingService) GetByKey(key string) (string, error) {
+	setting, err := s.repo.GetByKey(key)
+	if err != nil {
+		return "", err
+	}
+	if setting == nil {
+		return "", &errors.NotFoundError{Message: "Setting tidak ditemukan"}
+	}
+	return setting.Value, nil
+}
+
+// protectedSettingKeys: key yang punya endpoint khusus dengan hak akses sendiri,
+// sehingga tidak boleh diubah lewat penyimpanan pengaturan umum (yang terbuka untuk owner dan admin).
+var protectedSettingKeys = map[string]bool{
+	"direct_login_enabled": true, // diubah lewat POST /auth/direct-login (hanya admin)
+}
+
+func (s *settingService) Save(data map[string]string) error {
+	// Validasi dulu sebelum menulis apa pun agar tidak ada penyimpanan sebagian.
+	for key := range data {
+		if protectedSettingKeys[key] {
+			return &errors.BadRequestError{Message: "Pengaturan '" + key + "' tidak dapat diubah lewat sini"}
+		}
+	}
+
+	for key, value := range data {
+		if err := s.repo.Upsert(key, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *settingService) Reset() error {
+	return s.repo.ResetAll()
+}
+
+func (s *settingService) getSettingValue(key string) string {
+	setting, err := s.repo.GetByKey(key)
+	if err != nil || setting == nil {
+		return ""
+	}
+	return setting.Value
+}
+
+func (s *settingService) GetStoreProfile() (*dto.StoreProfileResponse, error) {
+	taxStr := s.getSettingValue("tax_default")
+	taxDefault, _ := strconv.ParseFloat(taxStr, 64)
+	return &dto.StoreProfileResponse{
+		Name:       s.getSettingValue("store_name"),
+		Address:    s.getSettingValue("store_address"),
+		Phone:      s.getSettingValue("store_phone"),
+		Email:      s.getSettingValue("store_email"),
+		LogoURL:    s.getSettingValue("store_logo_url"),
+		TaxDefault: taxDefault,
+	}, nil
+}
+
+func (s *settingService) UpdateStoreProfile(req *dto.StoreProfileRequest) error {
+	data := map[string]string{
+		"store_name":     req.Name,
+		"store_address":  req.Address,
+		"store_phone":    req.Phone,
+		"store_email":    req.Email,
+		"store_logo_url": req.LogoURL,
+		"tax_default":    fmt.Sprintf("%g", req.TaxDefault),
+	}
+	return s.Save(data)
+}
+
+func (s *settingService) GetPrinterSettings() (*dto.PrinterSettingsResponse, error) {
+	paperSize := s.getSettingValue("printer_paper_size")
+	if paperSize == "" {
+		paperSize = "80mm"
+	}
+	receiptFooter := s.getSettingValue("printer_receipt_footer")
+	if receiptFooter == "" {
+		receiptFooter = "Terima kasih telah berbelanja"
+	}
+	showLogo := s.getSettingValue("printer_show_logo") == "true"
+	autoPrint := s.getSettingValue("printer_auto_print") == "true"
+	printMethod := s.getSettingValue("printer_print_method")
+	if printMethod == "" {
+		printMethod = "browser"
+	}
+	return &dto.PrinterSettingsResponse{
+		PaperSize:     paperSize,
+		ReceiptHeader: s.getSettingValue("printer_receipt_header"),
+		ReceiptFooter: receiptFooter,
+		ShowLogo:      showLogo,
+		AutoPrint:     autoPrint,
+		PrintMethod:   printMethod,
+	}, nil
+}
+
+func (s *settingService) UpdatePrinterSettings(req *dto.PrinterSettingsRequest) error {
+	showLogo := "false"
+	if req.ShowLogo {
+		showLogo = "true"
+	}
+	autoPrint := "false"
+	if req.AutoPrint {
+		autoPrint = "true"
+	}
+	printMethod := req.PrintMethod
+	if printMethod == "" {
+		printMethod = "browser"
+	}
+	data := map[string]string{
+		"printer_paper_size":     req.PaperSize,
+		"printer_receipt_header": req.ReceiptHeader,
+		"printer_receipt_footer": req.ReceiptFooter,
+		"printer_show_logo":      showLogo,
+		"printer_auto_print":     autoPrint,
+		"printer_print_method":   printMethod,
+	}
+	return s.Save(data)
+}

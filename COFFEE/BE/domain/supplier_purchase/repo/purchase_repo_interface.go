@@ -1,0 +1,45 @@
+package repo
+
+import (
+	dto "coffee_api/domain/supplier_purchase/dto"
+	model "coffee_api/domain/supplier_purchase/model"
+
+	"gorm.io/gorm"
+)
+
+type (
+	PurchaseRepoInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*model.PurchaseRow, int64, error)
+		GetByID(id int) (*model.PurchaseRow, error)
+		GetPayments(purchaseID int) ([]model.PurchasePayment, error)
+		GenerateCode() (string, error)
+		Create(req *dto.CreateRequest) (*model.PurchaseRow, error)
+		Update(req *dto.UpdateRequest) (*model.PurchaseRow, error)
+		Delete(id int) error
+		Pay(req *dto.PayRequest) error
+		GetRawByID(id int) (*model.Purchase, error)
+		IsValidPaymentMethod(code string) (bool, error)
+		Void(id int, userID int) error
+		CountReturnsByPurchaseID(purchaseID int) (int64, error)
+		AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error)
+
+		GetDB() *gorm.DB
+		WithTx(tx *gorm.DB) PurchaseRepoInterface
+	}
+
+	purchaseRepo struct {
+		db *gorm.DB
+	}
+)
+
+func NewPurchaseRepo(db *gorm.DB) *purchaseRepo {
+	return &purchaseRepo{db: db}
+}
+
+func (r *purchaseRepo) GetDB() *gorm.DB {
+	return r.db
+}
+
+func (r *purchaseRepo) WithTx(tx *gorm.DB) PurchaseRepoInterface {
+	return &purchaseRepo{db: tx}
+}

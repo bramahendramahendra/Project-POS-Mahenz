@@ -1,0 +1,204 @@
+package handler
+
+import (
+	dto "coffee_api/domain/product_unit/dto"
+	service "coffee_api/domain/product_unit/service"
+	global_dto "coffee_api/dto"
+	"coffee_api/errors"
+	"coffee_api/helper"
+	response_helper "coffee_api/helper/response"
+	binder "coffee_api/pkg/binder"
+	validator "coffee_api/validation"
+
+	"github.com/gin-gonic/gin"
+)
+
+type UnitHandler struct {
+	service service.UnitServiceInterface
+}
+
+func NewUnitHandler(service service.UnitServiceInterface) *UnitHandler {
+	return &UnitHandler{service: service}
+}
+
+// POST /units/list
+func (h *UnitHandler) GetAll(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar satuan",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+// POST /units/options
+func (h *UnitHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Opsi satuan",
+		Data:    data,
+	})
+}
+
+// POST /units/detail/:id
+func (h *UnitHandler) GetByID(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail satuan",
+		Data:    data,
+	})
+}
+
+// POST /units/create
+func (h *UnitHandler) Create(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Create(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Satuan berhasil dibuat",
+		Data:    data,
+	})
+}
+
+// POST /units/update/:id
+func (h *UnitHandler) Update(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Update(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Satuan berhasil diperbarui",
+		Data:    data,
+	})
+}
+
+// POST /units/delete/:id
+func (h *UnitHandler) Delete(c *gin.Context) {
+	req, err := binder.BindURI[dto.DeleteRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Delete(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Satuan berhasil dihapus",
+	})
+}
+
+// POST /units/toggle-status/:id
+func (h *UnitHandler) ToggleStatus(c *gin.Context) {
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.ToggleStatus(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Status satuan berhasil diperbarui",
+	})
+}

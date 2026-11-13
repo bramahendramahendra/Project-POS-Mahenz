@@ -35,7 +35,9 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, disetujui user |
 | Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
 | Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
-| Fase 4: POS Coffee | BELUM (rancangan di bagian 14 dokumen rancangan) |
+| Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui). **4.1 berjalan sebagian lalu dihentikan** (riwayat #55): `COFFEE/BE` sudah ada (port lama 8082), menunggu Fase 3B |
+| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-73; rancangan rinci di bagian 5.0d **disetujui**; langkah berikutnya tahap 3B.1. Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
+| Deploy VPS (Portal, Toko, Coffee) | Ditunda sampai Coffee selesai di dev (keputusan 61) |
 
 Pekerjaan Fase 1-3.5 sudah di-commit user (commit berikutnya juga oleh user). Belum ada deploy ke VPS.
 Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.

@@ -1,0 +1,286 @@
+package handler
+
+import (
+	dto "coffee_api/domain/product/dto"
+	service "coffee_api/domain/product/service"
+	global_dto "coffee_api/dto"
+	"coffee_api/errors"
+	"coffee_api/helper"
+	response_helper "coffee_api/helper/response"
+	binder "coffee_api/pkg/binder"
+	validator "coffee_api/validation"
+
+	"github.com/gin-gonic/gin"
+)
+
+type ProductHandler struct {
+	service service.ProductServiceInterface
+}
+
+func NewProductHandler(service service.ProductServiceInterface) *ProductHandler {
+	return &ProductHandler{service: service}
+}
+
+// POST /products/list
+func (h *ProductHandler) GetAll(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar produk",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+// POST /products/options
+func (h *ProductHandler) GetOptions(c *gin.Context) {
+	data, err := h.service.GetOptions()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Opsi produk",
+		Data:    data,
+	})
+}
+
+// POST /products/search
+func (h *ProductHandler) Search(c *gin.Context) {
+	req, err := binder.BindJSON[dto.SearchRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Search(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Hasil pencarian produk",
+		Data:    data,
+	})
+}
+
+// POST /products/detail/:id
+func (h *ProductHandler) GetByID(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail produk",
+		Data:    data,
+	})
+}
+
+// POST /products/by-barcode/:barcode
+func (h *ProductHandler) GetByBarcode(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByBarcodeRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByBarcode(req.Barcode)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail produk",
+		Data:    data,
+	})
+}
+
+// POST /products/create
+func (h *ProductHandler) Create(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req.UserID = helper.GetUserID(c)
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Create(&req, helper.GetUserRole(c))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Produk berhasil dibuat",
+		Data:    data,
+	})
+}
+
+// POST /products/update/:id
+func (h *ProductHandler) Update(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+	req.UserID = helper.GetUserID(c)
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.Update(&req, helper.GetUserRole(c))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Produk berhasil diperbarui",
+		Data:    data,
+	})
+}
+
+// POST /products/delete/:id
+func (h *ProductHandler) Delete(c *gin.Context) {
+	req, err := binder.BindURI[dto.DeleteRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Delete(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Produk berhasil dihapus",
+	})
+}
+
+// POST /products/toggle-status/:id
+func (h *ProductHandler) ToggleStatus(c *gin.Context) {
+	req, err := binder.BindURI[dto.ToggleStatusRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.ToggleStatus(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Status produk berhasil diubah",
+	})
+}
+
+// POST /products/mark-reviewed/:id
+func (h *ProductHandler) MarkStockReviewed(c *gin.Context) {
+	req, err := binder.BindURI[dto.MarkStockReviewedRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.MarkStockReviewed(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Produk ditandai sudah ditinjau",
+	})
+}

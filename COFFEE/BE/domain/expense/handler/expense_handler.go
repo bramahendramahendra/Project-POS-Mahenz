@@ -1,0 +1,158 @@
+package handler
+
+import (
+	dto "coffee_api/domain/expense/dto"
+	service "coffee_api/domain/expense/service"
+	global_dto "coffee_api/dto"
+	"coffee_api/errors"
+	"coffee_api/helper"
+	response_helper "coffee_api/helper/response"
+	binder "coffee_api/pkg/binder"
+	validator "coffee_api/validation"
+
+	"github.com/gin-gonic/gin"
+)
+
+type ExpenseHandler struct {
+	service service.ExpenseServiceInterface
+}
+
+func NewExpenseHandler(service service.ExpenseServiceInterface) *ExpenseHandler {
+	return &ExpenseHandler{service: service}
+}
+
+func (h *ExpenseHandler) GetAll(c *gin.Context) {
+	req, err := binder.BindJSON[dto.GetAllRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, total, err := h.service.GetAll(&req)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:       helper.StatusOk,
+		Status:     true,
+		Message:    "Daftar pengeluaran",
+		Data:       data,
+		Pagination: response_helper.SetPagination(&global_dto.FilterRequestParams{Page: req.Page, Limit: req.Limit}, total),
+	})
+}
+
+func (h *ExpenseHandler) GetByID(c *gin.Context) {
+	req, err := binder.BindURI[dto.GetByIDRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	data, err := h.service.GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Detail pengeluaran",
+		Data:    data,
+	})
+}
+
+func (h *ExpenseHandler) Create(c *gin.Context) {
+	req, err := binder.BindJSON[dto.CreateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	userID := helper.GetUserID(c)
+
+	data, err := h.service.Create(&req, userID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 201, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Pengeluaran berhasil dicatat",
+		Data:    data,
+	})
+}
+
+func (h *ExpenseHandler) Update(c *gin.Context) {
+	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	req, err := binder.BindJSON[dto.UpdateRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+	req.ID = uriReq.ID
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Update(&req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Pengeluaran berhasil diperbarui",
+	})
+}
+
+func (h *ExpenseHandler) Delete(c *gin.Context) {
+	req, err := binder.BindURI[dto.DeleteRequest](c)
+	if err != nil {
+		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.service.Delete(&req, helper.GetUserID(c), helper.GetUserRole(c)); err != nil {
+		c.Error(err)
+		return
+	}
+
+	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
+		Code:    helper.StatusOk,
+		Status:  true,
+		Message: "Pengeluaran berhasil dihapus",
+	})
+}

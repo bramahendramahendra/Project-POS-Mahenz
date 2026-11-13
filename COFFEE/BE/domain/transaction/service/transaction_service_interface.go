@@ -1,0 +1,27 @@
+package service
+
+import (
+	cash_drawer_repo "coffee_api/domain/cash_drawer/repo"
+	product_repo "coffee_api/domain/product/repo"
+	"coffee_api/domain/transaction/dto"
+	repo "coffee_api/domain/transaction/repo"
+)
+
+type (
+	TransactionServiceInterface interface {
+		GetAll(req *dto.GetAllRequest) ([]*dto.TransactionResponse, int64, error)
+		GetByID(id int, requestingUserID int, role string) (*dto.TransactionResponse, error)
+		Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
+		Void(req *dto.VoidRequest, userID int) error
+	}
+
+	transactionService struct {
+		repo           repo.TransactionRepoInterface
+		cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface
+		productRepo    product_repo.ProductRepoInterface
+	}
+)
+
+func NewTransactionService(r repo.TransactionRepoInterface, cashDrawerRepo cash_drawer_repo.CashDrawerRepoInterface, productRepo product_repo.ProductRepoInterface) *transactionService {
+	return &transactionService{repo: r, cashDrawerRepo: cashDrawerRepo, productRepo: productRepo}
+}

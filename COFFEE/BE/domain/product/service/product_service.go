@@ -1,0 +1,378 @@
+package service
+
+import (
+	dto "coffee_api/domain/product/dto"
+	"coffee_api/errors"
+)
+
+func (s *productService) GetAll(req *dto.GetAllRequest) (data []dto.ProductResponse, total int64, err error) {
+	dataDB, total, err := s.repo.GetAll(req)
+	if err != nil {
+		return data, 0, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, dto.ProductResponse{
+			ID:               v.ID,
+			Barcode:          v.Barcode,
+			SKU:              v.SKU,
+			Name:             v.Name,
+			CategoryID:       v.CategoryID,
+			CategoryName:     v.CategoryName,
+			PurchasePrice:    v.PurchasePrice,
+			SellingPrice:     v.SellingPrice,
+			Stock:            v.Stock,
+			ReservedQty:      v.ReservedQty,
+			MinStock:         v.MinStock,
+			UnitID:           v.UnitID,
+			UnitName:         v.UnitName,
+			UnitAbbreviation: v.UnitAbbreviation,
+			IsActive:         v.IsActive,
+			ExtraPackages:    v.ExtraPackages,
+			PriceTiersCount:  v.PriceTiersCount,
+			IsLowStock:       v.IsLowStock,
+			NeedsStockReview: v.NeedsStockReview,
+			StockReviewNote:  v.StockReviewNote,
+		})
+	}
+
+	return data, total, nil
+}
+
+func (s *productService) GetOptions() (data []*dto.GetOptionResponse, err error) {
+	dataDB, err := s.repo.GetOptions()
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.GetOptionResponse{
+			ID:   v.ID,
+			Name: v.Name,
+		})
+	}
+
+	return data, nil
+}
+
+func (s *productService) Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error) {
+	data = []*dto.SearchResponse{}
+	dataDB, err := s.repo.Search(req)
+	if err != nil {
+		return data, err
+	}
+
+	for _, v := range dataDB {
+		data = append(data, &dto.SearchResponse{
+			ID:           v.ID,
+			Barcode:      v.Barcode,
+			Name:         v.Name,
+			SellingPrice: v.SellingPrice,
+			Stock:        v.Stock,
+			MinStock:     v.MinStock,
+			UnitID:       v.UnitID,
+			UnitName:     v.UnitName,
+		})
+	}
+
+	return data, nil
+}
+
+func (s *productService) GetByID(id int) (data dto.ProductResponse, err error) {
+	dataDB, err := s.repo.GetByID(id)
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	data = dto.ProductResponse{
+		ID:               dataDB.ID,
+		Barcode:          dataDB.Barcode,
+		SKU:              dataDB.SKU,
+		Name:             dataDB.Name,
+		CategoryID:       dataDB.CategoryID,
+		CategoryName:     dataDB.CategoryName,
+		PurchasePrice:    dataDB.PurchasePrice,
+		SellingPrice:     dataDB.SellingPrice,
+		Stock:            dataDB.Stock,
+		ReservedQty:      dataDB.ReservedQty,
+		MinStock:         dataDB.MinStock,
+		UnitID:           dataDB.UnitID,
+		UnitName:         dataDB.UnitName,
+		UnitAbbreviation: dataDB.UnitAbbreviation,
+		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
+	}
+
+	return data, nil
+}
+
+func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse, err error) {
+	dataDB, err := s.repo.GetByBarcode(barcode)
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	data = dto.ProductResponse{
+		ID:               dataDB.ID,
+		Barcode:          dataDB.Barcode,
+		SKU:              dataDB.SKU,
+		Name:             dataDB.Name,
+		CategoryID:       dataDB.CategoryID,
+		CategoryName:     dataDB.CategoryName,
+		PurchasePrice:    dataDB.PurchasePrice,
+		SellingPrice:     dataDB.SellingPrice,
+		Stock:            dataDB.Stock,
+		ReservedQty:      dataDB.ReservedQty,
+		MinStock:         dataDB.MinStock,
+		UnitID:           dataDB.UnitID,
+		UnitName:         dataDB.UnitName,
+		UnitAbbreviation: dataDB.UnitAbbreviation,
+		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
+	}
+
+	return data, nil
+}
+
+func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error) {
+	if role != "admin" {
+		req.Stock = 0
+	}
+
+	category, err := s.repoCategory.GetByID(*req.CategoryID)
+	if err != nil {
+		return data, err
+	}
+	if category == nil {
+		return data, &errors.BadRequestError{Message: "Kategori tidak ditemukan"}
+	}
+
+	unit, err := s.repoUnit.GetByID(req.UnitID)
+	if err != nil {
+		return data, err
+	}
+	if unit == nil {
+		return data, &errors.BadRequestError{Message: "Satuan tidak ditemukan"}
+	}
+
+	exists, err := s.repo.CheckBarcodeExists(req.Barcode, 0)
+	if err != nil {
+		return data, err
+	}
+	if exists {
+		return data, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
+	}
+
+	skuExists, err := s.repo.CheckSkuExists(req.SKU, 0)
+	if err != nil {
+		return data, err
+	}
+	if skuExists {
+		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
+	}
+
+	nameExists, err := s.repo.CheckNameExists(req.Name, 0)
+	if err != nil {
+		return data, err
+	}
+	if nameExists {
+		return data, &errors.BadRequestError{Message: "Nama produk sudah digunakan"}
+	}
+
+	if err := validatePackageDrafts(req.Packages); err != nil {
+		return data, err
+	}
+
+	newID, err := s.repo.Create(req)
+	if err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(int(newID))
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data produk baru"}
+	}
+
+	data = dto.ProductResponse{
+		ID:               dataDB.ID,
+		Barcode:          dataDB.Barcode,
+		SKU:              dataDB.SKU,
+		Name:             dataDB.Name,
+		CategoryID:       dataDB.CategoryID,
+		CategoryName:     dataDB.CategoryName,
+		PurchasePrice:    dataDB.PurchasePrice,
+		SellingPrice:     dataDB.SellingPrice,
+		Stock:            dataDB.Stock,
+		MinStock:         dataDB.MinStock,
+		UnitID:           dataDB.UnitID,
+		UnitName:         dataDB.UnitName,
+		UnitAbbreviation: dataDB.UnitAbbreviation,
+		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
+	}
+
+	return data, nil
+}
+
+func (s *productService) Update(req *dto.UpdateRequest, role string) (data dto.ProductResponse, err error) {
+	existsUpdate, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if existsUpdate == nil {
+		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	if role != "admin" {
+		req.Stock = existsUpdate.Stock
+	}
+
+	category, err := s.repoCategory.GetByID(*req.CategoryID)
+	if err != nil {
+		return data, err
+	}
+	if category == nil {
+		return data, &errors.BadRequestError{Message: "Kategori tidak ditemukan"}
+	}
+
+	exists, err := s.repo.CheckBarcodeExists(req.Barcode, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if exists {
+		return data, &errors.BadRequestError{Message: "Barcode sudah digunakan"}
+	}
+
+	skuExists, err := s.repo.CheckSkuExists(req.SKU, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if skuExists {
+		return data, &errors.BadRequestError{Message: "SKU sudah digunakan"}
+	}
+
+	nameExists, err := s.repo.CheckNameExists(req.Name, req.ID)
+	if err != nil {
+		return data, err
+	}
+	if nameExists {
+		return data, &errors.BadRequestError{Message: "Nama produk sudah digunakan"}
+	}
+
+	if err = s.repo.Update(req); err != nil {
+		return data, err
+	}
+
+	dataDB, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return data, err
+	}
+	if dataDB == nil {
+		return data, &errors.InternalServerError{Message: "Gagal mengambil data produk"}
+	}
+
+	data = dto.ProductResponse{
+		ID:               dataDB.ID,
+		Barcode:          dataDB.Barcode,
+		SKU:              dataDB.SKU,
+		Name:             dataDB.Name,
+		CategoryID:       dataDB.CategoryID,
+		CategoryName:     dataDB.CategoryName,
+		PurchasePrice:    dataDB.PurchasePrice,
+		SellingPrice:     dataDB.SellingPrice,
+		Stock:            dataDB.Stock,
+		MinStock:         dataDB.MinStock,
+		UnitID:           dataDB.UnitID,
+		UnitName:         dataDB.UnitName,
+		UnitAbbreviation: dataDB.UnitAbbreviation,
+		IsActive:         dataDB.IsActive,
+		ExtraPackages:    dataDB.ExtraPackages,
+		PriceTiersCount:  dataDB.PriceTiersCount,
+		IsLowStock:       dataDB.IsLowStock,
+		NeedsStockReview: dataDB.NeedsStockReview,
+		StockReviewNote:  dataDB.StockReviewNote,
+	}
+
+	return data, nil
+}
+
+func (s *productService) Delete(req *dto.DeleteRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	count, err := s.repo.CountTransactionItems(req.ID)
+	if err != nil {
+		return &errors.InternalServerError{Message: "Gagal memeriksa penggunaan produk"}
+	}
+	if count > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah ada di transaksi"}
+	}
+
+	purchaseCount, err := s.repo.CountPurchaseItems(req.ID)
+	if err != nil {
+		return &errors.InternalServerError{Message: "Gagal memeriksa riwayat pembelian produk"}
+	}
+	if purchaseCount > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah pernah dibeli dari supplier. Nonaktifkan produk sebagai gantinya."}
+	}
+
+	if exists.Stock > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena masih memiliki stok. Nonaktifkan produk sebagai gantinya."}
+	}
+
+	return s.repo.Delete(req)
+}
+
+func (s *productService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	return s.repo.ToggleStatus(req)
+}
+
+// MarkStockReviewed -- celah #20 (Fase 6): mematikan needs_stock_review +
+// mengosongkan stock_review_note, dipicu tombol "Tandai sudah ditinjau" di FE
+// setelah admin memverifikasi manual data stok produk yang gagal dianalisis
+// otomatis saat backfill/migrasi (Fase 3).
+func (s *productService) MarkStockReviewed(req *dto.MarkStockReviewedRequest) (err error) {
+	exists, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+	if exists == nil {
+		return &errors.NotFoundError{Message: "Produk tidak ditemukan"}
+	}
+
+	return s.repo.MarkStockReviewed(req.ID)
+}

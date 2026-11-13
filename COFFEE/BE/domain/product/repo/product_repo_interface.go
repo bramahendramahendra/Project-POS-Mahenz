@@ -1,0 +1,48 @@
+package repo
+
+import (
+	dto_product "coffee_api/domain/product/dto"
+	model_product "coffee_api/domain/product/model"
+
+	"gorm.io/gorm"
+)
+
+type ProductRepoInterface interface {
+	GetAll(req *dto_product.GetAllRequest) ([]*model_product.Product, int64, error)
+	GetOptions() ([]*model_product.ProductOption, error)
+	GetByID(id int) (*model_product.Product, error)
+	GetByBarcode(barcode string) (*model_product.Product, error)
+	Search(req *dto_product.SearchRequest) ([]*model_product.ProductSearchResult, error)
+	GetLowStock() ([]*model_product.LowStockProduct, error)
+	CountTransactionItems(productID int) (int, error)
+	CountPurchaseItems(productID int) (int, error)
+	Create(req *dto_product.CreateRequest) (int64, error)
+	Update(req *dto_product.UpdateRequest) error
+	Delete(req *dto_product.DeleteRequest) error
+	ToggleStatus(req *dto_product.ToggleStatusRequest) error
+	MarkStockReviewed(id int) error
+
+	CheckBarcodeExists(barcode string, excludeID int) (bool, error)
+	CheckSkuExists(sku string, excludeID int) (bool, error)
+	CheckNameExists(name string, excludeID int) (bool, error)
+	CountSkuByCategory(categoryID int) (int, error)
+
+	GetPackagesByProduct(productID int) ([]*model_product.ProductPackage, error)
+	CreatePackage(productID int, req *dto_product.CreatePackageRequest) (int64, error)
+	UpdatePackage(id, productID int, req *dto_product.UpdatePackageRequest) error
+	DeletePackage(id, productID int) error
+	CountPackagesReferencing(packageID int) (int, error)
+
+	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
+
+	GetPurchaseHistory(productID, page, limit int) (*dto_product.PurchaseHistoryResponse, error)
+	GetSaleHistory(productID, page, limit int, status string) (*dto_product.SaleHistoryResponse, error)
+}
+
+type productRepo struct {
+	db *gorm.DB
+}
+
+func NewProductRepo(db *gorm.DB) ProductRepoInterface {
+	return &productRepo{db: db}
+}

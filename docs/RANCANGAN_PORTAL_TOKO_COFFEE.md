@@ -79,6 +79,27 @@ Aplikasi yang sudah ada (POS retail) disebut **POS Toko** dan dipindah ke folder
 | 52 | Pemetaan role Toko ke Portal saat migrasi user | `admin` Toko menjadi `admin` Portal; semua role lain (owner, kasir, dst) menjadi `user` Portal | SEPAKAT |
 | 51 | Siapa boleh mengubah toggle login langsung | Hanya role `admin` (di Toko juga: `owner` tidak boleh) | SEPAKAT |
 | 48 | Skrip salin user Toko ke Portal | Dijalankan sebagai perintah terpisah (bukan otomatis saat Portal hidup); user menyerahkan keputusan ke AI | SEPAKAT |
+| 53 | Varian menu Coffee | Dua pilihan tetap: **ukuran × panas/dingin**; harga per kombinasi; kombinasi yang tidak dijual bisa dinonaktifkan; pilihan lain (gula, shot, susu) lewat tambahan; menu tanpa varian (roti, snack) satu harga | SEPAKAT |
+| 54 | Tambahan (modifier) | Kelompok tambahan dipasang ke menu (mis. "Level gula": pilih satu, gratis; "Topping": boleh banyak, berbayar) | SEPAKAT (rekomendasi AI) |
+| 55 | Resep | Catatan takaran per kombinasi varian, opsional | SEPAKAT (rekomendasi AI) |
+| 56 | Antrean dan meja | Nomor antrean urut harian 001, 002, ... tanpa awalan, reset 00:00 Asia/Jakarta; meja = daftar sederhana (nama/nomor) dikelola admin | SEPAKAT |
+| 57 | Diskon, pajak, service charge | Diskon dan pajak seperti kasir Toko; service charge tidak dulu | SEPAKAT (rekomendasi AI) |
+| 58 | Role awal Coffee | `admin`, `owner`, `kasir` seperti Toko; toggle login langsung hanya `admin` (keputusan 51) | SEPAKAT |
+| 59 | Open bill | Berlaku untuk dine-in dan take away | SEPAKAT (rekomendasi AI) |
+| 60 | Cara salin Toko ke Coffee (14.5 poin 1, 3, 4, 6) | Disalin sekarang (Fase 4); migrasi baseline baru; identitas diganti; modul salinan dicatat (bagian 3.1) | SEPAKAT |
+| 61 | Urutan kerja | Bangun Coffee di dev sekarang; **seluruh urusan deploy VPS (Portal, Toko, Coffee) dikerjakan belakangan** | SEPAKAT |
+| 62 | Akun awal Coffee | Sama seperti Toko: seed akun lokal `owner` (`owner123`) dan `admin` (`admin123`), password bawaan wajib diganti sebelum production; penautan ke Portal memakai skrip `migrate_users_to_portal` yang ikut disalin ke Coffee (aturan sama dengan 3.4: dry-run default, `--apply --i-have-backup`, `admin` ke `admin` Portal, lainnya `user`, akses aplikasi `coffee`, KONFLIK bila password berbeda dan tidak menebak). Memperbarui §7 ("Coffee tidak punya akun lama"). **Diperbarui oleh 63-72:** seed profil lokal `owner`/`admin` tetap, tetapi skrip tautan tidak diperlukan untuk Coffee (tautan otomatis, keputusan 67) | SEPAKAT, diperbarui |
+| 63 | Layanan akun terpisah ("BE User") | Aplikasi keempat `AUTH/BE` (tanpa FE), database `pos_auth_db`, service `pos-auth-backend`; **hanya mendengarkan `127.0.0.1`, tidak dipasang di nginx**. FE tidak pernah menghubungi BE User; FE Portal/Toko/Coffee ke BE masing-masing, lalu BE aplikasi ke BE User memakai kunci aplikasi masing-masing (Portal juga punya kunci). Data akun (username, nama, password, aktif, wajib ganti password, akses aplikasi, kunci aplikasi, kode SSO, pembatas login) pindah dari Portal ke BE User. Setiap aplikasi tetap membuat sesi/token sendiri dan menyimpan role, PIN, riwayat sendiri. Muncul dari masalah KONFLIK tautan admin Coffee (riwayat #55) | SEPAKAT |
+| 64 | Port BE baru | BE User **8080**, Portal **8081**, Toko **8082**, Coffee **8083**; FE tetap Portal 3000, Toko 3001, Coffee 3002. Menggantikan port di bagian 3 dan 10.1 | SEPAKAT |
+| 65 | Role pengelola akun | Role `admin`/`user` (semula milik Portal) disimpan di BE User | SEPAKAT |
+| 66 | Bila BE User mati | **Tanpa jalur darurat**: tidak ada login baru di aplikasi mana pun sampai BE User hidup (yang sudah login tetap bekerja sampai sesinya habis). Password lokal aplikasi tidak dipakai lagi. Risiko diterima user demi satu tempat pengelolaan akun | SEPAKAT |
+| 67 | Tautan otomatis | Login pertama yang **terverifikasi BE User** menautkan otomatis ke profil lokal dengan username sama yang **belum tertaut**. Memperbarui "Ditolak: auto-link username" (bagian 4 HANDOFF / riwayat #38) untuk kasus terverifikasi ini | SEPAKAT |
+| 68 | Toggle login langsung | **Dipertahankan**, hanya `admin` yang mengubah (keputusan 51). Nyala: form username/password tampil (diperiksa BE User lewat BE aplikasi) + tombol "Masuk lewat Portal". Mati: hanya tombol Portal | SEPAKAT |
+| 69 | Kelola akun | Buat user, ganti password, reset password **hanya lewat Portal** (Portal meneruskan ke BE User). Toko/Coffee hanya mengatur role, PIN, aktif/nonaktif profil lokal | SEPAKAT |
+| 70 | Wajib ganti password | Login di aplikasi ditolak dengan pesan "Ganti password dulu di Portal" | SEPAKAT |
+| 71 | Kolom tautan | `users.portal_user_id` di Toko/Coffee diganti nama `auth_user_id` (aman: Toko baru belum di-deploy) | SEPAKAT |
+| 72 | Urutan kerja | Fase 3B (BE User) dikerjakan **sebelum Fase 4 dilanjutkan**; tahap 4.1 Coffee diulang dengan menyalin Toko versi baru (hasil 4.1 sebelumnya, mis. skema dan seed, dipakai ulang sebagai bahan) | SEPAKAT (rancangan 5.0d disetujui user) |
+| 73 | Flag darurat `DirectLoginForceEnabled` | **Dibuang.** Setelan toggle login langsung tetap per aplikasi di tabel `settings` (`direct_login_enabled`) database aplikasi itu. Konsekuensi diterima: bila toggle mati dan halaman Portal tidak bisa dibuka, pemulihan lewat SQL `UPDATE settings SET setting_value = 'true' WHERE setting_key = 'direct_login_enabled';` di database aplikasi (dicatat di dokumentasi deploy) | SEPAKAT |
 
 ---
 
@@ -204,6 +225,86 @@ Perubahan di Toko bersifat **aditif**: login lama tetap berfungsi sampai toggle 
 | 3.5 **[SELESAI, disetujui user]** | Nginx (path `/`, `/portal-api/`, `/toko/`, `/toko/api/`), SOP deploy, panduan cutover VPS | Konfigurasi dan panduan siap, divalidasi `nginx -t` bila tersedia (belum: nginx tidak ada di mesin dev) |
 | 3.6 **[SELESAI]** | Uji ujung ke ujung di dev (Portal 3000/8080 ke Toko 3001/8081) | 66 pemeriksaan API + browser; semua lolos kecuali bug pesan galat SSO di Toko (riwayat #46, diperbaiki di 3.6b) |
 | 3.6b **[SELESAI, menunggu persetujuan]** | Perbaikan bug pesan galat SSO Toko + hapus 4 file sisa (riwayat #47) | Pesan "belum diatur" / "Portal tidak dapat dihubungi" sampai ke pengguna (503); regresi API 33/33 dan browser 21/21 lolos |
+
+### 5.0c Tahapan Fase 4 (POS Coffee) [SEPAKAT, disetujui user; dikerjakan satu per satu]
+
+Dasar: keputusan 22-45 dan bagian 14. Cara membangun sama seperti Portal: salin `TOKO/BE` dan `TOKO/FE` ke `COFFEE/`,
+pangkas, ganti identitas, lalu tambah fitur kopi bertahap. Perubahan **hanya di `COFFEE/`** (Toko dan Portal tidak disentuh,
+kecuali data: mendaftarkan aplikasi `coffee` di Portal dev lewat UI admin). Identitas: module Go `coffee_api`, package FE
+`coffee-web`, DB `pos_coffee_db`, BE 8082, FE 3002, base `/coffee/`, API `/coffee/api`, key browser `coffee.*`, `app_id`
+`coffee`, `SecretKey` sendiri. Pola tampilan mengikuti Toko (kolom aksi beku, varian `touch:`) karena dipakai di tablet.
+Penamaan: domain `menu` milik Toko adalah menu navigasi/izin (tetap); menu jualan kopi memakai `menu_item` agar tidak bentrok.
+Setiap tahap: verifikasi build/lint/type-check, uji API, uji browser (laptop + tablet sentuh), catat di riwayat, lalu berhenti.
+
+| Tahap | Pekerjaan | Hasil yang dicek |
+|-------|-----------|------------------|
+| 4.1 | Kerangka BE: salin Toko, pangkas modul (`supplier_return`, `expiry_batch`, `customer_balance`, `capital_reconciliation`, `backdate`, `version`, skrip `cmd/backfill_*`, `_sample_reference`), ganti identitas, **migrasi baseline baru** (infrastruktur, SSO/`portal_credentials`, role `admin`/`owner`/`kasir`/`menunggu_akses`, seed akun `owner`/`admin` seperti Toko, menu navigasi Coffee, kas/shift, pengeluaran, pelanggan, piutang, metode/status bayar tanpa "Saldo", log); skrip `migrate_users_to_portal` dipertahankan dan disesuaikan untuk `coffee` (keputusan 62) | BE hidup di 8082, `/api/health`, tabel terbentuk di `pos_coffee_db`, login langsung `admin`, skrip tautan (dry-run + `--apply` di DB dev), SSO dari Portal (aplikasi `coffee` didaftarkan di Portal dev) menghasilkan sesi |
+| 4.2 | Kerangka FE: salin Toko, pangkas halaman modul yang dibuang, ganti identitas (port, base path, key `coffee.*`, judul/branding), menu sidebar Coffee | `type-check`/`lint`/`build`; di browser: kartu Coffee di Portal ke `/sso` ke dashboard Coffee, halaman Menunggu Akses, toggle login langsung, logout ke Portal |
+| 4.3 | Bahan baku: katalog bahan (satu satuan stok, desimal), stok sisa dan total terpakai, input **pemakaian manual** (satu bahan per input), **barang terbuang**, opname, riwayat mutasi (siapa, kapan, catatan); stok minus diizinkan dengan peringatan | CRUD bahan; pemakaian/terbuang/opname mengubah stok dan tercatat di riwayat |
+| 4.4 | Menu jualan: kategori menu, menu (mode stok **langsung** atau **racikan**), varian **ukuran × panas/dingin** dengan harga per kombinasi dan kombinasi bisa dinonaktifkan (menu tanpa varian: satu harga), **kelompok tambahan** (pilih satu/banyak, gratis/berbayar) dipasang ke menu, **resep sebagai catatan takaran per kombinasi** (opsional), tandai habis manual (keputusan 53-55) | CRUD menu/varian/tambahan/resep lewat UI; resep tidak mengubah stok |
+| 4.5 | Barang jadi dan pembelian: menu mode langsung memakai satuan bertingkat dus/pcs (logika `product_packages` Toko); Pembelian supplier dua jenis tujuan (bahan baku, barang jadi), bayar, void | Pembelian menambah stok bahan / barang jadi; void mengurangi; utang supplier seperti Toko |
+| 4.6 | Meja dan antrean: master meja (dikelola admin), nomor antrean harian reset 00:00 Asia/Jakarta | CRUD meja; nomor antrean urut dan reset harian |
+| 4.7 | Pesanan dan kasir (inti): entitas pesanan + item (varian, tambahan, catatan), dine-in (meja) / take away (antrean), **bayar sekarang**, struk (modul cetak Toko); barang jadi **dipotong saat item masuk pesanan**, kembali bila item dihapus, **penjualan diblokir bila stok habis** | Transaksi bayar sekarang di laptop dan tablet; stok barang jadi berubah tepat waktu; struk tercetak |
+| 4.8 | Open bill: pesan dulu bayar belakangan, tambah item, **gabung bill**, **pindah meja**, batal (barang jadi: pilih kembali ke stok atau dibuang), jadikan **utang** dengan memilih pelanggan | Semua alur open bill; data stok/utang konsisten |
+| 4.9 | Aturan kas dan batas hari: tutup kas manual **diblokir** selama ada pesanan terbuka; scheduler tengah malam **opsi i** (kas dengan pesanan terbuka tidak ditutup, ditandai); pesanan melewati batas hari hanya bisa diselesaikan; buka kas baru diblokir sampai kas tertunda ditutup; admin menyelesaikan atas nama kasir; daftar pesanan tertunda | Skenario lintas tengah malam diuji (jam disimulasikan di dev) |
+| 4.10 | Laporan dan dashboard: penjualan (per menu, kategori, metode bayar), pemakaian bahan, barang terbuang, ringkasan kas | Angka laporan cocok dengan data uji |
+| 4.11 | Uji e2e penuh Coffee di dev (laptop, tablet, HP dengan ketukan sentuh) dan perbaikan temuan | Semua alur lolos |
+
+Usulan pembagian bila satu tahap terlalu besar: 4.7 dan 4.8 dapat dipecah BE/FE (seperti 2.6a/2.6b).
+Sesuai keputusan 61, persiapan dan pelaksanaan deploy (nginx `/coffee/`, maintenance `coffee`, SOP, `.env.production`,
+cutover VPS Portal/Toko/Coffee) **tidak masuk Fase 4**; dikerjakan belakangan sebagai fase deploy tersendiri.
+Detail kecil yang baru muncul di suatu tahap (mis. aturan gabung bill, isi laporan) ditanyakan ke user di tahap itu sebelum kode.
+
+### 5.0d Fase 3B: Layanan akun terpisah "BE User" [SEPAKAT, disetujui user; dikerjakan satu per satu]
+
+Dasar: keputusan 63-72. Fase 4 (Coffee) dihentikan sementara di tengah 4.1 sampai fase ini selesai.
+
+**Susunan**
+
+```
+FE Portal (3000) -> BE Portal (8081) -+
+FE Toko   (3001) -> BE Toko   (8082) -+-> BE User (127.0.0.1:8080) -> pos_auth_db
+FE Coffee (3002) -> BE Coffee (8083) -+    tidak ada di nginx, tanpa FE
+```
+
+**Letak data**
+
+| Tempat | Isi |
+|--------|-----|
+| BE User (`pos_auth_db`) | `users` (username, nama, hash password Argon2id, aktif, wajib ganti password), `roles` (`admin`/`user`, pengelola akun), `apps` (kode, nama, path, ikon, hash kunci; termasuk aplikasi `portal`), `user_apps`, `sso_codes`, log permintaan |
+| Portal (`pos_portal_db`) | Profil lokal `users` (`auth_user_id`), `sessions`, log. Tidak lagi menyimpan password, aplikasi, akses, kode SSO |
+| Toko / Coffee | Profil lokal `users` (`auth_user_id`, role lokal, PIN), `sessions`, `auth_credentials` (pengganti `portal_credentials`: `app_id` + kunci untuk BE User), data bisnis. Kolom password lokal tidak dipakai lagi (keputusan 66) |
+
+**API BE User (internal, setiap permintaan wajib `X-App-Key`; aplikasi pemanggil dikenali dari kuncinya)**
+
+| Kelompok | Endpoint (usulan) | Dipanggil oleh |
+|----------|-------------------|----------------|
+| Verifikasi login | `POST /api/login/verify` `{username, password, client_ip}` -> `{user{id, username, full_name, role, must_change_password}}`; cek aktif, akses ke aplikasi pemanggil, pembatas 5 gagal/15 menit per `client_ip`+username; wajib ganti password -> ditolak dengan pesan (keputusan 70) | Portal, Toko, Coffee |
+| SSO | `POST /api/sso/launch` `{user_id, app_code}` -> `redirect_url`; `POST /api/sso/exchange` `{code}` -> user (kode terikat ke aplikasi pemanggil, sekali pakai, 60 detik) | launch: Portal; exchange: Toko, Coffee |
+| Akun sendiri | `POST /api/account/change-password` `{user_id, old_password, new_password}`, `POST /api/account/profile` `{user_id}` | Portal |
+| Kelola akun dan aplikasi | users (list, detail, create, update, reset-password, toggle, delete), apps (list, create, update, toggle, rotate-key), akses (get/set), `apps/my`; setiap permintaan membawa `acting_user_id` dan BE User memeriksa role `admin` | Portal |
+
+Kunci Portal hanya untuk endpoint Portal; kunci Toko/Coffee hanya untuk verifikasi login dan penukaran SSO.
+
+**Alur**
+- Login form di Toko/Coffee (toggle nyala): FE -> BE aplikasi -> `login/verify` -> BE aplikasi mencari profil lewat `auth_user_id`; bila belum ada: tautkan otomatis ke profil lokal username sama yang belum tertaut (keputusan 67), atau buat profil baru `menunggu_akses` -> sesi aplikasi.
+- Login Portal: FE Portal -> BE Portal -> `login/verify` -> profil lokal Portal + sesi Portal (role dari BE User).
+- SSO: kartu di Portal -> BE Portal -> `sso/launch` -> browser ke `<app>/sso?code=` -> BE aplikasi -> `sso/exchange` -> sesi aplikasi.
+- Kelola user/aplikasi dan ganti password: halaman Portal -> BE Portal -> BE User.
+- Flag server `DirectLoginForceEnabled` **dibuang** (keputusan 73). Toggle disimpan per aplikasi di `settings.direct_login_enabled`; pemulihan bila terkunci lewat SQL.
+
+**Tahapan**
+
+| Tahap | Pekerjaan | Hasil yang dicek |
+|-------|-----------|------------------|
+| 3B.1 | Kerangka BE User: struktur sama dengan aplikasi lain (salin dari BE Portal: domain auth/user/role/app/sso), module `auth_api`, port 8080 hanya `127.0.0.1`, DB `pos_auth_db`, migrasi + seed (role, akun `admin`, aplikasi `portal`/`toko`/`coffee`) | BE hidup, hanya bisa diakses dari localhost, tabel terbentuk |
+| 3B.2 | API BE User lengkap (tabel API di atas), pembatas login, pengecekan kunci per aplikasi dan `acting_user_id` | Uji API: verifikasi benar/salah/nonaktif/tanpa akses/wajib ganti, pembatas login, SSO sekali pakai dan kedaluwarsa, kunci salah, kelola akun hanya admin |
+| 3B.3 | BE Portal menjadi klien BE User: port 8081, login/ganti password/SSO launch/kelola user-aplikasi-akses diteruskan ke BE User, tabel akun Portal dipangkas jadi profil lokal; FE Portal hanya ganti alamat dev | Uji API + browser semua fitur Portal (skrip `v_portal.js`) |
+| 3B.4 | BE dan FE Toko menjadi klien BE User: port 8082, login form lewat BE User (toggle tetap), SSO exchange ke BE User, tautan otomatis, `portal_user_id` -> `auth_user_id`, `portal_credentials` -> `auth_credentials` (migrasi 012), Manajemen User tanpa buat user/ganti password (keputusan 69), password lokal tidak dipakai | Uji API + browser Toko (skrip `v_toko.js`, uji sentuh tablet/HP) |
+| 3B.5 | Skrip migrasi user Toko disesuaikan: salin user Toko ke BE User (hash apa adanya, kasir tetap login dengan password lama) dan isi `auth_user_id`; data dev Portal dipindah ke `pos_auth_db` | Dry-run dan `--apply` pada salinan DB / DB dev |
+| 3B.6 | Konfigurasi menyeluruh: port di `.env`/config/proxy dev ketiga aplikasi, nginx (`/portal-api/` -> 8081, `/toko/api/` -> 8082; BE User tidak dipasang), README, HANDOFF; uji ujung ke ujung Portal + Toko (laptop, tablet, HP) | Semua skrip uji lolos |
+
+Setelah 3B selesai: kembali ke 4.1 Coffee (port 8083, salin dari Toko versi baru). Perubahan production tetap belum ada (Portal, Toko baru, BE User belum pernah di-deploy); panduan cutover diperbarui di fase deploy (keputusan 61).
 
 ### 5.1 Dampak Fase 1 (pemindahan folder)
 
@@ -379,7 +480,9 @@ menyimpan `user_id`, sehingga barisnya tidak boleh hilang.
   disinkronkan). Setelah login langsung off, hanya password Portal yang berlaku.
 - Staf baru dibuat di Portal; profil lokal di aplikasi dibuat otomatis saat SSO pertama dengan role
   "menunggu akses", lalu admin aplikasi mengatur role sebenarnya.
-- Coffee tidak punya akun lama, jadi tidak ada migrasi; profil dibuat otomatis saat SSO pertama.
+- ~~Coffee tidak punya akun lama, jadi tidak ada migrasi; profil dibuat otomatis saat SSO pertama.~~ Diperbarui
+  (keputusan 62): Coffee di-seed akun `owner` dan `admin` seperti Toko, lalu ditautkan ke Portal dengan skrip
+  `migrate_users_to_portal` yang sama; staf baru tetap dibuat di Portal dan mendapat profil "menunggu akses" saat SSO pertama.
 
 ---
 
@@ -951,3 +1054,8 @@ Usulan ([USULAN]) untuk bagian yang belum dijawab:
 | 48 | Uji visual e2e atas permintaan user (Chrome tampil, jeda 2 detik per aksi; skrip `testing/portal_toko_e2e/v_*.js`; backup DB dev dibuat lebih dulu). **Portal 40/40 lolos:** login (validasi, salah, benar), menu akun, Kelola User (daftar/paginasi/cari, akun sendiri tanpa aksi berbahaya, tambah + Acak, ubah, akses aplikasi, reset password, nonaktif/aktif, hapus), Kelola Aplikasi (tambah dengan kunci tampil sekali + Salin, ubah dengan kode terkunci, buat kunci baru, nonaktifkan), wajib ganti password, ganti password sendiri, user biasa tidak bisa membuka menu admin, user tanpa akses, pembatas 5 kali gagal, logout, tampilan HP 390px, tanpa error JavaScript. **Toko semua skenario lolos** (setelah 3 kali pengulangan sebagian karena kesalahan skrip uji, bukan aplikasi: dropdown yang sudah berisi nilai default, halaman yang belum dibuka, dan selektor ikon `ban` yang ikut mengenai `banknote`): masuk lewat Portal; tambah/ubah/hapus kategori, pelanggan, supplier, pengeluaran; tambah produk dan ubah harga; buka kas; pembelian supplier (nota 10 pcs menambah stok, bayar lunas, nota kedua lalu void mengurangi stok kembali); kasir tunai dan hutang (stok berkurang, piutang tercatat); riwayat transaksi, piutang, laporan penjualan dan stok; toggle login langsung; user baru ke Menunggu Akses; Kembali ke Portal; logout; tanpa error JavaScript. Stok dan status dicek ke DB. Tidak ditemukan bug aplikasi. Data uji dibiarkan di DB dev (akhiran `15936` Portal, `81382` Toko); kas hari uji (11 Nov 2026) dibiarkan terbuka. |
 | 49 | Uji tampilan Portal di HP 390px, tablet tegak 768px, tablet mendatar 1024px, laptop 1366px (15 layar/dialog per ukuran, skrip `testing/portal_toko_e2e/responsive/r_portal.js`). Temuan: di tablet tegak header terlalu padat (teks dan menu terpotong dua baris) dan tombol aksi Kelola Aplikasi tersembunyi karena tabel harus digeser; di semua ukuran beberapa target sentuh terlalu kecil (tombol tutup dialog 16px, ikon mata 16px, item menu dropdown dan paginasi 32px); di HP kartu user menyisakan baris kosong untuk tombol aksi. Atas persetujuan user, diperbaiki di FE Portal saja: menu navigasi header mulai `lg` (1024px), di bawahnya masuk menu akun; `DataTable` mendapat prop `cardBreakpoint` (default `md`, Kelola Aplikasi `lg`); tombol aksi card di kanan atas; tombol tutup dialog, ikon mata (login dan `PasswordInput`, kini ber-`aria-label`), item dropdown, dan paginasi menjadi 40px; judul dialog diberi ruang agar tidak tertimpa tombol tutup. Terverifikasi: `type-check`, `lint`, `build`; uji tampilan ulang 60 layar tanpa masalah (termasuk pemeriksaan baru "isi harus digeser"); regresi fungsional Portal 39/40, satu-satunya gagal adalah selektor skrip uji (dua baris "(diubah)" dari data uji sebelumnya; nama aplikasi uji terbukti berubah di DB), skrip sudah diperbaiki. Belum diuji: HP posisi mendatar, perangkat asli/APK. Data uji baru: `e2eu84716`, aplikasi `uji-e2e-84716` (nonaktif). |
 | 50 | Uji tampilan Toko (22 layar/dialog × HP 390, tablet 768 dan 1024, laptop 1366; skrip `testing/portal_toko_e2e/responsive/r_toko.js`, pengukur bersama `r_common.js`). Temuan: HP baik (laci menu, card, tab kasir); di tablet 11 tabel lebih lebar dari layar sehingga kolom kanan termasuk tombol aksi terpotong tanpa tanda bisa digeser; di laptop 1366 Produk dan Kas Harian juga terpotong (tombol cetak/kunci/hapus Produk tersembunyi); banyak target sentuh 24-32px (ikon aksi tabel, filter status, ikon header, paginasi, tombol tutup dialog 16px, tombol kasir). Atas persetujuan user (ikut rekomendasi AI), diperbaiki di FE Toko, murni tampilan: (1) `DataTable` membekukan kolom `actions` di kanan (sticky, latar hover/terpilih ikut, bayangan hanya bila ada kolom tertutup) sehingga aksi selalu terlihat di tablet dan laptop; kolom aksi `CashDrawerTableColumns` dan `ReturnTableColumns` diberi key `actions` (sebelumnya `id`). (2) Varian Tailwind baru `touch:` (`@media (pointer: coarse)`) di `tailwind.config.ts`: di perangkat sentuh saja, tombol aksi tabel/card, paginasi, filter status (`toggle-group`), ikon header Navbar (kini ber-`aria-label`), tombol tutup dialog (+ ruang judul), ikon mata (login dan `PasswordInput`), serta seluruh tombol/input kasir dan dialog Bayar (kecuali kotak centang) minimal 40px; laptop dengan mouse tidak berubah. Terverifikasi: `type-check`, `lint`, `build` (CSS memuat `@media (pointer: coarse)`); uji tampilan ulang 86 layar: semua tabel utama "digeser, kolom aksi tetap terlihat", target sentuh tersisa hanya kotak centang 16px, kunci barcode 14px di form Produk/Pembelian, kontrol form Pembelian 28-32px, dan saklar Login langsung; sisa "isi harus digeser": tabel item dialog Pembelian (sudah ada petunjuk geser) dan Laporan Penjualan di tablet (±100px, tanpa kolom aksi). Catatan uji: emulasi sentuh Chrome kehilangan `pointer: coarse` setelah screenshot satu halaman penuh, jadi untuk HP/tablet screenshot dibatasi layar terlihat dan interaksi memakai `tap`. Regresi fungsional Toko (mode cepat) 30/32: dua gagal adalah pemeriksaan skrip yang terlalu cepat setelah pencarian (data terbukti tersimpan di DB, skrip diperbaiki). Kas 11 Nov ditutup otomatis tengah malam (perilaku benar); regresi membuka kas 12 Nov. Data uji baru akhiran `30143`. Belum diuji: perangkat asli/APK, HP mendatar. |
+| 51 | Uji fungsi dengan ketukan sentuh (bukan klik mouse) setelah perubahan tampilan #49-#50, jendela Chrome tampil ukuran tablet 768x1024 dan HP 390x844 dengan mode sentuh, jeda 0,5 detik, jendela ditutup tiap bagian selesai (`testing/portal_toko_e2e/run_sentuh.sh`). **Portal tablet 40/40, Portal HP 40/40** (menu admin lewat menu akun, kartu Kelola Aplikasi, tombol "..." di kartu, semua dialog). **Toko tablet 32/32** (aksi diketuk dari kolom beku, kasir lewat tab Produk/Keranjang, tombol tutup dialog, paginasi, filter). **Toko HP 26/31 lalu 10/10 setelah perbaikan skrip uji**: skrip mencari nota pembelian lewat No. Faktur, padahal kolom itu sengaja disembunyikan di card HP (`mobileHidden`); nota terbukti tersimpan dan tampil (screenshot dan DB), T10-T11 gagal berantai karena nota kedua belum di-void. Skrip kini mencari nota lewat supplier + total, pengecekan stok kasir dibuat relatif; T8-T12 diulang di HP: bayar lunas, void, kasir tunai dan hutang, riwayat, piutang, laporan lolos. Tidak ditemukan bug aplikasi. Data uji baru: Portal akhiran `96313`, `19348`; Toko akhiran `41235`, `77133`. |
+| 52 | User memutuskan lanjut ke Fase 4. Disusun usulan tahapan 4.1-4.11 di bagian 5.0c (belum disetujui) beserta daftar pertanyaan terbuka; belum ada kode Coffee. |
+| 53 | Jawaban user atas pertanyaan Fase 4: keputusan 53-61 ditambahkan (varian ukuran × panas/dingin, kelompok tambahan, resep per kombinasi, antrean harian dan meja, diskon/pajak seperti Toko tanpa service charge, role admin/owner/kasir, open bill untuk dine-in dan take away, cara salin 14.5 poin 1/3/4/6 disetujui, deploy VPS seluruh aplikasi belakangan). Tahapan 5.0c disesuaikan: 4.4 memuat varian/tambahan/resep sesuai keputusan, 4.11 menjadi uji e2e penuh di dev (persiapan deploy dikeluarkan dari Fase 4). Bagian 14.13 [USULAN] format antrean dan master meja kini SEPAKAT (keputusan 56). Tahapan 5.0c menunggu persetujuan user sebelum kode. |
+| 54 | User menyetujui tahapan 5.0c dan meminta dikerjakan satu per satu. Keputusan 62 (akun awal Coffee sama seperti Toko: seed `owner`/`admin`, tautan lewat skrip `migrate_users_to_portal`); baris 4.1 dan bagian 7 diperbarui. Tahap 4.1 dimulai. |
+| 55 | Tahap 4.1 berjalan sebagian (belum selesai): `COFFEE/BE` disalin dari file Toko yang ter-track git, modul dipangkas, module `coffee_api`, ketergantungan ke modul dipangkas diputus (saldo pelanggan di transaksi, batch kedaluwarsa dan retur di pembelian/supplier), baseline `001_init_schema.sql` (30 tabel diurutkan sesuai foreign key; kolom sisa `customers.balance`, `transactions.balance_used`, `cash_drawer.is_backdate` dipertahankan sementara) dan `002_seed_data.sql`, konfigurasi (`APP_PORT` 8082, DB `pos_coffee_db`, `SecretKey` dev baru, config prod tanpa rahasia Toko), skrip tautan diarahkan ke `coffee`. Terverifikasi: `go build`/`go vet`, BE hidup, migrasi bersih, uji API 9/9 (uji asap 59 endpoint baca tanpa 500, login langsung admin/owner, aplikasi `coffee` terdaftar di Portal dev, kunci terpasang). Ditemukan: skrip tautan membandingkan hash secara persis, sehingga `admin` Coffee selalu KONFLIK dengan `admin` Portal (hash Portal = hash Toko hasil ambil alih 3.6); penjelasan AI sebelumnya bahwa KONFLIK selesai dengan "menyamakan password" keliru (hash ber-salt). Diskusi berlanjut: user memilih login satu pintu lewat layanan akun terpisah. Keputusan 63-72 dicatat; rancangan Fase 3B di bagian 5.0d (menunggu persetujuan). Belum: `--apply` skrip tautan, uji SSO Coffee (tidak dilanjutkan karena digantikan 3B). Data dev: DB `pos_coffee_db` dibuat, aplikasi `coffee` terdaftar di Portal dev. |
