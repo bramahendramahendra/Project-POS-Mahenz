@@ -19,7 +19,7 @@ Satu repo, tiga aplikasi POS retail (Go/Gin/GORM/MySQL + React/Vite):
 - **Toko**: aplikasi POS lama (dipindah ke `TOKO/`), kini bisa login lewat Portal.
 - **Coffee**: POS kedai kopi baru (BELUM dibuat).
 
-Port (Fase 3B, berlaku bertahap): BE User 8080 (hanya 127.0.0.1), Portal 8081 (sudah sejak 3B.3), Toko 8082 (sejak 3B.4), Coffee 8083. FE Portal 3000, Toko 3001, Coffee 3002.
+Port (keputusan 64): BE User 8080 (hanya 127.0.0.1, tidak di nginx), Portal 8081, Toko 8082, Coffee 8083 (`.env*`, config, proxy Vite, README, `nginx/pos-web.conf` sudah disesuaikan di 3B.6; dokumen deploy menyusul di fase deploy). FE Portal 3000, Toko 3001, Coffee 3002.
 Service systemd: `pos-portal-backend`, `pos-toko-backend`, `pos-coffee-backend`. DB berbeda per aplikasi.
 URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`, Toko `/toko/`, API Toko `/toko/api/`, Coffee kelak `/coffee/` dan `/coffee/api/`.
 
@@ -35,8 +35,8 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 3.5: nginx baru, maintenance per aplikasi, panduan cutover, `.env.production` Toko `/toko/` | SELESAI di kode/dokumen, disetujui user |
 | Fase 3.6: uji ujung ke ujung di dev | SELESAI (riwayat #46) |
 | Fase 3.6b: perbaikan pesan galat SSO Toko (`ServiceUnavailableError` 503) + hapus 4 file sisa | SELESAI, menunggu persetujuan (riwayat #47) |
-| Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui). **4.1 berjalan sebagian lalu dihentikan** (riwayat #55): `COFFEE/BE` sudah ada (port lama 8082), menunggu Fase 3B |
-| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.4 selesai (Toko klien BE User, riwayat #60). **3B.5 selesai, menunggu persetujuan** (riwayat #61): skrip `TOKO/BE/cmd/migrate_users_to_auth` (salin user Toko ke BE User, hash apa adanya) di-`--apply` di dev, password lama Toko berlaku (8/8); kolom/tabel lama dibuang (Portal migrasi 006, Toko 013); regresi API Portal 53/53 dan Toko 31/31. Keputusan 78-79. Berikutnya 3B.6 (konfigurasi menyeluruh, nginx, README, uji ujung ke ujung laptop/tablet/HP). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
+| Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui). **4.1 berjalan sebagian lalu dihentikan** (riwayat #55): `COFFEE/BE` sudah ada (`.env` sudah digeser ke 8083 di 3B.6; isi lain diulang di 4.1), menunggu Fase 3B |
+| **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.5 selesai (riwayat #56-#61; skrip `TOKO/BE/cmd/migrate_users_to_auth` sudah di-`--apply` di dev). **3B.6 selesai, menunggu persetujuan** (riwayat #62): nginx, README, CLAUDE.md, port Coffee 8083; uji ujung ke ujung Portal 40/40 dan Toko 31/32 (1 karena data kas dev) di laptop, tablet, HP. Dokumen deploy menyusul di fase deploy. Berikutnya: Fase 4 tahap 4.1 Coffee diulang (port 8083). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
 | Temuan keamanan | Password tersimpan asli di `log_requests` Toko/Portal/Coffee (riwayat #56). Keputusan 74: log lama dibiarkan; penyamaran (`helper/logmask`) sudah dipasang di BE User, Portal (3B.3), dan Toko (3B.4); berikutnya Coffee (4.1 diulang) |
 | Deploy VPS (Portal, Toko, Coffee) | Ditunda sampai Coffee selesai di dev (keputusan 61) |
 

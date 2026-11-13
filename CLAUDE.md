@@ -28,9 +28,10 @@ Satu tahap sekali jalan, user menyetujui tiap tahap:
 - Jangan menyatakan "selesai" tanpa verifikasi nyata (build, lint, type-check, uji API/browser). Nyatakan yang tidak bisa diverifikasi.
 
 ## Peta singkat
-- `PORTAL/{BE,FE}`: login terpusat (SSO). BE 8080, FE 3000. DB `pos_portal_db`. Module Go `portal_api`.
-- `TOKO/{BE,FE}`: POS Toko. BE 8081, FE 3001. DB `pos_retail_db`. Module Go `pos_api`.
-- `COFFEE/{BE,FE}`: belum dibuat (Fase 4). BE 8082, FE 3002.
+- `AUTH/BE`: BE User (layanan akun internal, Fase 3B). Hanya `127.0.0.1:8080`, tanpa FE, tidak di nginx. DB `pos_auth_db`. Module Go `auth_api`.
+- `PORTAL/{BE,FE}`: login terpusat (SSO), klien BE User. BE 8081, FE 3000. DB `pos_portal_db`. Module Go `portal_api`.
+- `TOKO/{BE,FE}`: POS Toko, klien BE User. BE 8082, FE 3001. DB `pos_retail_db`. Module Go `pos_api`.
+- `COFFEE/{BE,FE}`: Fase 4 (BE kerangka sementara, 4.1 diulang). BE 8083, FE 3002.
 - `nginx/`, `docs/`, `mobile/` (APK Capacitor), `testing/` (di-gitignore, playwright-core).
 
 ## Perintah (Windows, PowerShell)

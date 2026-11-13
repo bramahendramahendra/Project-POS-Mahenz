@@ -22,7 +22,7 @@ cp .env.local .env
 
 # 4. Jalankan
 go run main.go
-# Migrasi otomatis, server di http://localhost:8080
+# Migrasi otomatis, server di http://localhost:8083
 ```
 
 ## Konfigurasi

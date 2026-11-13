@@ -10,5 +10,5 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /root/
 COPY --from=builder /app/pos-backend .
 COPY --from=builder /app/config.json .
-EXPOSE 8080
+EXPOSE 8082
 CMD ["./pos-backend"]

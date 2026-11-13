@@ -22,7 +22,7 @@ cp .env.local .env
 
 # 4. Jalankan
 go run main.go
-# Migrasi otomatis, server di http://localhost:8080
+# Migrasi otomatis, server di http://localhost:8082 (butuh BE User di 127.0.0.1:8080 untuk login)
 ```
 
 ## Konfigurasi

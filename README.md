@@ -27,6 +27,7 @@ Aplikasi **Point of Sale (POS)** untuk retail — mengelola transaksi penjualan,
 ## Struktur
 
 ```
+AUTH/BE/   Backend Go BE User (layanan akun internal, tanpa FE, hanya 127.0.0.1)
 PORTAL/BE/ Backend Go Portal (login terpusat / SSO)
 PORTAL/FE/ Frontend React + Vite Portal
 TOKO/BE/   Backend Go POS Toko (domain-driven)
@@ -41,7 +42,7 @@ Rencana Portal dan POS Coffee: lihat [docs/RANCANGAN_PORTAL_TOKO_COFFEE.md](docs
 ## Quick Start
 
 ```bash
-# Backend Toko (port 8081)
+# Backend Toko (port 8082)
 cd TOKO/BE
 cp .env.local .env        # sesuaikan config
 go run main.go            # migrasi DB otomatis saat startup
@@ -54,16 +55,33 @@ npm run lint
 npm run dev
 ```
 
-Portal (login terpusat) dijalankan dengan cara yang sama dari `PORTAL/BE` (port 8080, database `pos_portal_db`
-harus dibuat dulu) dan `PORTAL/FE` (port 3000). Untuk mencoba alur Portal ke Toko di laptop, isi alamat aplikasi
-POS Toko di Portal dengan `http://localhost:3001/` dan pasang kunci aplikasinya di tabel `portal_credentials` Toko
-(lihat [SOP Deploy](docs/SOP_DEPLOY.md), bagian "Kunci SSO aplikasi").
+Urutan menjalankan di laptop (MySQL harus hidup; migrasi DB otomatis saat startup):
+
+| Layanan | Folder | Port | Database |
+|---------|--------|------|----------|
+| BE User (akun, password, akses aplikasi, kode SSO) | `AUTH/BE` | 8080 (hanya 127.0.0.1) | `pos_auth_db` |
+| BE Portal | `PORTAL/BE` | 8081 | `pos_portal_db` |
+| BE Toko | `TOKO/BE` | 8082 | `pos_retail_db` |
+| FE Portal / FE Toko | `PORTAL/FE` / `TOKO/FE` | 3000 / 3001 | - |
+
+Buat database kosong dulu (`pos_auth_db`, `pos_portal_db`, `pos_retail_db`). BE User dijalankan pertama: Portal
+dan Toko memanggilnya untuk setiap login. Setiap aplikasi butuh kunci aplikasi dari BE User:
+
+```bash
+cd AUTH/BE
+go run ./cmd/set_app_key --app portal --confirm   # ulangi untuk toko (dan coffee nanti)
+```
+
+Kunci tampil sekali; pasang di tabel `auth_credentials` database aplikasinya (contoh perintah ikut dicetak).
+Untuk mencoba SSO Portal ke Toko di laptop, ubah path aplikasi `toko` di `pos_auth_db.apps` menjadi
+`http://localhost:3001/`. Akun dan password dikelola di Portal; Toko hanya mengatur role, PIN, dan status.
+User Toko lama disalin ke BE User dengan `TOKO/BE/cmd/migrate_users_to_auth` (dry-run dulu, lihat komentar skrip).
 
 **Prasyarat:** Go 1.24+, Node 20+, MySQL 8.0
 
 **Kredensial default (setelah seed):**
-- Toko: Owner `owner` / `owner123`, Admin `admin` / `admin123`
-- Portal: Admin `admin` / `admin123`
+- BE User (dipakai login Portal dan Toko): Admin `admin` / `admin123`
+- Toko: profil lokal `owner` dan `admin` (password lokal tidak dipakai lagi; akun disalin ke BE User dengan skrip di atas)
 
 Ganti semua password bawaan sebelum production.
 

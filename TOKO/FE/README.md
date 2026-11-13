@@ -23,7 +23,7 @@ npm run dev         # dev server di http://localhost:3001
 
 | Command | Keterangan |
 |---------|-----------|
-| `npm run dev` | Development server (port 3001, proxy API ke :8081) |
+| `npm run dev` | Development server (port 3001, proxy API ke :8082) |
 | `npm run build` | Production build (tsc + vite build) |
 | `npm run type-check` | TypeScript check tanpa emit |
 | `npm run lint` | ESLint |
@@ -54,7 +54,7 @@ Setiap feature punya: `*.types.ts`, `*.api.ts`, `*.schema.ts`, `components/`, da
 
 Buat file `.env.local`:
 ```env
-VITE_API_URL=http://localhost:8080/api
+VITE_API_URL=http://localhost:8082/api
 ```
 
 Production build mengambil dari `.env.production`.
