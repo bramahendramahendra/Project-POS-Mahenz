@@ -4,7 +4,7 @@ import { ConfirmDialog, DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
 import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 import { monthStart, todayStr } from '@/shared/utils'
-import { useSupplierListQuery } from '@/features/procurement/suppliers'
+import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 
 import { useSupplierReturnsQuery, useDeleteSupplierReturnMutation } from '../returns.api'
 import type { SupplierReturn, SupplierReturnFilter } from '../returns.types'
@@ -31,8 +31,9 @@ export const ReturnTable = forwardRef<ReturnTableHandle, object>(function Return
   const [deletingReturn, setDeletingReturn] = useState<SupplierReturn | null>(null)
   const [detailReturn, setDetailReturn] = useState<SupplierReturn | null>(null)
 
-  const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const suppliers = suppliersData?.data ?? []
+  // Semua supplier aktif untuk filter. (Daftar berhalaman dibatasi BE 100 per halaman dan limit
+  // di atas batas jatuh ke 10, sehingga dulu filter hanya berisi 10 supplier.)
+  const { data: suppliers = [] } = useSupplierOptionsQuery()
 
   const { data, isLoading } = useSupplierReturnsQuery({ ...filter, page, limit: pageSize })
   const returns = data?.data ?? []

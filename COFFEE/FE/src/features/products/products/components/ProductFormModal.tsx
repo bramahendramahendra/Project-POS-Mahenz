@@ -542,6 +542,10 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 border-t pt-4">
               Harga &amp; Stok
             </p>
+            <p className="-mt-2 text-xs text-gray-500">
+              Harga jual di kasir diatur di menu Daftar Menu (menu barang jadi yang memakai produk ini). Harga jual di
+              sini hanya acuan.
+            </p>
 
             {/* Harga Beli + Harga Jual + Margin */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

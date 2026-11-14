@@ -359,6 +359,13 @@ func (r *productRepo) CountPurchaseItems(productID int) (int, error) {
 	return count, nil
 }
 
+// CountMenuItems: jumlah menu barang jadi yang ditautkan ke produk ini (Coffee, keputusan 91).
+func (r *productRepo) CountMenuItems(productID int) (int, error) {
+	var count int
+	err := r.db.Raw(`SELECT COUNT(*) FROM menu_items WHERE product_id = ?`, productID).Scan(&count).Error
+	return count, err
+}
+
 // Create menyimpan produk baru sekaligus paket anchor-nya (satuan pencatatan stok,
 // permanen sejak dibuat) dan satuan lain (req.Packages, opsional) dalam SATU transaksi —
 // supaya user bisa isi semua satuan produk langsung di form Tambah Produk, satu kali

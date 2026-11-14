@@ -39,22 +39,19 @@ type PurchaseRow struct {
 }
 
 type PurchaseItem struct {
-	ID            int     `db:"id"`
-	PurchaseID    int     `db:"purchase_id"`
-	ProductID     int     `db:"product_id"`
-	ProductName   string  `db:"product_name"`
-	PackageID     *int    `db:"package_id"`
-	Quantity      float64 `db:"quantity"`
-	Unit          string  `db:"unit"`
-	ConversionQty float64 `db:"conversion_qty"`
-	PurchasePrice float64 `db:"purchase_price"`
-	Subtotal      float64 `db:"subtotal"`
-	ExpiryBatches []PurchaseItemExpiryBatch
-}
-
-type PurchaseItemExpiryBatch struct {
-	Qty         float64   `db:"qty"`
-	ExpiredDate time.Time `db:"expired_date"`
+	ID             int     `db:"id"`
+	PurchaseID     int     `db:"purchase_id"`
+	ItemType       string  `db:"item_type"`
+	ProductID      int     `db:"product_id"`
+	ProductName    string  `db:"product_name"`
+	IngredientID   int     `db:"ingredient_id"`
+	IngredientName string  `db:"ingredient_name"`
+	PackageID      *int    `db:"package_id"`
+	Quantity       float64 `db:"quantity"`
+	Unit           string  `db:"unit"`
+	ConversionQty  float64 `db:"conversion_qty"`
+	PurchasePrice  float64 `db:"purchase_price"`
+	Subtotal       float64 `db:"subtotal"`
 }
 
 type PurchasePayment struct {

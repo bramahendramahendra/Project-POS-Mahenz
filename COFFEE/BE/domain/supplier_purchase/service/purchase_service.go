@@ -3,57 +3,76 @@ package service
 import (
 	stderrors "errors"
 	"fmt"
+	"strings"
 
 	dto "coffee_api/domain/supplier_purchase/dto"
-	model "coffee_api/domain/supplier_purchase/model"
+	repo "coffee_api/domain/supplier_purchase/repo"
 	"coffee_api/errors"
 
 	"gorm.io/gorm"
 )
 
-func mapExpiryBatches(batches []model.PurchaseItemExpiryBatch) []dto.PurchaseItemExpiryBatchResponse {
-	if len(batches) == 0 {
-		return nil
-	}
-	result := make([]dto.PurchaseItemExpiryBatchResponse, 0, len(batches))
-	for _, b := range batches {
-		result = append(result, dto.PurchaseItemExpiryBatchResponse{
-			Qty:         b.Qty,
-			ExpiredDate: b.ExpiredDate.Format("2006-01-02"),
-		})
-	}
-	return result
-}
-
-// Coffee tidak mencatat batch kedaluwarsa (modul expiry_batch dipangkas, keputusan 26).
-// Pembelian dirombak di tahap 4.5; sementara itu input batch ditolak dengan pesan jelas.
-func validateExpiryBatches(items []dto.PurchaseRequest) error {
-	for i, item := range items {
-		if len(item.ExpiryBatches) > 0 {
-			return &errors.BadRequestError{Message: fmt.Sprintf(
-				"Item ke-%d: tanggal kedaluwarsa tidak dipakai di aplikasi ini", i+1,
-			)}
-		}
-	}
-	return nil
-}
-
-func validateDuplicateProducts(items []dto.PurchaseRequest) error {
+// normalizeItems memeriksa dan melengkapi baris pembelian sesuai jenisnya (keputusan 92):
+//   - product (bawaan): wajib product_id, tanpa ingredient_id, satuan wajib diisi.
+//   - ingredient: wajib ingredient_id bahan aktif, tanpa product_id/package_id;
+//     satuan diisi singkatan satuan stok bahan dan konversi 1.
+//
+// Baris yang sama (produk+kemasan atau bahan yang sama) tidak boleh dobel.
+func (s *purchaseService) normalizeItems(items []dto.PurchaseRequest) error {
 	type key struct {
-		productID int
-		packageID int
+		itemType string
+		id       int
+		pkgID    int
 	}
 	seen := make(map[key]bool, len(items))
-	for i, item := range items {
-		pkgID := 0
-		if item.PackageID != nil {
-			pkgID = *item.PackageID
+	for i := range items {
+		item := &items[i]
+		if item.ItemType == "" {
+			item.ItemType = repo.ItemTypeProduct
 		}
-		k := key{productID: item.ProductID, packageID: pkgID}
+		k := key{itemType: item.ItemType}
+		switch item.ItemType {
+		case repo.ItemTypeIngredient:
+			if item.IngredientID <= 0 {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: bahan baku wajib dipilih", i+1)}
+			}
+			if item.ProductID != 0 || item.PackageID != nil {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: baris bahan baku tidak memakai produk atau kemasan", i+1)}
+			}
+			info, err := s.repo.GetIngredientInfo(item.IngredientID)
+			if err != nil {
+				return err
+			}
+			if info == nil {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: bahan baku tidak ditemukan", i+1)}
+			}
+			if !info.IsActive {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: bahan baku %s tidak aktif", i+1, info.Name)}
+			}
+			item.Unit = info.UnitAbbr
+			item.ConversionQty = 1
+			k.id = item.IngredientID
+		default:
+			if item.ProductID <= 0 {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: barang jadi wajib dipilih", i+1)}
+			}
+			if item.IngredientID != 0 {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: baris barang jadi tidak memakai bahan baku", i+1)}
+			}
+			if strings.TrimSpace(item.Unit) == "" {
+				return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: satuan wajib diisi", i+1)}
+			}
+			k.id = item.ProductID
+			if item.PackageID != nil {
+				k.pkgID = *item.PackageID
+			}
+		}
 		if seen[k] {
-			return &errors.BadRequestError{Message: fmt.Sprintf(
-				"Item ke-%d: produk dengan satuan ini sudah dipilih di baris lain", i+1,
-			)}
+			msg := "produk dengan satuan ini sudah dipilih di baris lain"
+			if item.ItemType == repo.ItemTypeIngredient {
+				msg = "bahan baku ini sudah dipilih di baris lain"
+			}
+			return &errors.BadRequestError{Message: fmt.Sprintf("Item ke-%d: %s", i+1, msg)}
 		}
 		seen[k] = true
 	}
@@ -114,16 +133,18 @@ func (s *purchaseService) GetByID(id int) (data dto.PurchaseResponse, err error)
 	items := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
 	for _, v := range dataDB.Items {
 		items = append(items, dto.PurchaseItemResponse{
-			ID:            v.ID,
-			ProductID:     v.ProductID,
-			ProductName:   v.ProductName,
-			PackageID:     v.PackageID,
-			Quantity:      v.Quantity,
-			Unit:          v.Unit,
-			ConversionQty: v.ConversionQty,
-			PurchasePrice: v.PurchasePrice,
-			Subtotal:      v.Subtotal,
-			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
+			ID:             v.ID,
+			ItemType:       v.ItemType,
+			ProductID:      v.ProductID,
+			ProductName:    v.ProductName,
+			IngredientID:   v.IngredientID,
+			IngredientName: v.IngredientName,
+			PackageID:      v.PackageID,
+			Quantity:       v.Quantity,
+			Unit:           v.Unit,
+			ConversionQty:  v.ConversionQty,
+			PurchasePrice:  v.PurchasePrice,
+			Subtotal:       v.Subtotal,
 		})
 	}
 
@@ -160,15 +181,11 @@ func (s *purchaseService) GenerateCode() (data dto.GenerateCodeResponse, err err
 }
 
 func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseResponse, err error) {
-	if err := validateDuplicateProducts(req.Items); err != nil {
+	if err := s.normalizeItems(req.Items); err != nil {
 		return data, err
 	}
 
 	if err := validateDiscountAmount(req.Items, req.DiscountAmount); err != nil {
-		return data, err
-	}
-
-	if err := validateExpiryBatches(req.Items); err != nil {
 		return data, err
 	}
 
@@ -190,15 +207,17 @@ func (s *purchaseService) Create(req *dto.CreateRequest) (data dto.PurchaseRespo
 	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
 	for _, v := range dataDB.Items {
 		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
-			ID:            v.ID,
-			ProductID:     v.ProductID,
-			ProductName:   v.ProductName,
-			Quantity:      v.Quantity,
-			Unit:          v.Unit,
-			ConversionQty: v.ConversionQty,
-			PurchasePrice: v.PurchasePrice,
-			Subtotal:      v.Subtotal,
-			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
+			ID:             v.ID,
+			ItemType:       v.ItemType,
+			ProductID:      v.ProductID,
+			ProductName:    v.ProductName,
+			IngredientID:   v.IngredientID,
+			IngredientName: v.IngredientName,
+			Quantity:       v.Quantity,
+			Unit:           v.Unit,
+			ConversionQty:  v.ConversionQty,
+			PurchasePrice:  v.PurchasePrice,
+			Subtotal:       v.Subtotal,
 		})
 	}
 
@@ -235,15 +254,11 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 		return data, &errors.BadRequestError{Message: "PO sudah di-void, tidak bisa diedit"}
 	}
 
-	if err := validateDuplicateProducts(req.Items); err != nil {
+	if err := s.normalizeItems(req.Items); err != nil {
 		return data, err
 	}
 
 	if err := validateDiscountAmount(req.Items, req.DiscountAmount); err != nil {
-		return data, err
-	}
-
-	if err := validateExpiryBatches(req.Items); err != nil {
 		return data, err
 	}
 
@@ -265,15 +280,17 @@ func (s *purchaseService) Update(req *dto.UpdateRequest) (data dto.PurchaseRespo
 	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
 	for _, v := range dataDB.Items {
 		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
-			ID:            v.ID,
-			ProductID:     v.ProductID,
-			ProductName:   v.ProductName,
-			Quantity:      v.Quantity,
-			Unit:          v.Unit,
-			ConversionQty: v.ConversionQty,
-			PurchasePrice: v.PurchasePrice,
-			Subtotal:      v.Subtotal,
-			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
+			ID:             v.ID,
+			ItemType:       v.ItemType,
+			ProductID:      v.ProductID,
+			ProductName:    v.ProductName,
+			IngredientID:   v.IngredientID,
+			IngredientName: v.IngredientName,
+			Quantity:       v.Quantity,
+			Unit:           v.Unit,
+			ConversionQty:  v.ConversionQty,
+			PurchasePrice:  v.PurchasePrice,
+			Subtotal:       v.Subtotal,
 		})
 	}
 
@@ -391,11 +408,7 @@ func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseR
 		return data, &errors.BadRequestError{Message: "PO belum ada pembayaran, gunakan Edit untuk menambah item"}
 	}
 
-	if err := validateDuplicateProducts(req.Items); err != nil {
-		return data, err
-	}
-
-	if err := validateExpiryBatches(req.Items); err != nil {
+	if err := s.normalizeItems(req.Items); err != nil {
 		return data, err
 	}
 
@@ -407,15 +420,17 @@ func (s *purchaseService) AddItems(req *dto.AddItemsRequest) (data dto.PurchaseR
 	itemsDB := make([]dto.PurchaseItemResponse, 0, len(dataDB.Items))
 	for _, v := range dataDB.Items {
 		itemsDB = append(itemsDB, dto.PurchaseItemResponse{
-			ID:            v.ID,
-			ProductID:     v.ProductID,
-			ProductName:   v.ProductName,
-			Quantity:      v.Quantity,
-			Unit:          v.Unit,
-			ConversionQty: v.ConversionQty,
-			PurchasePrice: v.PurchasePrice,
-			Subtotal:      v.Subtotal,
-			ExpiryBatches: mapExpiryBatches(v.ExpiryBatches),
+			ID:             v.ID,
+			ItemType:       v.ItemType,
+			ProductID:      v.ProductID,
+			ProductName:    v.ProductName,
+			IngredientID:   v.IngredientID,
+			IngredientName: v.IngredientName,
+			Quantity:       v.Quantity,
+			Unit:           v.Unit,
+			ConversionQty:  v.ConversionQty,
+			PurchasePrice:  v.PurchasePrice,
+			Subtotal:       v.Subtotal,
 		})
 	}
 

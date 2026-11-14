@@ -3,6 +3,7 @@ import { Button } from '@/shared/components/ui/button'
 import { formatDate, formatRupiah } from '@/shared/utils'
 
 import { useSupplierPurchaseDetailQuery, useSupplierPurchasePaymentsQuery } from '../purchases.api'
+import { PURCHASE_ITEM_TYPE_LABEL } from '../purchases.types'
 interface PurchaseDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -78,7 +79,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
           {/* Tabel Item */}
           <div className="border-t pt-4 space-y-2">
             <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-              Item Produk
+              Item Pembelian
             </p>
             {!purchase.items || purchase.items.length === 0 ? (
               <p className="text-xs text-gray-400 py-2">Tidak ada item.</p>
@@ -87,7 +88,7 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
-                      {['Produk', 'Qty', 'Satuan', 'Harga Beli', 'Subtotal'].map((h) => (
+                      {['Barang / Bahan', 'Jenis', 'Qty', 'Satuan', 'Harga Beli', 'Subtotal'].map((h) => (
                         <th key={h} className="px-2 py-1.5 text-left font-medium text-gray-600">
                           {h}
                         </th>
@@ -98,9 +99,12 @@ export function PurchaseDetailModal({ open, onOpenChange, purchaseId }: Purchase
                     {purchase.items.map((item, i) => (
                       <tr key={item.id ?? i} className="border-t">
                         <td className="px-2 py-1.5 font-medium">
-                          {item.product_name || `Produk #${item.product_id}`}
+                          {item.item_type === 'ingredient'
+                            ? item.ingredient_name || `Bahan #${item.ingredient_id}`
+                            : item.product_name || `Produk #${item.product_id}`}
                         </td>
-                        <td className="px-2 py-1.5 text-gray-700">{item.quantity}</td>
+                        <td className="px-2 py-1.5 text-gray-500">{PURCHASE_ITEM_TYPE_LABEL[item.item_type ?? 'product']}</td>
+                        <td className="px-2 py-1.5 text-gray-700">{item.quantity.toLocaleString('id-ID', { maximumFractionDigits: 3 })}</td>
                         <td className="px-2 py-1.5 text-gray-600">{item.unit}</td>
                         <td className="px-2 py-1.5">{formatRupiah(item.purchase_price)}</td>
                         <td className="px-2 py-1.5 font-medium">{formatRupiah(item.subtotal)}</td>

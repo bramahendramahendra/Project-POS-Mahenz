@@ -16,6 +16,7 @@ type ProductRepoInterface interface {
 	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
 	CountPurchaseItems(productID int) (int, error)
+	CountMenuItems(productID int) (int, error)
 	Create(req *dto_product.CreateRequest) (int64, error)
 	Update(req *dto_product.UpdateRequest) error
 	Delete(req *dto_product.DeleteRequest) error

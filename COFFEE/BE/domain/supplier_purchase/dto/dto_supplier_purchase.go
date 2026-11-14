@@ -34,19 +34,19 @@ type (
 		PurchaseCode string `json:"purchase_code"`
 	}
 
-	ExpiryBatchDraft struct {
-		Qty         float64 `json:"qty" validate:"required,gt=0"`
-		ExpiredDate string  `json:"expired_date" validate:"required"`
-	}
-
+	// PurchaseRequest: satu baris pembelian (keputusan 92).
+	//   item_type product (bawaan) = barang jadi: product_id + kemasan, seperti Toko.
+	//   item_type ingredient       = bahan baku: ingredient_id, jumlah dalam satuan stok bahan
+	//                                (desimal); unit dan konversi diisi server.
 	PurchaseRequest struct {
-		ProductID     int                `json:"product_id" validate:"required,gt=0"`
-		PackageID     *int               `json:"package_id"`
-		Quantity      float64            `json:"quantity" validate:"required,gt=0"`
-		Unit          string             `json:"unit" validate:"required"`
-		ConversionQty float64            `json:"conversion_qty"`
-		PurchasePrice float64            `json:"purchase_price" validate:"required,gt=0"`
-		ExpiryBatches []ExpiryBatchDraft `json:"expiry_batches" validate:"omitempty,dive"`
+		ItemType      string  `json:"item_type" validate:"omitempty,oneof=product ingredient"`
+		ProductID     int     `json:"product_id" validate:"omitempty,gt=0"`
+		IngredientID  int     `json:"ingredient_id" validate:"omitempty,gt=0"`
+		PackageID     *int    `json:"package_id"`
+		Quantity      float64 `json:"quantity" validate:"required,gt=0"`
+		Unit          string  `json:"unit"`
+		ConversionQty float64 `json:"conversion_qty"`
+		PurchasePrice float64 `json:"purchase_price" validate:"required,gt=0"`
 	}
 
 	CreateRequest struct {
@@ -107,22 +107,19 @@ type (
 		CreatedAt     string  `json:"created_at"`
 	}
 
-	PurchaseItemExpiryBatchResponse struct {
-		Qty         float64 `json:"qty"`
-		ExpiredDate string  `json:"expired_date"`
-	}
-
 	PurchaseItemResponse struct {
-		ID            int                               `json:"id"`
-		ProductID     int                               `json:"product_id"`
-		ProductName   string                            `json:"product_name"`
-		PackageID     *int                              `json:"package_id,omitempty"`
-		Quantity      float64                           `json:"quantity"`
-		Unit          string                            `json:"unit"`
-		ConversionQty float64                           `json:"conversion_qty"`
-		PurchasePrice float64                           `json:"purchase_price"`
-		Subtotal      float64                           `json:"subtotal"`
-		ExpiryBatches []PurchaseItemExpiryBatchResponse `json:"expiry_batches,omitempty"`
+		ID             int     `json:"id"`
+		ItemType       string  `json:"item_type"`
+		ProductID      int     `json:"product_id"`
+		ProductName    string  `json:"product_name"`
+		IngredientID   int     `json:"ingredient_id,omitempty"`
+		IngredientName string  `json:"ingredient_name,omitempty"`
+		PackageID      *int    `json:"package_id,omitempty"`
+		Quantity       float64 `json:"quantity"`
+		Unit           string  `json:"unit"`
+		ConversionQty  float64 `json:"conversion_qty"`
+		PurchasePrice  float64 `json:"purchase_price"`
+		Subtotal       float64 `json:"subtotal"`
 	}
 
 	PurchaseResponse struct {

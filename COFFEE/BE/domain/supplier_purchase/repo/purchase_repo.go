@@ -1,9 +1,11 @@
 package repo
 
 import (
+	"database/sql"
 	stderrors "errors"
 	"fmt"
 
+	ingredient_repo "coffee_api/domain/ingredient/repo"
 	model_product "coffee_api/domain/product/model"
 	product_repo "coffee_api/domain/product/repo"
 	dto "coffee_api/domain/supplier_purchase/dto"
@@ -17,33 +19,84 @@ import (
 )
 
 const (
-	getPackagesByProductQuery           = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generatePurchaseCodeQuery           = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(purchase_code, '-', -1) AS UNSIGNED)), 0) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
-	createPurchaseQuery                 = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	createPurchaseItemQuery             = `INSERT INTO purchase_items (purchase_id, product_id, package_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	getDefaultPackageIDQuery            = `SELECT id FROM product_packages WHERE product_id = ? AND is_default = 1 LIMIT 1`
-	payPurchaseQuery                    = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
-	getPurchaseItemsQuery               = `SELECT pi.id, pi.product_id, COALESCE(p.name, '') as product_name, pi.package_id, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id WHERE pi.purchase_id = ?`
-	createPaymentQuery                  = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
-	getPaymentsQuery                    = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
-	deleteStockMutationsQuery           = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
-	deletePurchaseItemsQuery            = `DELETE FROM purchase_items WHERE purchase_id = ?`
-	deletePurchaseQuery                 = `DELETE FROM purchases WHERE id = ?`
-	getPurchaseByIDQuery                = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
-	getRawPurchaseByIDQuery             = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
-	getAllPurchasesBase                 = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
-	countPurchasesBase                  = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
-	validatePaymentMethodQuery          = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
-	getPurchaseForVoidQuery             = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
-	voidPurchaseQuery                   = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
-	updatePurchaseTotalsQuery           = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPackagesByProductQuery  = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+	generatePurchaseCodeQuery  = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(purchase_code, '-', -1) AS UNSIGNED)), 0) FROM purchases WHERE purchase_code LIKE CONCAT('PO-', ?, '-%')`
+	createPurchaseQuery        = `INSERT INTO purchases (purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, user_id, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	createPurchaseItemQuery    = `INSERT INTO purchase_items (purchase_id, item_type, product_id, ingredient_id, package_id, quantity, unit, conversion_qty, purchase_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getDefaultPackageIDQuery   = `SELECT id FROM product_packages WHERE product_id = ? AND is_default = 1 LIMIT 1`
+	payPurchaseQuery           = `UPDATE purchases SET paid_amount = paid_amount + ?, remaining_amount = remaining_amount - ?, payment_status = CASE WHEN remaining_amount <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
+	getPurchaseItemsQuery      = `SELECT pi.id, pi.item_type, COALESCE(pi.product_id, 0) AS product_id, COALESCE(p.name, '') as product_name, COALESCE(pi.ingredient_id, 0) AS ingredient_id, COALESCE(ig.name, '') AS ingredient_name, pi.package_id, pi.quantity, pi.unit, COALESCE(pi.conversion_qty, 1) as conversion_qty, pi.purchase_price, pi.subtotal FROM purchase_items pi LEFT JOIN products p ON pi.product_id = p.id LEFT JOIN ingredients ig ON pi.ingredient_id = ig.id WHERE pi.purchase_id = ? ORDER BY pi.id`
+	createPaymentQuery         = `INSERT INTO purchase_payments (purchase_id, payment_date, amount, payment_method, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+	getPaymentsQuery           = `SELECT pp.id, pp.payment_date, pp.amount, COALESCE(pp.payment_method, '') as payment_method, COALESCE(pp.notes, '') as notes, COALESCE(u.full_name, '') as user_name, pp.created_at FROM purchase_payments pp LEFT JOIN users u ON pp.user_id = u.id WHERE pp.purchase_id = ? ORDER BY pp.created_at ASC`
+	deleteStockMutationsQuery  = `DELETE FROM stock_mutations WHERE reference_type = 'purchase' AND reference_id = ?`
+	deletePurchaseItemsQuery   = `DELETE FROM purchase_items WHERE purchase_id = ?`
+	deletePurchaseQuery        = `DELETE FROM purchases WHERE id = ?`
+	getPurchaseByIDQuery       = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE p.id = ?`
+	getRawPurchaseByIDQuery    = `SELECT id, purchase_code, invoice_number, supplier_id, purchase_date, discount_amount, total_amount, payment_status, paid_amount, remaining_amount, status, user_id, notes FROM purchases WHERE id = ?`
+	getAllPurchasesBase        = `SELECT p.id, p.purchase_code, p.invoice_number, p.supplier_id, COALESCE(s.name, '') as supplier_name, p.purchase_date, p.discount_amount, p.total_amount, p.payment_status, p.paid_amount, p.remaining_amount, p.status, COALESCE(u.full_name, '') as user_name, p.notes FROM purchases p LEFT JOIN users u ON p.user_id = u.id LEFT JOIN suppliers s ON p.supplier_id = s.id WHERE 1=1`
+	countPurchasesBase         = `SELECT COUNT(*) FROM purchases p WHERE 1=1`
+	validatePaymentMethodQuery = `SELECT COUNT(*) FROM payment_methods WHERE code = ? AND is_active = 1`
+	getPurchaseForVoidQuery    = `SELECT status FROM purchases WHERE id = ? LIMIT 1 FOR UPDATE`
+	voidPurchaseQuery          = `UPDATE purchases SET status = 'void', remaining_amount = 0, updated_at = NOW() WHERE id = ?`
+	updatePurchaseTotalsQuery  = `UPDATE purchases SET total_amount = ?, remaining_amount = ?, payment_status = CASE WHEN ? <= 0 THEN 'paid' WHEN paid_amount > 0 THEN 'partial' ELSE 'unpaid' END, updated_at = NOW() WHERE id = ?`
 )
 
-// Coffee tidak memiliki tabel batch kedaluwarsa (expiry_batch dipangkas). Service sudah menolak input
-// batch; fungsi ini hanya pengaman bila ada jalur yang lolos. Dibersihkan saat pembelian dirombak (4.5).
-func insertExpiryBatches(_ *gorm.DB, _, _, _ int, batches []dto.ExpiryBatchDraft) error {
-	if len(batches) > 0 {
-		return &errors.BadRequestError{Message: "Tanggal kedaluwarsa tidak dipakai di aplikasi ini"}
+// Jenis baris pembelian (keputusan 92).
+const (
+	ItemTypeProduct    = "product"    // barang jadi: produk + kemasan
+	ItemTypeIngredient = "ingredient" // bahan baku: satuan stok bahan
+)
+
+// insertItemRow menyimpan satu baris pembelian tanpa mengubah stok. Mengembalikan kemasan yang
+// dipakai untuk baris barang jadi (nil untuk bahan baku).
+func insertItemRow(tx *gorm.DB, purchaseID int, item dto.PurchaseRequest) (*int, error) {
+	subtotal := item.PurchasePrice * item.Quantity
+	if item.ItemType == ItemTypeIngredient {
+		return nil, tx.Exec(createPurchaseItemQuery,
+			purchaseID, ItemTypeIngredient, nil, item.IngredientID, nil,
+			item.Quantity, item.Unit, 1, item.PurchasePrice, subtotal,
+		).Error
+	}
+	conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
+	resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
+	if resolvedPackageID == nil {
+		return nil, fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
+	}
+	return resolvedPackageID, tx.Exec(createPurchaseItemQuery,
+		purchaseID, ItemTypeProduct, item.ProductID, nil, resolvedPackageID,
+		item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
+	).Error
+}
+
+// addItem menyimpan baris pembelian lalu menambah stok barang jadi atau bahan baku.
+func addItem(tx *gorm.DB, purchaseID int, item dto.PurchaseRequest, notes string, userID int) error {
+	packageID, err := insertItemRow(tx, purchaseID, item)
+	if err != nil {
+		return err
+	}
+	if item.ItemType == ItemTypeIngredient {
+		return ingredient_repo.ApplyStock(tx, ingredient_repo.ApplyStockParams{
+			IngredientID:  item.IngredientID,
+			QtyChange:     item.Quantity,
+			Type:          ingredient_repo.MutationPurchase,
+			Notes:         notes,
+			ReferenceType: "purchase",
+			ReferenceID:   purchaseID,
+			UserID:        userID,
+		})
+	}
+	if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
+		ProductID:     item.ProductID,
+		PackageID:     *packageID,
+		Quantity:      item.Quantity,
+		Direction:     model_product.StockIn,
+		MutationType:  "in",
+		ReferenceType: "purchase",
+		ReferenceID:   purchaseID,
+		Notes:         notes,
+		UserID:        &userID,
+	}); err != nil {
+		return wrapStockError(err, item.ProductID)
 	}
 	return nil
 }
@@ -206,34 +259,20 @@ func (r *purchaseRepo) GetItems(purchaseID int) ([]model.PurchaseItem, error) {
 		return nil, err
 	}
 
+	defer rows.Close()
+
 	var items []model.PurchaseItem
 	for rows.Next() {
 		var item model.PurchaseItem
 		if err := rows.Scan(
-			&item.ID, &item.ProductID, &item.ProductName, &item.PackageID,
-			&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
+			&item.ID, &item.ItemType, &item.ProductID, &item.ProductName, &item.IngredientID, &item.IngredientName,
+			&item.PackageID, &item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
 		); err != nil {
-			rows.Close()
 			return nil, err
 		}
 		items = append(items, item)
 	}
-	rows.Close()
-
-	for i := range items {
-		batches, err := r.getExpiryBatchesByPurchaseItem(items[i].ID)
-		if err != nil {
-			return nil, err
-		}
-		items[i].ExpiryBatches = batches
-	}
-
 	return items, nil
-}
-
-// Tanpa batch kedaluwarsa di Coffee: selalu kosong.
-func (r *purchaseRepo) getExpiryBatchesByPurchaseItem(_ int) ([]model.PurchaseItemExpiryBatch, error) {
-	return nil, nil
 }
 
 func (r *purchaseRepo) GetPayments(purchaseID int) ([]model.PurchasePayment, error) {
@@ -348,44 +387,10 @@ func (r *purchaseRepo) createOnce(conn *gorm.DB, req *dto.CreateRequest, purchas
 			}
 		}
 
+		notes := fmt.Sprintf("Pembelian %s", code)
 		for _, item := range req.Items {
-			subtotal := item.PurchasePrice * item.Quantity
-			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
-
-			if err := tx.Exec(createPurchaseItemQuery,
-				*purchaseID, item.ProductID, resolvedPackageID,
-				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
-			).Error; err != nil {
+			if err := addItem(tx, *purchaseID, item, notes, req.UserID); err != nil {
 				return err
-			}
-
-			if len(item.ExpiryBatches) > 0 {
-				var purchaseItemID int
-				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
-					return err
-				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
-					return err
-				}
-			}
-
-			if resolvedPackageID == nil {
-				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
-			}
-			notes := fmt.Sprintf("Purchase Order %s", code)
-			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
-				ProductID:     item.ProductID,
-				PackageID:     *resolvedPackageID,
-				Quantity:      item.Quantity,
-				Direction:     model_product.StockIn,
-				MutationType:  "in",
-				ReferenceType: "purchase",
-				ReferenceID:   *purchaseID,
-				Notes:         notes,
-				UserID:        &req.UserID,
-			}); err != nil {
-				return wrapStockError(err, item.ProductID)
 			}
 		}
 
@@ -441,7 +446,12 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 			packageID int
 		}
 		oldQty := make(map[stockKey]float64)
+		oldIngredientQty := make(map[int]float64)
 		for _, old := range oldItems {
+			if old.ItemType == ItemTypeIngredient {
+				oldIngredientQty[old.IngredientID] += old.Quantity
+				continue
+			}
 			packageID := old.PackageID
 			if packageID == nil {
 				resolved := resolvePackageID(tx, old.ProductID, nil)
@@ -471,31 +481,42 @@ func (r *purchaseRepo) Update(req *dto.UpdateRequest) (*model.PurchaseRow, error
 		}
 
 		newQty := make(map[stockKey]float64)
+		newIngredientQty := make(map[int]float64)
 		for _, item := range req.Items {
-			subtotal := item.PurchasePrice * item.Quantity
-			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
-			if resolvedPackageID == nil {
-				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
-			}
-			if err := tx.Exec(createPurchaseItemQuery,
-				req.ID, item.ProductID, resolvedPackageID,
-				item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
-			).Error; err != nil {
+			resolvedPackageID, err := insertItemRow(tx, req.ID, item)
+			if err != nil {
 				return err
 			}
-
-			if len(item.ExpiryBatches) > 0 {
-				var purchaseItemID int
-				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
-					return err
-				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
-					return err
-				}
+			if item.ItemType == ItemTypeIngredient {
+				newIngredientQty[item.IngredientID] += item.Quantity
+				continue
 			}
-
 			newQty[stockKey{item.ProductID, *resolvedPackageID}] += item.Quantity
+		}
+
+		// Bahan baku: selisih baru - lama dicatat sebagai pembelian (+) atau pengurangan (-).
+		ingredientIDs := make(map[int]struct{}, len(oldIngredientQty)+len(newIngredientQty))
+		for id := range oldIngredientQty {
+			ingredientIDs[id] = struct{}{}
+		}
+		for id := range newIngredientQty {
+			ingredientIDs[id] = struct{}{}
+		}
+		for id := range ingredientIDs {
+			delta := newIngredientQty[id] - oldIngredientQty[id]
+			if delta == 0 {
+				continue
+			}
+			mutationType, notes := ingredient_repo.MutationPurchase, fmt.Sprintf("Edit pembelian ID %d (tambah)", req.ID)
+			if delta < 0 {
+				mutationType, notes = ingredient_repo.MutationPurchaseVoid, fmt.Sprintf("Edit pembelian ID %d (kurangi)", req.ID)
+			}
+			if err := ingredient_repo.ApplyStock(tx, ingredient_repo.ApplyStockParams{
+				IngredientID: id, QtyChange: delta, Type: mutationType, Notes: notes,
+				ReferenceType: "purchase", ReferenceID: req.ID, UserID: req.UserID,
+			}); err != nil {
+				return err
+			}
 		}
 
 		keys := make(map[stockKey]struct{}, len(oldQty)+len(newQty))
@@ -602,26 +623,23 @@ func (r *purchaseRepo) Void(id int, userID int) error {
 			return err
 		}
 
-		rows, err := tx.Raw(getPurchaseItemsQuery, id).Rows()
+		items, err := (&purchaseRepo{db: tx}).GetItems(id)
 		if err != nil {
 			return err
 		}
-		var items []model.PurchaseItem
-		for rows.Next() {
-			var item model.PurchaseItem
-			if err := rows.Scan(
-				&item.ID, &item.ProductID, &item.ProductName, &item.PackageID,
-				&item.Quantity, &item.Unit, &item.ConversionQty, &item.PurchasePrice, &item.Subtotal,
-			); err != nil {
-				rows.Close()
-				return err
-			}
-			items = append(items, item)
-		}
-		rows.Close()
 
-		notes := fmt.Sprintf("Void purchase order ID %d", id)
+		notes := fmt.Sprintf("Void pembelian ID %d", id)
 		for _, item := range items {
+			// Bahan baku: stok dikurangi kembali, boleh minus (keputusan 93).
+			if item.ItemType == ItemTypeIngredient {
+				if err := ingredient_repo.ApplyStock(tx, ingredient_repo.ApplyStockParams{
+					IngredientID: item.IngredientID, QtyChange: -item.Quantity, Type: ingredient_repo.MutationPurchaseVoid,
+					Notes: notes, ReferenceType: "purchase", ReferenceID: id, UserID: userID,
+				}); err != nil {
+					return err
+				}
+				continue
+			}
 			packageID := item.PackageID
 			if packageID == nil {
 				resolved := resolvePackageID(tx, item.ProductID, nil)
@@ -661,43 +679,10 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 
 		_, newItemsTotal := calculateTotal(req.Items, 0)
 
+		notes := fmt.Sprintf("Tambah item pembelian ID %d", req.ID)
 		for _, item := range req.Items {
-			subtotal := item.PurchasePrice * item.Quantity
-			conversionQty := resolveConversionQty(tx, item.ProductID, item.PackageID, item.ConversionQty)
-			resolvedPackageID := resolvePackageID(tx, item.ProductID, item.PackageID)
-
-			if err := tx.Exec(createPurchaseItemQuery,
-				req.ID, item.ProductID, resolvedPackageID, item.Quantity, item.Unit, conversionQty, item.PurchasePrice, subtotal,
-			).Error; err != nil {
+			if err := addItem(tx, req.ID, item, notes, req.UserID); err != nil {
 				return err
-			}
-
-			if len(item.ExpiryBatches) > 0 {
-				var purchaseItemID int
-				if err := tx.Raw(`SELECT LAST_INSERT_ID()`).Scan(&purchaseItemID).Error; err != nil {
-					return err
-				}
-				if err := insertExpiryBatches(tx, item.ProductID, purchaseItemID, *resolvedPackageID, item.ExpiryBatches); err != nil {
-					return err
-				}
-			}
-
-			if resolvedPackageID == nil {
-				return fmt.Errorf("produk ID %d tidak punya paket satuan (package_id) yang bisa dipakai buat update stok", item.ProductID)
-			}
-			notes := fmt.Sprintf("Tambah item PO ID %d", req.ID)
-			if _, err := product_repo.ApplyStockDelta(tx, product_repo.ApplyStockDeltaParams{
-				ProductID:     item.ProductID,
-				PackageID:     *resolvedPackageID,
-				Quantity:      item.Quantity,
-				Direction:     model_product.StockIn,
-				MutationType:  "in",
-				ReferenceType: "purchase",
-				ReferenceID:   req.ID,
-				Notes:         notes,
-				UserID:        &req.UserID,
-			}); err != nil {
-				return wrapStockError(err, item.ProductID)
 			}
 		}
 
@@ -715,4 +700,26 @@ func (r *purchaseRepo) AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, e
 		return nil, err
 	}
 	return r.GetByID(req.ID)
+}
+
+// IngredientInfo: data bahan yang dibutuhkan baris pembelian bahan baku.
+type IngredientInfo struct {
+	ID       int
+	Name     string
+	UnitAbbr string
+	IsActive bool
+}
+
+const getIngredientInfoQuery = `SELECT i.id, i.name, COALESCE(u.abbreviation, '') AS unit_abbr, i.is_active FROM ingredients i LEFT JOIN units u ON u.id = i.unit_id WHERE i.id = ?`
+
+func (r *purchaseRepo) GetIngredientInfo(id int) (*IngredientInfo, error) {
+	var info IngredientInfo
+	row := r.db.Raw(getIngredientInfoQuery, id).Row()
+	if err := row.Scan(&info.ID, &info.Name, &info.UnitAbbr, &info.IsActive); err != nil {
+		if stderrors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &info, nil
 }

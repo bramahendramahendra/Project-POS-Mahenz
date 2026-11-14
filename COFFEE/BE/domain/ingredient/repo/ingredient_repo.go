@@ -26,6 +26,7 @@ const (
 	toggleIngredientQuery      = `UPDATE ingredients SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	deleteIngredientQuery      = `DELETE FROM ingredients WHERE id = ?`
 	hasMutationsQuery          = `SELECT COUNT(*) FROM ingredient_mutations WHERE ingredient_id = ?`
+	usedInRecipesQuery         = `SELECT COUNT(*) FROM menu_recipe_lines WHERE ingredient_id = ?`
 	applyStockChangeQuery      = `UPDATE ingredients SET stock = stock + ?, total_used = total_used + ?, total_wasted = total_wasted + ?, updated_at = ? WHERE id = ?`
 
 	createMutationQuery = `INSERT INTO ingredient_mutations (ingredient_id, type, qty_change, stock_before, stock_after, notes, reference_type, reference_id, created_by, created_at)
@@ -158,6 +159,14 @@ func (r *ingredientRepo) Delete(id int) error {
 func (r *ingredientRepo) HasMutations(id int) (bool, error) {
 	var count int64
 	if err := r.db.Raw(hasMutationsQuery, id).Scan(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (r *ingredientRepo) UsedInRecipes(id int) (bool, error) {
+	var count int64
+	if err := r.db.Raw(usedInRecipesQuery, id).Scan(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil

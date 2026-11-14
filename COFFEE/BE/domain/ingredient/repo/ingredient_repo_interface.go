@@ -21,6 +21,7 @@ type (
 		ToggleStatus(id int) error
 		Delete(id int) error
 		HasMutations(id int) (bool, error)
+		UsedInRecipes(id int) (bool, error)
 
 		// ApplyStockChange menambah stok, total terpakai, dan total terbuang sekaligus (boleh negatif).
 		ApplyStockChange(id int, stockDelta, usedDelta, wastedDelta float64) error

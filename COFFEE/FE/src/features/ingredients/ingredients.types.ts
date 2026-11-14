@@ -38,8 +38,11 @@ export interface IngredientPayload {
   min_stock: number | null
 }
 
-/** usage = terpakai, waste = terbuang, cancel = pembatalan entri */
-export type MutationType = 'usage' | 'waste' | 'cancel'
+/**
+ * usage = terpakai, waste = terbuang, cancel = pembatalan entri,
+ * purchase = pembelian dari supplier, purchase_void = pembelian di-void atau dikurangi saat edit (tahap 4.5).
+ */
+export type MutationType = 'usage' | 'waste' | 'cancel' | 'purchase' | 'purchase_void'
 
 export interface IngredientMutation {
   id: number

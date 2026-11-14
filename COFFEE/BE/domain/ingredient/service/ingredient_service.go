@@ -120,6 +120,13 @@ func (s *ingredientService) Delete(id int) error {
 	if hasHistory {
 		return &errors.BadRequestError{Message: "Bahan sudah punya riwayat stok dan tidak bisa dihapus. Nonaktifkan saja"}
 	}
+	usedInRecipes, err := s.repo.UsedInRecipes(id)
+	if err != nil {
+		return err
+	}
+	if usedInRecipes {
+		return &errors.BadRequestError{Message: "Bahan masih dipakai di resep menu dan tidak bisa dihapus. Nonaktifkan saja"}
+	}
 	return s.repo.Delete(id)
 }
 

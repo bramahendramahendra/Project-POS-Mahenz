@@ -18,12 +18,16 @@ export const MUTATION_TYPE_LABEL: Record<MutationType, string> = {
   usage: 'Terpakai',
   waste: 'Terbuang',
   cancel: 'Pembatalan',
+  purchase: 'Pembelian',
+  purchase_void: 'Void pembelian',
 }
 
 export const MUTATION_TYPE_CLASS: Record<MutationType, string> = {
   usage: 'bg-blue-100 text-blue-700',
   waste: 'bg-red-100 text-red-700',
   cancel: 'bg-gray-100 text-gray-700',
+  purchase: 'bg-green-100 text-green-700',
+  purchase_void: 'bg-amber-100 text-amber-700',
 }
 
 /** Mengubah teks input desimal ("1,5" atau "1.5") menjadi angka; kosong atau tidak valid = NaN. */

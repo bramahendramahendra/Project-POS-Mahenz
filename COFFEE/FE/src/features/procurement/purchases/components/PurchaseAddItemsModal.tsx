@@ -8,66 +8,45 @@ import { ConfirmDialog, FormModal } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { RupiahInput } from '@/shared/components/ui/rupiah-input'
-import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { formatRupiah } from '@/shared/utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
 import { api } from '@/services'
-import { useProductSearchQuery } from '@/features/products/products'
-import type { ProductPackage, ProductSearchOption } from '@/features/products/products/products.types'
+import type { ProductPackage } from '@/features/products/products/products.types'
+import type { IngredientOption } from '@/features/ingredients'
 
-import { purchaseItemSchema, refineItemQuantities } from '../purchases.schema'
+import { purchaseItemSchema, refineItemQuantities, refineItemTargets } from '../purchases.schema'
 import { useSupplierPurchaseDetailQuery, useAddPurchaseItemsMutation } from '../purchases.api'
-import type { SupplierPurchase } from '../purchases.types'
+import { PURCHASE_ITEM_TYPE_LABEL, type PurchaseItemType, type SupplierPurchase } from '../purchases.types'
+import { PurchaseItemTargetCell } from './PurchaseItemTargetCell'
 
 const addItemsSchema = z
   .object({
     items: z.array(purchaseItemSchema).min(1, 'Minimal tambah 1 item'),
   })
-  .superRefine((data, ctx) => refineItemQuantities(data.items, ctx))
+  .superRefine((data, ctx) => {
+    refineItemQuantities(data.items, ctx)
+    refineItemTargets(data.items, ctx)
+  })
 
 type AddItemsFormValues = z.infer<typeof addItemsSchema>
 
-const emptyItem = { product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 }
+const emptyItem = {
+  item_type: 'product' as const,
+  product_id: 0,
+  product_name: '',
+  ingredient_id: 0,
+  ingredient_name: '',
+  quantity: 1,
+  price: 0,
+  unit: '',
+  conversion_qty: 1,
+}
 
 interface PurchaseAddItemsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   purchase: SupplierPurchase | null
-}
-
-function ProductCell({
-  value,
-  label,
-  onChange,
-  error,
-}: {
-  value: number
-  label?: string
-  onChange: (id: number, name: string) => void
-  error?: boolean
-}) {
-  const [keyword, setKeyword] = useState('')
-  const { data: results, isFetching } = useProductSearchQuery(keyword)
-
-  return (
-    <AsyncCombobox<ProductSearchOption>
-      className={`h-8 text-xs ${error ? 'border-red-500' : ''}`}
-      value={value > 0 ? value : undefined}
-      selectedLabel={label}
-      onSearch={setKeyword}
-      onValueChange={(_v, item) => {
-        if (item) onChange(item.id, item.name)
-      }}
-      options={results}
-      getOptionValue={(p) => p.id}
-      getOptionLabel={(p) => p.name}
-      isLoading={isFetching}
-      placeholder="Pilih produk"
-      searchPlaceholder="Cari produk..."
-      emptyText="Produk tidak ditemukan."
-    />
-  )
 }
 
 interface ConfirmState {
@@ -123,6 +102,32 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     setValue(`items.${index}.is_continuous`, defaultPkg?.is_continuous ?? false)
   }
 
+  function handleTypeChange(index: number, type: PurchaseItemType) {
+    if (watchItems[index]?.item_type === type) return
+    setItemPackageId((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    setValue(`items.${index}.item_type`, type)
+    setValue(`items.${index}.product_id`, 0)
+    setValue(`items.${index}.product_name`, '')
+    setValue(`items.${index}.ingredient_id`, 0)
+    setValue(`items.${index}.ingredient_name`, '')
+    setValue(`items.${index}.unit`, '')
+    setValue(`items.${index}.conversion_qty`, 1)
+    setValue(`items.${index}.is_continuous`, type === 'ingredient')
+  }
+
+  // Bahan baku: jumlah dalam satuan stok bahan (desimal), konversi 1 (keputusan 92).
+  function handleIngredientChange(index: number, ingredient: IngredientOption) {
+    setValue(`items.${index}.ingredient_id`, ingredient.id, { shouldValidate: true })
+    setValue(`items.${index}.ingredient_name`, ingredient.name)
+    setValue(`items.${index}.unit`, ingredient.unit_abbr)
+    setValue(`items.${index}.conversion_qty`, 1)
+    setValue(`items.${index}.is_continuous`, true)
+  }
+
   const newItemsTotal = watchItems.reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0)
   const currentTotal = detail?.total_amount ?? 0
   const paidAmount = detail?.paid_amount ?? 0
@@ -146,14 +151,25 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
     addItems(
       {
         id: purchaseId,
-        items: pendingValues.items.map((item, index) => ({
+        items: pendingValues.items.map((item, index) =>
+          item.item_type === 'ingredient'
+            ? {
+                item_type: 'ingredient' as const,
+                ingredient_id: item.ingredient_id,
+                quantity: item.quantity,
+                purchase_price: item.price,
+                unit: item.unit,
+                conversion_qty: 1,
+              }
+            : {
+          item_type: 'product' as const,
           product_id: item.product_id,
           package_id: itemPackageId[index] || undefined,
           quantity: item.quantity,
           purchase_price: item.price,
           unit: item.unit,
           conversion_qty: item.conversion_qty ?? 1,
-        })),
+        }),
       },
       {
         onSuccess: () => handleClose(),
@@ -185,7 +201,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
               <table className="w-full text-xs">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500">Produk (sudah ada)</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-500">Barang / Bahan (sudah ada)</th>
                     <th className="px-3 py-2 text-right font-medium text-gray-500">Qty</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-500">Satuan</th>
                     <th className="px-3 py-2 text-right font-medium text-gray-500">Harga</th>
@@ -195,7 +211,10 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
                 <tbody className="divide-y divide-gray-100">
                   {detail.items.map((item) => (
                     <tr key={item.id} className="text-gray-500 bg-gray-50/50">
-                      <td className="px-3 py-2">{item.product_name}</td>
+                      <td className="px-3 py-2">
+                        {item.item_type === 'ingredient' ? item.ingredient_name : item.product_name}
+                        <span className="ml-1.5 text-[10px] text-gray-400">{PURCHASE_ITEM_TYPE_LABEL[item.item_type ?? 'product']}</span>
+                      </td>
                       <td className="px-3 py-2 text-right">{item.quantity}</td>
                       <td className="px-3 py-2">{item.unit}</td>
                       <td className="px-3 py-2 text-right">{formatRupiah(item.purchase_price)}</td>
@@ -232,7 +251,7 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
                 <table className="w-full min-w-[700px] text-sm">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500 w-[30%]">Produk</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-500 w-[30%]">Barang / Bahan</th>
                       <th className="px-3 py-2 text-right font-medium text-gray-500 w-[10%]">Qty</th>
                       <th className="px-3 py-2 text-left font-medium text-gray-500 w-[12%]">Satuan</th>
                       <th className="px-3 py-2 text-right font-medium text-gray-500 w-[20%]">Harga</th>
@@ -248,10 +267,15 @@ export function PurchaseAddItemsModal({ open, onOpenChange, purchase }: Purchase
                       return (
                         <tr key={field.id}>
                           <td className="px-3 py-2">
-                            <ProductCell
-                              value={watchItems[index]?.product_id ?? 0}
-                              label={watchItems[index]?.product_name}
-                              onChange={(id, name) => handleProductChange(index, id, name)}
+                            <PurchaseItemTargetCell
+                              itemType={watchItems[index]?.item_type ?? 'product'}
+                              productId={watchItems[index]?.product_id ?? 0}
+                              productName={watchItems[index]?.product_name}
+                              ingredientId={watchItems[index]?.ingredient_id}
+                              ingredientName={watchItems[index]?.ingredient_name}
+                              onTypeChange={(t) => handleTypeChange(index, t)}
+                              onProductChange={(id, name) => handleProductChange(index, id, name)}
+                              onIngredientChange={(ing) => handleIngredientChange(index, ing)}
                               error={!!itemErrors?.product_id}
                             />
                             {itemErrors?.product_id && (

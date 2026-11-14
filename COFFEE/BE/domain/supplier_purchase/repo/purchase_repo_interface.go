@@ -22,6 +22,7 @@ type (
 		Void(id int, userID int) error
 		CountReturnsByPurchaseID(purchaseID int) (int64, error)
 		AddItems(req *dto.AddItemsRequest) (*model.PurchaseRow, error)
+		GetIngredientInfo(id int) (*IngredientInfo, error)
 
 		GetDB() *gorm.DB
 		WithTx(tx *gorm.DB) PurchaseRepoInterface

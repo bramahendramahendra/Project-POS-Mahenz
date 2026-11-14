@@ -5,7 +5,7 @@ import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks
 import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 import { monthStart, todayStr } from '@/shared/utils'
 
-import { useSupplierListQuery } from '@/features/procurement/suppliers'
+import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 
 import {
   useSupplierPurchasesQuery,
@@ -45,8 +45,9 @@ export const PurchaseTable = forwardRef<PurchaseTableHandle, object>(function Pu
   const [voidingPurchase, setVoidingPurchase] = useState<SupplierPurchase | null>(null)
   const [addItemsPurchase, setAddItemsPurchase] = useState<SupplierPurchase | null>(null)
 
-  const { data: suppliersData } = useSupplierListQuery({ page: 1, limit: 200, search: '' })
-  const suppliers = suppliersData?.data ?? []
+  // Semua supplier aktif untuk filter. (Daftar berhalaman dibatasi BE 100 per halaman dan limit
+  // di atas batas jatuh ke 10, sehingga dulu filter hanya berisi 10 supplier.)
+  const { data: suppliers = [] } = useSupplierOptionsQuery()
 
   const { data, isLoading } = useSupplierPurchasesQuery({ ...filter,  page,  limit: pageSize })
   const purchases = data?.data ?? []

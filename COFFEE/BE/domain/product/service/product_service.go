@@ -342,6 +342,14 @@ func (s *productService) Delete(req *dto.DeleteRequest) (err error) {
 		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena sudah pernah dibeli dari supplier. Nonaktifkan produk sebagai gantinya."}
 	}
 
+	menuCount, err := s.repo.CountMenuItems(req.ID)
+	if err != nil {
+		return &errors.InternalServerError{Message: "Gagal memeriksa menu yang memakai produk"}
+	}
+	if menuCount > 0 {
+		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena dipakai menu barang jadi. Ganti produk di menu itu dulu."}
+	}
+
 	if exists.Stock > 0 {
 		return &errors.BadRequestError{Message: "Produk tidak bisa dihapus karena masih memiliki stok. Nonaktifkan produk sebagai gantinya."}
 	}

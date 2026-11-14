@@ -74,6 +74,8 @@ export function Combobox({
                 <CommandItem
                   key={option.value}
                   value={option.value}
+                  // Pencarian memakai teks label, bukan id (value).
+                  keywords={[option.label]}
                   onSelect={(current) => {
                     onValueChange(current === value ? undefined : current)
                     setOpen(false)

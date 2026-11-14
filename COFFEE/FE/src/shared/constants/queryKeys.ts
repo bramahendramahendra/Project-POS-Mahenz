@@ -28,6 +28,31 @@ export const queryKeys = {
     options: () => ['units', 'options'] as const,
   },
 
+  menuItems: {
+    all: () => ['menuItems'] as const,
+    list: (filter?: Filter) => ['menuItems', 'list', filter] as const,
+    detail: (id: number) => ['menuItems', 'detail', id] as const,
+  },
+
+  menuCategories: {
+    all: () => ['menuCategories'] as const,
+    list: (filter?: Filter) => ['menuCategories', 'list', filter] as const,
+    options: () => ['menuCategories', 'options'] as const,
+  },
+
+  menuSizes: {
+    all: () => ['menuSizes'] as const,
+    list: (filter?: Filter) => ['menuSizes', 'list', filter] as const,
+    options: () => ['menuSizes', 'options'] as const,
+  },
+
+  modifierGroups: {
+    all: () => ['modifierGroups'] as const,
+    list: (filter?: Filter) => ['modifierGroups', 'list', filter] as const,
+    options: () => ['modifierGroups', 'options'] as const,
+    detail: (id: number) => ['modifierGroups', 'detail', id] as const,
+  },
+
   ingredients: {
     all: () => ['ingredients'] as const,
     list: (filter?: Filter) => ['ingredients', 'list', filter] as const,

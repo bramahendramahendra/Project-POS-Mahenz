@@ -1,9 +1,15 @@
 import { z } from 'zod'
 import { todayStr } from '@/shared/utils'
 
+// Baris pembelian: item_type product = barang jadi (produk + kemasan), ingredient = bahan baku
+// (jumlah desimal dalam satuan stok bahan, keputusan 92). Pilihan wajib per jenis dicek di
+// refineItemTargets.
 export const purchaseItemSchema = z.object({
-  product_id: z.number({ error: 'Pilih produk' }).positive('Pilih produk'),
+  item_type: z.enum(['product', 'ingredient']),
+  product_id: z.number(),
   product_name: z.string().optional(),
+  ingredient_id: z.number().optional(),
+  ingredient_name: z.string().optional(),
   package_id: z.number().optional(),
   quantity: z.number({ error: 'Wajib diisi' }).positive('Harus lebih dari 0'),
   price: z.number({ error: 'Wajib diisi' }).positive('Harga harus lebih dari 0'),
@@ -14,6 +20,35 @@ export const purchaseItemSchema = z.object({
   // beda per baris item, bukan aturan tetap untuk semua qty.
   is_continuous: z.boolean().optional(),
 })
+
+type ItemTarget = { item_type: 'product' | 'ingredient'; product_id: number; ingredient_id?: number; package_id?: number }
+type IssueCtx = { addIssue: (issue: { code: 'custom'; message: string; path: (string | number)[] }) => void }
+
+// Dipakai di superRefine purchaseSchema & addItemsSchema: barang/bahan wajib dipilih sesuai
+// jenis baris, dan baris yang sama (produk + satuan, atau bahan yang sama) tidak boleh dobel.
+// Kesalahan ditaruh di path product_id (kolom pilihan barang/bahan).
+export function refineItemTargets(items: ItemTarget[], ctx: IssueCtx, basePath: (string | number)[] = ['items']) {
+  const seen = new Set<string>()
+  items.forEach((item, index) => {
+    const path = [...basePath, index, 'product_id']
+    const isIngredient = item.item_type === 'ingredient'
+    const id = isIngredient ? item.ingredient_id || 0 : item.product_id
+    if (!id) {
+      ctx.addIssue({ code: 'custom', message: isIngredient ? 'Pilih bahan baku' : 'Pilih barang jadi', path })
+      return
+    }
+    const key = isIngredient ? `i-${id}` : `p-${id}-${item.package_id || 0}`
+    if (seen.has(key)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: isIngredient ? 'Bahan baku ini sudah dipilih di baris lain' : 'Produk dengan satuan ini sudah dipilih di baris lain',
+        path,
+      })
+    } else {
+      seen.add(key)
+    }
+  })
+}
 
 // Dipakai di superRefine purchaseSchema & addItemsSchema (2 tempat) -- qty item
 // wajib bilangan bulat KECUALI satuan yang dipakai kontinu (mis. Kilogram).
@@ -103,27 +138,7 @@ export const purchaseSchema = z
 
     refineItemQuantities(data.items, ctx)
 
-    // Validasi duplikat: produk + satuan yang sama tidak boleh muncul di >1 baris.
-    // Produk sama BOLEH muncul berkali-kali selama satuannya (package_id) berbeda —
-    // contoh: beli 2 Slop + 5 Pack rokok yang sama dalam 1 nota.
-    const seen = new Map<string, number>()
-    data.items.forEach((item, index) => {
-      if (!item.product_id) return
-      // Kunci: product_id + package_id. Jika package_id belum dipilih (0/undefined),
-      // fallback ke product_id saja supaya tetap ada pengecekan minimal.
-      const key = `${item.product_id}-${item.package_id || 0}`
-      const firstIndex = seen.get(key)
-      if (firstIndex !== undefined) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Produk dengan satuan ini sudah dipilih di baris lain',
-          path: ['items', index, 'product_id'],
-        })
-      } else {
-        seen.set(key, index)
-      }
-    })
-
+    refineItemTargets(data.items, ctx)
   })
 
 export type PurchaseItemFormValues = z.infer<typeof purchaseItemSchema>

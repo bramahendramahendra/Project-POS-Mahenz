@@ -20,6 +20,12 @@ const ProductsPage     = lazy(() => import('@/features/products/products/Product
 const CategoryPage     = lazy(() => import('@/features/products/categories/CategoryPage').then(m => ({ default: m.CategoryPage })))
 const UnitPage         = lazy(() => import('@/features/products/units/UnitPage').then(m => ({ default: m.UnitPage })))
 
+// Menu jualan
+const MenuItemsPage      = lazy(() => import('@/features/menu-items/MenuItemsPage').then(m => ({ default: m.MenuItemsPage })))
+const MenuCategoriesPage = lazy(() => import('@/features/menu-items/MenuCategoriesPage').then(m => ({ default: m.MenuCategoriesPage })))
+const ModifierGroupsPage = lazy(() => import('@/features/menu-items/ModifierGroupsPage').then(m => ({ default: m.ModifierGroupsPage })))
+const MenuSizesPage      = lazy(() => import('@/features/menu-items/MenuSizesPage').then(m => ({ default: m.MenuSizesPage })))
+
 // Bahan baku
 const IngredientsPage       = lazy(() => import('@/features/ingredients/IngredientsPage').then(m => ({ default: m.IngredientsPage })))
 const IngredientHistoryPage = lazy(() => import('@/features/ingredients/IngredientHistoryPage').then(m => ({ default: m.IngredientHistoryPage })))
@@ -80,6 +86,12 @@ const PROTECTED_ROUTES: RouteDef[] = [
   { path: ROUTES.PRODUCTS, menuKey: 'produk.produk', element: <ProductsPage /> },
   { path: ROUTES.PRODUCTS_CATEGORIES, menuKey: 'produk.kategori', element: <CategoryPage /> },
   { path: ROUTES.PRODUCTS_UNITS, menuKey: 'produk.unit', element: <UnitPage /> },
+
+  // Menu jualan
+  { path: ROUTES.MENU_ITEMS, menuKey: 'menu_jual.daftar', element: <MenuItemsPage /> },
+  { path: ROUTES.MENU_CATEGORIES, menuKey: 'menu_jual.kategori', element: <MenuCategoriesPage /> },
+  { path: ROUTES.MENU_MODIFIERS, menuKey: 'menu_jual.tambahan', element: <ModifierGroupsPage /> },
+  { path: ROUTES.MENU_SIZES, menuKey: 'menu_jual.ukuran', element: <MenuSizesPage /> },
 
   // Bahan Baku
   { path: ROUTES.INGREDIENTS, menuKey: 'bahan.daftar', element: <IngredientsPage /> },

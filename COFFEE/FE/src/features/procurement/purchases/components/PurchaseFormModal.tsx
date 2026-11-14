@@ -20,9 +20,11 @@ import { RupiahInput } from '@/shared/components/ui/rupiah-input'
 import { api } from '@/services'
 import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 import type { SupplierOption } from '@/features/procurement/suppliers'
-import { useProductSearchQuery, fetchProductDetail } from '@/features/products/products'
+import { fetchProductDetail } from '@/features/products/products'
+import type { IngredientOption } from '@/features/ingredients'
 import { formatResolvedFactor, formatStockNumber } from '@/features/products/products/products.utils'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
+import { PurchaseItemTargetCell } from './PurchaseItemTargetCell'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@/shared/constants'
 import {
@@ -33,8 +35,8 @@ import {
 } from '../purchases.api'
 import { usePaymentStatusesQuery } from '../payment-statuses.api'
 import { usePaymentMethodsQuery } from '../payment-methods.api'
-import type { PaymentStatus, SupplierPurchase } from '../purchases.types'
-import type { ProductPackage, ProductSearchOption } from '@/features/products/products/products.types'
+import type { PaymentStatus, PurchaseItemType, SupplierPurchase } from '../purchases.types'
+import type { ProductPackage } from '@/features/products/products/products.types'
 import { purchaseSchema, type PurchaseFormValues } from '../purchases.schema'
 
 interface PurchaseFormModalProps {
@@ -43,46 +45,12 @@ interface PurchaseFormModalProps {
   initialData?: SupplierPurchase | null
 }
 
-function PurchaseProductCell({
-  value,
-  label,
-  onChange,
-  error,
-}: {
-  value: number
-  label?: string
-  onChange: (id: number, name: string) => void
-  error?: boolean
-}) {
-  const [keyword, setKeyword] = useState('')
-  const { data: results, isFetching } = useProductSearchQuery(keyword)
-
-  return (
-    <AsyncCombobox<ProductSearchOption>
-      className={`h-8 text-xs ${error ? 'border-red-500' : ''}`}
-      value={value > 0 ? value : undefined}
-      selectedLabel={label}
-      onSearch={setKeyword}
-      onValueChange={(_v, item) => {
-        if (item) onChange(item.id, item.name)
-      }}
-      options={results}
-      getOptionValue={(p) => p.id}
-      getOptionLabel={(p) => p.name}
-      isLoading={isFetching}
-      placeholder="Pilih produk"
-      searchPlaceholder="Cari produk..."
-      emptyText="Produk tidak ditemukan."
-    />
-  )
-}
-
 const emptyValues: PurchaseFormValues = {
   purchase_date: todayStr(),
   invoice_number: '',
   no_invoice: false,
   supplier_id: 0,
-  items: [{ product_id: 0, product_name: '', package_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
+  items: [{ item_type: 'product', product_id: 0, product_name: '', ingredient_id: 0, ingredient_name: '', package_id: 0, quantity: 1, price: 0, unit: '', conversion_qty: 1 }],
   discount_amount: 0,
   notes: '',
   payment_status: '',
@@ -99,8 +67,11 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
     no_invoice: data.invoice_number.startsWith('AUTO-'),
     supplier_id: data.supplier_id,
     items: data.items.map((item) => ({
+      item_type: item.item_type ?? 'product',
       product_id: item.product_id,
       product_name: item.product_name,
+      ingredient_id: item.ingredient_id ?? 0,
+      ingredient_name: item.ingredient_name ?? '',
       package_id: item.package_id ?? 0,
       quantity: item.quantity,
       price: item.purchase_price,
@@ -110,7 +81,8 @@ function buildDefaultValues(data: SupplierPurchase): PurchaseFormValues {
       // sudah tersimpan cuma mungkin terjadi kalau satuannya memang kontinu (satuan
       // diskrit tidak akan pernah tersimpan desimal), jadi ini heuristik aman supaya
       // buka-edit PO lama tidak langsung kena validasi "harus bulat" tanpa diubah apa pun.
-      is_continuous: !Number.isInteger(item.quantity),
+      // Bahan baku selalu boleh desimal (keputusan 92).
+      is_continuous: item.item_type === 'ingredient' || !Number.isInteger(item.quantity),
     })),
     discount_amount: data.discount_amount,
     notes: data.notes ?? '',
@@ -221,7 +193,8 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     productDeltas.set(old.product_id, d)
   })
   watchItems.forEach((item) => {
-    if (!item.product_id) return
+    // Hanya barang jadi; stok bahan baku boleh minus (model lentur, keputusan 93).
+    if (item.item_type === 'ingredient' || !item.product_id) return
     const d = productDeltas.get(item.product_id) ?? { name: item.product_name ?? '', oldQty: 0, newQty: 0 }
     d.newQty += (item.quantity || 0) * (item.conversion_qty || 1)
     productDeltas.set(item.product_id, d)
@@ -282,7 +255,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     setItemSelectedPackageId(seededPackageIds)
     setSelectedSupplierLabel(fullPurchaseDetail.supplier_name)
 
-    const snapshot = fullPurchaseDetail.items.map((item) => ({
+    const snapshot = fullPurchaseDetail.items.filter((item) => item.item_type !== 'ingredient').map((item) => ({
       product_id: item.product_id,
       product_name: item.product_name,
       quantity: item.quantity,
@@ -368,6 +341,44 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
     }
   }
 
+  // Ganti jenis baris: kosongkan pilihan dan satuan baris itu.
+  function handleTypeChange(index: number, type: PurchaseItemType) {
+    if (watchItems[index]?.item_type === type) return
+    setItemUnitOptions((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    setItemSelectedPackageId((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    setItemRefPurchasePrice((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+    setValue(`items.${index}.item_type`, type)
+    setValue(`items.${index}.product_id`, 0)
+    setValue(`items.${index}.product_name`, '')
+    setValue(`items.${index}.ingredient_id`, 0)
+    setValue(`items.${index}.ingredient_name`, '')
+    setValue(`items.${index}.package_id`, 0)
+    setValue(`items.${index}.unit`, '')
+    setValue(`items.${index}.conversion_qty`, 1)
+    setValue(`items.${index}.is_continuous`, type === 'ingredient')
+  }
+
+  // Bahan baku: jumlah dalam satuan stok bahan (desimal), konversi 1 (keputusan 92).
+  function handleIngredientChange(index: number, ingredient: IngredientOption) {
+    setValue(`items.${index}.ingredient_id`, ingredient.id, { shouldValidate: true })
+    setValue(`items.${index}.ingredient_name`, ingredient.name)
+    setValue(`items.${index}.unit`, ingredient.unit_abbr)
+    setValue(`items.${index}.conversion_qty`, 1)
+    setValue(`items.${index}.is_continuous`, true)
+  }
+
   function handleUnitChange(index: number, packageId: string) {
     const id = Number(packageId)
     const pkg = itemUnitOptions[index]?.find((p) => p.id === id)
@@ -419,7 +430,18 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
       // tapi validasi (superRefine) sudah memastikan tidak mungkin '' lolos sampai titik
       // ini, jadi aman di-cast ke union yang diharapkan backend.
       payment_status: pendingValues.payment_status as PaymentStatus,
-      items: pendingValues.items.map((item, index) => ({
+      items: pendingValues.items.map((item, index) =>
+        item.item_type === 'ingredient'
+          ? {
+              item_type: 'ingredient' as const,
+              ingredient_id: item.ingredient_id,
+              quantity: item.quantity,
+              purchase_price: item.price,
+              unit: item.unit,
+              conversion_qty: 1,
+            }
+          : {
+        item_type: 'product' as const,
         product_id: item.product_id,
         // Utamakan satuan yang barusan dipilih user (itemSelectedPackageId), tapi kalau
         // belum ada — mis. item lama yang di-hydrate saat Edit, atau item produk 1-satuan
@@ -431,7 +453,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         purchase_price: item.price,
         unit: item.unit,
         conversion_qty: item.conversion_qty ?? 1,
-      })),
+      }),
       // paid_amount: kalau PO ini ASALNYA sudah Lunas, jangan ikut menimpanya jadi
       // total baru (Status Pembayaran & field ini terkunci di tier itu) — pertahankan
       // angka aslinya apa adanya, biar backend yang hitung ulang remaining_amount &
@@ -601,13 +623,13 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>
-              Item Produk <span className="text-red-500">*</span>
+              Item Pembelian <span className="text-red-500">*</span>
             </Label>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ product_id: 0, product_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 })}
+              onClick={() => append({ item_type: 'product', product_id: 0, product_name: '', ingredient_id: 0, ingredient_name: '', quantity: 1, price: 0, unit: '', conversion_qty: 1 })}
               className="h-7 gap-1 text-xs"
             >
               <Plus className="h-3 w-3" />
@@ -623,7 +645,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
             <table className="w-full min-w-[820px] text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium text-gray-500 min-w-[220px] w-[28%]">Produk</th>
+                  <th className="px-3 py-2 text-left font-medium text-gray-500 min-w-[220px] w-[28%]">Barang / Bahan</th>
                   <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[70px] w-[8%]">Qty</th>
                   <th className="px-3 py-2 text-left font-medium text-gray-500 min-w-[110px] w-[9%]">Satuan</th>
                   <th className="px-3 py-2 text-right font-medium text-gray-500 min-w-[120px] w-[14%]">Ref. Harga Beli</th>
@@ -642,10 +664,15 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
                     <Fragment key={field.id}>
                     <tr>
                       <td className="px-3 py-2">
-                        <PurchaseProductCell
-                          value={currentProductId ?? 0}
-                          label={watchItems[index]?.product_name}
-                          onChange={(id, name) => handleProductChange(index, id, name)}
+                        <PurchaseItemTargetCell
+                          itemType={watchItems[index]?.item_type ?? 'product'}
+                          productId={currentProductId ?? 0}
+                          productName={watchItems[index]?.product_name}
+                          ingredientId={watchItems[index]?.ingredient_id}
+                          ingredientName={watchItems[index]?.ingredient_name}
+                          onTypeChange={(t) => handleTypeChange(index, t)}
+                          onProductChange={(id, name) => handleProductChange(index, id, name)}
+                          onIngredientChange={(ing) => handleIngredientChange(index, ing)}
                           error={!!itemErrors?.product_id}
                         />
                         {itemErrors?.product_id && (

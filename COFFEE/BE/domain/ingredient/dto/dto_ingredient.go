@@ -54,7 +54,7 @@ type (
 		Page         int    `json:"page" validate:"required,min=1"`
 		Limit        int    `json:"limit" validate:"required,min=1"`
 		IngredientID *int   `json:"ingredient_id"`
-		Type         string `json:"type" validate:"omitempty,oneof=usage waste cancel"`
+		Type         string `json:"type" validate:"omitempty,oneof=usage waste cancel purchase purchase_void"`
 		StartDate    string `json:"start_date"`
 		EndDate      string `json:"end_date"`
 	}

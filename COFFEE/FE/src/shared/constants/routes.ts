@@ -10,6 +10,12 @@ export const ROUTES = {
   PRODUCTS_CATEGORIES: '/products/categories',
   PRODUCTS_UNITS: '/products/units',
 
+  // Menu jualan
+  MENU_ITEMS: '/menu-items',
+  MENU_CATEGORIES: '/menu-items/categories',
+  MENU_MODIFIERS: '/menu-items/modifiers',
+  MENU_SIZES: '/menu-items/sizes',
+
   // Bahan Baku
   INGREDIENTS: '/ingredients',
   INGREDIENTS_HISTORY: '/ingredients/history',

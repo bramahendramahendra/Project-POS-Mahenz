@@ -8,10 +8,21 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 
 export type PurchaseStatus = 'active' | 'void'
 
+/** Jenis baris pembelian (keputusan 92): product = barang jadi, ingredient = bahan baku. */
+export type PurchaseItemType = 'product' | 'ingredient'
+
+export const PURCHASE_ITEM_TYPE_LABEL: Record<PurchaseItemType, string> = {
+  product: 'Barang jadi',
+  ingredient: 'Bahan baku',
+}
+
 export interface SupplierPurchaseItem {
   id: number
+  item_type: PurchaseItemType
   product_id: number
   product_name: string
+  ingredient_id?: number
+  ingredient_name?: string
   package_id?: number
   quantity: number
   unit: string
@@ -68,7 +79,9 @@ export interface SupplierPurchasePayment {
 }
 
 export interface CreatePurchaseItemPayload {
-  product_id: number
+  item_type: PurchaseItemType
+  product_id?: number
+  ingredient_id?: number
   package_id?: number
   quantity: number
   purchase_price: number
