@@ -1,3 +1,6 @@
+> Catatan lama (struktur sebelum cutover: folder `BE/` dan `FE/`, Toko di root). Setelah cutover pakai bagian
+> "SOP Deploy per Aplikasi" di bawah.
+
 **1. Aktifkan maintenance mode**
 
 ```bash
@@ -127,83 +130,120 @@ sudo maintenance-off.sh
 
 ---
 
-# SOP Deploy per Aplikasi (setelah Portal dipasang)
+# SOP Deploy per Aplikasi (setelah cutover)
 
-Berlaku setelah cutover ([PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md)). Tiap aplikasi di-deploy sendiri;
-deploy Toko tidak menyentuh Portal, begitu juga sebaliknya. Langkah umum: backup database aplikasi itu,
-maintenance **hanya aplikasi itu**, tarik kode, build, restart service / salin FE, verifikasi, maintenance off.
-
-Perintah maintenance per aplikasi (skrip ada di `nginx/maintenance/`, terpasang di `/usr/local/bin`):
+Deploy satu aplikasi saja, yang lain tetap jalan. Copas bagian aplikasi yang di-update.
 
 ```bash
-sudo maintenance-on.sh toko mahenz.duckdns.org     # hanya Toko (alternatif: portal, all)
+sudo maintenance-on.sh toko mahenz.duckdns.org     # ganti: portal | toko | coffee | all
+# ... jalankan bagian aplikasinya di bawah ...
 sudo maintenance-off.sh toko
 ```
 
+BE User dipakai semua aplikasi untuk login: kalau update BE User, pakai `maintenance-on.sh all`.
+
 ## POS Toko
 
-Backend (service `pos-toko-backend`, port 8081):
+### Backend (service `pos-toko-backend`, port 8082, database `pos_retail_db`)
 
 ```bash
-cd /opt/pos-mahenz
 mysqldump -u pos_user -p --no-tablespaces pos_retail_db > ~/pos_retail_db_$(date +%Y%m%d_%H%M%S).sql
-git pull
-cd TOKO/BE
-go mod tidy
-go build -o pos_api .
+cd /opt/pos-mahenz && git pull
+cd TOKO/BE && go build -o pos_api .
+sudo chown -R www-data:www-data /opt/pos-mahenz/TOKO/BE
 sudo systemctl restart pos-toko-backend
-sudo systemctl status pos-toko-backend      # harus "active (running)"
+sudo systemctl status pos-toko-backend --no-pager     # harus "active (running)"
+curl -s http://127.0.0.1:8082/api/health
 ```
 
-Frontend (disajikan di `/toko/`, folder `/var/www/pos-web/apps/toko`):
+### Frontend (alamat `/toko/`, folder `/var/www/pos-web/apps/toko`)
 
 ```bash
 cd /opt/pos-mahenz/TOKO/FE
-npm ci
-npm run type-check
-npm run lint
-npm run build                               # memakai .env.production (base /toko/)
+npm ci && npm run type-check && npm run lint && npm run build   # memakai .env.production
 sudo rm -rf /var/www/pos-web/apps/toko/*
 sudo cp -r dist/* /var/www/pos-web/apps/toko/
 sudo chown -R www-data:www-data /var/www/pos-web/apps/toko
 ```
 
-## Portal
+## POS Coffee
 
-Backend (service `pos-portal-backend`, port 8080; database `pos_portal_db`):
+### Backend (service `pos-coffee-backend`, port 8083, database `pos_coffee_db`)
 
 ```bash
-cd /opt/pos-mahenz
-mysqldump -u portal_user -p --no-tablespaces pos_portal_db > ~/pos_portal_db_$(date +%Y%m%d_%H%M%S).sql
-git pull
-cd PORTAL/BE
-go mod tidy
-go build -o portal_api .
-sudo systemctl restart pos-portal-backend
-sudo systemctl status pos-portal-backend
+mysqldump -u pos_user -p --no-tablespaces pos_coffee_db > ~/pos_coffee_db_$(date +%Y%m%d_%H%M%S).sql
+cd /opt/pos-mahenz && git pull
+cd COFFEE/BE && go build -o coffee_api .
+sudo chown -R www-data:www-data /opt/pos-mahenz/COFFEE/BE
+sudo systemctl restart pos-coffee-backend
+sudo systemctl status pos-coffee-backend --no-pager     # harus "active (running)"
+curl -s http://127.0.0.1:8083/api/health
 ```
 
-Frontend (root domain, folder `/var/www/pos-web/portal`):
+### Frontend (alamat `/coffee/`, folder `/var/www/pos-web/apps/coffee`)
+
+```bash
+cd /opt/pos-mahenz/COFFEE/FE
+npm ci && npm run type-check && npm run lint && npm run build   # memakai .env.production
+sudo rm -rf /var/www/pos-web/apps/coffee/*
+sudo cp -r dist/* /var/www/pos-web/apps/coffee/
+sudo chown -R www-data:www-data /var/www/pos-web/apps/coffee
+```
+
+## Portal
+
+### Backend (service `pos-portal-backend`, port 8081, database `pos_portal_db`)
+
+```bash
+mysqldump -u pos_user -p --no-tablespaces pos_portal_db > ~/pos_portal_db_$(date +%Y%m%d_%H%M%S).sql
+cd /opt/pos-mahenz && git pull
+cd PORTAL/BE && go build -o portal_api .
+sudo chown -R www-data:www-data /opt/pos-mahenz/PORTAL/BE
+sudo systemctl restart pos-portal-backend
+sudo systemctl status pos-portal-backend --no-pager     # harus "active (running)"
+curl -s http://127.0.0.1:8081/api/health
+```
+
+### Frontend (alamat `/`, folder `/var/www/pos-web/portal`)
 
 ```bash
 cd /opt/pos-mahenz/PORTAL/FE
-npm ci
-npm run type-check
-npm run lint
-npm run build
+npm ci && npm run type-check && npm run lint && npm run build   # memakai .env.production
 sudo rm -rf /var/www/pos-web/portal/*
 sudo cp -r dist/* /var/www/pos-web/portal/
 sudo chown -R www-data:www-data /var/www/pos-web/portal
 ```
 
-## Kunci SSO aplikasi (diisi lewat SQL)
+## BE User
 
-Kunci dibuat di Portal (Kelola Aplikasi -> Buat kunci baru, tampil sekali), lalu dipasang di database aplikasi tujuan:
+### Backend (service `pos-auth-backend`, port 8080, database `pos_auth_db`)
 
-```sql
-INSERT INTO portal_credentials (id, app_id, app_key) VALUES (1, 'toko', '<KUNCI>')
-ON DUPLICATE KEY UPDATE app_id = VALUES(app_id), app_key = VALUES(app_key);
+```bash
+mysqldump -u pos_user -p --no-tablespaces pos_auth_db > ~/pos_auth_db_$(date +%Y%m%d_%H%M%S).sql
+cd /opt/pos-mahenz && git pull
+cd AUTH/BE && go build -o auth_api .
+sudo chown -R www-data:www-data /opt/pos-mahenz/AUTH/BE
+sudo systemctl restart pos-auth-backend
+sudo systemctl status pos-auth-backend --no-pager     # harus "active (running)"
+curl -s http://127.0.0.1:8080/api/health
 ```
 
-Setelah kunci diganti di Portal, kunci lama langsung tidak berlaku: pasang kunci baru di aplikasi tujuan segera,
-kalau tidak login lewat Portal ke aplikasi itu gagal. File backup SQL aplikasi memuat kunci ini, jadi perlakukan sebagai rahasia.
+## Nginx (bila `nginx/pos-web.conf` berubah)
+
+```bash
+sudo cp /etc/nginx/sites-available/pos-web ~/pos-web.nginx.$(date +%Y%m%d)
+sudo cp /opt/pos-mahenz/nginx/pos-web.conf /etc/nginx/sites-available/pos-web
+sudo nginx -t                      # bila gagal: JANGAN reload, kembalikan file cadangan
+sudo systemctl reload nginx
+sudo certbot --nginx               # memasang kembali blok HTTPS
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+## Ganti kunci aplikasi (kalau perlu)
+
+```bash
+cd /opt/pos-mahenz/AUTH/BE
+go run ./cmd/set_app_key --app toko --confirm      # portal | toko | coffee
+sudo mysql -u root -p pos_retail_db -e "INSERT INTO auth_credentials (id, app_id, app_key) VALUES (1, 'toko', 'TEMPEL_KUNCI') ON DUPLICATE KEY UPDATE app_key=VALUES(app_key);"
+# database: portal -> pos_portal_db, toko -> pos_retail_db, coffee -> pos_coffee_db
+```
