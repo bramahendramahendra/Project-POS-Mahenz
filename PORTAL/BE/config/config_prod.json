@@ -1,5 +1,5 @@
 {
-  "SecretKey": "",
+  "SecretKey": "KZuF2AFw5czrtpv3QQrqRIllOFUXrOp9Ql2g02mrLbw4nLcjnqu3MS7exRIFycuH",
   "AuthUrl": "http://127.0.0.1:8080/api",
   "TokenExpire": 28800,
   "RefreshTokenExpire": 604800,

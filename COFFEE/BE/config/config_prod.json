@@ -1,5 +1,5 @@
 {
-  "SecretKey": "",
+  "SecretKey": "KGn8yWzuCXetz99h382h1cE+ikKDdl8xkngOAbwURHIrP7vrAyOxuIJV0b0yxaLR",
   "TokenExpire": 28800,
   "RefreshTokenExpire": 604800,
   "FormatTime": "2006-01-02 15:04:05",
