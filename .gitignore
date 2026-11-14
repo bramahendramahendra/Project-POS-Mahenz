@@ -50,8 +50,8 @@
 testing
 backups
 mockup
-# docs
-# nginx
-# .claude
-# .github
-# mobile
+docs
+nginx
+.claude
+.github
+mobile

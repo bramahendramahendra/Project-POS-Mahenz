@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { api, authApi } from '@/services'
 import { queryKeys } from '@/shared/constants'
+import { ApiError } from '@/shared/types'
 import { appUrl, portalUrl } from '@/shared/utils/appUrl'
 import { useMenuStore } from '@/features/menu/menu.store'
 import { getDefaultRoute } from '@/features/menu/getDefaultRoute'
@@ -86,6 +87,11 @@ export function useLoginOptionsQuery() {
   })
 }
 
+// 401 saat logout = sesi di BE sudah berakhir; hasil akhirnya sama dengan logout berhasil.
+function isSessionGone(error: unknown): boolean {
+  return error instanceof ApiError && error.statusCode === 401
+}
+
 export function useLogoutMutation() {
   const clearSession = useAuthStore((s) => s.clearSession)
   const clearMenus = useMenuStore((s) => s.clearMenus)
@@ -102,8 +108,9 @@ export function useLogoutMutation() {
   return useMutation({
     mutationFn: () => api.post<void>('/auth/logout'),
     // Best-effort retry dulu sebelum menyerah — supaya session di BE (DeleteSessionByToken)
-    // tetap kemungkinan besar terhapus walau ada error jaringan sesaat.
-    retry: 2,
+    // tetap kemungkinan besar terhapus walau ada error jaringan sesaat. 401 tidak diulang:
+    // sesi di BE sudah tidak ada (mis. tergantikan login di perangkat lain), jadi sudah keluar.
+    retry: (failureCount, error) => failureCount < 2 && !isSessionGone(error),
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
 
     onSuccess: () => {
@@ -111,12 +118,16 @@ export function useLogoutMutation() {
       toast.success('Logout berhasil')
     },
 
-    onError: () => {
+    onError: (error: Error) => {
       // Setelah retry di atas tetap gagal, sesi lokal tetap dibersihkan agar user tidak
       // terjebak di UI (mis. benar-benar offline). Session di BE mungkin belum terhapus
       // sampai token tersebut kedaluwarsa secara alami.
       finishLogout()
-      toast.error('Logout dari server gagal, sesi lokal tetap dibersihkan')
+      if (isSessionGone(error)) {
+        toast.success('Logout berhasil')
+      } else {
+        toast.error('Logout dari server gagal, sesi lokal tetap dibersihkan')
+      }
     },
   })
 }

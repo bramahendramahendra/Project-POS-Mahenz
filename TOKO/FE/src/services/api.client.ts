@@ -75,7 +75,11 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Logout tidak ikut alur refresh: 401 di sini berarti sesi sudah berakhir (mis. akun yang sama login
+    // di perangkat lain). Tujuan setelah logout (Portal) diputuskan useLogoutMutation, bukan dialihkan ke /login.
+    const isLogoutRequest = originalRequest.url === '/auth/logout'
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isLogoutRequest) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject })
