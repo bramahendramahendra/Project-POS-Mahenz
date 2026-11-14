@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sedang Dalam Perbaikan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1: #EEF1FE;
+    --bg-2: #E2E7FD;
+    --navy: #2B2250;
+    --navy-soft: #574B85;
+    --purple: #8C7AE6;
+    --purple-light: #B4A9F2;
+    --coral: #FF6B6B;
+    --yellow: #FFD166;
+    --teal: #06D6A0;
+    --white: #FFFFFF;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    height:100%;
+    background: var(--bg-1);
+    color: var(--navy);
+    font-family:'Nunito', sans-serif;
+    overflow-x:hidden;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+
+  .bg{
+    position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(ellipse 55% 45% at 22% 20%, rgba(255,209,102,0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 82% 78%, rgba(6,214,160,0.22) 0%, transparent 60%),
+      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  }
+
+  .blob{
+    position:fixed; z-index:0; border-radius:50%;
+    filter: blur(2px);
+    opacity:0.5;
+  }
+
+  .stage{
+    position:relative; z-index:3;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 60px 24px 40px;
+    text-align:center;
+  }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'Baloo 2', sans-serif;
+    font-size:13px; font-weight:700;
+    letter-spacing:0.02em;
+    color: var(--navy);
+    background: var(--white);
+    padding:9px 18px;
+    border-radius:999px;
+    margin-bottom:30px;
+    box-shadow: 0 4px 0 rgba(43,34,80,0.12), 0 6px 16px rgba(43,34,80,0.08);
+  }
+
+  /* ---------- Robot scene ---------- */
+  .scene{
+    width:300px;
+    max-width:72vw;
+    margin-bottom:20px;
+  }
+  .scene svg{ width:100%; height:auto; overflow:visible; display:block; }
+
+  .float-slow{ animation: bob 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  .float-mid{ animation: bob 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  .float-fast{ animation: bob 2s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  @keyframes bob{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-10px); }
+  }
+
+  .shadow-el{ animation: shrink 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  @keyframes shrink{
+    0%, 100%{ transform: scale(1); opacity:0.22; }
+    50%{ transform: scale(0.82); opacity:0.12; }
+  }
+
+  .eye{ animation: blink 4.2s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  @keyframes blink{
+    0%, 92%, 100%{ transform: scaleY(1); }
+    95%{ transform: scaleY(0.12); }
+  }
+
+  .antenna-ball{ animation: sway 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+  @keyframes sway{
+    0%, 100%{ transform: rotate(-6deg); }
+    50%{ transform: rotate(6deg); }
+  }
+
+  .wrench-arm{ animation: tighten 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 20% 30%; }
+  @keyframes tighten{
+    0%, 100%{ transform: rotate(-14deg); }
+    50%{ transform: rotate(10deg); }
+  }
+
+  .bolt-spin{ animation: spin 6s linear infinite; transform-box: fill-box; transform-origin:center; }
+  @keyframes spin{ from{ transform: rotate(0deg);} to{ transform: rotate(360deg);} }
+
+  .sparkle{ animation: twinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin:center; }
+  @keyframes twinkle{
+    0%, 100%{ opacity:0.3; transform: scale(0.7); }
+    50%{ opacity:1; transform: scale(1.1); }
+  }
+
+  h1{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size: clamp(28px, 5.4vw, 52px);
+    line-height:1.12;
+    margin: 8px 0 16px;
+    color: var(--navy);
+  }
+  h1 .accent{ color: var(--coral); }
+
+  .sub{
+    max-width:460px;
+    color: var(--navy-soft);
+    font-size: clamp(15px, 1.6vw, 17px);
+    font-weight:600;
+    line-height:1.6;
+    margin: 0;
+  }
+
+  footer{
+    position:relative; z-index:3;
+    display:flex; justify-content:center; align-items:center;
+    padding:20px 28px;
+    font-family:'Baloo 2', sans-serif;
+    font-size:12px; font-weight:600;
+    color: var(--navy-soft);
+    opacity:0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .float-slow, .float-mid, .float-fast, .shadow-el, .eye, .antenna-ball, .wrench-arm, .bolt-spin, .sparkle{
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+
+<main class="stage">
+  <div class="eyebrow">🔧 Lagi Ada yang Dibetulin</div>
+
+  <div class="scene">
+    <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- shadow -->
+      <ellipse class="shadow-el" cx="150" cy="255" rx="55" ry="10" fill="#2B2250"/>
+
+      <!-- floating decorations -->
+      <g class="float-fast">
+        <g class="bolt-spin" style="transform-origin:245px 90px;">
+          <circle cx="245" cy="90" r="13" fill="#FFD166"/>
+          <circle cx="245" cy="90" r="4.5" fill="#EEF1FE"/>
+          <rect x="241" y="73" width="8" height="6" rx="1.5" fill="#FFD166"/>
+          <rect x="241" y="101" width="8" height="6" rx="1.5" fill="#FFD166"/>
+          <rect x="228" y="86" width="6" height="8" rx="1.5" fill="#FFD166"/>
+          <rect x="256" y="86" width="6" height="8" rx="1.5" fill="#FFD166"/>
+        </g>
+      </g>
+
+      <g class="float-mid">
+        <path class="sparkle" style="animation-delay:0.3s;" d="M55 70 L59 82 L71 86 L59 90 L55 102 L51 90 L39 86 L51 82 Z" fill="#06D6A0"/>
+      </g>
+      <g class="float-slow">
+        <path class="sparkle" style="animation-delay:0.9s;" d="M240 190 L243 199 L252 202 L243 205 L240 214 L237 205 L228 202 L237 199 Z" fill="#FF6B6B"/>
+      </g>
+      <g class="float-mid">
+        <circle class="sparkle" style="animation-delay:0.6s;" cx="48" cy="180" r="5" fill="#8C7AE6"/>
+      </g>
+
+      <!-- robot body group (floats) -->
+      <g class="float-slow">
+
+        <!-- antenna -->
+        <line x1="150" y1="65" x2="150" y2="42" stroke="#2B2250" stroke-width="4" stroke-linecap="round"/>
+        <circle class="antenna-ball" cx="150" cy="38" r="8" fill="#FF6B6B"/>
+
+        <!-- head -->
+        <circle cx="150" cy="105" r="52" fill="#8C7AE6" stroke="#2B2250" stroke-width="4"/>
+        <!-- face panel -->
+        <rect x="112" y="88" width="76" height="46" rx="20" fill="#EEF1FE" stroke="#2B2250" stroke-width="3.5"/>
+        <!-- eyes -->
+        <circle class="eye" cx="134" cy="111" r="7" fill="#2B2250"/>
+        <circle class="eye" cx="166" cy="111" r="7" fill="#2B2250"/>
+        <!-- cheeks -->
+        <circle cx="120" cy="122" r="6" fill="#FF6B6B" opacity="0.35"/>
+        <circle cx="180" cy="122" r="6" fill="#FF6B6B" opacity="0.35"/>
+
+        <!-- body -->
+        <rect x="98" y="150" width="104" height="88" rx="28" fill="#B4A9F2" stroke="#2B2250" stroke-width="4"/>
+        <rect x="122" y="172" width="56" height="34" rx="10" fill="#EEF1FE" stroke="#2B2250" stroke-width="3"/>
+        <circle cx="138" cy="189" r="5" fill="#06D6A0"/>
+        <circle cx="162" cy="189" r="5" fill="#FFD166"/>
+
+        <!-- left arm holding wrench -->
+        <g class="wrench-arm">
+          <rect x="60" y="168" width="42" height="16" rx="8" fill="#8C7AE6" stroke="#2B2250" stroke-width="3.5"/>
+          <circle cx="58" cy="176" r="12" fill="#8C7AE6" stroke="#2B2250" stroke-width="3.5"/>
+          <!-- wrench -->
+          <g transform="translate(28,160) rotate(-20)">
+            <rect x="0" y="8" width="34" height="8" rx="4" fill="#2B2250"/>
+            <path d="M-6 12 a10 10 0 1 0 0.1 0 M-2 12 a6 6 0 1 1 0 0" fill="#2B2250"/>
+          </g>
+        </g>
+
+        <!-- right arm -->
+        <g>
+          <rect x="198" y="168" width="42" height="16" rx="8" fill="#8C7AE6" stroke="#2B2250" stroke-width="3.5"/>
+          <circle cx="242" cy="176" r="12" fill="#8C7AE6" stroke="#2B2250" stroke-width="3.5"/>
+        </g>
+
+        <!-- hover glow under body -->
+        <ellipse cx="150" cy="240" rx="40" ry="7" fill="#FFD166" opacity="0.35"/>
+      </g>
+
+    </svg>
+  </div>
+
+  <h1>BENTAR YA,<br><span class="accent">LAGI DIBETULIN!</span></h1>
+  <p class="sub">Robot kecil kami lagi sibuk kencangin baut di balik layar. Sabar sebentar, sebentar lagi juga kelar kok.</p>
+</main>
+
+<footer>
+  Tim Teknik · Balik lagi ya sebentar lagi 👋
+</footer>
+
+</body>
+</html>
