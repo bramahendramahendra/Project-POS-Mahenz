@@ -246,3 +246,8 @@ func (s *businessSummaryService) GetPaymentMethods(filter dto.DateRangeFilter) (
 	}
 	return items, nil
 }
+
+// GetOrderTypes: penjualan per jenis pesanan (Coffee, keputusan 117).
+func (s *businessSummaryService) GetOrderTypes(filter dto.DateRangeFilter) ([]dto.OrderTypeItem, error) {
+	return s.repo.GetOrderTypes(filter)
+}

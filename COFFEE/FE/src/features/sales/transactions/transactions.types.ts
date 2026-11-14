@@ -45,7 +45,7 @@ export interface Transaction {
   payment_amount: number
   change_amount: number
   is_credit: boolean
-  status: 'completed' | 'void'
+  status: TransactionStatus
   device_source: string
   order_type: OrderType | ''
   table_id: number | null
@@ -53,6 +53,29 @@ export interface Transaction {
   queue_number: number
   queue_label: string
   order_name: string
+  // Open bill (tahap 4.8)
+  created_by: number | null
+  created_by_name: string
+  merged_into_id: number | null
+  cancel_reason: string
+  // Tahap 4.9: pelaku penyelesaian pembayaran dan tanda pesanan tertunda
+  settled_by_name: string
+  is_overdue: boolean
+  cancellations?: ItemCancellation[]
+}
+
+/** completed = lunas; open = pesanan terbuka; cancelled = pesanan terbuka dibatalkan; merged = digabung ke pesanan lain. */
+export type TransactionStatus = 'completed' | 'void' | 'open' | 'cancelled' | 'merged'
+
+export interface ItemCancellation {
+  item_name: string
+  variant_name: string
+  quantity: number
+  price: number
+  stock_action: '' | 'return' | 'waste'
+  reason: string
+  user_name: string
+  created_at: string
 }
 
 export interface TransactionListFilter {
@@ -60,7 +83,7 @@ export interface TransactionListFilter {
   date_from?: string
   date_to?: string
   payment_method?: PaymentMethod | ''
-  status?: 'completed' | 'void' | ''
+  status?: TransactionStatus | ''
   order_type?: OrderType | ''
   page: number
   limit: number

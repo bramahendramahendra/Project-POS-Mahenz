@@ -25,6 +25,10 @@ type (
 		ExportStockReport() (*bytes.Buffer, error)
 
 		GetCashierReport(params dto.FilterParams) ([]dto.CashierItem, error)
+		// Laporan Coffee (tahap 4.10).
+		GetSalesBreakdown(req *dto.CoffeeReportRequest) (*dto.SalesBreakdownResponse, error)
+		GetIngredientReport(req *dto.CoffeeReportRequest) (*dto.IngredientReportResponse, error)
+		GetWasteReport(req *dto.CoffeeReportRequest) (*dto.WasteReportResponse, error)
 		GetCashierList(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error)
 		ExportCashierReport(params dto.FilterParams) (*bytes.Buffer, error)
 	}

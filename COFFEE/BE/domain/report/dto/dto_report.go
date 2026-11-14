@@ -72,6 +72,8 @@ type ProfitLossItem struct {
 	TotalCOGS     float64 `json:"total_cogs"`
 	TotalRevenue  float64 `json:"total_revenue"`
 	GrossProfit   float64 `json:"gross_profit"`
+	// IsRecipe: menu racikan; HPP-nya masuk "biaya bahan" periode, bukan per menu (keputusan 114).
+	IsRecipe bool `json:"is_recipe"`
 }
 
 type ExpenseSummaryItem struct {
@@ -80,13 +82,16 @@ type ExpenseSummaryItem struct {
 }
 
 type ProfitLossResponse struct {
-	TotalRevenue  float64              `json:"total_revenue"`
-	TotalCOGS     float64              `json:"total_cogs"`
-	GrossProfit   float64              `json:"gross_profit"`
-	TotalExpenses float64              `json:"total_expenses"`
-	NetProfit     float64              `json:"net_profit"`
-	Items         []ProfitLossItem     `json:"items"`
-	Expenses      []ExpenseSummaryItem `json:"expenses"`
+	TotalRevenue float64 `json:"total_revenue"`
+	TotalCOGS    float64 `json:"total_cogs"`
+	// Coffee: TotalCOGS = HPP barang jadi + biaya bahan (terpakai + terbuang x harga beli rata-rata).
+	ProductCOGS    float64              `json:"product_cogs"`
+	IngredientCost float64              `json:"ingredient_cost"`
+	GrossProfit    float64              `json:"gross_profit"`
+	TotalExpenses  float64              `json:"total_expenses"`
+	NetProfit      float64              `json:"net_profit"`
+	Items          []ProfitLossItem     `json:"items"`
+	Expenses       []ExpenseSummaryItem `json:"expenses"`
 
 	// Pembanding periode sebelumnya (durasi sama, tepat sebelum periode ini).
 	// PrevAvailable=false kalau periode tak bisa dihitung (mis. filter tanpa tanggal).

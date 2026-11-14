@@ -41,7 +41,8 @@ func (s *transactionService) GetByID(id int, requestingUserID int, role string) 
 	if t == nil {
 		return nil, &errors.NotFoundError{Message: "Transaksi tidak ditemukan"}
 	}
-	if role != "owner" && role != "admin" && t.UserID != requestingUserID {
+	// Pesanan terbuka boleh dibuka semua kasir (keputusan 106).
+	if role != "owner" && role != "admin" && t.UserID != requestingUserID && t.Status != repo.StatusOpen {
 		return nil, &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke transaksi ini"}
 	}
 	return t, nil
@@ -59,6 +60,10 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		}
 	}
 
+	// Kasir dengan kas tertunda tidak bisa berjualan baru (keputusan 112).
+	if err := s.ensureDrawerNotPending(userID); err != nil {
+		return nil, err
+	}
 	if err := s.resolveOrder(req); err != nil {
 		return nil, err
 	}
@@ -71,10 +76,21 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 	}
 	req.TotalAmount = math.Max(0, req.Subtotal-req.Discount+req.Tax)
 
+	if req.OpenBill {
+		// Pesanan terbuka: hanya item; diskon nota, pajak, dan pembayaran diisi saat bayar (keputusan 104).
+		if req.Discount > 0 || req.Tax > 0 || req.IsCredit || req.CustomerID != nil || req.PaymentAmount > 0 {
+			return nil, &errors.BadRequestError{Message: "Pesanan terbuka tidak memakai diskon nota, pajak, pelanggan, atau pembayaran. Isi saat bayar"}
+		}
+		req.PaymentMethod = "cash" // kolom wajib; tidak dihitung kas karena status open
+		req.TotalAmount = req.Subtotal
+	} else if req.PaymentMethod == "" {
+		return nil, &errors.BadRequestError{Message: "Metode pembayaran wajib dipilih"}
+	}
+
 	if req.IsCredit && req.CustomerID == nil {
 		return nil, &errors.BadRequestError{Message: "Pilih pelanggan untuk transaksi utang"}
 	}
-	if !req.IsCredit && req.TotalAmount > 0 && req.PaymentAmount < req.TotalAmount {
+	if !req.OpenBill && !req.IsCredit && req.TotalAmount > 0 && req.PaymentAmount < req.TotalAmount {
 		return nil, &errors.BadRequestError{Message: "Jumlah pembayaran kurang dari total transaksi"}
 	}
 	if req.TotalAmount > 0 && req.PaymentAmount > req.TotalAmount {
@@ -88,6 +104,13 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		txnRepo := s.repo.WithTx(tx)
 		cashDrawerRepo := s.cashDrawerRepo.WithTx(tx)
 
+		// Satu pesanan terbuka per meja (keputusan 103): baris meja dikunci agar dua kasir tidak bersamaan.
+		if req.OpenBill && req.TableID != nil {
+			if err := ensureTableFree(txnRepo, *req.TableID, 0); err != nil {
+				return err
+			}
+		}
+
 		result, err := txnRepo.Create(req, userID)
 		if err != nil {
 			return err
@@ -95,7 +118,7 @@ func (s *transactionService) Create(req *dto.CreateTransactionRequest, userID in
 		resp = result
 
 		// Kas harian bertambah hanya untuk pembayaran tunai (seperti Toko).
-		if req.PaymentMethod == "cash" && req.TotalAmount > 0 {
+		if !req.OpenBill && req.PaymentMethod == "cash" && req.TotalAmount > 0 {
 			drawer, err := cashDrawerRepo.GetOpenCashDrawer(userID)
 			if err != nil {
 				return err
@@ -361,6 +384,9 @@ func (s *transactionService) Void(req *dto.VoidRequest, userID int) error {
 	if txErr != nil {
 		if stderrors.Is(txErr, repo.ErrAlreadyVoid) {
 			return &errors.BadRequestError{Message: "Transaksi sudah di-void"}
+		}
+		if stderrors.Is(txErr, repo.ErrNotCompleted) {
+			return &errors.BadRequestError{Message: "Hanya transaksi lunas yang bisa di-void. Pesanan terbuka dibatalkan lewat Batal"}
 		}
 		var badReq *errors.BadRequestError
 		if stderrors.As(txErr, &badReq) {

@@ -29,5 +29,8 @@ type (
 	OptionResponse struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
+		// Meja terisi: id dan nomor antrean pesanan terbuka di meja ini (keputusan 103).
+		OpenBillID     *int   `json:"open_bill_id"`
+		OpenQueueLabel string `json:"open_queue_label"`
 	}
 )

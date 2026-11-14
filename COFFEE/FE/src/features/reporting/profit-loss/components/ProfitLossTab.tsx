@@ -178,7 +178,8 @@ function DetailCard({ report }: { report: ProfitLossReport }) {
     <div className="rounded-xl border bg-white p-4">
       <p className="mb-1 text-sm font-semibold text-gray-700">Rincian</p>
       <DetailRow label="Uang masuk penjualan" hint="setelah diskon, tanpa pajak" value={report.total_revenue} />
-      <DetailRow label="− Modal barang terjual (HPP)" hint="harga beli barang yang laku" value={report.total_cogs} tone="neg" />
+      <DetailRow label="− Modal barang jadi (HPP)" hint="harga beli barang jadi yang laku" value={report.product_cogs} tone="neg" />
+      <DetailRow label="− Biaya bahan baku" hint="bahan terpakai + terbuang x harga beli rata-rata" value={report.ingredient_cost} tone="neg" />
       <DetailRow label="− Biaya operasional" hint="listrik, gaji, sewa, dll" value={report.total_expenses} tone="neg" />
       <DetailRow label="= Untung Kotor" hint="pendapatan − modal barang" value={report.gross_profit} tone={report.gross_profit >= 0 ? 'pos' : 'neg'} bold />
       <div className={`mt-2 flex items-center justify-between rounded-lg border px-3 py-2.5 ${report.net_profit >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
@@ -191,15 +192,16 @@ function DetailCard({ report }: { report: ProfitLossReport }) {
 
 // ── Produk: paling untung + jual rugi ─────────────────────────
 function ProductInsight({ items }: { items: ProfitLossItem[] }) {
-  const sorted = [...items].sort((a, b) => b.gross_profit - a.gross_profit)
+  // Hanya barang jadi: menu racikan tidak punya modal per menu (biaya bahannya dihitung per periode).
+  const sorted = items.filter((i) => !i.is_recipe).sort((a, b) => b.gross_profit - a.gross_profit)
   const topProfit = sorted.filter((i) => i.gross_profit > 0).slice(0, 5)
   const lossProducts = sorted.filter((i) => i.gross_profit < 0).sort((a, b) => a.gross_profit - b.gross_profit)
   const maxProfit = topProfit.length > 0 ? topProfit[0].gross_profit : 1
 
   return (
     <div className="rounded-xl border bg-white p-4">
-      <p className="mb-3 text-sm font-semibold text-gray-700">Produk paling menguntungkan</p>
-      {topProfit.length === 0 && <p className="text-xs text-gray-400">Belum ada produk yang menghasilkan untung di periode ini.</p>}
+      <p className="mb-3 text-sm font-semibold text-gray-700">Barang jadi paling menguntungkan</p>
+      {topProfit.length === 0 && <p className="text-xs text-gray-400">Belum ada barang jadi yang menghasilkan untung di periode ini.</p>}
       <div className="space-y-2">
         {topProfit.map((it, idx) => (
           <div key={it.product_id} className="flex items-center gap-3">
@@ -216,7 +218,7 @@ function ProductInsight({ items }: { items: ProfitLossItem[] }) {
       {lossProducts.length > 0 && (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="flex items-center gap-1.5 text-sm font-bold text-red-700">
-            <AlertTriangle size={14} /> Produk yang dijual RUGI ({lossProducts.length})
+            <AlertTriangle size={14} /> Barang jadi yang dijual RUGI ({lossProducts.length})
           </p>
           <div className="mt-2 space-y-1.5">
             {lossProducts.slice(0, 5).map((it) => (
@@ -229,7 +231,7 @@ function ProductInsight({ items }: { items: ProfitLossItem[] }) {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[11px] text-red-500">Pertimbangkan naikkan harga jual, atau cek harga beli produk ini di menu Rekonsiliasi Modal.</p>
+          <p className="mt-2 text-[11px] text-red-500">Pertimbangkan naikkan harga jual di Daftar Menu, atau cek harga beli barang jadi ini.</p>
         </div>
       )}
     </div>
@@ -277,8 +279,9 @@ export function ProfitLossTab() {
             <ProductInsight items={report.items ?? []} />
           </div>
           <p className="text-[11px] leading-relaxed text-gray-400">
-            Catatan: &quot;Modal barang terjual (HPP)&quot; adalah harga beli barang yang benar-benar laku,
-            bukan total belanja. Angka merah berarti rugi.
+            Catatan: &quot;Modal barang jadi&quot; adalah harga beli barang jadi yang benar-benar laku. &quot;Biaya bahan baku&quot;
+            = bahan terpakai dan terbuang di periode ini dikali harga beli rata-rata bahan, jadi akurasinya bergantung pada
+            pencatatan pemakaian bahan. Angka merah berarti rugi.
           </p>
         </div>
       )}

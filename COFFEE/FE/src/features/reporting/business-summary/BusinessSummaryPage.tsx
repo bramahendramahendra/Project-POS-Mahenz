@@ -8,6 +8,7 @@ import { DashboardPeriodSelector } from './components/DashboardPeriodSelector'
 import { SalesChart } from './components/SalesChart'
 import { SummaryCards } from './components/SummaryCards'
 import { TopProductsTable } from './components/TopProductsTable'
+import { MenuMixCard } from './components/MenuMixCard'
 
 export function BusinessSummaryPage() {
   const [period, setPeriod] = useState<DashboardPeriod>('today')
@@ -37,6 +38,8 @@ export function BusinessSummaryPage() {
           <TopProductsTable data={topProducts} isLoading={topLoading} />
         </div>
       </div>
+
+      <MenuMixCard period={period} />
     </div>
   )
 }

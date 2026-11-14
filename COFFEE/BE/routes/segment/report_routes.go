@@ -28,6 +28,12 @@ func ReportRoutes(r *gin.RouterGroup) {
 	permCashier := func(action string) gin.HandlerFunc {
 		return middleware.PermissionMiddleware(svc, "pelaporan.kinerja_kasir", action)
 	}
+	permIngredient := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.bahan_baku", action)
+	}
+	permWaste := func(action string) gin.HandlerFunc {
+		return middleware.PermissionMiddleware(svc, "pelaporan.terbuang", action)
+	}
 
 	g := r.Group("/reports")
 	{
@@ -36,6 +42,10 @@ func ReportRoutes(r *gin.RouterGroup) {
 		g.GET("/sales/export", permSales("can_view"), reportHandler.ExportSalesReport)
 		g.POST("/sales/list", permSales("can_view"), reportHandler.GetSalesList)
 		g.POST("/sales/summary", permSales("can_view"), reportHandler.GetSalesSummaryData)
+		// Coffee (tahap 4.10): rincian per menu/kategori/metode bayar/jenis pesanan, bahan baku, barang terbuang.
+		g.POST("/sales/breakdown", permSales("can_view"), reportHandler.GetSalesBreakdown)
+		g.POST("/ingredients", permIngredient("can_view"), reportHandler.GetIngredientReport)
+		g.POST("/waste", permWaste("can_view"), reportHandler.GetWasteReport)
 
 		g.GET("/profit-loss", permPL("can_view"), reportHandler.GetProfitLoss)
 		g.POST("/profit-loss/data", permPL("can_view"), reportHandler.GetProfitLossData)

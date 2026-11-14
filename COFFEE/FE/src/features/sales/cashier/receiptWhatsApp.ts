@@ -32,7 +32,8 @@ export function buildReceiptText(data: ReceiptData): string {
   lines.push(`Tgl   : ${tanggal}`)
   if (data.customerName) lines.push(`Plg   : ${data.customerName}`)
   for (const [label, value] of orderInfoRows(data.checkoutData)) lines.push(`${label.padEnd(6)}: ${value}`)
-  lines.push(`Bayar : ${PAYMENT_LABELS[data.paymentMethod]}`)
+  if (data.unpaid) lines.push('*TAGIHAN - BELUM DIBAYAR*')
+  else lines.push(`Bayar : ${PAYMENT_LABELS[data.paymentMethod]}`)
   lines.push('--------------------------------')
 
   for (const item of data.cart) {
@@ -50,8 +51,10 @@ export function buildReceiptText(data: ReceiptData): string {
     lines.push(`Pajak    : +${formatRupiah(data.summary.taxAmount)}`)
   }
   lines.push(`*TOTAL*  : *${formatRupiah(data.summary.grandTotal)}*`)
-  lines.push(`Dibayar  : ${formatRupiah(data.amountPaid)}`)
-  lines.push(`Kembalian: ${formatRupiah(change)}`)
+  if (!data.unpaid) {
+    lines.push(`Dibayar  : ${formatRupiah(data.amountPaid)}`)
+    lines.push(`Kembalian: ${formatRupiah(change)}`)
+  }
   lines.push('--------------------------------')
   if (data.footer) lines.push(data.footer)
 

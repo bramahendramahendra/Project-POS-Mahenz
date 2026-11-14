@@ -35,6 +35,8 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 		g.POST("/list", perm("can_view"), cashDrawerHandler.GetHistory)
 		g.POST("/summary", perm("can_view"), cashDrawerHandler.GetSummary)
 		g.POST("/kasir-options", perm("can_view"), cashDrawerHandler.GetKasirOptions)
+		// Coffee 4.9: jalankan penutupan tengah malam secara manual (admin/owner).
+		g.POST("/auto-close-yesterday", perm("can_edit"), cashDrawerHandler.AutoCloseYesterday)
 		g.POST("/detail/:id", cashDrawerHandler.GetByID)
 		g.POST("/open", myCashPerm("can_create"), cashDrawerHandler.Open)
 		g.POST("/close/:id", myCashPerm("can_edit"), cashDrawerHandler.Close)

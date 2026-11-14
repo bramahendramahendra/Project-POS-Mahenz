@@ -64,7 +64,8 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   pushRow('Tgl', new Date(data.checkoutData.transaction_date).toLocaleString('id-ID'))
   if (data.customerName) pushRow('Plg', data.customerName)
   for (const [label, value] of orderInfoRows(data.checkoutData)) pushRow(label, value)
-  pushRow('Bayar', PAYMENT_LABELS[data.paymentMethod])
+  if (data.unpaid) pushCenter('TAGIHAN - BELUM DIBAYAR', { bold: true })
+  else pushRow('Bayar', PAYMENT_LABELS[data.paymentMethod])
   pushSep()
 
   for (const item of data.cart) {
@@ -83,8 +84,10 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
     pushRow(`Pajak (${data.tax.percent}%)`, `+${formatRupiah(data.summary.taxAmount)}`)
   }
   pushRow('TOTAL', formatRupiah(data.summary.grandTotal), { bold: true })
-  pushRow('Dibayar', formatRupiah(data.amountPaid))
-  pushRow('Kembalian', formatRupiah(change))
+  if (!data.unpaid) {
+    pushRow('Dibayar', formatRupiah(data.amountPaid))
+    pushRow('Kembalian', formatRupiah(change))
+  }
   pushSep()
   if (data.footer) pushCenter(data.footer)
 

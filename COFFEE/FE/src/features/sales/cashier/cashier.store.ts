@@ -17,6 +17,8 @@ interface CashierState {
   orderType: OrderType
   table: { id: number; name: string } | null
   orderName: string
+  /** Pesanan terbuka yang sedang dibuka di kasir (tahap 4.8); null = pesanan baru. */
+  activeBillId: number | null
 
   // UI State (not persisted)
   paymentModalOpen: boolean
@@ -37,6 +39,8 @@ interface CashierState {
   setOrderType: (type: OrderType) => void
   setTable: (table: { id: number; name: string } | null) => void
   setOrderName: (name: string) => void
+  /** Buka pesanan terbuka (item baru di keranjang akan ditambahkan ke pesanan itu) atau kembali ke pesanan baru. */
+  setActiveBill: (id: number | null) => void
 
   // Actions — Modal
   openPaymentModal: () => void
@@ -76,6 +80,7 @@ export const useCashierStore = create<CashierState>()(
       orderType: 'take_away',
       table: null,
       orderName: '',
+      activeBillId: null,
 
       paymentModalOpen: false,
 
@@ -135,6 +140,7 @@ export const useCashierStore = create<CashierState>()(
           orderType: 'take_away',
           table: null,
           orderName: '',
+          activeBillId: null,
         }),
 
       // ── Discount & Tax ──
@@ -164,6 +170,7 @@ export const useCashierStore = create<CashierState>()(
       setOrderType: (orderType) => set(orderType === 'take_away' ? { orderType, table: null } : { orderType }),
       setTable: (table) => set({ table }),
       setOrderName: (orderName) => set({ orderName }),
+      setActiveBill: (activeBillId) => set({ activeBillId }),
 
       // ── Modals ──
 
@@ -182,6 +189,7 @@ export const useCashierStore = create<CashierState>()(
         orderType: 'take_away' as OrderType,
         table: null,
         orderName: '',
+        activeBillId: null,
       }),
       partialize: (state) => ({
         cart: state.cart,
@@ -191,6 +199,7 @@ export const useCashierStore = create<CashierState>()(
         orderType: state.orderType,
         table: state.table,
         orderName: state.orderName,
+        activeBillId: state.activeBillId,
       }),
     }
   )

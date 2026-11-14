@@ -32,10 +32,12 @@ type PrintReceiptRequest struct {
 	TransactionDate string `json:"transaction_date"`
 	CustomerName    string `json:"customer_name"`
 	// Info pesanan Coffee (tahap 4.7b): nomor antrean dicetak besar, jenis pesanan, meja, nama pemesan.
-	QueueLabel     string             `json:"queue_label"`
-	OrderType      string             `json:"order_type"`
-	TableName      string             `json:"table_name"`
-	OrderName      string             `json:"order_name"`
+	QueueLabel string `json:"queue_label"`
+	OrderType  string `json:"order_type"`
+	TableName  string `json:"table_name"`
+	OrderName  string `json:"order_name"`
+	// Unpaid: tagihan sementara pesanan terbuka (keputusan 108), tanpa baris pembayaran.
+	Unpaid         bool               `json:"unpaid"`
 	PaymentMethod  string             `json:"payment_method"`
 	Items          []PrintReceiptItem `json:"items"`
 	Subtotal       float64            `json:"subtotal"`

@@ -101,6 +101,9 @@ export interface OpenCashDrawerPayload {
 export interface CurrentCashDrawer {
   id: number
   status: 'open' | 'closed'
+  open_time?: string
+  /** Kas dari hari sebelumnya yang belum ditutup (tertunda, tahap 4.9). */
+  is_pending?: boolean
   shift_id?: number
   shift_name?: string
   shift_start?: string

@@ -52,7 +52,8 @@ interface ReceiptPrintProps {
   paymentMethod: PaymentMethod
   amountPaid: number
   customerName?: string
-  mode?: 'checkout' | 'reprint'
+  /** bill = tagihan sementara pesanan terbuka (keputusan 108): tanpa baris pembayaran. */
+  mode?: 'checkout' | 'reprint' | 'bill'
 }
 
 // Pilihan cetak yang ditampilkan ke user. Tiap pilihan melakukan SATU jalur
@@ -205,8 +206,9 @@ export function ReceiptPrint({
       footer: printerSettings.receipt_footer,
       paperSize: printerSettings.paper_size,
       checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName,
+      unpaid: mode === 'bill',
     }),
-    [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName],
+    [printerSettings, storeProfile, checkoutData, cart, summary, discount, tax, paymentMethod, amountPaid, customerName, mode],
   )
 
   // Jalur NATIVE BLUETOOTH (APK): cetak langsung ke printer Bluetooth lewat
@@ -452,10 +454,14 @@ export function ReceiptPrint({
             <span className="text-gray-700">{value}</span>
           </div>
         ))}
-        <div className="flex justify-between">
-          <span className="text-gray-400">Pembayaran</span>
-          <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
-        </div>
+        {mode === 'bill' ? (
+          <p className="pt-1 text-center text-sm font-bold text-red-600">TAGIHAN - BELUM DIBAYAR</p>
+        ) : (
+          <div className="flex justify-between">
+            <span className="text-gray-400">Pembayaran</span>
+            <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
+          </div>
+        )}
       </div>
 
       <hr className="border-dashed border-gray-300" />
@@ -516,14 +522,18 @@ export function ReceiptPrint({
           <span>TOTAL</span>
           <span>{formatRupiah(summary.grandTotal)}</span>
         </div>
-        <div className="flex justify-between text-gray-600">
-          <span>Dibayar</span>
-          <span>{formatRupiah(amountPaid)}</span>
-        </div>
-        <div className="flex justify-between font-semibold">
-          <span>Kembalian</span>
-          <span className="text-green-600">{formatRupiah(Math.max(0, change))}</span>
-        </div>
+        {mode !== 'bill' && (
+          <>
+            <div className="flex justify-between text-gray-600">
+              <span>Dibayar</span>
+              <span>{formatRupiah(amountPaid)}</span>
+            </div>
+            <div className="flex justify-between font-semibold">
+              <span>Kembalian</span>
+              <span className="text-green-600">{formatRupiah(Math.max(0, change))}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="text-center pt-1">
@@ -539,7 +549,7 @@ export function ReceiptPrint({
     <ActionModal
       open={open}
       onOpenChange={(val) => { if (!val) onClose() }}
-      title="Struk Transaksi"
+      title={mode === 'bill' ? 'Tagihan Sementara' : 'Struk Transaksi'}
       description="Detail struk transaksi"
       contentClassName="max-w-sm"
       footer={footer}

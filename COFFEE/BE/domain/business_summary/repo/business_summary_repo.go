@@ -35,17 +35,22 @@ const (
 	// HPP dihitung dari ti.purchase_price (snapshot harga beli saat transaksi terjadi),
 	// pola identik dengan profitLossQuery di report_repo.go -- supaya "Laba Kotor" di sini
 	// dan di Laporan Laba Rugi sama-sama Pendapatan - HPP, bukan Pendapatan - Pengeluaran.
+	// Coffee (keputusan 114, 117): HPP = HPP barang jadi + biaya bahan (terpakai + terbuang x harga beli rata-rata).
 	rangeCOGSQuery = `
-		SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs
-		FROM transaction_items ti
-		JOIN transactions t ON ti.transaction_id = t.id
-		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'`
+		SELECT (SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0)
+		        FROM transaction_items ti JOIN transactions t ON ti.transaction_id = t.id
+		        WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed')
+		     + (SELECT COALESCE(SUM(-m.qty_change * COALESCE(ap.avg_price, 0)), 0)
+		        FROM ingredient_mutations m LEFT JOIN (SELECT pi.ingredient_id, SUM(pi.quantity * pi.purchase_price) / NULLIF(SUM(pi.quantity), 0) AS avg_price FROM purchase_items pi JOIN purchases p ON p.id = pi.purchase_id WHERE pi.item_type = 'ingredient' AND p.status <> 'void' GROUP BY pi.ingredient_id) ap ON ap.ingredient_id = m.ingredient_id
+		        WHERE m.type IN ('usage', 'waste') AND m.cancelled_at IS NULL AND DATE(m.created_at) BETWEEN ? AND ?) as total_cogs`
 
 	monthCOGSQuery = `
-		SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs
-		FROM transaction_items ti
-		JOIN transactions t ON ti.transaction_id = t.id
-		WHERE MONTH(t.transaction_date) = ? AND YEAR(t.transaction_date) = ? AND t.status = 'completed'`
+		SELECT (SELECT COALESCE(SUM(ti.quantity * ti.purchase_price),0)
+		        FROM transaction_items ti JOIN transactions t ON ti.transaction_id = t.id
+		        WHERE MONTH(t.transaction_date) = ? AND YEAR(t.transaction_date) = ? AND t.status = 'completed')
+		     + (SELECT COALESCE(SUM(-m.qty_change * COALESCE(ap.avg_price, 0)), 0)
+		        FROM ingredient_mutations m LEFT JOIN (SELECT pi.ingredient_id, SUM(pi.quantity * pi.purchase_price) / NULLIF(SUM(pi.quantity), 0) AS avg_price FROM purchase_items pi JOIN purchases p ON p.id = pi.purchase_id WHERE pi.item_type = 'ingredient' AND p.status <> 'void' GROUP BY pi.ingredient_id) ap ON ap.ingredient_id = m.ingredient_id
+		        WHERE m.type IN ('usage', 'waste') AND m.cancelled_at IS NULL AND MONTH(m.created_at) = ? AND YEAR(m.created_at) = ?) as total_cogs`
 
 	salesTrendQuery = `
 		SELECT DATE_FORMAT(transaction_date, '%Y-%m-%d') as label,
@@ -55,37 +60,37 @@ const (
 		WHERE transaction_date >= DATE_SUB(?, INTERVAL ? DAY) AND status = 'completed'
 		GROUP BY DATE(transaction_date) ORDER BY label`
 
+	// Coffee (keputusan 117): menu terlaris (racikan dan barang jadi), dikelompokkan per menu.
 	topProductsQuery = `
-		SELECT ti.product_id, p.name as product_name,
+		SELECT COALESCE(ti.menu_item_id, 0) as product_id, MAX(ti.product_name) as product_name,
 		       SUM(ti.quantity) as total_qty,
 		       SUM(ti.subtotal) as total_value
 		FROM transaction_items ti
-		LEFT JOIN products p ON ti.product_id = p.id
-		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		JOIN transactions t ON ti.transaction_id = t.id
 		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
-		GROUP BY ti.product_id, p.name
+		GROUP BY COALESCE(ti.menu_item_id, 0)
 		ORDER BY total_qty DESC LIMIT ?`
 
 	topProductsByValueQuery = `
-		SELECT ti.product_id, p.name as product_name,
+		SELECT COALESCE(ti.menu_item_id, 0) as product_id, MAX(ti.product_name) as product_name,
 		       SUM(ti.quantity) as total_qty,
 		       SUM(ti.subtotal) as total_value
 		FROM transaction_items ti
-		LEFT JOIN products p ON ti.product_id = p.id
-		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		JOIN transactions t ON ti.transaction_id = t.id
 		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
-		GROUP BY ti.product_id, p.name
+		GROUP BY COALESCE(ti.menu_item_id, 0)
 		ORDER BY total_value DESC LIMIT ?`
 
+	// Coffee (keputusan 117): kategori menu.
 	topCategoriesQuery = `
-		SELECT c.id as category_id, c.name as category_name,
+		SELECT COALESCE(mc.id, 0) as category_id, COALESCE(mc.name, 'Tanpa kategori') as category_name,
 		       SUM(ti.subtotal) as total_sales
 		FROM transaction_items ti
-		LEFT JOIN products p ON ti.product_id = p.id
-		LEFT JOIN categories c ON p.category_id = c.id
-		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		JOIN transactions t ON ti.transaction_id = t.id
+		LEFT JOIN menu_items mi ON mi.id = ti.menu_item_id
+		LEFT JOIN menu_categories mc ON mc.id = mi.category_id
 		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
-		GROUP BY c.id, c.name ORDER BY total_sales DESC LIMIT ?`
+		GROUP BY mc.id, mc.name ORDER BY total_sales DESC LIMIT ?`
 
 	paymentMethodsQuery = `
 		SELECT payment_method, COUNT(*) as count, SUM(total_amount) as total
@@ -173,7 +178,7 @@ func (r *businessSummaryRepo) GetMonthExpenses(month int, year int) (float64, er
 
 func (r *businessSummaryRepo) GetCOGSByRange(startDate, endDate string) (float64, error) {
 	var total float64
-	row := r.db.Raw(rangeCOGSQuery, startDate, endDate).Row()
+	row := r.db.Raw(rangeCOGSQuery, startDate, endDate, startDate, endDate).Row()
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("GetCOGSByRange: %w", err)
 	}
@@ -182,7 +187,7 @@ func (r *businessSummaryRepo) GetCOGSByRange(startDate, endDate string) (float64
 
 func (r *businessSummaryRepo) GetMonthCOGS(month int, year int) (float64, error) {
 	var total float64
-	row := r.db.Raw(monthCOGSQuery, month, year).Row()
+	row := r.db.Raw(monthCOGSQuery, month, year, month, year).Row()
 	if err := row.Scan(&total); err != nil {
 		return 0, fmt.Errorf("GetMonthCOGS: %w", err)
 	}

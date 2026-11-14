@@ -27,7 +27,7 @@ func (s *diningTableService) GetOptions() ([]dto.OptionResponse, error) {
 	}
 	data := make([]dto.OptionResponse, 0, len(rows))
 	for _, v := range rows {
-		data = append(data, dto.OptionResponse{ID: v.ID, Name: v.Name})
+		data = append(data, dto.OptionResponse{ID: v.ID, Name: v.Name, OpenBillID: v.OpenBillID, OpenQueueLabel: v.OpenQueueLabel})
 	}
 	return data, nil
 }

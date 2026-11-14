@@ -1,16 +1,21 @@
+import { toast } from 'sonner'
+
 import { Input } from '@/shared/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
-import { diningTableApi } from '@/features/menu-items/menu-items.api'
 
 import { useCashierStore } from '../cashier.store'
 import { ORDER_TYPE_LABEL, type OrderType } from '../cashier.types'
+import { useTableOptionsQuery } from '../openBill.api'
 
 const ORDER_TYPES: OrderType[] = ['take_away', 'dine_in']
 
-/** Jenis pesanan, meja (makan di tempat), dan nama pemesan opsional (keputusan 25, 97, 99). */
+/**
+ * Jenis pesanan, meja (makan di tempat), dan nama pemesan opsional (keputusan 25, 97, 99).
+ * Meja yang punya pesanan terbuka ditandai; memilihnya membuka pesanan itu (keputusan 103).
+ */
 export function OrderInfoPanel() {
-  const { orderType, table, orderName, setOrderType, setTable, setOrderName } = useCashierStore()
-  const { data: tables = [] } = diningTableApi.useOptions()
+  const { orderType, table, orderName, setOrderType, setTable, setOrderName, setActiveBill } = useCashierStore()
+  const { data: tables = [] } = useTableOptionsQuery()
   const isDineIn = orderType === 'dine_in'
 
   return (
@@ -37,7 +42,14 @@ export function OrderInfoPanel() {
             value={table ? String(table.id) : ''}
             onValueChange={(v) => {
               const found = tables.find((t) => String(t.id) === v)
-              setTable(found ? { id: found.id, name: found.name } : null)
+              if (!found) return setTable(null)
+              if (found.open_bill_id) {
+                // Meja terisi: pesanan tambahan masuk ke bill meja itu.
+                setActiveBill(found.open_bill_id)
+                toast.info(`${found.name} punya pesanan terbuka (antrean ${found.open_queue_label}). Pesanan itu dibuka.`)
+                return
+              }
+              setTable({ id: found.id, name: found.name })
             }}
           >
             <SelectTrigger className={`w-full ${table ? '' : 'border-amber-400'}`} aria-label="Meja">
@@ -48,18 +60,13 @@ export function OrderInfoPanel() {
               {tables.map((t) => (
                 <SelectItem key={t.id} value={String(t.id)}>
                   {t.name}
+                  {t.open_bill_id ? ` (terisi · ${t.open_queue_label})` : ''}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
-        <Input
-          value={orderName}
-          maxLength={50}
-          onChange={(e) => setOrderName(e.target.value)}
-          placeholder="Nama pemesan (opsional)"
-          aria-label="Nama pemesan"
-        />
+        <Input value={orderName} maxLength={50} onChange={(e) => setOrderName(e.target.value)} placeholder="Nama pemesan (opsional)" aria-label="Nama pemesan" />
       </div>
     </div>
   )

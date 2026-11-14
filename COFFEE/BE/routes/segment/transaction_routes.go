@@ -33,5 +33,15 @@ func TransactionRoutes(r *gin.RouterGroup) {
 		g.POST("/detail/:id", transactionHandler.GetByID)
 		g.POST("/create", permKasir("can_create"), transactionHandler.Create)
 		g.POST("/void/:id", permTransaksi("can_delete"), transactionHandler.Void)
+
+		// Open bill (tahap 4.8): kasir, admin, owner (izin tambah di halaman Kasir, keputusan 105, 106).
+		o := g.Group("/open")
+		o.POST("/list", permKasir("can_view"), transactionHandler.ListOpen)
+		o.POST("/:id/add-items", permKasir("can_create"), transactionHandler.AddOpenItems)
+		o.POST("/:id/remove-item", permKasir("can_create"), transactionHandler.RemoveOpenItem)
+		o.POST("/:id/move-table", permKasir("can_create"), transactionHandler.MoveOpenTable)
+		o.POST("/:id/merge", permKasir("can_create"), transactionHandler.MergeOpen)
+		o.POST("/:id/cancel", permKasir("can_create"), transactionHandler.CancelOpen)
+		o.POST("/:id/pay", permKasir("can_create"), transactionHandler.PayOpen)
 	}
 }

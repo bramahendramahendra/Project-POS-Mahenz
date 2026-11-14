@@ -138,7 +138,15 @@ func buildEscPos(req *dto.PrintReceiptRequest, width int) []byte {
 	if strings.TrimSpace(req.OrderName) != "" {
 		b.WriteString(twoCol("Nama", req.OrderName, width))
 	}
-	b.WriteString(twoCol("Bayar", paymentLabel(req.PaymentMethod), width))
+	if req.Unpaid {
+		b.Write(escAlignCenter)
+		b.Write(escBoldOn)
+		b.WriteString("TAGIHAN - BELUM DIBAYAR\n")
+		b.Write(escBoldOff)
+		b.Write(escAlignLeft)
+	} else {
+		b.WriteString(twoCol("Bayar", paymentLabel(req.PaymentMethod), width))
+	}
 	b.WriteString(line)
 
 	// Item: nama di baris sendiri, lalu "qty x harga" kiri & subtotal kanan.
@@ -162,8 +170,10 @@ func buildEscPos(req *dto.PrintReceiptRequest, width int) []byte {
 	b.Write(escBoldOn)
 	b.WriteString(twoCol("TOTAL", rupiah(req.GrandTotal), width))
 	b.Write(escBoldOff)
-	b.WriteString(twoCol("Dibayar", rupiah(req.AmountPaid), width))
-	b.WriteString(twoCol("Kembalian", rupiah(req.Change), width))
+	if !req.Unpaid {
+		b.WriteString(twoCol("Dibayar", rupiah(req.AmountPaid), width))
+		b.WriteString(twoCol("Kembalian", rupiah(req.Change), width))
+	}
 	b.WriteString(line)
 
 	if strings.TrimSpace(req.Footer) != "" {

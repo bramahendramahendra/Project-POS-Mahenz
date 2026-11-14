@@ -97,8 +97,11 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Status</SelectItem>
-          <SelectItem value="completed">Selesai</SelectItem>
-          <SelectItem value="void">Dibatalkan</SelectItem>
+          <SelectItem value="completed">Lunas</SelectItem>
+          <SelectItem value="open">Belum dibayar</SelectItem>
+          <SelectItem value="void">Void</SelectItem>
+          <SelectItem value="cancelled">Batal</SelectItem>
+          <SelectItem value="merged">Digabung</SelectItem>
         </SelectContent>
       </Select>
 

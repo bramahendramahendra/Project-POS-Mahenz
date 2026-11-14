@@ -13,6 +13,15 @@ type (
 		GetByID(id int, requestingUserID int, role string) (*dto.TransactionResponse, error)
 		Create(req *dto.CreateTransactionRequest, userID int) (*dto.CreateTransactionResponse, error)
 		Void(req *dto.VoidRequest, userID int) error
+
+		// Open bill (tahap 4.8).
+		ListOpen() ([]dto.OpenBillSummary, error)
+		AddOpenItems(id int, req *dto.OpenAddItemsRequest, userID int) (*dto.TransactionResponse, error)
+		RemoveOpenItem(id int, req *dto.OpenRemoveItemRequest, userID int) (*dto.TransactionResponse, error)
+		MoveOpenTable(id int, req *dto.OpenMoveTableRequest) (*dto.TransactionResponse, error)
+		MergeOpen(targetID int, req *dto.OpenMergeRequest) (*dto.TransactionResponse, error)
+		CancelOpen(id int, req *dto.OpenCancelRequest, userID int) error
+		PayOpen(id int, req *dto.OpenPayRequest, userID int) (*dto.TransactionResponse, error)
 	}
 
 	transactionService struct {

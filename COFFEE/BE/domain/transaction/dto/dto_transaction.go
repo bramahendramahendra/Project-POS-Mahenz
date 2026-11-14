@@ -68,13 +68,15 @@ type (
 
 	// CreateTransactionRequest: pesanan bayar sekarang (4.7a). Subtotal, total, dan kembalian dihitung server.
 	CreateTransactionRequest struct {
-		ShiftID       *int                           `json:"shift_id"`
+		ShiftID *int `json:"shift_id"`
+		// OpenBill: simpan sebagai pesanan terbuka (bayar belakangan, keputusan 27); pembayaran diabaikan.
+		OpenBill      bool                           `json:"open_bill"`
 		OrderType     string                         `json:"order_type" validate:"required,oneof=dine_in take_away"`
 		TableID       *int                           `json:"table_id" validate:"omitempty,min=1"`
 		OrderName     string                         `json:"order_name" validate:"max=50"`
 		Discount      float64                        `json:"discount" validate:"gte=0"`
 		Tax           float64                        `json:"tax" validate:"gte=0"`
-		PaymentMethod string                         `json:"payment_method" validate:"required,oneof=cash transfer qris card kredit"`
+		PaymentMethod string                         `json:"payment_method" validate:"omitempty,oneof=cash transfer qris card kredit"`
 		PaymentAmount float64                        `json:"payment_amount" validate:"min=0"`
 		CustomerID    *int                           `json:"customer_id"`
 		IsCredit      bool                           `json:"is_credit"`
@@ -114,33 +116,42 @@ type (
 	}
 
 	TransactionResponse struct {
-		ID              int                       `json:"id"`
-		TransactionCode string                    `json:"transaction_code"`
-		UserID          int                       `json:"user_id"`
-		KasirName       string                    `json:"kasir_name"`
-		ShiftID         *int                      `json:"shift_id"`
-		TransactionDate time.Time                 `json:"transaction_date"`
-		Subtotal        float64                   `json:"subtotal"`
-		Discount        float64                   `json:"discount"`
-		Tax             float64                   `json:"tax"`
-		TotalAmount     float64                   `json:"total_amount"`
-		PaymentMethod   string                    `json:"payment_method"`
-		PaymentAmount   float64                   `json:"payment_amount"`
-		ChangeAmount    float64                   `json:"change_amount"`
-		BalanceUsed     float64                   `json:"balance_used"`
-		CustomerID      *int                      `json:"customer_id"`
-		CustomerName    string                    `json:"customer_name"`
-		IsCredit        bool                      `json:"is_credit"`
-		Status          string                    `json:"status"`
-		DeviceSource    string                    `json:"device_source"`
-		CashDrawerID    *int                      `json:"cash_drawer_id"`
-		OrderType       string                    `json:"order_type"`
-		TableID         *int                      `json:"table_id"`
-		TableName       string                    `json:"table_name"`
-		QueueNumber     int                       `json:"queue_number"`
-		QueueLabel      string                    `json:"queue_label"` // 001, 002, ...
-		OrderName       string                    `json:"order_name"`
-		Items           []TransactionItemResponse `json:"items,omitempty"`
+		ID              int       `json:"id"`
+		TransactionCode string    `json:"transaction_code"`
+		UserID          int       `json:"user_id"`
+		KasirName       string    `json:"kasir_name"`
+		ShiftID         *int      `json:"shift_id"`
+		TransactionDate time.Time `json:"transaction_date"`
+		Subtotal        float64   `json:"subtotal"`
+		Discount        float64   `json:"discount"`
+		Tax             float64   `json:"tax"`
+		TotalAmount     float64   `json:"total_amount"`
+		PaymentMethod   string    `json:"payment_method"`
+		PaymentAmount   float64   `json:"payment_amount"`
+		ChangeAmount    float64   `json:"change_amount"`
+		BalanceUsed     float64   `json:"balance_used"`
+		CustomerID      *int      `json:"customer_id"`
+		CustomerName    string    `json:"customer_name"`
+		IsCredit        bool      `json:"is_credit"`
+		Status          string    `json:"status"`
+		DeviceSource    string    `json:"device_source"`
+		CashDrawerID    *int      `json:"cash_drawer_id"`
+		OrderType       string    `json:"order_type"`
+		TableID         *int      `json:"table_id"`
+		TableName       string    `json:"table_name"`
+		QueueNumber     int       `json:"queue_number"`
+		QueueLabel      string    `json:"queue_label"` // 001, 002, ...
+		OrderName       string    `json:"order_name"`
+		// Open bill (tahap 4.8): pembuat pesanan, gabung, batal, dan catatan item yang dihapus.
+		CreatedBy     *int   `json:"created_by"`
+		CreatedByName string `json:"created_by_name"`
+		MergedIntoID  *int   `json:"merged_into_id"`
+		CancelReason  string `json:"cancel_reason"`
+		// Pelaku penyelesaian pembayaran dan tanda pesanan tertunda (tahap 4.9).
+		SettledByName string                     `json:"settled_by_name"`
+		IsOverdue     bool                       `json:"is_overdue"`
+		Cancellations []ItemCancellationResponse `json:"cancellations,omitempty"`
+		Items         []TransactionItemResponse  `json:"items,omitempty"`
 	}
 
 	CreateTransactionResponse struct {

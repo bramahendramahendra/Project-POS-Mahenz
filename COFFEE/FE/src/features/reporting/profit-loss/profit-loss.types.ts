@@ -11,6 +11,8 @@ export interface ProfitLossItem {
   total_cogs: number
   total_revenue: number
   gross_profit: number
+  /** Menu racikan: biaya bahannya masuk biaya bahan periode, bukan per menu (keputusan 114). */
+  is_recipe: boolean
 }
 
 export interface ExpenseSummaryItem {
@@ -21,6 +23,8 @@ export interface ExpenseSummaryItem {
 export interface ProfitLossReport {
   total_revenue: number
   total_cogs: number
+  product_cogs: number
+  ingredient_cost: number
   gross_profit: number
   total_expenses: number
   net_profit: number

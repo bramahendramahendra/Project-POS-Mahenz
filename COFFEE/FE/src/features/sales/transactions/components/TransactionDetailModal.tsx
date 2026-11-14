@@ -9,7 +9,7 @@ import { ReceiptPrint } from '@/features/sales/cashier/components/ReceiptPrint'
 import { ORDER_TYPE_LABEL } from '@/features/sales/cashier/cashier.types'
 
 import { useTransactionDetailQuery } from '../transactions.api'
-import { PAYMENT_LABELS, formatDateTimeLong, transactionReceipt } from '../transactions.utils'
+import { PAYMENT_LABELS, TRANSACTION_STATUS_BADGE, formatDateTimeLong, transactionReceipt } from '../transactions.utils'
 import { VoidTransactionDialog } from './VoidTransactionDialog'
 
 interface TransactionDetailModalProps {
@@ -50,9 +50,11 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
         ['Pesanan', transaction.order_type ? ORDER_TYPE_LABEL[transaction.order_type] : '—'],
         ['Meja', transaction.table_name || '—'],
         ['Nama Pemesan', transaction.order_name || '—'],
-        ['Kasir', transaction.kasir_name],
+        ['Dibuat oleh', transaction.created_by_name || '—'],
+        ['Kasir penerima', transaction.status === 'completed' || transaction.status === 'void' ? transaction.kasir_name : '—'],
+        ['Diselesaikan oleh', transaction.settled_by_name || '—'],
         ['Pelanggan', transaction.customer_name || '—'],
-        ['Metode Bayar', PAYMENT_LABELS[transaction.payment_method]],
+        ['Metode Bayar', transaction.status === 'completed' || transaction.status === 'void' ? PAYMENT_LABELS[transaction.payment_method] : '—'],
       ]
     : []
 
@@ -89,7 +91,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                   ))}
                   <div>
                     <p className="text-xs text-gray-500">Status</p>
-                    <StatusBadge status={transaction.status === 'completed' ? 'success' : 'void'} />
+                    <StatusBadge {...TRANSACTION_STATUS_BADGE[transaction.status]} />
                   </div>
                 </div>
 
@@ -130,6 +132,30 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                     </tbody>
                   </table>
                 </div>
+
+                {transaction.status === 'cancelled' && (
+                  <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">Dibatalkan: {transaction.cancel_reason}</p>
+                )}
+                {transaction.status === 'merged' && transaction.merged_into_id && (
+                  <p className="rounded-md border bg-gray-50 px-3 py-2 text-sm text-gray-600">Digabung ke pesanan ID {transaction.merged_into_id}.</p>
+                )}
+                {!!transaction.cancellations?.length && (
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Item dihapus / dibatalkan</p>
+                    <ul className="space-y-1 text-xs text-gray-600">
+                      {transaction.cancellations.map((c, i) => (
+                        <li key={i}>
+                          {c.quantity}x {c.item_name}
+                          {c.variant_name && ` · ${c.variant_name}`}
+                          {c.stock_action === 'waste' ? ' (dibuang)' : c.stock_action === 'return' ? ' (kembali ke stok)' : ''}
+                          {' · '}
+                          {c.user_name}
+                          {c.reason && ` · ${c.reason}`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="space-y-1.5 rounded-lg bg-gray-50 p-4 text-sm">
                   <div className="flex justify-between text-gray-600">

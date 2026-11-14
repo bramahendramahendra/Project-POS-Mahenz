@@ -43,6 +43,8 @@ export const ROUTES = {
   REPORTS_STOCK: '/reports/stock',
   REPORTS_STOCK_RECONCILIATION: '/reports/stock-reconciliation',
   REPORTS_CASHIER: '/reports/cashier',
+  REPORTS_INGREDIENTS: '/reports/ingredients',
+  REPORTS_WASTE: '/reports/waste',
   REPORTS_BUSINESS_SUMMARY: '/reports/business-summary',
 
   // Operasional

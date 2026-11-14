@@ -12,6 +12,7 @@ type (
 		GetTopProducts(filter dto.DateRangeFilter) ([]dto.TopProductItem, error)
 		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
 		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)
+		GetOrderTypes(filter dto.DateRangeFilter) ([]dto.OrderTypeItem, error)
 		GetSummaryExtra(period string) (*dto.SummaryExtraResponse, error)
 	}
 

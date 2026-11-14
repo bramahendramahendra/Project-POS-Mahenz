@@ -1,7 +1,7 @@
 import { savedReceiptLine } from '@/features/sales/cashier/cashier.utils'
 import type { CartItem, CartSummary, CheckoutResponse, Discount, Tax } from '@/features/sales/cashier'
 
-import type { PaymentMethod, Transaction } from './transactions.types'
+import type { PaymentMethod, Transaction, TransactionStatus } from './transactions.types'
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Tunai',
@@ -10,6 +10,15 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   card: 'Kartu',
   kredit: 'Kredit',
   balance: 'Saldo',
+}
+
+/** Tampilan status transaksi (StatusBadge + label Coffee). */
+export const TRANSACTION_STATUS_BADGE: Record<TransactionStatus, { status: 'success' | 'void' | 'open' | 'closed'; label: string }> = {
+  completed: { status: 'success', label: 'Lunas' },
+  void: { status: 'void', label: 'Void' },
+  open: { status: 'open', label: 'Belum dibayar' },
+  cancelled: { status: 'void', label: 'Batal' },
+  merged: { status: 'closed', label: 'Digabung' },
 }
 
 export function formatDateTimeShort(dateStr: string): string {

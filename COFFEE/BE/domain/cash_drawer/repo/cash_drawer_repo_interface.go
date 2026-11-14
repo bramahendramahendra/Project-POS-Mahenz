@@ -23,6 +23,10 @@ type (
 		GetNonCashSales(userID int, openTime string, closeTime *string, now time.Time) ([]dto.NonCashSaleItem, error)
 		GetNonCashTransactions(userID int, openTime string, closeTime *string, nextOpenTime *string, now time.Time) ([]model.CashDrawerNonCashTransactionItem, error)
 		AutoCloseYesterday(now time.Time) (int, error)
+		// Aturan kas dan batas hari Coffee (tahap 4.9).
+		CountOpenBillsOnDate(date string) (int64, error)
+		CountOtherOpenDrawersOnDate(date string, excludeID int) (int64, error)
+		FindDrawerForDate(date string, creatorID, payerID int) (*model.CashDrawer, error)
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 		GetKasirOptions() ([]dto.KasirOptionResponse, error)
 

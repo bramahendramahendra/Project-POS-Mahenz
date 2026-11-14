@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"time"
+
 	"coffee_api/domain/transaction/dto"
 	"coffee_api/domain/transaction/model"
 
@@ -18,6 +20,18 @@ type TransactionRepoInterface interface {
 	GetSaleVariant(variantID int) (*model.SaleVariant, error)
 	GetMenuModifierOptions(menuItemID int) ([]model.SaleModifierOption, error)
 	GetTableForOrder(id int) (name string, active bool, found bool, err error)
+
+	// Open bill (tahap 4.8).
+	LockBill(id int) (*LockedBill, error)
+	LockTableForOrder(tableID, excludeBillID int) (name string, active, found bool, occupiedBy int, err error)
+	ListOpen() ([]dto.OpenBillSummary, error)
+	GetItem(billID, itemID int) (*model.TransactionItem, error)
+	AddOpenItems(bill *LockedBill, items []dto.CreateTransactionItemRequest, userID int) error
+	RemoveOpenItem(bill *LockedBill, item *model.TransactionItem, qty float64, action, reason string, userID int) error
+	MoveOpenTable(billID, tableID int, tableName string) error
+	MergeOpen(targetID, sourceID int) error
+	CancelOpen(bill *LockedBill, wasteItemIDs map[int]bool, reason string, userID int) error
+	PayOpen(billID int, req *dto.OpenPayRequest, ownerID, settledBy int, txDate, now time.Time) error
 
 	GetDB() *gorm.DB
 	WithTx(tx *gorm.DB) TransactionRepoInterface

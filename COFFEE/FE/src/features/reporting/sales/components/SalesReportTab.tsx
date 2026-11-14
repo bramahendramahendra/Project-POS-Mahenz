@@ -9,6 +9,7 @@ import { useSalesListQuery, useSalesSummaryQuery } from '../sales.api'
 import type { SalesFilter, SalesReport } from '../sales.types'
 import { SalesReportFilterBar } from './SalesReportFilterBar'
 import { SalesReportSummaryCard } from './SalesReportSummaryCard'
+import { SalesBreakdownSection } from './SalesBreakdownSection'
 import { buildSalesReportColumns } from './SalesReportTableColumns'
 
 export function SalesReportTab() {
@@ -59,6 +60,8 @@ export function SalesReportTab() {
       />
 
       <SalesReportSummaryCard summary={summary} isLoading={summaryLoading} />
+
+      <SalesBreakdownSection filter={filter} />
 
       <DataTable<SalesReport & Record<string, unknown>>
         columns={columns}

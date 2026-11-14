@@ -312,8 +312,16 @@ func (r *cashDrawerRepo) AutoCloseYesterday(now time.Time) (int, error) {
 
 	count := 0
 	for _, cd := range drawers {
+		// Coffee (keputusan 42, 111): hari yang masih punya pesanan terbuka -> kas dibiarkan terbuka (tertunda).
+		openBills, err := r.CountOpenBillsOnDate(cd.OpenTime[:10])
+		if err != nil {
+			return count, err
+		}
+		if openBills > 0 {
+			continue
+		}
 		var expected float64
-		err := r.db.Raw(
+		err = r.db.Raw(
 			calculateExpectedBalanceQuery,
 			cd.OpeningBalance,
 			cd.UserID, cd.OpenTime, cd.OpenTime,

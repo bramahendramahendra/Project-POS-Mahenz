@@ -15,7 +15,10 @@ import { useCheckoutMutation, useCustomerCreditQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
 import type { CartItem, CartSummary, CheckoutResponse, Discount, PaymentMethod, PaymentPayload, Tax } from '../cashier.types'
 import { ORDER_TYPE_LABEL } from '../cashier.types'
-import { calcCartSummary, calcChange } from '../cashier.utils'
+import { calcChange } from '../cashier.utils'
+import { usePayBillMutation } from '../openBill.api'
+import { useActiveBill } from '../useActiveBill'
+import { transactionReceipt } from '@/features/sales/transactions/transactions.utils'
 import { ReceiptPrint } from './ReceiptPrint'
 
 interface PaymentModalProps {
@@ -60,8 +63,11 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
   const [receiptSnapshot, setReceiptSnapshot] = useState<ReceiptSnapshot | null>(null)
 
   const { cart, discount, tax, selectedCustomer, orderType, table, orderName, clearCart, closePaymentModal } = useCashierStore()
-  const summary = calcCartSummary(cart, discount, tax)
-  const { mutate: checkout, isPending } = useCheckoutMutation()
+  // Pesanan terbuka (4.8): total dari item tersimpan; pesanan baru: dari keranjang.
+  const { bill, billOpen, summary } = useActiveBill()
+  const { mutate: payBill, isPending: isPayingBill } = usePayBillMutation()
+  const { mutate: checkout, isPending: isCheckingOut } = useCheckoutMutation()
+  const isPending = isCheckingOut || isPayingBill
   const { data: currentDrawer } = useCashDrawerCurrentQuery()
   const kasOpen = currentDrawer?.status === 'open'
 
@@ -96,6 +102,29 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
 
   const onSubmit = (values: PaymentFormValues) => {
     const paid = isKredit ? 0 : (values.amount_paid ?? 0)
+    if (billOpen && bill) {
+      payBill(
+        {
+          id: bill.id,
+          shift_id: currentDrawer?.shift_id ?? undefined,
+          discount: summary.discountAmount,
+          tax: summary.taxAmount,
+          payment_method: values.payment_method,
+          payment_amount: paid,
+          customer_id: selectedCustomer?.id,
+          is_credit: isKredit,
+        },
+        {
+          onSuccess: (res) => {
+            const r = transactionReceipt(res)
+            setReceiptSnapshot({ cart: r.cart, summary: r.summary, discount: r.discount, tax: { ...tax, amount: res.tax }, paymentMethod: values.payment_method, amountPaid: paid, customerName: selectedCustomer?.name })
+            setReceiptData(r.checkoutData)
+            closePaymentModal()
+          },
+        },
+      )
+      return
+    }
     const payload: PaymentPayload = {
       order_type: orderType,
       table_id: orderType === 'dine_in' ? table?.id : undefined,
@@ -150,7 +179,7 @@ export function PaymentModal({ open, onOpenChange }: PaymentModalProps) {
         open={open}
         onOpenChange={onOpenChange}
         title="Pembayaran"
-        description={`${ORDER_TYPE_LABEL[orderType]}${table && orderType === 'dine_in' ? ` · ${table.name}` : ''}${orderName.trim() ? ` · ${orderName.trim()}` : ''}`}
+        description={billOpen && bill ? `Pesanan terbuka antrean ${bill.queue_label}${bill.table_name ? ` · ${bill.table_name}` : ''}` : `${ORDER_TYPE_LABEL[orderType]}${table && orderType === 'dine_in' ? ` · ${table.name}` : ''}${orderName.trim() ? ` · ${orderName.trim()}` : ''}`}
         contentClassName="max-w-md"
         isLoading={isPending}
         asForm

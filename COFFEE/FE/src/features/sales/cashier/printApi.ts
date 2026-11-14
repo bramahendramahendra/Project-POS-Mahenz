@@ -21,6 +21,7 @@ interface PrintReceiptPayload {
   order_type: string
   table_name: string
   order_name: string
+  unpaid: boolean
   payment_method: string
   items: Array<{
     name: string
@@ -52,6 +53,7 @@ function toPayload(data: ReceiptData): PrintReceiptPayload {
     order_type: data.checkoutData.order_type ?? '',
     table_name: data.checkoutData.table_name ?? '',
     order_name: data.checkoutData.order_name ?? '',
+    unpaid: data.unpaid ?? false,
     payment_method: data.paymentMethod,
     items: data.cart.map((i) => ({
       name: cartItemName(i),

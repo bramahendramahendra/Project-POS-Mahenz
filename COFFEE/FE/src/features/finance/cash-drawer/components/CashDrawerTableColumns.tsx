@@ -7,6 +7,7 @@ import { formatDateTime, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { CashDrawer } from '../cash-drawer.types'
+import { isPendingOpenTime } from '../cash-drawer.utils'
 
 export interface CashDrawerColumnHandlers {
   onRowClick: (row: CashDrawer) => void
@@ -104,6 +105,9 @@ export function buildCashDrawerColumns(
       cell: (row) =>
         row.status === 'closed' ? (
           <Badge variant="secondary">Tutup</Badge>
+        ) : isPendingOpenTime(row.open_time) ? (
+          // Kas dari hari sebelumnya yang belum ditutup karena masih ada pesanan terbuka (tahap 4.9).
+          <Badge variant="default" className="bg-amber-500">Tertunda</Badge>
         ) : (
           <Badge variant="default" className="bg-green-600">Buka</Badge>
         ),

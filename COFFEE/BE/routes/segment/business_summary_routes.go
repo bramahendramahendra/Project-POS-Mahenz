@@ -27,6 +27,7 @@ func BusinessSummaryRoutes(r *gin.RouterGroup) {
 		g.GET("/top-products", perm("can_view"), businessSummaryHandler.GetTopProducts)
 		g.GET("/top-categories", perm("can_view"), businessSummaryHandler.GetTopCategories)
 		g.GET("/payment-methods", perm("can_view"), businessSummaryHandler.GetPaymentMethods)
+		g.GET("/order-types", perm("can_view"), businessSummaryHandler.GetOrderTypes)
 		g.GET("/summary-extra", perm("can_view"), businessSummaryHandler.GetSummaryExtra)
 	}
 }

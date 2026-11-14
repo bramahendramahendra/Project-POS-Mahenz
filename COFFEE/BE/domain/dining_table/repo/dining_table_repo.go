@@ -11,8 +11,11 @@ const (
 	tableSelect = `SELECT c.id, c.name, c.sort_order, c.is_active,
 		(SELECT COUNT(*) FROM transactions t WHERE t.table_id = c.id) AS usage_count
 		FROM dining_tables c`
-	tableOrder       = ` ORDER BY c.sort_order ASC, c.name ASC`
-	getTableOptions  = `SELECT c.id, c.name FROM dining_tables c WHERE c.is_active = 1` + tableOrder
+	tableOrder = ` ORDER BY c.sort_order ASC, c.name ASC`
+	// Pilihan meja kasir: meja aktif + pesanan terbuka yang sedang memakainya (keputusan 103).
+	getTableOptions = `SELECT c.id, c.name, ob.id AS open_bill_id, COALESCE(LPAD(ob.queue_number, 3, '0'), '') AS open_queue_label
+		FROM dining_tables c LEFT JOIN transactions ob ON ob.table_id = c.id AND ob.status = 'open'
+		WHERE c.is_active = 1` + tableOrder
 	getTableByID     = tableSelect + ` WHERE c.id = ? LIMIT 1`
 	tableNameExists  = `SELECT COUNT(*) FROM dining_tables WHERE name = ? AND id <> ?`
 	createTableQuery = `INSERT INTO dining_tables (name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?)`

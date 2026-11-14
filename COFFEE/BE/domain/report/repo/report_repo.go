@@ -56,17 +56,20 @@ const (
 		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?
 		GROUP BY DATE(transaction_date) ORDER BY label`
 
+	// Coffee (keputusan 114): per menu; HPP baris hanya untuk barang jadi (harga beli saat terjual).
+	// Biaya bahan racikan dihitung terpisah (GetIngredientCost). is_recipe = menu tanpa produk.
 	profitLossQuery = `
-		SELECT ti.product_id, p.name as product_name,
+		SELECT COALESCE(ti.menu_item_id, 0) as product_id, MAX(ti.product_name) as product_name,
 		       SUM(ti.quantity) as qty_sold,
 		       COALESCE(SUM(ti.quantity * ti.purchase_price) / NULLIF(SUM(ti.quantity),0),0) as purchase_price,
 		       COALESCE(SUM(ti.quantity * ti.purchase_price),0) as total_cogs,
-		       COALESCE(SUM(ti.subtotal * (t.total_amount - t.tax) / NULLIF(t.subtotal,0)),0) as total_revenue
+		       COALESCE(SUM(ti.subtotal * (t.total_amount - t.tax) / NULLIF(t.subtotal,0)),0) as total_revenue,
+		       MAX(ti.product_id IS NULL) as is_recipe
 		FROM transaction_items ti
-		LEFT JOIN products p ON ti.product_id = p.id
-		LEFT JOIN transactions t ON ti.transaction_id = t.id
+		JOIN transactions t ON ti.transaction_id = t.id
 		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?
-		GROUP BY ti.product_id, p.name`
+		GROUP BY COALESCE(ti.menu_item_id, 0)
+		ORDER BY total_revenue DESC`
 
 	expenseSummaryQuery = `
 		SELECT category, COALESCE(SUM(amount),0) as total
@@ -291,7 +294,7 @@ func (r *reportRepo) GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLo
 	for rows.Next() {
 		var item dto.ProfitLossItem
 		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.QtySold,
-			&item.PurchasePrice, &item.TotalCOGS, &item.TotalRevenue); err != nil {
+			&item.PurchasePrice, &item.TotalCOGS, &item.TotalRevenue, &item.IsRecipe); err != nil {
 			return nil, err
 		}
 		item.GrossProfit = item.TotalRevenue - item.TotalCOGS

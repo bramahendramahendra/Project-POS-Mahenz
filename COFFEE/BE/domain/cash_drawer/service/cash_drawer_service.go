@@ -1,13 +1,20 @@
 package service
 
 import (
+	"fmt"
+	"time"
+
 	dto "coffee_api/domain/cash_drawer/dto"
 	"coffee_api/errors"
 	time_helper "coffee_api/helper/time"
 )
 
 func (s *cashDrawerService) GetCurrent(userID int) (*dto.CurrentCashDrawerResponse, error) {
-	return s.repo.GetCurrent(userID)
+	cur, err := s.repo.GetCurrent(userID)
+	if err == nil && cur != nil {
+		cur.IsPending = isPendingDrawer(cur.OpenTime)
+	}
+	return cur, err
 }
 
 func (s *cashDrawerService) GetMyCash(userID int) (*dto.MyCashResponse, error) {
@@ -169,6 +176,9 @@ func (s *cashDrawerService) Open(userID int, req *dto.OpenRequest) (*dto.OpenRes
 		return nil, err
 	}
 	if existing != nil {
+		if isPendingDrawer(existing.OpenTime) {
+			return nil, &errors.BadRequestError{Message: fmt.Sprintf("Kas tanggal %s masih tertunda. Selesaikan pesanan tertunda lalu tutup kas itu dulu", existing.OpenTime.Format("02-01-2006"))}
+		}
 		return nil, &errors.BadRequestError{Message: "Sudah ada kas yang terbuka"}
 	}
 
@@ -196,6 +206,21 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 	}
 	if current.Status != "open" {
 		return nil, &errors.BadRequestError{Message: "Kas sudah ditutup"}
+	}
+
+	day := current.OpenTime.Format("2006-01-02")
+	openBills, err := s.repo.CountOpenBillsOnDate(day)
+	if err != nil {
+		return nil, err
+	}
+	if openBills > 0 {
+		others, err := s.repo.CountOtherOpenDrawersOnDate(day, id)
+		if err != nil {
+			return nil, err
+		}
+		if others == 0 {
+			return nil, &errors.BadRequestError{Message: fmt.Sprintf("Masih ada %d pesanan terbuka dan ini kas terakhir yang terbuka. Selesaikan dulu (bayar, jadikan utang, atau batalkan)", openBills)}
+		}
 	}
 
 	expected := current.ExpectedBalance
@@ -228,6 +253,11 @@ func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, req
 	}
 
 	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales, time_helper.GetTimeNow())
+}
+
+// isPendingDrawer: kas dibuka sebelum hari ini (WIB) dan belum ditutup = kas tertunda (keputusan 111).
+func isPendingDrawer(openTime time.Time) bool {
+	return openTime.In(time_helper.GetTimeNow().Location()).Format("2006-01-02") < time_helper.GetTimeNow().Format("2006-01-02")
 }
 
 func (s *cashDrawerService) AutoCloseYesterday() (int, error) {

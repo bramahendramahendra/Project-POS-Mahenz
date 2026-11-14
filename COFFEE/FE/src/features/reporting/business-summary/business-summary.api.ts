@@ -49,3 +49,33 @@ export function useTopProductsQuery(period: DashboardPeriod) {
     queryFn: () => api.get<TopProductItem[]>('/reports/business-summary/top-products', { ...range, limit: 10 }),
   })
 }
+
+// Coffee (tahap 4.10, keputusan 117): kategori menu dan jenis pesanan pada periode yang sama.
+export interface TopCategoryItem {
+  category_id: number
+  category_name: string
+  total_sales: number
+  percentage: number
+}
+
+export interface OrderTypeItem {
+  order_type: string
+  total: number
+  count: number
+}
+
+export function useTopCategoriesQuery(period: DashboardPeriod) {
+  const range = periodToDateRange(period)
+  return useQuery({
+    queryKey: ['businessSummary', 'topCategories', period],
+    queryFn: () => api.get<TopCategoryItem[]>('/reports/business-summary/top-categories', { ...range, limit: 5 }),
+  })
+}
+
+export function useOrderTypesQuery(period: DashboardPeriod) {
+  const range = periodToDateRange(period)
+  return useQuery({
+    queryKey: ['businessSummary', 'orderTypes', period],
+    queryFn: () => api.get<OrderTypeItem[]>('/reports/business-summary/order-types', range),
+  })
+}

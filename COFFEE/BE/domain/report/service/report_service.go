@@ -71,11 +71,17 @@ func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossR
 		return nil, err
 	}
 
-	var totalRevenue, totalCOGS, totalExpenses float64
+	ingredientCost, err := s.repo.GetIngredientCost(params)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalRevenue, productCOGS, totalExpenses float64
 	for _, item := range items {
 		totalRevenue += item.TotalRevenue
-		totalCOGS += item.TotalCOGS
+		productCOGS += item.TotalCOGS
 	}
+	totalCOGS := productCOGS + ingredientCost
 	for _, exp := range expenses {
 		totalExpenses += exp.Total
 	}
@@ -83,13 +89,15 @@ func (s *reportService) GetProfitLoss(params dto.FilterParams) (*dto.ProfitLossR
 	netProfit := grossProfit - totalExpenses
 
 	return &dto.ProfitLossResponse{
-		TotalRevenue:  totalRevenue,
-		TotalCOGS:     totalCOGS,
-		GrossProfit:   grossProfit,
-		TotalExpenses: totalExpenses,
-		NetProfit:     netProfit,
-		Items:         items,
-		Expenses:      expenses,
+		TotalRevenue:   totalRevenue,
+		TotalCOGS:      totalCOGS,
+		ProductCOGS:    productCOGS,
+		IngredientCost: ingredientCost,
+		GrossProfit:    grossProfit,
+		TotalExpenses:  totalExpenses,
+		NetProfit:      netProfit,
+		Items:          items,
+		Expenses:       expenses,
 	}, nil
 }
 
@@ -144,7 +152,7 @@ func (s *reportService) ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer
 	sheet := "Laba Rugi"
 	f.SetSheetName("Sheet1", sheet)
 
-	headers := []string{"No", "Produk", "Qty Terjual", "Harga Beli", "Total HPP", "Total Penjualan", "Laba Kotor"}
+	headers := []string{"No", "Menu", "Qty Terjual", "Harga Beli", "HPP Barang Jadi", "Total Penjualan", "Penjualan - HPP Barang Jadi"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -164,14 +172,21 @@ func (s *reportService) ExportProfitLoss(params dto.FilterParams) (*bytes.Buffer
 	summaryRow := len(data.Items) + 3
 	f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow), "Total Pendapatan")
 	f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow), data.TotalRevenue)
-	f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow+1), "Total HPP")
-	f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow+1), data.TotalCOGS)
-	f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow+2), "Laba Kotor")
-	f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow+2), data.GrossProfit)
-	f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow+3), "Total Beban")
-	f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow+3), data.TotalExpenses)
-	f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow+4), "Laba Bersih")
-	f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow+4), data.NetProfit)
+	summary := []struct {
+		label string
+		value float64
+	}{
+		{"HPP Barang Jadi", data.ProductCOGS},
+		{"Biaya Bahan (terpakai + terbuang x harga beli rata-rata)", data.IngredientCost},
+		{"Total HPP", data.TotalCOGS},
+		{"Laba Kotor", data.GrossProfit},
+		{"Total Beban", data.TotalExpenses},
+		{"Laba Bersih", data.NetProfit},
+	}
+	for i, sm := range summary {
+		f.SetCellValue(sheet, fmt.Sprintf("A%d", summaryRow+1+i), sm.label)
+		f.SetCellValue(sheet, fmt.Sprintf("B%d", summaryRow+1+i), sm.value)
+	}
 
 	buf, err := f.WriteToBuffer()
 	if err != nil {

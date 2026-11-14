@@ -19,6 +19,13 @@ type (
 		GetStockItemsPaginated(req *dto.StockListRequest) ([]dto.StockItem, int64, error)
 		GetStockSummaryWithFilters(req *dto.StockSummaryRequest) (*dto.StockSummary, error)
 		GetCashierItems(params dto.FilterParams) ([]dto.CashierItem, error)
+		// Laporan Coffee (tahap 4.10).
+		GetSalesBreakdownRows(params dto.FilterParams) ([]SalesBreakdownRow, error)
+		GetSalesByPayment(params dto.FilterParams) ([]dto.SalesGroupRow, error)
+		GetSalesByOrderType(params dto.FilterParams) ([]dto.SalesGroupRow, error)
+		GetIngredientReport(params dto.FilterParams) ([]dto.IngredientReportRow, error)
+		GetWasteList(params dto.FilterParams) ([]dto.WasteRow, error)
+		GetIngredientCost(params dto.FilterParams) (float64, error)
 		GetCashierItemsPaginated(req *dto.CashierReportRequest) ([]dto.CashierItem, int64, error)
 	}
 

@@ -22,7 +22,7 @@ export function TopProductsTable({ data, isLoading }: TopProductsTableProps) {
     },
     {
       key: 'product_name',
-      header: 'Produk',
+      header: 'Menu',
       cell: (row) => <span className="font-medium text-gray-800">{row.product_name}</span>,
     },
     {
@@ -42,7 +42,7 @@ export function TopProductsTable({ data, isLoading }: TopProductsTableProps) {
   return (
     <div className="rounded-lg border bg-white overflow-x-auto">
       <div className="px-4 py-3 border-b">
-        <h3 className="font-semibold text-gray-700 text-sm">Top Produk Terlaris</h3>
+        <h3 className="font-semibold text-gray-700 text-sm">Menu Terlaris</h3>
       </div>
       <DataTable<(TopProductItem & { rank: number }) & Record<string, unknown>>
         columns={columns}

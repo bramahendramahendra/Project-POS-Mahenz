@@ -21,9 +21,11 @@ import (
 const MutationWaste = "waste"
 
 const (
-	getPackagesByProductQuery    = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
-	generateTransactionCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0) FROM transactions WHERE DATE(transaction_date) = ? AND device_source = ?`
-	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, balance_used, customer_id, is_credit, status, device_source, order_type, table_id, table_name, queue_date, queue_number, order_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	getPackagesByProductQuery = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
+	// Nomor urut dari awalan kode itu sendiri (mis. WEB-20261114-%), bukan dari transaction_date: tanggal
+	// transaksi bisa berbeda dari tanggal kode (pesanan terbuka dibayar, tahap 4.8/4.9), dan kode harus unik.
+	generateTransactionCodeQuery = `SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(transaction_code, '-', -1) AS UNSIGNED)), 0) FROM transactions WHERE transaction_code LIKE ?`
+	createTransactionQuery       = `INSERT INTO transactions (transaction_code, user_id, created_by, shift_id, transaction_date, subtotal, discount, tax, total_amount, payment_method, payment_amount, change_amount, balance_used, customer_id, is_credit, status, device_source, order_type, table_id, table_name, queue_date, queue_number, order_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createTransactionItemQuery   = `INSERT INTO transaction_items (transaction_id, menu_item_id, variant_id, product_id, product_name, variant_name, notes, quantity, unit, price, purchase_price, subtotal, discount_item, conversion_qty, unit_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	createItemModifierQuery      = `INSERT INTO transaction_item_modifiers (transaction_item_id, option_id, group_name, option_name, price) VALUES (?, ?, ?, ?, ?)`
 	voidTransactionQuery         = `UPDATE transactions SET status = 'void', updated_at = ? WHERE id = ?`
@@ -40,9 +42,13 @@ const (
 		       t.payment_amount, t.change_amount, t.balance_used, t.customer_id, COALESCE(c.name, '') AS customer_name,
 		       t.is_credit, t.status, t.device_source, t.cash_drawer_id,
 		       COALESCE(t.order_type, '') AS order_type, t.table_id, COALESCE(t.table_name, '') AS table_name,
-		       COALESCE(t.queue_number, 0) AS queue_number, COALESCE(t.order_name, '') AS order_name
+		       COALESCE(t.queue_number, 0) AS queue_number, COALESCE(t.order_name, '') AS order_name,
+		       t.created_by, COALESCE(cb.full_name, '') AS created_by_name, t.merged_into_id, COALESCE(t.cancel_reason, '') AS cancel_reason,
+		       COALESCE(sb.full_name, '') AS settled_by_name
 		FROM transactions t
 		LEFT JOIN users u ON u.id = t.user_id
+		LEFT JOIN users cb ON cb.id = t.created_by
+		LEFT JOIN users sb ON sb.id = t.settled_by
 		LEFT JOIN customers c ON c.id = t.customer_id`
 	getTransactionByIDQuery = transactionColumns + ` WHERE t.id = ? LIMIT 1`
 	getAllTransactionsBase  = transactionColumns + ` WHERE 1=1`
@@ -73,9 +79,12 @@ func scanTransaction(scan func(dest ...any) error, t *dto.TransactionResponse) e
 		&t.PaymentAmount, &t.ChangeAmount, &t.BalanceUsed, &t.CustomerID, &t.CustomerName,
 		&t.IsCredit, &t.Status, &t.DeviceSource, &t.CashDrawerID,
 		&t.OrderType, &t.TableID, &t.TableName, &t.QueueNumber, &t.OrderName,
+		&t.CreatedBy, &t.CreatedByName, &t.MergedIntoID, &t.CancelReason,
+		&t.SettledByName,
 	); err != nil {
 		return err
 	}
+	t.IsOverdue = t.Status == StatusOpen && t.TransactionDate.In(time_helper.GetTimeNow().Location()).Format("2006-01-02") < time_helper.GetTimeNow().Format("2006-01-02")
 	if t.QueueNumber > 0 {
 		t.QueueLabel = queue_repo.FormatQueueNumber(t.QueueNumber)
 	}
@@ -209,6 +218,11 @@ func (r *transactionRepo) GetByID(id int) (*dto.TransactionResponse, error) {
 		}
 		t.Items = append(t.Items, resp)
 	}
+	cancellations, err := r.getCancellations(id)
+	if err != nil {
+		return nil, err
+	}
+	t.Cancellations = cancellations
 	return &t, nil
 }
 
@@ -299,7 +313,7 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 	defer r.db.Exec(`SELECT RELEASE_LOCK(?)`, lockName)
 
 	var count int
-	if err := r.db.Raw(generateTransactionCodeQuery, time_helper.ToSQLDate(now), req.DeviceSource).Scan(&count).Error; err != nil {
+	if err := r.db.Raw(generateTransactionCodeQuery, fmt.Sprintf("%s-%s-%%", prefix, now.Format("20060102"))).Scan(&count).Error; err != nil {
 		return nil, err
 	}
 	code := fmt.Sprintf("%s-%s-%03d", prefix, now.Format("20060102"), count+1)
@@ -319,11 +333,15 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 		orderName = &req.OrderName
 	}
 
+	status := "completed"
+	if req.OpenBill {
+		status = StatusOpen
+	}
 	if err := r.db.Exec(createTransactionQuery,
-		code, userID, req.ShiftID, now,
+		code, userID, userID, req.ShiftID, now,
 		req.Subtotal, req.Discount, req.Tax, req.TotalAmount,
 		req.PaymentMethod, req.PaymentAmount, req.ChangeAmount,
-		req.CustomerID, req.IsCredit, "completed", req.DeviceSource,
+		req.CustomerID, req.IsCredit, status, req.DeviceSource,
 		req.OrderType, req.TableID, tableName, time_helper.ToSQLDate(now), queueNumber, orderName,
 	).Error; err != nil {
 		return nil, err
@@ -363,7 +381,7 @@ func (r *transactionRepo) createOnce(req *dto.CreateTransactionRequest, userID i
 	resp.ChangeAmount = req.ChangeAmount
 	resp.CustomerID = req.CustomerID
 	resp.IsCredit = req.IsCredit
-	resp.Status = "completed"
+	resp.Status = status
 	resp.DeviceSource = req.DeviceSource
 	resp.OrderType = req.OrderType
 	resp.TableID = req.TableID
@@ -457,6 +475,9 @@ func (r *transactionRepo) Void(id, userID int, wasteItemIDs map[int]bool, reason
 	if status == "void" {
 		return ErrAlreadyVoid
 	}
+	if status != "completed" {
+		return ErrNotCompleted
+	}
 	if err := r.db.Exec(voidTransactionQuery, now, id).Error; err != nil {
 		return err
 	}
@@ -517,6 +538,9 @@ func (r *transactionRepo) Void(id, userID int, wasteItemIDs map[int]bool, reason
 
 // ErrAlreadyVoid: transaksi sudah void saat baris dikunci (void bersamaan).
 var ErrAlreadyVoid = stderrors.New("transaksi sudah di-void")
+
+// ErrNotCompleted: void hanya untuk transaksi lunas; pesanan terbuka dibatalkan lewat Batal (4.8).
+var ErrNotCompleted = stderrors.New("transaksi belum lunas")
 
 func (r *transactionRepo) GetItems(transactionID int) ([]model.TransactionItem, error) {
 	var items []model.TransactionItem

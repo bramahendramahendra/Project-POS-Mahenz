@@ -72,6 +72,8 @@ type (
 		ExpectedBalance float64   `json:"expected_balance"`
 		Status          string    `json:"status"`
 		OpenNotes       *string   `json:"open_notes"`
+		// IsPending: kas dari hari sebelumnya yang belum ditutup (tertunda, keputusan 111, 112).
+		IsPending bool `json:"is_pending"`
 	}
 
 	CashDrawerHistoryResponse struct {
