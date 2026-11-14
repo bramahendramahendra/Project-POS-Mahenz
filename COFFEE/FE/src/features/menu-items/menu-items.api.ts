@@ -13,6 +13,7 @@ import type {
   MenuItemListFilter,
   MenuItemPayload,
   MenuSize,
+  DiningTable,
   ModifierGroup,
   ModifierGroupPayload,
   NamedOption,
@@ -75,6 +76,7 @@ export type MasterApi<T> = ReturnType<typeof createMasterApi<T>>
 
 export const menuCategoryApi = createMasterApi<MenuCategory>('menu-categories', queryKeys.menuCategories, 'Kategori menu')
 export const menuSizeApi = createMasterApi<MenuSize>('menu-sizes', queryKeys.menuSizes, 'Ukuran')
+export const diningTableApi = createMasterApi<DiningTable>('dining-tables', queryKeys.diningTables, 'Meja')
 
 // ─── Kelompok tambahan ────────────────────────────────────────────────────────
 

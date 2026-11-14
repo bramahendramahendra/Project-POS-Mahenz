@@ -40,6 +40,7 @@ export function ReconBreakdownCard({ breakdown, baseUnit }: ReconBreakdownCardPr
         <Row op="+" label="Penjualan dibatalkan" value={breakdown.sale_void} />
         <Row op="-" label="Retur supplier" value={breakdown.supplier_return} />
         <Row op="-" label="Kadaluarsa/rusak" value={breakdown.expired} />
+        <Row op="-" label="Terbuang (void/batal pesanan)" value={breakdown.waste ?? 0} />
         <Row op="±" label="Koreksi manual" value={breakdown.adjustment} />
         <div className="flex items-center justify-between border-t-2 bg-gray-50 px-3 py-2.5 text-sm font-bold">
           <span>= Stok Baru</span>

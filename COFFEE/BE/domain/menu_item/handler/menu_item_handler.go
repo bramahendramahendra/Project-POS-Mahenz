@@ -56,6 +56,16 @@ func bindID(c *gin.Context) (int, bool) {
 	return req.ID, true
 }
 
+// Catalog: data halaman kasir (tahap 4.7b).
+func (h *MenuItemHandler) Catalog(c *gin.Context) {
+	data, err := h.service.Catalog()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	ok(c, 200, "Katalog kasir", data)
+}
+
 func (h *MenuItemHandler) GetAll(c *gin.Context) {
 	req, valid := bindJSON[dto.GetAllRequest](c)
 	if !valid {

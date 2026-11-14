@@ -7,6 +7,7 @@ import { formatRupiah } from '@/shared/utils'
 
 import type { ReceiptData } from './blePrinter'
 import type { PaymentMethod } from './cashier.types'
+import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Tunai',
@@ -26,16 +27,18 @@ export function buildReceiptText(data: ReceiptData): string {
   lines.push(`*${data.storeName}*`)
   if (data.storeSub) lines.push(data.storeSub)
   lines.push('--------------------------------')
+  if (data.checkoutData.queue_label) lines.push(`*Antrean ${data.checkoutData.queue_label}*`)
   lines.push(`No    : ${data.checkoutData.transaction_code}`)
   lines.push(`Tgl   : ${tanggal}`)
   if (data.customerName) lines.push(`Plg   : ${data.customerName}`)
+  for (const [label, value] of orderInfoRows(data.checkoutData)) lines.push(`${label.padEnd(6)}: ${value}`)
   lines.push(`Bayar : ${PAYMENT_LABELS[data.paymentMethod]}`)
   lines.push('--------------------------------')
 
   for (const item of data.cart) {
-    const price = item.effective_price ?? item.price
-    lines.push(item.product_name)
-    lines.push(`  ${item.unit_name} x${item.qty} @ ${formatRupiah(price)} = ${formatRupiah(item.subtotal)}`)
+    lines.push(cartItemName(item))
+    for (const d of cartItemDetails(item)) lines.push(`  ${d}`)
+    lines.push(`  ${cartItemQtyLine(item)} = ${formatRupiah(item.subtotal)}`)
   }
   lines.push('--------------------------------')
 

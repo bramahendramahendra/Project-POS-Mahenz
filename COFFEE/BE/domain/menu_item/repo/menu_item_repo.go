@@ -55,6 +55,7 @@ const (
 	toggleItemQuery      = `UPDATE menu_items SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 	setSoldOutQuery      = `UPDATE menu_items SET is_sold_out = ?, updated_at = ? WHERE id = ?`
 	deleteItemQuery      = `DELETE FROM menu_items WHERE id = ?`
+	countOrderItemsQuery = `SELECT COUNT(*) FROM transaction_items WHERE menu_item_id = ?`
 )
 
 func (r *menuItemRepo) GetAll(req *dto.GetAllRequest) ([]*model.MenuItem, int64, error) {
@@ -263,4 +264,9 @@ func (r *menuItemRepo) SetSoldOut(id int, soldOut bool) error {
 
 func (r *menuItemRepo) Delete(id int) error {
 	return r.db.Exec(deleteItemQuery, id).Error
+}
+
+// CountOrderItems: jumlah baris pesanan yang memakai menu (tahap 4.7a).
+func (r *menuItemRepo) CountOrderItems(menuItemID int) (int64, error) {
+	return r.count(countOrderItemsQuery, menuItemID)
 }

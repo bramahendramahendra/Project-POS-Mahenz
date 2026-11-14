@@ -7,6 +7,8 @@ type PrintReceiptItem struct {
 	Qty      float64 `json:"qty"`
 	Price    float64 `json:"price"`
 	Subtotal float64 `json:"subtotal"`
+	// Details: baris rincian di bawah item (Coffee: kombinasi, tambahan, catatan).
+	Details []string `json:"details"`
 }
 
 // PrintReceiptRequest adalah payload untuk mencetak struk langsung ke printer
@@ -23,19 +25,24 @@ type PrintReceiptRequest struct {
 	LanHost string `json:"lan_host"`
 	LanPort int    `json:"lan_port"`
 
-	StoreName       string             `json:"store_name"`
-	StoreSub        string             `json:"store_sub"`
-	Footer          string             `json:"footer"`
-	TransactionCode string             `json:"transaction_code"`
-	TransactionDate string             `json:"transaction_date"`
-	CustomerName    string             `json:"customer_name"`
-	PaymentMethod   string             `json:"payment_method"`
-	Items           []PrintReceiptItem `json:"items"`
-	Subtotal        float64            `json:"subtotal"`
-	DiscountAmount  float64            `json:"discount_amount"`
-	TaxAmount       float64            `json:"tax_amount"`
-	TaxPercent      float64            `json:"tax_percent"`
-	GrandTotal      float64            `json:"grand_total"`
-	AmountPaid      float64            `json:"amount_paid"`
-	Change          float64            `json:"change"`
+	StoreName       string `json:"store_name"`
+	StoreSub        string `json:"store_sub"`
+	Footer          string `json:"footer"`
+	TransactionCode string `json:"transaction_code"`
+	TransactionDate string `json:"transaction_date"`
+	CustomerName    string `json:"customer_name"`
+	// Info pesanan Coffee (tahap 4.7b): nomor antrean dicetak besar, jenis pesanan, meja, nama pemesan.
+	QueueLabel     string             `json:"queue_label"`
+	OrderType      string             `json:"order_type"`
+	TableName      string             `json:"table_name"`
+	OrderName      string             `json:"order_name"`
+	PaymentMethod  string             `json:"payment_method"`
+	Items          []PrintReceiptItem `json:"items"`
+	Subtotal       float64            `json:"subtotal"`
+	DiscountAmount float64            `json:"discount_amount"`
+	TaxAmount      float64            `json:"tax_amount"`
+	TaxPercent     float64            `json:"tax_percent"`
+	GrandTotal     float64            `json:"grand_total"`
+	AmountPaid     float64            `json:"amount_paid"`
+	Change         float64            `json:"change"`
 }

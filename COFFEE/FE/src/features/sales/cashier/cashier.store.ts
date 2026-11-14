@@ -1,37 +1,42 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { CartItem, Discount, DiscountType, Tax } from './cashier.types'
+import type { CartItem, Discount, DiscountType, OrderType, Tax } from './cashier.types'
 import { calcDiscountAmount, calcItemSubtotal, calcTaxAmount, calculateItemDiscount } from './cashier.utils'
 
 const DEFAULT_DISCOUNT: Discount = { type: 'none', value: 0, amount: 0 }
 const DEFAULT_TAX: Tax = { percent: 0, amount: 0 }
 
 interface CashierState {
-  // Data
+  // Data (disimpan sebagai draf di perangkat)
   cart: CartItem[]
   discount: Discount
   tax: Tax
   selectedCustomer: { id: number; name: string } | null
+  // Info pesanan Coffee (keputusan 25, 95-99)
+  orderType: OrderType
+  table: { id: number; name: string } | null
+  orderName: string
 
   // UI State (not persisted)
   paymentModalOpen: boolean
 
-  // Actions — Cart
+  // Actions — Cart (baris dikenali dari key: kombinasi + tambahan + catatan)
   addToCart: (item: CartItem) => void
-  removeFromCart: (productId: number, unitId: number) => void
-  updateQty: (productId: number, unitId: number, qty: number) => void
-  updateNotes: (productId: number, unitId: number, notes: string) => void
-  updatePrice: (productId: number, unitId: number, price: number) => void
-  setItemDiscount: (productId: number, unitId: number, type: 'percent' | 'nominal', value: number) => void
+  removeFromCart: (key: string) => void
+  updateQty: (key: string, qty: number) => void
+  setItemDiscount: (key: string, type: 'percent' | 'nominal', value: number) => void
   clearCart: () => void
 
   // Actions — Discount & Tax
   setDiscount: (discount: Omit<Discount, 'amount'>) => void
   setTax: (percent: number) => void
 
-  // Actions — Customer
+  // Actions — Customer & pesanan
   setCustomer: (customer: { id: number; name: string } | null) => void
+  setOrderType: (type: OrderType) => void
+  setTable: (table: { id: number; name: string } | null) => void
+  setOrderName: (name: string) => void
 
   // Actions — Modal
   openPaymentModal: () => void
@@ -52,6 +57,15 @@ function recalcDiscountAndTax(
   }
 }
 
+/** Hitung ulang subtotal satu baris setelah jumlah atau harga berubah (diskon item ikut). */
+function withQty(item: CartItem, qty: number): CartItem {
+  if (item.discount_type && item.discount_value) {
+    const { discount_amount, effective_price, subtotal } = calculateItemDiscount(item.price, qty, item.discount_type, item.discount_value)
+    return { ...item, qty, discount_amount, effective_price, subtotal }
+  }
+  return { ...item, qty, subtotal: calcItemSubtotal(qty, item.price) }
+}
+
 export const useCashierStore = create<CashierState>()(
   persist(
     (set, get) => ({
@@ -59,94 +73,43 @@ export const useCashierStore = create<CashierState>()(
       discount: DEFAULT_DISCOUNT,
       tax: DEFAULT_TAX,
       selectedCustomer: null,
+      orderType: 'take_away',
+      table: null,
+      orderName: '',
 
-      // UI state defaults
       paymentModalOpen: false,
 
       // ── Cart Actions ──
 
       addToCart: (item) => {
         const { cart, discount, tax } = get()
-        const existing = cart.find(
-          (i) => i.product_id === item.product_id && i.unit_id === item.unit_id
-        )
-
-        let newCart: CartItem[]
-        if (existing) {
-          const newQty = existing.qty + item.qty
-          newCart = cart.map((i) => {
-            if (i.product_id !== item.product_id || i.unit_id !== item.unit_id) return i
-            if (i.discount_type && i.discount_value) {
-              const { discount_amount, effective_price, subtotal } = calculateItemDiscount(
-                i.price, newQty, i.discount_type, i.discount_value
-              )
-              return { ...i, qty: newQty, discount_amount, effective_price, subtotal }
-            }
-            return { ...i, qty: newQty, subtotal: calcItemSubtotal(newQty, i.price) }
-          })
-        } else {
-          newCart = [...cart, { ...item, subtotal: calcItemSubtotal(item.qty, item.price) }]
-        }
-
-        const { discount: newDiscount, tax: newTax } = recalcDiscountAndTax(newCart, discount, tax)
-        set({ cart: newCart, discount: newDiscount, tax: newTax })
+        const existing = cart.find((i) => i.key === item.key)
+        const newCart = existing
+          ? cart.map((i) => (i.key === item.key ? withQty(i, i.qty + item.qty) : i))
+          : [...cart, withQty(item, item.qty)]
+        set({ cart: newCart, ...recalcDiscountAndTax(newCart, discount, tax) })
       },
 
-      removeFromCart: (productId, unitId) => {
+      removeFromCart: (key) => {
         const { cart, discount, tax } = get()
-        const newCart = cart.filter((i) => !(i.product_id === productId && i.unit_id === unitId))
-        const { discount: newDiscount, tax: newTax } = recalcDiscountAndTax(newCart, discount, tax)
-        set({ cart: newCart, discount: newDiscount, tax: newTax })
+        const newCart = cart.filter((i) => i.key !== key)
+        set({ cart: newCart, ...recalcDiscountAndTax(newCart, discount, tax) })
       },
 
-      updateQty: (productId, unitId, qty) => {
+      updateQty: (key, qty) => {
         if (qty <= 0) {
-          get().removeFromCart(productId, unitId)
+          get().removeFromCart(key)
           return
         }
         const { cart, discount, tax } = get()
-        const newCart = cart.map((i) => {
-          if (i.product_id !== productId || i.unit_id !== unitId) return i
-          if (i.discount_type && i.discount_value) {
-            const { discount_amount, effective_price, subtotal } = calculateItemDiscount(
-              i.price, qty, i.discount_type, i.discount_value
-            )
-            return { ...i, qty, discount_amount, effective_price, subtotal }
-          }
-          return { ...i, qty, subtotal: calcItemSubtotal(qty, i.price) }
-        })
-        const { discount: newDiscount, tax: newTax } = recalcDiscountAndTax(newCart, discount, tax)
-        set({ cart: newCart, discount: newDiscount, tax: newTax })
+        const newCart = cart.map((i) => (i.key === key ? withQty(i, Math.floor(qty)) : i))
+        set({ cart: newCart, ...recalcDiscountAndTax(newCart, discount, tax) })
       },
 
-      updateNotes: (productId, unitId, notes) => {
-        set((state) => ({
-          cart: state.cart.map((i) =>
-            i.product_id === productId && i.unit_id === unitId ? { ...i, notes } : i
-          ),
-        }))
-      },
-
-      updatePrice: (productId, unitId, price) => {
+      setItemDiscount: (key, type, value) => {
         const { cart, discount, tax } = get()
         const newCart = cart.map((i) => {
-          if (i.product_id !== productId || i.unit_id !== unitId) return i
-          if (i.discount_type && i.discount_value) {
-            const { discount_amount, effective_price, subtotal } = calculateItemDiscount(
-              price, i.qty, i.discount_type, i.discount_value
-            )
-            return { ...i, price, discount_amount, effective_price, subtotal }
-          }
-          return { ...i, price, subtotal: calcItemSubtotal(i.qty, price) }
-        })
-        const { discount: newDiscount, tax: newTax } = recalcDiscountAndTax(newCart, discount, tax)
-        set({ cart: newCart, discount: newDiscount, tax: newTax })
-      },
-
-      setItemDiscount: (productId, unitId, type, value) => {
-        const { cart, discount, tax } = get()
-        const newCart = cart.map((i) => {
-          if (i.product_id !== productId || i.unit_id !== unitId) return i
+          if (i.key !== key) return i
           if (value <= 0) {
             return {
               ...i,
@@ -157,13 +120,10 @@ export const useCashierStore = create<CashierState>()(
               subtotal: calcItemSubtotal(i.qty, i.price),
             }
           }
-          const { discount_amount, effective_price, subtotal } = calculateItemDiscount(
-            i.price, i.qty, type, value
-          )
+          const { discount_amount, effective_price, subtotal } = calculateItemDiscount(i.price, i.qty, type, value)
           return { ...i, discount_type: type, discount_value: value, discount_amount, effective_price, subtotal }
         })
-        const { discount: newDiscount, tax: newTax } = recalcDiscountAndTax(newCart, discount, tax)
-        set({ cart: newCart, discount: newDiscount, tax: newTax })
+        set({ cart: newCart, ...recalcDiscountAndTax(newCart, discount, tax) })
       },
 
       clearCart: () =>
@@ -172,6 +132,9 @@ export const useCashierStore = create<CashierState>()(
           discount: DEFAULT_DISCOUNT,
           tax: DEFAULT_TAX,
           selectedCustomer: null,
+          orderType: 'take_away',
+          table: null,
+          orderName: '',
         }),
 
       // ── Discount & Tax ──
@@ -194,9 +157,13 @@ export const useCashierStore = create<CashierState>()(
         set({ tax: { percent, amount: taxAmount } })
       },
 
-      // ── Customer ──
+      // ── Customer & pesanan ──
 
       setCustomer: (customer) => set({ selectedCustomer: customer }),
+      // Bawa pulang tidak memakai meja.
+      setOrderType: (orderType) => set(orderType === 'take_away' ? { orderType, table: null } : { orderType }),
+      setTable: (table) => set({ table }),
+      setOrderName: (orderName) => set({ orderName }),
 
       // ── Modals ──
 
@@ -204,12 +171,26 @@ export const useCashierStore = create<CashierState>()(
       closePaymentModal: () => set({ paymentModalOpen: false }),
     }),
     {
+      // Versi 2: bentuk keranjang Coffee (menu, kombinasi, tambahan). Draf versi lama (produk Toko) dibuang.
       name: 'coffee.cashier-draft',
+      version: 2,
+      migrate: () => ({
+        cart: [],
+        discount: DEFAULT_DISCOUNT,
+        tax: DEFAULT_TAX,
+        selectedCustomer: null,
+        orderType: 'take_away' as OrderType,
+        table: null,
+        orderName: '',
+      }),
       partialize: (state) => ({
         cart: state.cart,
         discount: state.discount,
         tax: state.tax,
         selectedCustomer: state.selectedCustomer,
+        orderType: state.orderType,
+        table: state.table,
+        orderName: state.orderName,
       }),
     }
   )

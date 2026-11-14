@@ -1,6 +1,9 @@
 package segment
 
 import (
+	dining_table_handler "coffee_api/domain/dining_table/handler"
+	dining_table_repo "coffee_api/domain/dining_table/repo"
+	dining_table_service "coffee_api/domain/dining_table/service"
 	menu_category_handler "coffee_api/domain/menu_category/handler"
 	menu_category_repo "coffee_api/domain/menu_category/repo"
 	menu_category_service "coffee_api/domain/menu_category/service"
@@ -20,7 +23,8 @@ import (
 )
 
 // MenuItemRoutes: menu jualan Coffee (tahap 4.4, keputusan 53-55, 85-89).
-// Izin per halaman: menu_jual.daftar, menu_jual.kategori, menu_jual.tambahan, menu_jual.ukuran.
+// Izin per halaman: menu_jual.daftar, menu_jual.kategori, menu_jual.tambahan, menu_jual.ukuran,
+// menu_jual.meja (tahap 4.6, keputusan 98).
 // Pilihan (options) kategori, ukuran, dan kelompok tambahan dipakai form menu, jadi cukup
 // izin lihat Daftar Menu.
 func MenuItemRoutes(r *gin.RouterGroup) {
@@ -29,6 +33,8 @@ func MenuItemRoutes(r *gin.RouterGroup) {
 		return func(action string) gin.HandlerFunc { return middleware.PermissionMiddleware(svc, menuKey, action) }
 	}
 	daftar, kategori, tambahan, ukuran := perm("menu_jual.daftar"), perm("menu_jual.kategori"), perm("menu_jual.tambahan"), perm("menu_jual.ukuran")
+	meja := perm("menu_jual.meja")
+	kasir := perm("penjualan.kasir")
 
 	cat := menu_category_handler.NewMenuCategoryHandler(menu_category_service.NewMenuCategoryService(menu_category_repo.NewMenuCategoryRepo(pkgdatabase.DB)))
 	cg := r.Group("/menu-categories")
@@ -52,6 +58,18 @@ func MenuItemRoutes(r *gin.RouterGroup) {
 		sg.POST("/delete/:id", ukuran("can_delete"), size.Delete)
 	}
 
+	// Meja: dikelola admin/owner, kasir melihat dan memakai pilihan meja di kasir (4.7).
+	tbl := dining_table_handler.NewDiningTableHandler(dining_table_service.NewDiningTableService(dining_table_repo.NewDiningTableRepo(pkgdatabase.DB)))
+	tg := r.Group("/dining-tables")
+	{
+		tg.POST("/list", meja("can_view"), tbl.GetAll)
+		tg.POST("/options", meja("can_view"), tbl.GetOptions)
+		tg.POST("/create", meja("can_create"), tbl.Create)
+		tg.POST("/update/:id", meja("can_edit"), tbl.Update)
+		tg.POST("/toggle-status/:id", meja("can_edit"), tbl.ToggleStatus)
+		tg.POST("/delete/:id", meja("can_delete"), tbl.Delete)
+	}
+
 	mod := modifier_group_handler.NewModifierGroupHandler(modifier_group_service.NewModifierGroupService(modifier_group_repo.NewModifierGroupRepo(pkgdatabase.DB)))
 	mg := r.Group("/modifier-groups")
 	{
@@ -67,6 +85,8 @@ func MenuItemRoutes(r *gin.RouterGroup) {
 	item := menu_item_handler.NewMenuItemHandler(menu_item_service.NewMenuItemService(menu_item_repo.NewMenuItemRepo(pkgdatabase.DB)))
 	ig := r.Group("/menu-items")
 	{
+		// Katalog kasir: cukup izin lihat halaman Kasir (tahap 4.7b).
+		ig.POST("/catalog", kasir("can_view"), item.Catalog)
 		ig.POST("/list", daftar("can_view"), item.GetAll)
 		ig.POST("/detail/:id", daftar("can_view"), item.GetByID)
 		ig.POST("/create", daftar("can_create"), item.Create)

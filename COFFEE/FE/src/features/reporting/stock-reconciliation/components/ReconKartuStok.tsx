@@ -11,6 +11,8 @@ const TYPE_LABEL: Record<string, { label: string; cls: string }> = {
   return: { label: 'Retur', cls: 'bg-orange-100 text-orange-700' },
   expired: { label: 'Kadaluarsa', cls: 'bg-red-100 text-red-700' },
   adjustment: { label: 'Koreksi', cls: 'bg-violet-100 text-violet-700' },
+  // Coffee: barang jadi dibuang saat void/batal pesanan (keputusan 100).
+  waste: { label: 'Terbuang', cls: 'bg-red-100 text-red-700' },
 }
 
 // Jenis mutasi yang MENAMBAH stok -> qty ditampilkan bertanda +

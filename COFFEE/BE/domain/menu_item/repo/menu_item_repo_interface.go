@@ -35,6 +35,11 @@ type (
 		ToggleStatus(id int) error
 		SetSoldOut(id int, soldOut bool) error
 		Delete(id int) error
+		CountOrderItems(menuItemID int) (int64, error)
+
+		// Katalog kasir (tahap 4.7b).
+		CatalogData() ([]model.CatalogCategory, []model.CatalogItem, []model.CatalogVariant, []model.CatalogGroup, []model.CatalogOption, error)
+		AvailableStock(productIDs []int) (map[int]float64, error)
 
 		GetDB() *gorm.DB
 		WithTx(tx *gorm.DB) MenuItemRepoInterface

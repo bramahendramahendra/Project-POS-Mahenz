@@ -46,6 +46,12 @@ export const queryKeys = {
     options: () => ['menuSizes', 'options'] as const,
   },
 
+  diningTables: {
+    all: () => ['diningTables'] as const,
+    list: (filter?: Filter) => ['diningTables', 'list', filter] as const,
+    options: () => ['diningTables', 'options'] as const,
+  },
+
   modifierGroups: {
     all: () => ['modifierGroups'] as const,
     list: (filter?: Filter) => ['modifierGroups', 'list', filter] as const,

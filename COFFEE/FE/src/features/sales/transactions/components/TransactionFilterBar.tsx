@@ -27,7 +27,8 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
       <div className="relative min-w-[200px] flex-1">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <Input
-          placeholder="Kode transaksi / pelanggan..."
+          placeholder="Kode, antrean, pemesan, meja, pelanggan..."
+          aria-label="Cari transaksi"
           value={filter.search ?? ''}
           onChange={(e) => set({ search: e.target.value || undefined })}
           className="pl-8 h-9 text-sm"
@@ -66,6 +67,21 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
           <SelectItem value="qris">QRIS</SelectItem>
           <SelectItem value="card">Kartu</SelectItem>
           <SelectItem value="kredit">Kredit</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Jenis pesanan */}
+      <Select
+        value={filter.order_type || 'all'}
+        onValueChange={(v) => set({ order_type: v === 'all' ? '' : (v as TransactionListFilter['order_type']) })}
+      >
+        <SelectTrigger className="h-9 w-[160px] text-sm" aria-label="Jenis pesanan">
+          <SelectValue placeholder="Semua Pesanan" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Pesanan</SelectItem>
+          <SelectItem value="take_away">Bawa pulang</SelectItem>
+          <SelectItem value="dine_in">Makan di tempat</SelectItem>
         </SelectContent>
       </Select>
 

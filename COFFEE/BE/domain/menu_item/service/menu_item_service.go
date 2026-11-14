@@ -145,6 +145,14 @@ func (s *menuItemService) Delete(id int) error {
 	if _, err := s.mustGet(id); err != nil {
 		return err
 	}
+	// Sejak 4.7a: menu yang sudah pernah dipesan tidak bisa dihapus (riwayat penjualan), cukup dinonaktifkan.
+	sold, err := s.repo.CountOrderItems(id)
+	if err != nil {
+		return err
+	}
+	if sold > 0 {
+		return &errors.BadRequestError{Message: "Menu sudah pernah dipesan dan tidak bisa dihapus. Nonaktifkan saja"}
+	}
 	return s.repo.Delete(id)
 }
 

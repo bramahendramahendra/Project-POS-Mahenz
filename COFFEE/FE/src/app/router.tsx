@@ -25,6 +25,7 @@ const MenuItemsPage      = lazy(() => import('@/features/menu-items/MenuItemsPag
 const MenuCategoriesPage = lazy(() => import('@/features/menu-items/MenuCategoriesPage').then(m => ({ default: m.MenuCategoriesPage })))
 const ModifierGroupsPage = lazy(() => import('@/features/menu-items/ModifierGroupsPage').then(m => ({ default: m.ModifierGroupsPage })))
 const MenuSizesPage      = lazy(() => import('@/features/menu-items/MenuSizesPage').then(m => ({ default: m.MenuSizesPage })))
+const DiningTablesPage   = lazy(() => import('@/features/menu-items/DiningTablesPage').then(m => ({ default: m.DiningTablesPage })))
 
 // Bahan baku
 const IngredientsPage       = lazy(() => import('@/features/ingredients/IngredientsPage').then(m => ({ default: m.IngredientsPage })))
@@ -92,6 +93,7 @@ const PROTECTED_ROUTES: RouteDef[] = [
   { path: ROUTES.MENU_CATEGORIES, menuKey: 'menu_jual.kategori', element: <MenuCategoriesPage /> },
   { path: ROUTES.MENU_MODIFIERS, menuKey: 'menu_jual.tambahan', element: <ModifierGroupsPage /> },
   { path: ROUTES.MENU_SIZES, menuKey: 'menu_jual.ukuran', element: <MenuSizesPage /> },
+  { path: ROUTES.MENU_TABLES, menuKey: 'menu_jual.meja', element: <DiningTablesPage /> },
 
   // Bahan Baku
   { path: ROUTES.INGREDIENTS, menuKey: 'bahan.daftar', element: <IngredientsPage /> },

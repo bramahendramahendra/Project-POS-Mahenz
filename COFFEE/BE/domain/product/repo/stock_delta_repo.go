@@ -40,7 +40,7 @@ type ApplyStockDeltaParams struct {
 	PackageID     int
 	Quantity      float64
 	Direction     model_product.StockDirection
-	MutationType  string // 'in' | 'out' | 'adjustment' | 'void' | 'return' | 'void_purchase' | 'expired'
+	MutationType  string // 'in' | 'out' | 'adjustment' | 'void' | 'return' | 'void_purchase' | 'expired' | 'waste'
 	ReferenceType string
 	ReferenceID   int
 	Notes         string

@@ -6,6 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
+import { ORDER_TYPE_LABEL } from '@/features/sales/cashier/cashier.types'
+
 import type { Transaction } from '../transactions.types'
 import { PAYMENT_LABELS, formatDateTimeShort } from '../transactions.utils'
 
@@ -27,6 +29,23 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       ),
     },
     {
+      key: 'queue_number',
+      header: 'Antrean',
+      align: 'center',
+      sortable: true,
+      cell: (row) => <span className="text-base font-bold text-gray-800">{row.queue_label || '—'}</span>,
+    },
+    {
+      key: 'order_type',
+      header: 'Pesanan',
+      cell: (row) => (
+        <div className="text-sm">
+          <p>{row.order_type ? ORDER_TYPE_LABEL[row.order_type] : '—'}</p>
+          {row.table_name && <p className="text-xs text-gray-500">{row.table_name}</p>}
+        </div>
+      ),
+    },
+    {
       key: 'transaction_date',
       header: 'Tanggal',
       sortable: true,
@@ -36,11 +55,14 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
     },
     {
       key: 'customer_name',
-      header: 'Pelanggan',
+      header: 'Pemesan',
       sortable: true,
       cell: (row) =>
-        row.customer_name ? (
-          <span className="text-sm">{row.customer_name}</span>
+        row.order_name || row.customer_name ? (
+          <div className="text-sm">
+            {row.order_name && <p>{row.order_name}</p>}
+            {row.customer_name && <p className="text-xs text-gray-500">Pelanggan: {row.customer_name}</p>}
+          </div>
         ) : (
           <span className="text-gray-400 text-sm">—</span>
         ),

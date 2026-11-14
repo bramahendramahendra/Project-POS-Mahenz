@@ -25,6 +25,8 @@ export interface ReconBreakdown {
   sale_void: number
   supplier_return: number
   expired: number
+  /** Coffee: barang jadi dibuang saat void/batal pesanan (keputusan 100). */
+  waste?: number
   adjustment: number
   computed_new_stock: number
 }

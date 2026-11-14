@@ -33,6 +33,8 @@ var (
 	escBoldOff     = []byte{0x1B, 0x45, 0x00} // ESC E 0
 	escFeed3       = []byte{0x1B, 0x64, 0x03} // ESC d 3 — feed 3 baris
 	cutPaper       = []byte{0x1D, 0x56, 0x00} // GS V 0  — potong (diabaikan bila tak ada cutter)
+	escDoubleOn    = []byte{0x1D, 0x21, 0x11} // GS ! 0x11 — huruf 2x lebar dan tinggi (nomor antrean)
+	escDoubleOff   = []byte{0x1D, 0x21, 0x00} // GS ! 0x00
 )
 
 // PrintReceipt menyusun struk sebagai ESC/POS lalu mengirimnya ke printer. Tujuan
@@ -109,10 +111,32 @@ func buildEscPos(req *dto.PrintReceiptRequest, width int) []byte {
 	b.Write(escAlignLeft)
 
 	b.WriteString(line)
+	// Nomor antrean besar di tengah agar mudah dipanggil (keputusan 56, 95).
+	if strings.TrimSpace(req.QueueLabel) != "" {
+		b.Write(escAlignCenter)
+		b.WriteString("ANTREAN\n")
+		b.Write(escDoubleOn)
+		b.WriteString(req.QueueLabel + "\n")
+		b.Write(escDoubleOff)
+		b.Write(escAlignLeft)
+		b.WriteString(line)
+	}
 	b.WriteString(twoCol("No", req.TransactionCode, width))
 	b.WriteString(twoCol("Tgl", formatDate(req.TransactionDate), width))
 	if strings.TrimSpace(req.CustomerName) != "" {
 		b.WriteString(twoCol("Plg", req.CustomerName, width))
+	}
+	switch req.OrderType {
+	case "dine_in":
+		b.WriteString(twoCol("Pesanan", "Makan di tempat", width))
+	case "take_away":
+		b.WriteString(twoCol("Pesanan", "Bawa pulang", width))
+	}
+	if strings.TrimSpace(req.TableName) != "" {
+		b.WriteString(twoCol("Meja", req.TableName, width))
+	}
+	if strings.TrimSpace(req.OrderName) != "" {
+		b.WriteString(twoCol("Nama", req.OrderName, width))
 	}
 	b.WriteString(twoCol("Bayar", paymentLabel(req.PaymentMethod), width))
 	b.WriteString(line)
@@ -120,6 +144,9 @@ func buildEscPos(req *dto.PrintReceiptRequest, width int) []byte {
 	// Item: nama di baris sendiri, lalu "qty x harga" kiri & subtotal kanan.
 	for _, it := range req.Items {
 		b.WriteString(wrap(it.Name, width))
+		for _, d := range it.Details {
+			b.WriteString(wrap("  "+d, width))
+		}
 		left := fmt.Sprintf("  %s x%s @ %s", it.UnitName, trimNum(it.Qty), rupiah(it.Price))
 		b.WriteString(twoCol(left, rupiah(it.Subtotal), width))
 	}

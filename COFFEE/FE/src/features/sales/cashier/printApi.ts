@@ -1,6 +1,7 @@
 import { api } from '@/services'
 
 import type { ReceiptData } from './blePrinter'
+import { cartItemDetails, cartItemName } from './cashier.utils'
 
 /**
  * Payload cetak struk ke BE, yang akan mengirim ESC/POS langsung ke printer
@@ -16,6 +17,10 @@ interface PrintReceiptPayload {
   transaction_code: string
   transaction_date: string
   customer_name: string
+  queue_label: string
+  order_type: string
+  table_name: string
+  order_name: string
   payment_method: string
   items: Array<{
     name: string
@@ -23,6 +28,7 @@ interface PrintReceiptPayload {
     qty: number
     price: number
     subtotal: number
+    details: string[]
   }>
   subtotal: number
   discount_amount: number
@@ -42,13 +48,18 @@ function toPayload(data: ReceiptData): PrintReceiptPayload {
     transaction_code: data.checkoutData.transaction_code,
     transaction_date: data.checkoutData.transaction_date,
     customer_name: data.customerName ?? '',
+    queue_label: data.checkoutData.queue_label ?? '',
+    order_type: data.checkoutData.order_type ?? '',
+    table_name: data.checkoutData.table_name ?? '',
+    order_name: data.checkoutData.order_name ?? '',
     payment_method: data.paymentMethod,
     items: data.cart.map((i) => ({
-      name: i.product_name,
+      name: cartItemName(i),
       unit_name: i.unit_name,
       qty: i.qty,
       price: i.effective_price ?? i.price,
       subtotal: i.subtotal,
+      details: cartItemDetails(i),
     })),
     subtotal: data.summary.subtotal,
     discount_amount: data.summary.discountAmount,

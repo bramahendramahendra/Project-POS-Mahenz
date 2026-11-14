@@ -39,6 +39,7 @@ import type {
   PaymentMethod,
   Tax,
 } from '../cashier.types'
+import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from '../cashier.utils'
 
 interface ReceiptPrintProps {
   open: boolean
@@ -418,6 +419,17 @@ export function ReceiptPrint({
 
       <hr className="border-dashed border-gray-300" />
 
+      {/* Nomor antrean besar (keputusan 56, 95) */}
+      {checkoutData.queue_label && (
+        <>
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Antrean</p>
+            <p className="text-4xl font-bold text-gray-900" aria-label="Nomor antrean">{checkoutData.queue_label}</p>
+          </div>
+          <hr className="border-dashed border-gray-300" />
+        </>
+      )}
+
       {/* Info transaksi */}
       <div className="space-y-1 text-xs text-gray-600">
         <div className="flex justify-between">
@@ -434,6 +446,12 @@ export function ReceiptPrint({
             <span className="text-gray-700">{customerName}</span>
           </div>
         )}
+        {orderInfoRows(checkoutData).map(([label, value]) => (
+          <div key={label} className="flex justify-between">
+            <span className="text-gray-400">{label}</span>
+            <span className="text-gray-700">{value}</span>
+          </div>
+        ))}
         <div className="flex justify-between">
           <span className="text-gray-400">Pembayaran</span>
           <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
@@ -445,14 +463,14 @@ export function ReceiptPrint({
       {/* Item list */}
       <div className="space-y-2.5">
         {cart.map((item) => (
-          <div key={`${item.product_id}-${item.unit_id}`} className="space-y-0.5">
+          <div key={item.key} className="space-y-0.5">
             <div className="flex justify-between items-start gap-2">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">{item.product_name}</p>
-                <p className="text-xs text-gray-400">
-                  {item.unit_name} &times; {item.qty} &nbsp;@&nbsp;
-                  {formatRupiah(item.effective_price ?? item.price)}
-                </p>
+                <p className="text-sm font-medium text-gray-800">{cartItemName(item)}</p>
+                {cartItemDetails(item).map((d) => (
+                  <p key={d} className="text-xs text-gray-500">{d}</p>
+                ))}
+                <p className="text-xs text-gray-400">{cartItemQtyLine(item)}</p>
               </div>
               <span className="text-sm font-semibold text-gray-800 shrink-0">
                 {formatRupiah(item.subtotal)}

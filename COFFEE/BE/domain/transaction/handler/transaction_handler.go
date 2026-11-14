@@ -112,6 +112,21 @@ func (h *TransactionHandler) Void(c *gin.Context) {
 		return
 	}
 
+	// Body opsional (keputusan 100): pilihan per item barang jadi kembali/dibuang + alasan.
+	// Tanpa body = semua barang jadi kembali ke stok.
+	if c.Request.ContentLength != 0 {
+		body, err := binder.BindJSON[dto.VoidBodyRequest](c)
+		if err != nil {
+			c.Error(&errors.BadRequestError{Message: err.Error()})
+			return
+		}
+		if err := validator.Validate.Struct(body); err != nil {
+			c.Error(&errors.BadRequestError{Message: err.Error()})
+			return
+		}
+		req.Body = body
+	}
+
 	if svcErr := h.service.Void(&req, helper.GetUserID(c)); svcErr != nil {
 		c.Error(svcErr)
 		return

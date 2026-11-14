@@ -17,6 +17,7 @@ import { formatRupiah } from '@/shared/utils'
 
 import type { ReceiptData } from './blePrinter'
 import type { PaymentMethod } from './cashier.types'
+import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Tunai',
@@ -54,16 +55,22 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   pushCenter(data.storeName, { bold: true, size: FONT_SIZE_TITLE })
   if (data.storeSub) pushCenter(data.storeSub)
   pushSep()
+  if (data.checkoutData.queue_label) {
+    pushCenter('ANTREAN')
+    pushCenter(data.checkoutData.queue_label, { bold: true, size: 18 })
+    pushSep()
+  }
   pushRow('No', data.checkoutData.transaction_code)
   pushRow('Tgl', new Date(data.checkoutData.transaction_date).toLocaleString('id-ID'))
   if (data.customerName) pushRow('Plg', data.customerName)
+  for (const [label, value] of orderInfoRows(data.checkoutData)) pushRow(label, value)
   pushRow('Bayar', PAYMENT_LABELS[data.paymentMethod])
   pushSep()
 
   for (const item of data.cart) {
-    const price = item.effective_price ?? item.price
-    pushLeft(item.product_name)
-    pushRow(`  ${item.unit_name} x${item.qty} @ ${formatRupiah(price)}`, formatRupiah(item.subtotal))
+    pushLeft(cartItemName(item))
+    for (const d of cartItemDetails(item)) pushLeft(`  ${d}`)
+    pushRow(`  ${cartItemQtyLine(item)}`, formatRupiah(item.subtotal))
   }
   pushSep()
 

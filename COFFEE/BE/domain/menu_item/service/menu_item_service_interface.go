@@ -14,6 +14,7 @@ type (
 		ToggleStatus(id int) error
 		SetSoldOut(req *dto.SoldOutRequest) error
 		Delete(id int) error
+		Catalog() (*dto.CatalogResponse, error)
 	}
 
 	menuItemService struct {

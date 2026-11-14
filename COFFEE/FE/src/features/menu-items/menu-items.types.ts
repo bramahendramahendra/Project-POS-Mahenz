@@ -22,6 +22,15 @@ export interface MenuSize {
   usage_count: number
 }
 
+/** Meja kedai (tahap 4.6, keputusan 97). usage_count = jumlah pesanan yang memakai meja (mulai 4.7). */
+export interface DiningTable {
+  id: number
+  name: string
+  sort_order: number
+  is_active: boolean
+  usage_count: number
+}
+
 export interface NamedOption {
   id: number
   name: string

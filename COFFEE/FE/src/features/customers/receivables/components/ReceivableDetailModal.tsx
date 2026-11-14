@@ -6,7 +6,7 @@ import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { formatRupiah, formatDate } from '@/shared/utils'
 import { ReceiptPrint } from '@/features/sales/cashier/components/ReceiptPrint'
-import type { CartItem, CartSummary, Discount, Tax } from '@/features/sales/cashier'
+import { savedReceiptLine, type CartItem, type CartSummary, type Discount, type Tax } from '@/features/sales/cashier'
 
 import { useReceivableDetailQuery } from '../receivables.api'
 import type { Receivable, ReceivableDetail, ReceivableStatus } from '../receivables.types'
@@ -34,17 +34,17 @@ function buildReceiptData(d: ReceivableDetail): {
   discount: Discount
   tax: Tax
 } {
-  const cart: CartItem[] = d.items.map((item, idx) => ({
-    product_id: idx,
-    product_name: item.product_name,
-    unit_id: idx,
-    unit_name: item.unit,
-    conversion_qty: 1,
-    qty: item.quantity,
-    price: item.price,
-    subtotal: item.subtotal,
-    discount_amount: item.discount_item > 0 ? item.discount_item : undefined,
-  }))
+  const cart: CartItem[] = d.items.map((item, idx) =>
+    savedReceiptLine({
+      key: String(idx),
+      name: item.product_name,
+      unit: item.unit,
+      qty: item.quantity,
+      price: item.price,
+      subtotal: item.subtotal,
+      discount: item.discount_item,
+    }),
+  )
 
   const itemsSubtotal = d.items.reduce((s, it) => s + it.subtotal, 0)
   const summary: CartSummary = {

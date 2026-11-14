@@ -3,23 +3,18 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { Product } from '@/features/products/products'
 
-import type { CheckoutResponse, PaymentPayload, ProductSearchResult } from './cashier.types'
+import type { CheckoutResponse, MenuCatalog, PaymentPayload } from './cashier.types'
 
-export function useProductSearchQuery(keyword: string, enabled: boolean) {
+export const CATALOG_QUERY_KEY = ['cashier', 'catalog'] as const
+
+/** Katalog kasir: menu aktif, kombinasi, tambahan, status habis, sisa stok barang jadi. */
+export function useMenuCatalogQuery() {
   return useQuery({
-    queryKey: ['cashier', 'search', keyword],
-    queryFn: () => api.post<ProductSearchResult[]>('/products/search', { q: keyword, limit: 20 }),
-    enabled: enabled && keyword.length >= 2,
-  })
-}
-
-export function useProductBarcodeSearchQuery(code: string, enabled: boolean) {
-  return useQuery({
-    queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.post<Product>(`/products/by-barcode/${code}`, {}),
-    enabled: enabled && code.length > 0,
+    queryKey: CATALOG_QUERY_KEY,
+    queryFn: () => api.post<MenuCatalog>('/menu-items/catalog', {}),
+    // Stok barang jadi dan tanda habis bisa berubah dari kasir lain.
+    refetchInterval: 60_000,
   })
 }
 
@@ -47,8 +42,14 @@ export function useCheckoutMutation() {
       qc.invalidateQueries({ queryKey: queryKeys.transactions.all() })
       qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
       qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
-      toast.success(`Transaksi ${data.transaction_code} berhasil`)
+      qc.invalidateQueries({ queryKey: CATALOG_QUERY_KEY })
+      qc.invalidateQueries({ queryKey: queryKeys.products.all() })
+      toast.success(`Transaksi ${data.transaction_code} berhasil, antrean ${data.queue_label ?? ''}`)
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      // Stok atau status menu mungkin berubah: muat ulang katalog agar tampilan sesuai.
+      qc.invalidateQueries({ queryKey: CATALOG_QUERY_KEY })
+      toast.error(e.message)
+    },
   })
 }

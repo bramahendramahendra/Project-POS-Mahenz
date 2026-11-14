@@ -15,6 +15,7 @@ export const ROUTES = {
   MENU_CATEGORIES: '/menu-items/categories',
   MENU_MODIFIERS: '/menu-items/modifiers',
   MENU_SIZES: '/menu-items/sizes',
+  MENU_TABLES: '/menu-items/tables',
 
   // Bahan Baku
   INGREDIENTS: '/ingredients',

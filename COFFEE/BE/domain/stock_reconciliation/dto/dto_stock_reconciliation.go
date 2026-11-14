@@ -72,6 +72,7 @@ type (
 		SaleVoid         float64 `json:"sale_void"`         // void
 		SupplierReturn   float64 `json:"supplier_return"`   // return
 		Expired          float64 `json:"expired"`           // expired
+		Waste            float64 `json:"waste"`             // waste (Coffee: barang jadi dibuang, keputusan 100)
 		Adjustment       float64 `json:"adjustment"`        // adjustment (bertanda)
 		ComputedNewStock float64 `json:"computed_new_stock"` // hasil rumus
 	}

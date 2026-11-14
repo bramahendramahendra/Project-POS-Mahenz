@@ -1,6 +1,7 @@
 import { formatRupiah } from '@/shared/utils'
 
 import type { CartItem, CartSummary, CheckoutResponse, Discount, PaymentMethod, Tax } from './cashier.types'
+import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   cash: 'Tunai',
@@ -21,6 +22,8 @@ const ESC_ALIGN_CENTER = [0x1b, 0x61, 0x01]
 const ESC_BOLD_ON = [0x1b, 0x45, 0x01]
 const ESC_BOLD_OFF = [0x1b, 0x45, 0x00]
 const ESC_FEED_LINES = (n: number) => [0x1b, 0x64, n] // ESC d n — feed n baris
+const GS_DOUBLE_ON = [0x1d, 0x21, 0x11] // GS ! 0x11 — huruf 2x (nomor antrean)
+const GS_DOUBLE_OFF = [0x1d, 0x21, 0x00]
 
 export function isBlePrintSupported(): boolean {
   return typeof navigator !== 'undefined' && 'bluetooth' in navigator && !!navigator.bluetooth
@@ -146,16 +149,22 @@ export function receiptToPlainText(params: {
   let out = center(storeName, width)
   if (storeSub) out += center(storeSub, width)
   out += line
+  if (checkoutData.queue_label) {
+    out += center('ANTREAN', width)
+    out += center(checkoutData.queue_label, width)
+    out += line
+  }
   out += padLine('No. Transaksi', checkoutData.transaction_code, width)
   out += padLine('Tanggal', new Date(checkoutData.transaction_date).toLocaleString('id-ID'), width)
   if (customerName) out += padLine('Pelanggan', customerName, width)
+  for (const [label, value] of orderInfoRows(checkoutData)) out += padLine(label, value, width)
   out += padLine('Pembayaran', PAYMENT_LABELS[paymentMethod], width)
   out += line
 
   for (const item of cart) {
-    const price = item.effective_price ?? item.price
-    out += padLine(item.product_name, formatRupiah(item.subtotal), width)
-    out += `  ${item.unit_name} x${item.qty} @ ${formatRupiah(price)}\n`
+    out += padLine(cartItemName(item), formatRupiah(item.subtotal), width)
+    for (const d of cartItemDetails(item)) out += `  ${d}\n`
+    out += `  ${cartItemQtyLine(item)}\n`
   }
   out += line
 
@@ -233,16 +242,27 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
   push(ESC_ALIGN_LEFT)
 
   pushText(lineSep)
+  // Nomor antrean besar di tengah agar mudah dipanggil (keputusan 56, 95).
+  if (data.checkoutData.queue_label) {
+    push(ESC_ALIGN_CENTER)
+    pushText('ANTREAN\n')
+    push(GS_DOUBLE_ON)
+    pushText(data.checkoutData.queue_label + '\n')
+    push(GS_DOUBLE_OFF)
+    push(ESC_ALIGN_LEFT)
+    pushText(lineSep)
+  }
   pushText(padLine('No. Transaksi', data.checkoutData.transaction_code, width))
   pushText(padLine('Tanggal', new Date(data.checkoutData.transaction_date).toLocaleString('id-ID'), width))
   if (data.customerName) pushText(padLine('Pelanggan', data.customerName, width))
+  for (const [label, value] of orderInfoRows(data.checkoutData)) pushText(padLine(label, value, width))
   pushText(padLine('Pembayaran', PAYMENT_LABELS[data.paymentMethod], width))
   pushText(lineSep)
 
   for (const item of data.cart) {
-    const price = item.effective_price ?? item.price
-    pushText(padLine(item.product_name, formatRupiah(item.subtotal), width))
-    pushText(`  ${item.unit_name} x${item.qty} @ ${formatRupiah(price)}\n`)
+    pushText(padLine(cartItemName(item), formatRupiah(item.subtotal), width))
+    for (const d of cartItemDetails(item)) pushText(`  ${d}\n`)
+    pushText(`  ${cartItemQtyLine(item)}\n`)
   }
   pushText(lineSep)
 
@@ -360,17 +380,25 @@ export function buildReceiptHtml(data: ReceiptData): string {
   rows.push(`<div class="center store-name">${esc(data.storeName)}</div>`)
   if (data.storeSub) rows.push(`<div class="center">${esc(data.storeSub)}</div>`)
   rows.push('<hr />')
+  if (data.checkoutData.queue_label) {
+    rows.push('<div class="center">ANTREAN</div>')
+    rows.push(`<div class="center" style="font-size:28px;font-weight:bold;line-height:1.1">${esc(data.checkoutData.queue_label)}</div>`)
+    rows.push('<hr />')
+  }
 
   rows.push(`<div class="info"><span class="lbl">No:</span> <span class="val">${esc(data.checkoutData.transaction_code)}</span></div>`)
   rows.push(`<div class="info"><span class="lbl">Tgl:</span> <span class="val">${esc(tanggal)}</span></div>`)
   if (data.customerName) rows.push(`<div class="info"><span class="lbl">Plg:</span> <span class="val">${esc(data.customerName)}</span></div>`)
+  for (const [label, value] of orderInfoRows(data.checkoutData)) {
+    rows.push(`<div class="info"><span class="lbl">${esc(label)}:</span> <span class="val">${esc(value)}</span></div>`)
+  }
   rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_LABELS[data.paymentMethod])}</span></div>`)
   rows.push('<hr />')
 
   for (const item of data.cart) {
-    const price = item.effective_price ?? item.price
-    rows.push(`<div class="item-name">${esc(item.product_name)}</div>`)
-    rows.push(`<div class="row"><span class="item-sub">${esc(item.unit_name)} x${item.qty} @ ${esc(formatRupiah(price))}</span><span>${esc(formatRupiah(item.subtotal))}</span></div>`)
+    rows.push(`<div class="item-name">${esc(cartItemName(item))}</div>`)
+    for (const d of cartItemDetails(item)) rows.push(`<div class="item-sub">&nbsp;&nbsp;${esc(d)}</div>`)
+    rows.push(`<div class="row"><span class="item-sub">${esc(cartItemQtyLine(item))}</span><span>${esc(formatRupiah(item.subtotal))}</span></div>`)
   }
   rows.push('<hr />')
 

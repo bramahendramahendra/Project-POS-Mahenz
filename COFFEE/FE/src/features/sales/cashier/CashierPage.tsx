@@ -5,16 +5,19 @@ import { useCashDrawerCurrentQuery } from '@/features/finance/cash-drawer'
 import { useBreakpoint } from '@/shared/hooks'
 
 import { useCashierStore } from './cashier.store'
-import { CartEditableList } from './components/CartEditableList'
+import { MenuCatalog } from './components/MenuCatalog'
 import { PaymentModal } from './components/PaymentModal'
-import { ProductSearch } from './components/ProductSearch'
 import { SummaryPanel } from './components/SummaryPanel'
 
+/**
+ * Kasir Coffee (tahap 4.7b): kiri katalog menu (tombol besar per kategori), kanan panel pesanan.
+ * Tablet/HP: dua tab "Menu" dan "Pesanan".
+ */
 export function CashierPage() {
   const { data: currentDrawer, isLoading: isLoadingDrawer } = useCashDrawerCurrentQuery()
   const { paymentModalOpen, closePaymentModal, cart } = useCashierStore()
   const isDesktop = useBreakpoint('lg')
-  const [mobileTab, setMobileTab] = useState<'produk' | 'keranjang'>('produk')
+  const [mobileTab, setMobileTab] = useState<'menu' | 'pesanan'>('menu')
   const itemCount = cart.reduce((sum, i) => sum + i.qty, 0)
 
   useEffect(() => {
@@ -26,44 +29,32 @@ export function CashierPage() {
     }
   }, [currentDrawer, isLoadingDrawer])
 
+  const tabClass = (active: boolean) =>
+    `relative flex-1 border-b-2 py-2.5 text-sm font-medium transition-colors ${
+      active ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+    }`
+
   return (
     <div
       // Perangkat sentuh (tablet/HP/APK): tombol dan input kasir minimal 40px agar mudah ditekan.
-      // Kotak centang dikecualikan (barisnya sudah bisa ditekan; bila ditarik bentuknya rusak).
       className="touch:[&_button:not([role=checkbox])]:min-h-10 touch:[&_button:not([role=checkbox])]:min-w-10 touch:[&_input]:min-h-10"
       style={{
         display: 'flex',
         flexDirection: isDesktop ? 'row' : 'column',
-        height: 'calc(100vh - var(--navbar-height))',
+        // Dikurangi padding atas-bawah <main> (2 x 24px) agar tombol Bayar tidak terdorong ke luar layar.
+        height: 'calc(100vh - var(--navbar-height) - 48px)',
         overflow: 'hidden',
       }}
     >
-      {/* Switch tab Produk/Keranjang — hanya tablet & mobile */}
       {!isDesktop && (
-        <div className="flex shrink-0 border-b bg-white">
-          <button
-            type="button"
-            onClick={() => setMobileTab('produk')}
-            className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              mobileTab === 'produk'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500'
-            }`}
-          >
-            Produk
+        <div className="flex shrink-0 border-b bg-white" role="tablist">
+          <button type="button" role="tab" aria-selected={mobileTab === 'menu'} onClick={() => setMobileTab('menu')} className={tabClass(mobileTab === 'menu')}>
+            Menu
           </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab('keranjang')}
-            className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors relative ${
-              mobileTab === 'keranjang'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500'
-            }`}
-          >
-            Keranjang
+          <button type="button" role="tab" aria-selected={mobileTab === 'pesanan'} onClick={() => setMobileTab('pesanan')} className={tabClass(mobileTab === 'pesanan')}>
+            Pesanan
             {itemCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-[10px] min-w-[16px] h-4 px-1">
+              <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] text-white">
                 {itemCount}
               </span>
             )}
@@ -71,34 +62,26 @@ export function CashierPage() {
         </div>
       )}
 
-      {/* Panel Kiri — Search + Keranjang Editable */}
       <div
         style={{
           flex: 1,
-          display: isDesktop || mobileTab === 'produk' ? 'flex' : 'none',
+          display: isDesktop || mobileTab === 'menu' ? 'flex' : 'none',
           flexDirection: 'column',
-          borderRight: isDesktop ? '1px solid var(--color-border)' : undefined,
           overflow: 'hidden',
         }}
         className="bg-gray-50"
       >
-        {/* Search */}
-        <div className="px-4 pt-4 pb-3 shrink-0">
-          <ProductSearch />
-        </div>
-
-        {/* Keranjang editable — flex-1, scrollable */}
-        <CartEditableList />
+        <MenuCatalog />
       </div>
 
-      {/* Panel Kanan — Ringkasan (360px fixed di desktop, full-width tab di mobile/tablet) */}
       <div
         style={{
-          width: isDesktop ? '360px' : '100%',
+          width: isDesktop ? '380px' : '100%',
           flexShrink: 0,
           overflow: 'hidden',
-          display: isDesktop || mobileTab === 'keranjang' ? 'flex' : 'none',
+          display: isDesktop || mobileTab === 'pesanan' ? 'flex' : 'none',
           flexDirection: 'column',
+          flex: isDesktop ? undefined : 1,
         }}
       >
         <SummaryPanel />

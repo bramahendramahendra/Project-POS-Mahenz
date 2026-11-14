@@ -338,12 +338,14 @@ func (r *stockReconciliationRepo) buildBreakdown(productID int) (dto.Breakdown, 
 			b.SupplierReturn = rw.Total
 		case "expired":
 			b.Expired = rw.Total
+		case "waste":
+			b.Waste = rw.Total
 		case "adjustment":
 			b.Adjustment = rw.Total
 		}
 	}
-	// rumus: +in -void_purchase -out +void -return -expired +adjustment
-	b.ComputedNewStock = b.PurchaseIn - b.PurchaseVoid - b.SaleOut + b.SaleVoid - b.SupplierReturn - b.Expired + b.Adjustment
+	// rumus: +in -void_purchase -out +void -return -expired -waste +adjustment
+	b.ComputedNewStock = b.PurchaseIn - b.PurchaseVoid - b.SaleOut + b.SaleVoid - b.SupplierReturn - b.Expired - b.Waste + b.Adjustment
 	return b, nil
 }
 
