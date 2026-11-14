@@ -166,7 +166,7 @@ export function SummaryPanel() {
       {!kasOpen && (
         <div className="mx-4 mb-2 flex shrink-0 items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-          <span>Kas belum dibuka. Buka kas terlebih dahulu untuk memproses pembayaran.</span>
+          <span>Kas belum dibuka. Buka kas terlebih dahulu untuk menyimpan pesanan atau memproses pembayaran.</span>
         </div>
       )}
       {kasPending && (
@@ -188,7 +188,7 @@ export function SummaryPanel() {
       <div className="flex shrink-0 gap-2 border-t px-4 py-3">
         {billOpen ? (
           cart.length > 0 ? (
-            <Button className="h-11 w-full text-base" onClick={handleAddToBill} disabled={isAdding || billOverdue || kasPending}>
+            <Button className="h-11 w-full text-base" onClick={handleAddToBill} disabled={isAdding || billOverdue || !kasOpen || kasPending}>
               Tambahkan ke pesanan · {formatRupiah(cartTotal)}
             </Button>
           ) : (
@@ -198,7 +198,7 @@ export function SummaryPanel() {
           )
         ) : (
           <>
-            <Button variant="outline" className="h-11 flex-1 text-sm" onClick={handleSave} disabled={cart.length === 0 || needsTable || isSaving || kasPending}>
+            <Button variant="outline" className="h-11 flex-1 text-sm" onClick={handleSave} disabled={cart.length === 0 || !kasOpen || needsTable || isSaving || kasPending}>
               Simpan (bayar nanti)
             </Button>
             <Button className="h-11 flex-1 gap-2 text-base" onClick={openPaymentModal} disabled={cart.length === 0 || !kasOpen || needsTable || kasPending}>
