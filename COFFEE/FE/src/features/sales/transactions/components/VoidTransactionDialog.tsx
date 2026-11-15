@@ -5,6 +5,7 @@ import { ActionModal } from '@/shared/components'
 import { Label } from '@/shared/components/ui/label'
 import { Textarea } from '@/shared/components/ui/textarea'
 import { formatRupiah } from '@/shared/utils'
+import { StockChoice, type StockAction } from '@/features/sales/cashier/components/StockChoice'
 
 import { useVoidTransactionMutation } from '../transactions.api'
 import type { Transaction } from '../transactions.types'
@@ -15,15 +16,13 @@ interface VoidTransactionDialogProps {
   onDone: () => void
 }
 
-type Action = 'return' | 'waste'
-
 /**
  * Void transaksi lunas (keputusan 100): tiap item barang jadi dipilih "kembali ke stok" (bawaan)
  * atau "dibuang"; alasan wajib bila ada yang dibuang. Racikan tidak punya pilihan stok.
  */
 export function VoidTransactionDialog({ transaction, onClose, onDone }: VoidTransactionDialogProps) {
   const stockItems = transaction.items.filter((i) => i.product_id !== null)
-  const [actions, setActions] = useState<Record<number, Action>>(() => Object.fromEntries(stockItems.map((i) => [i.id, 'return'])))
+  const [actions, setActions] = useState<Record<number, StockAction>>(() => Object.fromEntries(stockItems.map((i) => [i.id, 'return'])))
   const [reason, setReason] = useState('')
   const { mutate: voidTransaction, isPending } = useVoidTransactionMutation()
 
@@ -74,22 +73,11 @@ export function VoidTransactionDialog({ transaction, onClose, onDone }: VoidTran
                   {item.product_name}
                   {item.variant_name && <span className="text-gray-500"> · {item.variant_name}</span>} x{item.quantity}
                 </span>
-                <div className="flex overflow-hidden rounded-md border" role="radiogroup" aria-label={`Stok ${item.product_name}`}>
-                  {(['return', 'waste'] as const).map((a) => (
-                    <button
-                      key={a}
-                      type="button"
-                      role="radio"
-                      aria-checked={actions[item.id] === a}
-                      onClick={() => setActions((prev) => ({ ...prev, [item.id]: a }))}
-                      className={`px-3 py-1.5 text-xs font-medium ${
-                        actions[item.id] === a ? (a === 'waste' ? 'bg-red-600 text-white' : 'bg-[#2c3e50] text-white') : 'bg-white text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      {a === 'return' ? 'Kembali ke stok' : 'Dibuang'}
-                    </button>
-                  ))}
-                </div>
+                <StockChoice
+                  value={actions[item.id]}
+                  onChange={(a) => setActions((prev) => ({ ...prev, [item.id]: a }))}
+                  label={`Stok ${item.product_name}`}
+                />
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -13,11 +13,11 @@ import {
   FormMessage,
 } from '@/shared/components/ui/form'
 import { Input } from '@/shared/components/ui/input'
+import { PasswordInput } from '@/shared/components/ui/password-input'
 import { useLoginMutation } from '../auth.api'
 import { loginSchema, type LoginFormValues } from '../auth.schema'
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false)
   const passwordRef = useRef<HTMLInputElement>(null)
   const { mutate: login, isPending } = useLoginMutation()
 
@@ -65,28 +65,15 @@ export function LoginForm() {
             <FormItem>
               <FormLabel className="text-gray-700">Password</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <Input
-                    {...field}
-                    ref={(el) => {
-                      field.ref(el)
-                      ;(passwordRef as React.MutableRefObject<HTMLInputElement | null>).current = el
-                    }}
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    placeholder="Masukkan password"
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 touch:right-0 touch:flex touch:h-10 touch:w-10 touch:items-center touch:justify-center"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+                <PasswordInput
+                  {...field}
+                  ref={(el) => {
+                    field.ref(el)
+                    ;(passwordRef as React.MutableRefObject<HTMLInputElement | null>).current = el
+                  }}
+                  autoComplete="current-password"
+                  placeholder="Masukkan password"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

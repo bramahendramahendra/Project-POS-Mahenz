@@ -9,29 +9,7 @@ import { formatRupiah } from '@/shared/utils'
 import type { Transaction, TransactionItem } from '@/features/sales/transactions/transactions.types'
 
 import { useCancelBillMutation, useMoveBillTableMutation, useRemoveBillItemMutation, useTableOptionsQuery } from '../openBill.api'
-
-type StockAction = 'return' | 'waste'
-
-function StockChoice({ value, onChange, label }: { value: StockAction; onChange: (v: StockAction) => void; label: string }) {
-  return (
-    <div className="flex overflow-hidden rounded-md border" role="radiogroup" aria-label={label}>
-      {(['return', 'waste'] as const).map((a) => (
-        <button
-          key={a}
-          type="button"
-          role="radio"
-          aria-checked={value === a}
-          onClick={() => onChange(a)}
-          className={`px-3 py-1.5 text-xs font-medium ${
-            value === a ? (a === 'waste' ? 'bg-red-600 text-white' : 'bg-[#2c3e50] text-white') : 'bg-white text-gray-600 hover:bg-gray-50'
-          }`}
-        >
-          {a === 'return' ? 'Kembali ke stok' : 'Dibuang'}
-        </button>
-      ))}
-    </div>
-  )
-}
+import { StockChoice, type StockAction } from './StockChoice'
 
 const itemLabel = (i: TransactionItem) => `${i.product_name}${i.variant_name ? ` · ${i.variant_name}` : ''}`
 

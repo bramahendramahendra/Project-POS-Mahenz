@@ -94,17 +94,24 @@ Setelah salah tebak dicoret (Kategori Menu/Ukuran/Meja dipanggil lewat `createMa
 | File | Saran |
 |---|---|
 | `shared/components/ui/dropdown-menu.tsx` | **[DIHAPUS]** (tidak ada menu tarik-turun di aplikasi) |
-| `shared/components/ui/password-input.tsx` | DISKUSI, kemungkinan 2: `LoginForm` menulis ulang tampil/sembunyi password sendiri |
-| `shared/components/ui/radio-group.tsx` | DISKUSI, kemungkinan 2: 4 tempat membuat tombol pilihan sendiri (`role="radio"`) |
+| `shared/components/ui/password-input.tsx` | **[DIPAKAI]** kemungkinan 2: isinya identik dengan tombol mata yang ditulis ulang di `LoginForm`; kini `LoginForm` memakai `PasswordInput` (sama seperti Portal) |
+| `shared/components/ui/radio-group.tsx` | **[DIHAPUS]** kemungkinan 4: bulatan radio 16 px, sedangkan kode berjalan sengaja memakai tombol segmen besar untuk tablet |
 | `shared/types/webBluetooth.d.ts` | PERTAHANKAN (tipe `navigator.bluetooth` untuk printer Bluetooth; alat salah tebak) |
 | 15 barrel `index.ts` tak diimpor (customers/receivables, dashboard, finance/overview, menu-items, procurement/purchases, reporting/{business-summary, cashier-performance, profit-loss, sales, stock}, sales/transactions, settings, settings/{backup, menus, users}) | OPSIONAL (hanya pengumpul export, tidak ikut ke hasil build) |
+
+**Kelompok 1 (komponen UI), diputuskan AI atas serahan user, 15 Nov 2026:** password-input dipakai, radio-group dihapus,
+dan temuan sampingan disatukan: tombol [Kembali ke stok | Dibuang] yang ditulis dua kali (`BillDialogs` dan
+`VoidTransactionDialog`) kini satu komponen `features/sales/cashier/components/StockChoice.tsx`. Uji: type-check/lint/build;
+uji login baru `testing/deadcode/b_login_password.js` 5/5 (password tersembunyi, tombol mata, Enter pindah fokus, password salah
+ditolak, login berhasil) di laptop/tablet/HP; `b_4_7b` 7/7 (void dibuang), `b_4_8` 11/11 (hapus item dibuang, batal) dan
+`b_4_11` 22/22 (void kembali ke stok) di laptop/tablet/HP.
 
 ### FE-F. Library npm tidak terpakai
 
 | Library | Saran |
 |---|---|
 | `@radix-ui/react-dropdown-menu`, `@radix-ui/react-toast` | **[DIHAPUS]** |
-| `@radix-ui/react-radio-group` | ikut keputusan `radio-group.tsx` |
+| `@radix-ui/react-radio-group` | **[DIHAPUS]** |
 | devDependencies `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint-plugin-import` | **[DIHAPUS]** (lint memakai paket `typescript-eslint`) |
 | `lint-staged` | PERTAHANKAN (dipakai hook Husky `.husky/pre-commit`) |
 
