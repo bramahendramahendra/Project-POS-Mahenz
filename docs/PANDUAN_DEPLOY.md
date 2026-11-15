@@ -1,5 +1,9 @@
 # Panduan Deploy POS Mahenz (Versi Simpel)
 
+> **USANG (15 Nov 2026).** Dokumen ini untuk struktur lama (Toko di root, folder `BE/` `FE/`, service `pos-backend`)
+> dan disimpan hanya sebagai arsip. Untuk server sekarang pakai [SOP_DEPLOY.md](SOP_DEPLOY.md) bagian
+> "SOP Deploy per Aplikasi". Cutover sudah dijalankan dengan [PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md).
+
 Panduan ini ditulis untuk orang yang **tidak biasa koding**. Tinggal ikuti langkah dari
 atas ke bawah, salin-tempel perintahnya ke terminal server. Setiap perintah diberi
 keterangan singkat "untuk apa", bukan teori panjang.

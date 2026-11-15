@@ -1,5 +1,9 @@
 # Full Backup & Redeploy (FE, BE, DB) — POS Mahenz
 
+> **USANG (15 Nov 2026).** Dokumen ini untuk struktur lama (Toko di root, folder `BE/` `FE/`, service `pos-backend`)
+> dan disimpan hanya sebagai arsip. Untuk server sekarang pakai [SOP_DEPLOY.md](SOP_DEPLOY.md) bagian
+> "SOP Deploy per Aplikasi". Cutover sudah dijalankan dengan [PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md).
+
 > **Catatan (Oktober 2026):** path `BE/`/`FE/` kini `TOKO/BE/`/`TOKO/FE/`, service `pos-backend` kini `pos-toko-backend` (port 8081). **"Mode B" (versi lama/baru berdampingan lewat cookie `ver_bypass`, port 8081, `dist_old`) tidak dipakai lagi** dan sudah dihapus dari `nginx/pos-web.conf`; abaikan bagian Mode B di bawah.
 
 Dokumen terpisah dari [DEPLOYMENT_PROD.md](DEPLOYMENT_PROD.md) khusus untuk skenario **redeploy total**: FE, BE, dan database sekaligus, dengan strategi *rename-lalu-clone-ulang* — versi lama tidak dihapus, hanya di-*rename*/duplicate jadi arsip bertanggal, lalu semuanya di-*clone*/dibuat ulang dari nol dengan nama folder & database yang sama seperti semula.

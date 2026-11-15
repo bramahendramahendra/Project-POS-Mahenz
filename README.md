@@ -88,8 +88,8 @@ Ganti semua password bawaan sebelum production.
 ## Dokumentasi
 
 - [Rancangan Portal, Toko, dan Coffee](docs/RANCANGAN_PORTAL_TOKO_COFFEE.md) (keputusan dan riwayat pengerjaan)
-- [Panduan Cutover VPS ke Portal + Toko](docs/PANDUAN_CUTOVER_PORTAL.md)
-- [SOP Deploy](docs/SOP_DEPLOY.md)
-- [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md)
+- [SOP Deploy per aplikasi](docs/SOP_DEPLOY.md) (deploy rutin)
+- [Panduan Cutover VPS](docs/PANDUAN_CUTOVER_PORTAL.md) (sudah dijalankan 15 Nov 2026)
+- [Pekerjaan pending](docs/PENDING.md)
 - [Setup User Server](docs/SETUP_USER_SERVER.md)
-- [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)
+- Arsip (usang): [Panduan Deploy Production](docs/DEPLOYMENT_PROD.md), [Redeploy Guide](docs/DEPLOYMENT_REDEPLOY_FULL.md)

@@ -1,5 +1,9 @@
 # Panduan Instalasi Server Production — POS Mahenz
 
+> **USANG (15 Nov 2026).** Dokumen ini untuk struktur lama (Toko di root, folder `BE/` `FE/`, service `pos-backend`)
+> dan disimpan hanya sebagai arsip. Untuk server sekarang pakai [SOP_DEPLOY.md](SOP_DEPLOY.md) bagian
+> "SOP Deploy per Aplikasi". Cutover sudah dijalankan dengan [PANDUAN_CUTOVER_PORTAL.md](PANDUAN_CUTOVER_PORTAL.md).
+
 Dokumen ini menjelaskan langkah-langkah lengkap instalasi Backend (Go) dan Frontend (Vite/React) ke server production, beserta penjelasan **kenapa** setiap langkah dilakukan — supaya bisa dipakai sebagai bahan belajar, bukan sekadar "copy-paste perintah".
 
 > **Perubahan struktur (Oktober 2026).** Folder `BE/` dan `FE/` kini berada di `TOKO/`. Saat membaca panduan ini, terapkan pemetaan berikut pada seluruh isinya:

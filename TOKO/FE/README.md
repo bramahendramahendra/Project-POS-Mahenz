@@ -65,4 +65,4 @@ Production build mengambil dari `.env.production`.
 npm run build       # output di dist/
 ```
 
-Hasil build di-serve sebagai static files (Nginx/Caddy). Lihat `docs/DEPLOYMENT_PROD.md`.
+Hasil build di-serve sebagai static files (Nginx/Caddy). Lihat `docs/SOP_DEPLOY.md` (bagian "SOP Deploy per Aplikasi").

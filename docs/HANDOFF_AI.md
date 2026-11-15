@@ -1,27 +1,35 @@
-# HANDOFF AI - Portal, Toko, Coffee
+# HANDOFF AI - BE User, Portal, Toko, Coffee
 
-Dokumen serah terima dari sesi AI sebelumnya (Kiro) ke AI berikutnya (Claude).
-Tanggal: 17 Oktober 2026. Sumber kebenaran keputusan tetap `docs/RANCANGAN_PORTAL_TOKO_COFFEE.md`
-(tabel keputusan 1-52 di bagian 2, tahapan di bagian 5.0 dan 5.0b, rancangan Coffee di bagian 14, riwayat #1-#44 di bagian 16).
-Dokumen ini hanya merangkum status dan konteks yang tidak ada di sana. Bila bertentangan, dokumen rancangan menang;
-bila kode bertentangan dengan dokumen, periksa kode lalu tanyakan ke user.
+Ringkasan status dan konteks untuk sesi AI berikutnya. Diperbarui: 15 November 2026 (setelah cutover produksi).
+Sumber kebenaran keputusan: `docs/RANCANGAN_PORTAL_TOKO_COFFEE.md` (tabel keputusan bagian 2, tahapan bagian 5.0-5.0e,
+rancangan Coffee bagian 14, riwayat bagian 16). Bila bertentangan, dokumen rancangan menang; bila kode bertentangan
+dengan dokumen, periksa kode lalu tanyakan ke user.
 
 ## 0. Dokumen yang ada di `docs/`
-- Inti proyek: `RANCANGAN_PORTAL_TOKO_COFFEE.md` (sumber kebenaran), `HANDOFF_AI.md` (ini), `PROMPT_AI_BARU.md`.
-- Deploy aktual: `PANDUAN_CUTOVER_PORTAL.md` (cutover empat aplikasi, ditulis ulang di D.2), `SOP_DEPLOY.md` (bagian "SOP Deploy per Aplikasi").
-- Deploy lama (diberi catatan pemetaan path/service baru, belum ditulis ulang): `PANDUAN_DEPLOY.md`, `DEPLOYMENT_PROD.md`, `DEPLOYMENT_REDEPLOY_FULL.md`, `SETUP_USER_SERVER.md`.
+- Inti: `RANCANGAN_PORTAL_TOKO_COFFEE.md` (sumber kebenaran), `HANDOFF_AI.md` (ini), `PENDING.md` (pekerjaan yang ditunda,
+  siap copas), `PROMPT_AI_BARU.md`.
+- Deploy (berlaku): `PANDUAN_CUTOVER_PORTAL.md` (cutover sekali jalan, sudah dijalankan 15 Nov 2026), `SOP_DEPLOY.md`
+  (bagian "SOP Deploy per Aplikasi" untuk deploy rutin), `SETUP_USER_SERVER.md` (membuat user Linux).
+- Deploy lama, **USANG** (struktur sebelum cutover; ditandai di kepala file, disimpan sebagai arsip):
+  `PANDUAN_DEPLOY.md`, `DEPLOYMENT_PROD.md`, `DEPLOYMENT_REDEPLOY_FULL.md`.
 - APK tablet: `PANDUAN_BUILD_APK_TABLET.md`, `RANCANGAN_CETAK_BLUETOOTH_APK_TABLET.md`.
-- Dokumen lama yang sudah selesai/usang (Sync Center, migrasi stok, laba rugi, pelaporan, HPP, piutang) sudah dihapus atas keputusan user; riwayatnya ada di git.
 
-## 1. Tujuan besar
-Satu repo, tiga aplikasi POS retail (Go/Gin/GORM/MySQL + React/Vite):
-- **Portal**: login terpusat (SSO), halaman pilih aplikasi, admin user dan aplikasi.
-- **Toko**: aplikasi POS lama (dipindah ke `TOKO/`), kini bisa login lewat Portal.
-- **Coffee**: POS kedai kopi baru (BELUM dibuat).
+## 1. Gambaran
+Satu repo, empat layanan (Go/Gin/GORM/MySQL + React/Vite), **sudah berjalan di produksi sejak 15 Nov 2026**:
+- **BE User** (`AUTH/BE`): layanan akun internal (username, password, akses aplikasi, SSO). Tanpa FE, hanya 127.0.0.1.
+- **Portal**: login terpusat, halaman pilih aplikasi, kelola user dan aplikasi (klien BE User).
+- **Toko**: POS retail (klien BE User).
+- **Coffee**: POS kedai kopi (Fase 4, klien BE User).
 
-Port (keputusan 64): BE User 8080 (hanya 127.0.0.1, tidak di nginx), Portal 8081, Toko 8082, Coffee 8083 (`.env*`, config, proxy Vite, README, `nginx/pos-web.conf` sudah disesuaikan di 3B.6; dokumen deploy menyusul di fase deploy). FE Portal 3000, Toko 3001, Coffee 3002.
-Service systemd: `pos-portal-backend`, `pos-toko-backend`, `pos-coffee-backend`. DB berbeda per aplikasi.
-URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`, Toko `/toko/`, API Toko `/toko/api/`, Coffee kelak `/coffee/` dan `/coffee/api/`.
+| Bagian | Port | Service produksi | Alamat produksi | Database |
+|---|---|---|---|---|
+| BE User | 127.0.0.1:8080 | `pos-auth-backend` | (tidak di nginx) | `pos_auth_db` |
+| Portal | BE 8081, FE dev 3000 | `pos-portal-backend` | `/`, API `/portal-api/` | `pos_portal_db` |
+| Toko | BE 8082, FE dev 3001 | `pos-toko-backend` | `/toko/`, API `/toko/api/` (+ `/api/` lama sementara) | `pos_retail_db` |
+| Coffee | BE 8083, FE dev 3002 | `pos-coffee-backend` | `/coffee/`, API `/coffee/api/` | `pos_coffee_db` |
+
+Server: kode `/opt/pos-mahenz`, FE di `/var/www/pos-web/{portal,apps/toko,apps/coffee}`, satu akun MySQL `pos_user`
+(keputusan 122), rahasia di `config/config_prod.json` tiap BE (keputusan 123). Biner BE wajib di-build di server.
 
 ## 2. Status tahap
 | Tahap | Status |
@@ -38,65 +46,67 @@ URL produksi (satu domain, berbasis path): Portal `/`, API Portal `/portal-api/`
 | Fase 4: POS Coffee | Tahapan 4.1-4.11 di bagian 5.0c (disetujui; baris 4.1 diperbarui setelah Fase 3B dan disetujui). 4.1 (diulang) selesai (riwayat #63). 4.2 selesai (riwayat #64). 4.3 selesai (riwayat #65). 4.4 selesai (riwayat #66). 4.5 selesai (riwayat #67): barang jadi dan pembelian dua jenis (keputusan 91-94). 4.6 selesai (riwayat #68). 4.7a selesai (riwayat #69): pesanan BE (keputusan 99-102). 4.7b selesai (riwayat #70). 4.8 selesai (riwayat #71). 4.9 selesai (riwayat #72). 4.10 selesai (riwayat #73): laporan Coffee (keputusan 114-117; rincian penjualan per menu/kombinasi/kategori/metode bayar/jenis pesanan, Laba Rugi dengan biaya bahan, laporan Bahan Baku dan Barang Terbuang, Ringkasan Bisnis ke menu), uji API 15/15, browser 6/6 laptop/tablet/HP. 4.11 selesai (riwayat #74); **Fase 4 SELESAI** (disetujui user): uji e2e penuh satu hari kerja lewat layar 22/22 laptop/tablet/HP, export Excel Laba Rugi dan label Tertunda terverifikasi, regresi API semua tahap hijau; temuan: simpan pesanan terbuka kini wajib kas terbuka (keputusan 118). Fase 4 selesai bila 4.11 disetujui; deploy VPS seluruh aplikasi dilakukan belakangan (keputusan 61, di luar Fase 4). Riwayat lama: (riwayat #55): `COFFEE/BE` sudah ada (`.env` sudah digeser ke 8083 di 3B.6; isi lain diulang di 4.1), menunggu Fase 3B |
 | **Fase 3B: BE User (layanan akun terpisah)** | Keputusan 63-74; rancangan 5.0d disetujui. 3B.1-3B.5 selesai (riwayat #56-#61; skrip `TOKO/BE/cmd/migrate_users_to_auth` sudah di-`--apply` di dev). **3B.6 selesai; Fase 3B SELESAI** (riwayat #62, disetujui user): nginx, README, CLAUDE.md, port Coffee 8083; uji ujung ke ujung Portal 40/40 dan Toko 31/32 (1 karena data kas dev) di laptop, tablet, HP. Dokumen deploy menyusul di fase deploy. Berikutnya: Fase 4 tahap 4.1 Coffee diulang (port 8083). Port baru: User 8080, Portal 8081, Toko 8082, Coffee 8083 |
 | Temuan keamanan | Password tersimpan asli di `log_requests` Toko/Portal/Coffee (riwayat #56). Keputusan 74: log lama dibiarkan; penyamaran (`helper/logmask`) sudah dipasang di BE User, Portal (3B.3), dan Toko (3B.4); Coffee juga sudah (`COFFEE/BE/helper/logmask`, 4.1 diulang) |
-| Fase Deploy (Portal, Toko, Coffee, BE User) | Tahapan D.1-D.5 di bagian 5.0e (keputusan 119): D.1-D.3 AI di dev, D.4 cutover VPS dan D.5 uji tablet/APK oleh user. D.1 selesai (riwayat #76): nginx blok Coffee, build semua BE (termasuk biner Linux) dan FE produksi lolos, `nginx -t` ditunda ke VPS (keputusan 120); user memeriksa nilai produksi BE. D.2 selesai (riwayat #77): `PANDUAN_CUTOVER_PORTAL.md` ditulis ulang untuk empat aplikasi, SOP per aplikasi diperbarui (keputusan 121-124: produksi struktur lama, satu akun `pos_user`, rahasia di `config_prod.json`, Coffee dipasang bersamaan tanpa akses kasir). D.3 selesai, disetujui (riwayat #78): gladi di salinan produksi 14/14 (port 18080-18083, DB `gladi_*`), panduan diperbaiki (build wajib di server, `Log.Path` relatif). **D.4 selesai 15 Nov 2026** (riwayat #79): cutover VPS dijalankan user, semua berjalan; temuan logout (bagian 7). Perbaikan temuan logout selesai di dev (riwayat #80), menunggu persetujuan dan deploy FE Toko/Coffee; lalu D.5 uji tablet/APK oleh user |
+| Fase Deploy (Portal, Toko, Coffee, BE User) | Tahapan D.1-D.5 di bagian 5.0e (keputusan 119): D.1-D.3 AI di dev, D.4 cutover VPS dan D.5 uji tablet/APK oleh user. D.1 selesai (riwayat #76): nginx blok Coffee, build semua BE (termasuk biner Linux) dan FE produksi lolos, `nginx -t` ditunda ke VPS (keputusan 120); user memeriksa nilai produksi BE. D.2 selesai (riwayat #77): `PANDUAN_CUTOVER_PORTAL.md` ditulis ulang untuk empat aplikasi, SOP per aplikasi diperbarui (keputusan 121-124: produksi struktur lama, satu akun `pos_user`, rahasia di `config_prod.json`, Coffee dipasang bersamaan tanpa akses kasir). D.3 selesai, disetujui (riwayat #78): gladi di salinan produksi 14/14 (port 18080-18083, DB `gladi_*`), panduan diperbaiki (build wajib di server, `Log.Path` relatif). **D.4 selesai 15 Nov 2026** (riwayat #79): cutover VPS dijalankan user, semua berjalan; temuan logout diperbaiki (riwayat #80) dan peringatan data kosong Coffee (riwayat #79, keputusan 125-127), sudah di-deploy. **D.5 ditunda** (lihat `PENDING.md`) |
 
 Pekerjaan Fase 1-3.5 sudah di-commit user (commit berikutnya juga oleh user). Deploy VPS (cutover D.4) sudah dilakukan 15 Nov 2026; produksi kini memakai struktur baru (BE User, Portal, Toko, Coffee).
 Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.
 
 ## 3. Hal yang BELUM terverifikasi (jujur)
-- `nginx/pos-web.conf` dan `PANDUAN_CUTOVER_PORTAL.md` sudah lolos di VPS (D.4, `nginx -t` OK). D.5 (tablet/APK, cetak Bluetooth) belum.
-- Alur cetak Bluetooth APK di tablet butuh uji manual.
-- Build Toko dari kondisi sekarang memakai base `/toko/` sehingga hanya cocok dengan nginx baru.
-- Coffee: edit nota pembelian lama yang memuat bahan yang kini nonaktif akan ditolak (bahan harus aktif); aktifkan bahan dulu bila perlu.
+- D.5: APK di tablet sungguhan dan cetak struk Bluetooth lewat Portal/Toko/Coffee (ditunda, lihat `PENDING.md`).
+- Kasir yang sedang login sebelum cutover tetap login sesudahnya (tidak diuji khusus; produksi berjalan).
+- Coffee: edit nota pembelian lama yang memuat bahan yang kini nonaktif akan ditolak (bahan harus aktif).
 
 ## 4. Keputusan kunci (ringkas; rincian di dokumen rancangan)
-- **SSO**: kode acak 32 byte sekali pakai, TTL 60 detik, hash disimpan. `POST /api/sso/launch` (user login) menghasilkan `redirect_url = <path app>sso?code=...`. `POST /api/sso/exchange` publik dengan header `X-App-Key` dan body `{app_id, code}` (`app_id` = kode teks aplikasi, mis. `"toko"`); penolakan seragam 401. App key `pak_<64 hex>`, Portal hanya menyimpan hash SHA-256, tampil sekali. Kunci aplikasi disimpan di tabel DB aplikasi (Toko: `portal_credentials`), bukan `.env`, diisi lewat SQL manual.
-- **Role Portal**: hanya `admin` dan `user`. Migrasi: `admin` Toko menjadi `admin`; semua role lain menjadi `user`. Seed Portal hanya akun `admin`.
-- **Admin buat user / reset password**: user wajib ganti password di login pertama (`must_change_password`); selama itu token hanya boleh ke `/auth/me`, `/auth/logout`, `/auth/change-password`.
-- **Login Portal**: pembatas 5 gagal per 15 menit, password minimal 8, lupa password lewat admin.
-- **Toggle login langsung (Toko)**: hanya role `admin` yang boleh mengubah. Hanya nilai "false" yang mematikan; fail-open. Flag darurat `DirectLoginForceEnabled` di config server mengalahkan DB. Bila Portal belum siap (PortalUrl/credentials kosong), login langsung tetap aktif dan tidak bisa dimatikan. Key dilindungi dari `POST /settings` dan Reset.
-- **SSO di Toko**: akun lokal dengan username sama yang belum tertaut DITOLAK (tidak auto-link). User SSO baru mendapat role `menunggu_akses` dan password acak tak dikenal. Role tidak berasal dari Portal; diatur di Toko.
-- **Ditolak**: auto-link username, pustaka bersama, endpoint hapus aplikasi (cukup nonaktifkan).
-- Hash password Toko adalah Argon2id (package bernama `pkg/bcrypt`, namanya menyesatkan).
-- Key localStorage Toko dipindah ke prefix `toko.*` (`bootstrap/migrateStorageKeys.ts`), Portal `portal.*`, Coffee kelak `coffee.*`.
-- Mode B (versi lama/baru) dihapus.
+- **Akun di BE User** (keputusan 63-77): Portal/Toko/Coffee tidak menyimpan password; login diverifikasi BE User
+  (`/api/login/verify`), tiap aplikasi menyimpan profil lokal dengan `auth_user_id`, role lokal, dan sesi sendiri.
+  Pembatas login 5 gagal per 15 menit. Satu user satu sesi per aplikasi.
+- **Kunci aplikasi**: `pak_<64 hex>`, BE User hanya menyimpan hash. Kunci tiap aplikasi di tabel `auth_credentials`
+  database aplikasinya (Portal, Toko, Coffee). Dibuat dengan `AUTH/BE: go run ./cmd/set_app_key --app <kode> --confirm`;
+  Toko/Coffee juga bisa diputar dari Portal (Kelola Aplikasi). `portal_credentials` sudah dibuang (migrasi Toko 013).
+- **SSO**: kartu di Portal -> `/sso/launch` -> `<app>/sso?code=` (sekali pakai, 60 detik) -> BE aplikasi menukar ke BE User.
+  Profil lokal dicari lewat `auth_user_id`; bila belum ada, **ditautkan otomatis** ke profil lokal username sama yang
+  belum tertaut (keputusan 67), selain itu dibuat profil baru role `menunggu_akses`.
+- **Role**: BE User/Portal hanya `admin` dan `user` (pengelola akun). Role kerja (owner, admin, kasir, menunggu_akses)
+  diatur di masing-masing aplikasi. Role Admin aplikasi setara Owner (akses penuh).
+- **Login langsung** (form username/password di Toko/Coffee): toggle per aplikasi `settings.direct_login_enabled`, diatur
+  admin di aplikasi; fitur sudah ada, tidak perlu dicatat sebagai pekerjaan. Bila terkunci, nyalakan lewat SQL.
+  Flag `DirectLoginForceEnabled` sudah dibuang (keputusan 73).
+- **Kode**: struktur Portal/Coffee sama dengan Toko (domain/handler/service/repo/dto/model; features/shared), disalin per
+  aplikasi tanpa pustaka bersama. Hash password Argon2id (package `pkg/bcrypt`, namanya menyesatkan). Key localStorage
+  berawalan `portal.*`, `toko.*`, `coffee.*`.
+- **Halaman yang butuh data master kosong** (keputusan 125-127): pakai peringatan syarat (`PrerequisiteGuard`), bukan
+  halaman error. Endpoint opsi warisan Toko membalas `data: null` saat tabel kosong; di FE selalu pakai `?? []`.
 
 ## 5. Peta kode penting
-- Portal BE: `PORTAL/BE/domain/{auth,user,role,app,sso}`, migrasi `database/migrations/001-004`, config prod: `SecretKey` kosong (dari env `SECRETKEY`).
-- Portal FE: routes `/login`, `/apps`, `/account/password`, `/admin/users`, `/admin/apps`; tema indigo/violet (`styles/tokens.css`).
-- Toko BE SSO: `pkg/portal/client.go`, `domain/auth/service/auth_service_portal.go`, `domain/auth/repo/auth_repo_portal.go`, migrasi `011_portal_sso.sql`, endpoint `POST /api/auth/sso`, `GET /api/auth/login-options`, `POST /api/auth/direct-login`.
-- Toko FE: `src/shared/utils/appUrl.ts`, `src/bootstrap/migrateStorageKeys.ts`, `SsoPage`, `PendingAccessPage`, `features/settings/users/components/DirectLoginCard.tsx`. Env: `.env.development` (Portal `http://localhost:3000/`, API `http://localhost:8081/api`), `.env.production` (`/toko/api`, `/toko/`, `/`).
-- Nginx: `nginx/pos-web.conf`, `nginx/maintenance/`. Dokumen deploy: `docs/PANDUAN_CUTOVER_PORTAL.md`, `docs/SOP_DEPLOY.md`.
+- BE User: `AUTH/BE/domain/{auth,user,role,app,sso}`, alat `cmd/set_app_key`. Migrasi `001-002`.
+- Klien BE User di tiap aplikasi: `pkg/authclient`; alur login/SSO/tautan profil di `domain/auth/service/auth_service_account.go`.
+- Portal FE: rute `/login`, `/apps`, `/account/password`, `/admin/users` (tombol Akses aplikasi), `/admin/apps`.
+- Toko/Coffee FE: `SsoPage`, `PendingAccessPage`, `shared/utils/appUrl.ts`; `.env.production` memakai base `/toko/` atau `/coffee/`.
+- Salin akun Toko ke BE User: `TOKO/BE/cmd/migrate_users_to_auth` (sudah dijalankan di produksi saat cutover).
+- Nginx: `nginx/pos-web.conf`, `nginx/maintenance/` (maintenance per aplikasi: portal, toko, coffee, all).
+- Coffee: kasir `features/sales/cashier`, open bill `domain/transaction/service/open_bill_service.go`, laporan
+  `domain/report` (`coffee_report_*`), migrasi `001-010`.
 
-## 6. Rencana Fase 4 (Coffee), ringkas
-Salin `TOKO/BE` dan `TOKO/FE` ke `COFFEE/`, pangkas modul `supplier_return, expiry_batch, customer_balance, capital_reconciliation, backdate, version`; bawa `receivable` dan `customer`. Baseline migrasi baru. Fitur: stok bahan manual + resep catatan, barang jadi (dus/pcs) dipotong saat masuk pesanan, varian/tambahan/meja/antrean harian, open bill, gabung/pindah meja, aturan pesanan lintas hari, tanpa foto/tiket bar, satu kedai, key `coffee.*`, port 8082/3002. Rincian ada di bagian 14 dokumen rancangan. Seperti Portal, kerjakan bertahap dan rancang tahapannya dulu di bagian 5.0 dokumen rancangan sebelum menulis kode, lalu minta persetujuan user.
+## 6. Pekerjaan berikutnya
+- Ditunda (siap copas, lihat `PENDING.md`): D.5 uji tablet/APK, bersih-bersih server setelah stabil, hapus blok nginx `/api/` lama.
+- Perlu diskusi dengan user dulu: perbarui library FE (`npm audit`); perbaiki uji Go lama yang gagal.
 
-## 7. Daftar pekerjaan pascacutover (dicatat 15 Nov 2026, urut prioritas)
-1. **[SELESAI, 15 Nov 2026, laporan user]** Deploy FE Toko dan Coffee ke server (perbaikan riwayat #79 peringatan data kosong Coffee, #80 logout ke Portal). Cukup Frontend, BE tidak berubah.
-2. D.5: uji tablet/APK (tampil Portal, masuk Toko/Coffee, cetak struk Bluetooth, alamat printer) oleh user.
-3. **[SELESAI DI DEV, menunggu commit + deploy FE Coffee]** Syarat Pembelian Coffee: supplier + produk ATAU bahan baku (keputusan 126); plus syarat Daftar Menu (kategori menu) dan pesan kasir tanpa menu/meja (keputusan 127). Type-check, lint, build lolos; uji `testing/cek_bahan/b_syarat.js` 8/8 di laptop, tablet, HP.
-4. Setelah stabil: hapus `/opt/pos-mahenz_lama_<TGL>`, `/var/www/pos-web/dist`, service `pos-backend`.
-5. Setelah stabil: beri akses Coffee ke kasir lewat Portal, atur role di Coffee.
-6. Setelah semua perangkat memakai alamat baru: hapus blok nginx `location ^~ /api/`.
-7. Opsional: matikan login langsung Toko/Coffee bila semua lewat Portal.
-8. **[SELESAI, 15 Nov 2026]** Data gladi dihapus atas persetujuan user: database `gladi_*`, dump `pos_retail_db_gladi.sql`, folder `testing/deploy_d3/run/` dan log gladi. Skrip gladi dan `counts_before.json` disimpan.
-9. ~~`.gitignore` `docs`/`nginx`~~ **[ABAIKAN]**: baris `docs`, `nginx`, `.claude`, `.github`, `mobile` di `.gitignore` sengaja di-on/off-kan user (dikomentari saat deploy produksi, diaktifkan lagi untuk dev lokal). Bukan masalah; jangan dipersoalkan.
-10. Nanti: perbarui library FE yang dilaporkan `npm audit` (tahap tersendiri, uji ulang).
-11. Nanti: uji Go lama warisan Toko yang gagal (lihat item kecil di bawah).
-12. Nanti: rapikan/tandai usang dokumen deploy lama (`PANDUAN_DEPLOY.md`, `DEPLOYMENT_PROD.md`, dll.).
-
-## 7b. Item terbuka kecil
-- **Temuan D.4 (diperbaiki di dev, riwayat #80; sudah di-deploy 15 Nov 2026):** logout dari sesi yang sudah tidak berlaku (akun sama login di perangkat lain) dulu dialihkan interceptor 401 ke `/<app>/login`; kini `/auth/logout` dikecualikan dari refresh di `services/api.client.ts` dan 401 saat logout dianggap berhasil di `features/auth/auth.api.ts`. Uji ulang: `testing/logout_portal/` (`proxy.js`, `repro.js`, `repro_sesi.js`).
-- Pasca-cutover (beberapa hari setelah stabil): hapus `/opt/pos-mahenz_lama_<TGL>` dan service `pos-backend`, beri akses Coffee ke kasir, hapus blok `location ^~ /api/` lama di nginx.
-- Uji Go lama (salinan Toko, ada di Toko dan Coffee): `pkg/binder` `TestBindJSON_LargeNumbers` gagal; paket `helper` panik di `go test` karena `config` membaca `./.env` saat init; teardown uji integrasi stok Toko masih gagal menghapus kemasan anak (Coffee sudah diperbaiki, riwayat #69).
-- `set` akses user ke aplikasi dengan id aplikasi yang tidak ada diabaikan diam-diam (pertimbangkan ditolak).
-- `TOKO/BE/config/config_prod.json` menyimpan SecretKey/password DB di repo (sarankan pindah ke env).
-- Ditunda: opsi "buka aplikasi terakhir otomatis", logout serentak, Husky (cek masih berfungsi setelah pindah folder).
-- Di DB dev, Portal masih punya akun `owner` (role admin) dari seed lama; hanya data dev.
+## 7. Item terbuka kecil
+- Uji Go lama (salinan Toko, ada di Toko dan Coffee): `pkg/binder` `TestBindJSON_LargeNumbers` gagal; paket `helper` panik di
+  `go test` karena `config` membaca `./.env` saat init; teardown uji integrasi stok Toko gagal menghapus kemasan anak
+  (Coffee sudah diperbaiki, riwayat #69).
+- Set akses user ke aplikasi dengan id aplikasi yang tidak ada diabaikan diam-diam (pertimbangkan ditolak).
+- Endpoint opsi warisan Toko (`/units/options`, `/categories/options`, `/products/options`, dll.) membalas `null` saat kosong;
+  Toko tidak terdampak karena datanya terisi.
+- Ditunda: opsi "buka aplikasi terakhir otomatis", logout serentak, Husky.
+- Baris `docs`, `nginx`, `.claude`, `.github`, `mobile` di `.gitignore` sengaja di-on/off-kan user saat deploy; abaikan.
 
 ## 8. Data dev
-User Toko dev: `Banana`, `BramaGanteng` (owner), `admin` (password `admin123`). Sejak tahap 3.6 (11 Nov 2026): skrip migrasi user sudah di-`--apply` pada DB dev (ketiga user Toko tertaut ke Portal), aplikasi `toko` di Portal dev memakai path `http://localhost:3001/`, dan `portal_credentials` Toko dev sudah terisi (kunci hasil rotate-key). Data uji: `kasir72589`, `web12286` (Portal+Toko, password `Baru12345`), `owner72589` (Toko saja, role owner, password `Owner12345`). Untuk produksi path tetap `/toko/` dan kunci dibuat ulang saat cutover.
-Sejak Fase 3B (13-14 Nov 2026): akun ada di `pos_auth_db` (BE User; `admin`/`admin123`, user uji `e2eu39038` password `Baru67890`, akun `tokoNNNNN`/`portalNNNNN` dari skrip uji). Kunci uji BE User di `testing/auth_3b2/keys.txt`; terpasang di `auth_credentials` Portal dev dan Toko dev. Aplikasi `toko` di `pos_auth_db` dev memakai path `http://localhost:3001/`. Tautan Toko lama dikosongkan oleh migrasi 012 (keputusan 77) dan terisi lagi saat login; tabel `portal_credentials` Toko tidak dipakai lagi. Kas dev 12 Nov masih terbuka (dibiarkan).
+- Akun ada di `pos_auth_db` (BE User): `admin`/`admin123`, `Banana`, `BramaGanteng` (owner Toko), plus banyak akun uji
+  dari skrip (`tokoNNNNN`, `kaskNNNNN`, dll.). Data uji dibiarkan di DB dev (jangan dihapus).
+- Kunci uji BE User di `testing/auth_3b2/keys.txt`, terpasang di `auth_credentials` Portal, Toko, Coffee dev.
+- Path aplikasi di BE User dev: Toko `http://localhost:3001/`, Coffee `http://localhost:3002/`.
+- Data gladi (salinan produksi) sudah dihapus 15 Nov 2026.
 
 ## 9. Cara menjalankan dev
 Jalankan di terminal terpisah (MySQL WAMP harus hidup):
