@@ -22,23 +22,8 @@ func (s *receivableService) GetByID(id int) (*dto.ReceivableDetailResponse, erro
 	return detail, nil
 }
 
-func (s *receivableService) GetSummary() ([]*dto.ReceivableSummaryItem, error) {
-	return s.repo.GetSummary()
-}
-
 func (s *receivableService) GetStats() (*dto.ReceivableStats, error) {
 	return s.repo.GetStats()
-}
-
-func (s *receivableService) GetPayments(id int) ([]*dto.PaymentResponse, error) {
-	rec, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-	if rec == nil {
-		return nil, &errors.NotFoundError{Message: "Piutang tidak ditemukan"}
-	}
-	return s.repo.GetPayments(id)
 }
 
 func (s *receivableService) Pay(req *dto.PayRequest) (*dto.PayResponse, error) {

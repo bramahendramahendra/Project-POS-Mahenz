@@ -28,14 +28,6 @@ type (
 	}
 
 	// RESPONSE
-	GetLowStockResponse struct {
-		ID       int     `json:"id"`
-		Name     string  `json:"name"`
-		Stock    float64 `json:"stock"`
-		MinStock float64 `json:"min_stock"`
-		UnitName string  `json:"unit_name"`
-	}
-
 	GetUnitInfoResponse struct {
 		Name         string
 		Abbreviation string

@@ -59,15 +59,6 @@ type ReceivableDetailResponse struct {
 	Payments        []PaymentResponse      `json:"payments" gorm:"-"`
 }
 
-type ReceivableSummaryItem struct {
-	CustomerID      int     `json:"customer_id"`
-	CustomerName    string  `json:"customer_name"`
-	TotalReceivable float64 `json:"total_receivable"`
-	TotalPaid       float64 `json:"total_paid"`
-	TotalRemaining  float64 `json:"total_remaining"`
-	Count           int     `json:"count"`
-}
-
 // ReceivableStats: angka agregat untuk kartu ringkasan di atas daftar.
 type ReceivableStats struct {
 	TotalRemaining   float64 `json:"total_remaining"`   // total sisa piutang belum lunas

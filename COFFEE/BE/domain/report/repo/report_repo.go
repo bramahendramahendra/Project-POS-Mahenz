@@ -51,11 +51,6 @@ const (
 		FROM transactions t
 		WHERE t.status = 'completed' AND t.transaction_date BETWEEN ? AND ?`
 
-	salesChartQuery = `
-		SELECT DATE(transaction_date) as label, COALESCE(SUM(total_amount),0) as total_sales, COUNT(*) as total_transactions
-		FROM transactions WHERE status = 'completed' AND transaction_date BETWEEN ? AND ?
-		GROUP BY DATE(transaction_date) ORDER BY label`
-
 	// Coffee (keputusan 114): per menu; HPP baris hanya untuk barang jadi (harga beli saat terjual).
 	// Biaya bahan racikan dihitung terpisah (GetIngredientCost). is_recipe = menu tanpa produk.
 	profitLossQuery = `
@@ -260,27 +255,6 @@ func (r *reportRepo) GetSalesSummary(params dto.FilterParams) (*dto.SalesSummary
 		return nil, err
 	}
 	return &summary, nil
-}
-
-func (r *reportRepo) GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error) {
-	rows, err := r.db.Raw(salesChartQuery, params.DateFrom, params.DateTo).Rows()
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []dto.SalesChartItem
-	for rows.Next() {
-		var item dto.SalesChartItem
-		if err := rows.Scan(&item.Label, &item.TotalSales, &item.TotalTransactions); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	if items == nil {
-		items = []dto.SalesChartItem{}
-	}
-	return items, nil
 }
 
 func (r *reportRepo) GetProfitLossItems(params dto.FilterParams) ([]dto.ProfitLossItem, error) {

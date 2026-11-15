@@ -15,7 +15,6 @@ type (
 		GetOptions() (data []*dto.GetOptionResponse, err error)
 		Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
-		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
 		Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error)
 		Update(req *dto.UpdateRequest, role string) (data dto.ProductResponse, err error)
 		Delete(req *dto.DeleteRequest) error
@@ -33,12 +32,9 @@ type (
 		UpdatePackage(id, productID int, req *dto.UpdatePackageRequest) (data *dto.PackageResponse, err error)
 		DeletePackage(req *dto.DeletePackageRequest) (err error)
 
-		GetPricesByProduct(productID int) (data []*dto.PriceResponse, err error)
-
 		GetPurchaseHistory(productID, page, limit int) (*dto.PurchaseHistoryResponse, error)
 		GetSaleHistory(productID, page, limit int, status string) (*dto.SaleHistoryResponse, error)
 
-		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)
 		GetUnitInfos() (data []*dto.GetUnitInfoResponse, err error)
 	}

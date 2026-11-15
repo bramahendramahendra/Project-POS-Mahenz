@@ -10,7 +10,6 @@ type (
 		GetAll() (map[string]string, error)
 		GetByKey(key string) (string, error)
 		Save(data map[string]string) error
-		Reset() error
 		GetStoreProfile() (*dto.StoreProfileResponse, error)
 		UpdateStoreProfile(req *dto.StoreProfileRequest) error
 		GetPrinterSettings() (*dto.PrinterSettingsResponse, error)

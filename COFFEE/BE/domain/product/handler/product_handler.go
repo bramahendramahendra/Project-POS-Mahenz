@@ -119,33 +119,6 @@ func (h *ProductHandler) GetByID(c *gin.Context) {
 	})
 }
 
-// POST /products/by-barcode/:barcode
-func (h *ProductHandler) GetByBarcode(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByBarcodeRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetByBarcode(req.Barcode)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail produk",
-		Data:    data,
-	})
-}
-
 // POST /products/create
 func (h *ProductHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)

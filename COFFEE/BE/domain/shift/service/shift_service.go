@@ -45,27 +45,6 @@ func (s *shiftService) GetOptions() (data []dto.ShiftActiveResponse, err error) 
 	return data, nil
 }
 
-func (s *shiftService) GetByID(id int) (data dto.ShiftResponse, err error) {
-	dataDB, err := s.repo.GetByID(id)
-	if err != nil {
-		return data, err
-	}
-	if dataDB == nil {
-		return data, &errors.NotFoundError{Message: "Shift tidak ditemukan"}
-	}
-
-	data = dto.ShiftResponse{
-		ID:        dataDB.ID,
-		Name:      dataDB.Name,
-		StartTime: dataDB.StartTime,
-		EndTime:   dataDB.EndTime,
-		IsActive:  dataDB.IsActive,
-		CreatedAt: dataDB.CreatedAt,
-	}
-
-	return data, nil
-}
-
 func (s *shiftService) Create(req *dto.CreateRequest) (data dto.ShiftResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 
@@ -138,17 +117,4 @@ func (s *shiftService) ToggleStatus(req *dto.ToggleStatusRequest) (err error) {
 	}
 
 	return s.repo.ToggleStatus(req)
-}
-
-func (s *shiftService) GetSummary() (data []dto.ShiftSummaryResponse, err error) {
-	dataDB, err := s.repo.GetSummary()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, *v)
-	}
-
-	return data, nil
 }

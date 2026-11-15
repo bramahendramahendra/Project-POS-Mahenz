@@ -75,7 +75,6 @@ func MenuItemRoutes(r *gin.RouterGroup) {
 	{
 		mg.POST("/list", tambahan("can_view"), mod.GetAll)
 		mg.POST("/options", daftar("can_view"), mod.GetOptions)
-		mg.POST("/detail/:id", tambahan("can_view"), mod.GetByID)
 		mg.POST("/create", tambahan("can_create"), mod.Create)
 		mg.POST("/update/:id", tambahan("can_edit"), mod.Update)
 		mg.POST("/toggle-status/:id", tambahan("can_edit"), mod.ToggleStatus)

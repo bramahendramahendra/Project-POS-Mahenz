@@ -27,7 +27,6 @@ func UserRoutes(r *gin.RouterGroup) {
 	g := r.Group("/users")
 	{
 		g.POST("/list", perm("can_view"), userHandler.GetAll)
-		g.POST("/detail/:id", perm("can_view"), userHandler.GetByID)
 		g.POST("/update/:id", perm("can_edit"), userHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), userHandler.Delete)
 		g.POST("/toggle-status/:id", perm("can_edit"), userHandler.ToggleStatus)

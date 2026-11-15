@@ -62,34 +62,9 @@ type PaymentMethodItem struct {
 	Percentage    float64 `json:"percentage"`
 }
 
-type SalesTrendFilter struct {
-	Period string // "7days", "30days", "12months"
-}
-
 type DateRangeFilter struct {
 	StartDate string
 	EndDate   string
 	Limit     int
 	SortBy    string
-}
-
-type HighestTransactionItem struct {
-	TotalAmount     float64 `json:"total_amount"`
-	TransactionCode string  `json:"transaction_code"`
-}
-
-type PeakHourItem struct {
-	Hour  int   `json:"hour"`
-	Count int64 `json:"count"`
-}
-
-type AvgTransactionItem struct {
-	AvgAmount  float64 `json:"avg_amount"`
-	TotalCount int64   `json:"total_count"`
-}
-
-type SummaryExtraResponse struct {
-	Highest  *HighestTransactionItem `json:"highest"`
-	PeakHour *PeakHourItem           `json:"peakHour"`
-	Avg      *AvgTransactionItem     `json:"avg"`
 }

@@ -17,7 +17,6 @@ type (
 		Create(req *dto.CreateRequest) (int64, error)
 		Update(id int, req *dto.UpdateRequest) error
 		Delete(id int) error
-		Reorder(items []dto.ReorderItem) error
 	}
 
 	menuRepo struct {

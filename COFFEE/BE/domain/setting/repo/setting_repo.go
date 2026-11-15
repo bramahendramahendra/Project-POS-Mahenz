@@ -50,7 +50,3 @@ func (r *settingRepo) GetByKey(key string) (*model.Setting, error) {
 func (r *settingRepo) Upsert(key, value string) error {
 	return r.db.Exec(upsertSettingQuery, key, value, time_helper.GetTimeNow()).Error
 }
-
-func (r *settingRepo) ResetAll() error {
-	return r.db.Exec(resetSettingsQuery).Error
-}

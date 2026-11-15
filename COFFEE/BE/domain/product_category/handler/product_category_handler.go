@@ -65,33 +65,6 @@ func (h *CategoryHandler) GetOptions(c *gin.Context) {
 	})
 }
 
-// POST /categories/detail/:id
-func (h *CategoryHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetByID(req.ID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail kategori",
-		Data:    data,
-	})
-}
-
 // POST /categories/create
 func (h *CategoryHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)

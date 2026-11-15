@@ -9,8 +9,6 @@ import (
 
 type (
 	BusinessSummaryRepoInterface interface {
-		GetTodayStats(date string) (*dto.TodayStats, error)
-		GetTodayExpenses(date string) (float64, error)
 		GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error)
 		GetExpensesByRange(startDate, endDate string) (float64, error)
 		GetMonthStats(month int, year int) (*dto.MonthStats, error)
@@ -24,9 +22,6 @@ type (
 		GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error)
 		GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error)
 		GetOrderTypes(filter dto.DateRangeFilter) ([]dto.OrderTypeItem, error)
-		GetHighestTransaction(filter dto.DateRangeFilter) (*dto.HighestTransactionItem, error)
-		GetPeakHour(filter dto.DateRangeFilter) (*dto.PeakHourItem, error)
-		GetAvgTransaction(filter dto.DateRangeFilter) (*dto.AvgTransactionItem, error)
 	}
 
 	businessSummaryRepo struct {

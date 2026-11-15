@@ -22,7 +22,6 @@ func ProductRoutes(r *gin.RouterGroup) {
 	productImportHandler := product_handler.NewProductImportHandler(productService)
 	productGenerateHandler := product_handler.NewProductGenerateHandler(productService)
 	productPackageHandler := product_handler.NewProductPackageHandler(productService)
-	productPriceHandler := product_handler.NewProductPriceHandler(productService)
 
 	svc := newAccessService()
 	perm := func(action string) gin.HandlerFunc {
@@ -36,7 +35,6 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/options", productHandler.GetOptions)
 		g.POST("/search", productHandler.Search)
 		g.POST("/detail/:id", productHandler.GetByID)
-		g.POST("/by-barcode/:barcode", productHandler.GetByBarcode)
 		g.POST("/create", perm("can_create"), productHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), productHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), productHandler.Delete)
@@ -57,9 +55,6 @@ func ProductRoutes(r *gin.RouterGroup) {
 		g.POST("/:id/packages/create", perm("can_edit"), productPackageHandler.CreatePackage)
 		g.POST("/:id/packages/update/:package_id", perm("can_edit"), productPackageHandler.UpdatePackage)
 		g.POST("/:id/packages/delete/:package_id", perm("can_delete"), productPackageHandler.DeletePackage)
-
-		// Product Price Handler
-		g.POST("/:id/prices/list", productPriceHandler.GetPricesByProduct)
 
 		// Product History Handler
 		g.POST("/:id/purchase-history", productHandler.GetPurchaseHistory)

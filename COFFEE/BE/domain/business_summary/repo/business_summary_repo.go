@@ -9,13 +9,6 @@ import (
 )
 
 const (
-	todayStatsQuery = `
-		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
-		       COALESCE(SUM(discount),0) as total_discount
-		FROM transactions WHERE DATE(transaction_date) = ? AND status = 'completed'`
-
-	todayExpensesQuery = `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date = ?`
-
 	rangeStatsQuery = `
 		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
 		       COALESCE(SUM(discount),0) as total_discount
@@ -99,46 +92,7 @@ const (
 
 	lowStockCandidatesQuery   = `SELECT id, min_stock FROM products WHERE is_active = 1`
 	openReceivablesCountQuery = `SELECT COUNT(*) FROM receivables WHERE status != 'paid'`
-
-	highestTransactionQuery = `
-		SELECT COALESCE(MAX(total_amount),0) as total_amount, COALESCE(transaction_code,'') as transaction_code
-		FROM transactions
-		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
-		ORDER BY total_amount DESC LIMIT 1`
-
-	peakHourQuery = `
-		SELECT COALESCE(sub.hour, 0) as hour, COALESCE(sub.count, 0) as count
-		FROM (
-			SELECT HOUR(transaction_date) as hour, COUNT(*) as count
-			FROM transactions
-			WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
-			GROUP BY HOUR(transaction_date)
-			ORDER BY count DESC LIMIT 1
-		) sub RIGHT JOIN (SELECT 1) dummy ON 1=1`
-
-	avgTransactionQuery = `
-		SELECT COALESCE(AVG(total_amount),0) as avg_amount, COUNT(*) as total_count
-		FROM transactions
-		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'`
 )
-
-func (r *businessSummaryRepo) GetTodayStats(date string) (*dto.TodayStats, error) {
-	var result dto.TodayStats
-	row := r.db.Raw(todayStatsQuery, date).Row()
-	if err := row.Scan(&result.TotalTransactions, &result.TotalSales, &result.TotalDiscount); err != nil {
-		return nil, fmt.Errorf("GetTodayStats: %w", err)
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetTodayExpenses(date string) (float64, error) {
-	var total float64
-	row := r.db.Raw(todayExpensesQuery, date).Row()
-	if err := row.Scan(&total); err != nil {
-		return 0, fmt.Errorf("GetTodayExpenses: %w", err)
-	}
-	return total, nil
-}
 
 func (r *businessSummaryRepo) GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error) {
 	var result dto.TodayStats
@@ -320,40 +274,4 @@ func (r *businessSummaryRepo) GetPaymentMethods(filter dto.DateRangeFilter) ([]d
 		items = append(items, item)
 	}
 	return items, nil
-}
-
-func (r *businessSummaryRepo) GetHighestTransaction(filter dto.DateRangeFilter) (*dto.HighestTransactionItem, error) {
-	var result dto.HighestTransactionItem
-	row := r.db.Raw(highestTransactionQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.TotalAmount, &result.TransactionCode); err != nil {
-		return nil, fmt.Errorf("GetHighestTransaction: %w", err)
-	}
-	if result.TransactionCode == "" {
-		return nil, nil
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetPeakHour(filter dto.DateRangeFilter) (*dto.PeakHourItem, error) {
-	var result dto.PeakHourItem
-	row := r.db.Raw(peakHourQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.Hour, &result.Count); err != nil {
-		return nil, fmt.Errorf("GetPeakHour: %w", err)
-	}
-	if result.Count == 0 {
-		return nil, nil
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetAvgTransaction(filter dto.DateRangeFilter) (*dto.AvgTransactionItem, error) {
-	var result dto.AvgTransactionItem
-	row := r.db.Raw(avgTransactionQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.AvgAmount, &result.TotalCount); err != nil {
-		return nil, fmt.Errorf("GetAvgTransaction: %w", err)
-	}
-	if result.TotalCount == 0 {
-		return nil, nil
-	}
-	return &result, nil
 }

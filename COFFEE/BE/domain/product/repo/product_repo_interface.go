@@ -11,9 +11,7 @@ type ProductRepoInterface interface {
 	GetAll(req *dto_product.GetAllRequest) ([]*model_product.Product, int64, error)
 	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
-	GetByBarcode(barcode string) (*model_product.Product, error)
 	Search(req *dto_product.SearchRequest) ([]*model_product.ProductSearchResult, error)
-	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
 	CountPurchaseItems(productID int) (int, error)
 	CountMenuItems(productID int) (int, error)
@@ -33,8 +31,6 @@ type ProductRepoInterface interface {
 	UpdatePackage(id, productID int, req *dto_product.UpdatePackageRequest) error
 	DeletePackage(id, productID int) error
 	CountPackagesReferencing(packageID int) (int, error)
-
-	GetPricesByProduct(productID int) ([]*model_product.ProductPrice, error)
 
 	GetPurchaseHistory(productID, page, limit int) (*dto_product.PurchaseHistoryResponse, error)
 	GetSaleHistory(productID, page, limit int, status string) (*dto_product.SaleHistoryResponse, error)

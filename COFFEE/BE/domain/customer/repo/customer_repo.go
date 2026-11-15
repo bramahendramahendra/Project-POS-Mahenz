@@ -65,15 +65,6 @@ func (r *customerRepo) GetAll(req *dto.GetAllRequest) ([]*model.Customer, int64,
 	return dataDB, total, nil
 }
 
-func (r *customerRepo) GetOptions() ([]*model.Customer, error) {
-	var dataDB []*model.Customer
-	err := r.db.Raw(getActiveCustomerListQuery).Scan(&dataDB).Error
-	if err != nil {
-		return nil, err
-	}
-	return dataDB, nil
-}
-
 func (r *customerRepo) GetByID(id int) (*model.Customer, error) {
 	var dataDB model.Customer
 	err := r.db.Raw(getCustomerByIDQuery, id).Scan(&dataDB).Error

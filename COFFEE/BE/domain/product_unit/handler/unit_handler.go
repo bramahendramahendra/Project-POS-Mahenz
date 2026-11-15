@@ -65,33 +65,6 @@ func (h *UnitHandler) GetOptions(c *gin.Context) {
 	})
 }
 
-// POST /units/detail/:id
-func (h *UnitHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetByID(req.ID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail satuan",
-		Data:    data,
-	})
-}
-
 // POST /units/create
 func (h *UnitHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)

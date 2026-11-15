@@ -71,7 +71,12 @@ Analisis 15 Nov 2026 (belum ada yang diubah). Portal 24 temuan, Toko 27 (1 criti
 Usulan urutan: 10a (kelompok A + typescript-eslint, ketiga FE) → 10b (jspdf) → 10c (xlsx sesuai pilihan).
 Tiap tahap: type-check, lint, build, regresi browser, lalu deploy FE terkait. Perlu keputusan: setuju urutan? xlsx pilih mana?
 
-## 6. Hapus dead code — Coffee sudah dianalisis (daftar lengkap: `docs/DEADCODE.md`), menunggu keputusan user
+## 6. Hapus dead code — **Coffee SELESAI** (16 Nov 2026, rincian `docs/DEADCODE.md`); berikutnya Portal → BE User → Toko
+
+Temuan Coffee yang perlu keputusan user (tidak dihapus, tidak dibuatkan fitur):
+- Ringkasan Bisnis belum menampilkan **metode bayar**, padahal keputusan 117 menulis "metode bayar tetap" (endpoint
+  `/reports/business-summary/payment-methods` sudah ada di BE; metode bayar saat ini hanya di Laporan Penjualan).
+- Endpoint `/cash-drawer/auto-close-yesterday` (keputusan 4.9) belum punya tombol di layar.
 
 Alat: Go `deadcode`/`staticcheck`, FE `knip` (file, export, library npm tak terpakai). Analisis dulu, laporkan daftar,
 hapus setelah user setuju. Per aplikasi, satu tahap sekali jalan: Coffee → Portal → BE User → Toko (paling akhir;

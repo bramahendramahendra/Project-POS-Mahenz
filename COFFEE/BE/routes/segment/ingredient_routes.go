@@ -30,7 +30,6 @@ func IngredientRoutes(r *gin.RouterGroup) {
 	{
 		g.POST("/list", daftar("can_view"), h.GetAll)
 		g.POST("/options", daftar("can_view"), h.GetOptions)
-		g.POST("/detail/:id", daftar("can_view"), h.GetByID)
 		g.POST("/create", daftar("can_create"), h.Create)
 		g.POST("/update/:id", daftar("can_edit"), h.Update)
 		g.POST("/toggle-status/:id", daftar("can_edit"), h.ToggleStatus)

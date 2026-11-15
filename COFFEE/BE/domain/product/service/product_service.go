@@ -113,41 +113,6 @@ func (s *productService) GetByID(id int) (data dto.ProductResponse, err error) {
 	return data, nil
 }
 
-func (s *productService) GetByBarcode(barcode string) (data dto.ProductResponse, err error) {
-	dataDB, err := s.repo.GetByBarcode(barcode)
-	if err != nil {
-		return data, err
-	}
-	if dataDB == nil {
-		return data, &errors.NotFoundError{Message: "Produk tidak ditemukan"}
-	}
-
-	data = dto.ProductResponse{
-		ID:               dataDB.ID,
-		Barcode:          dataDB.Barcode,
-		SKU:              dataDB.SKU,
-		Name:             dataDB.Name,
-		CategoryID:       dataDB.CategoryID,
-		CategoryName:     dataDB.CategoryName,
-		PurchasePrice:    dataDB.PurchasePrice,
-		SellingPrice:     dataDB.SellingPrice,
-		Stock:            dataDB.Stock,
-		ReservedQty:      dataDB.ReservedQty,
-		MinStock:         dataDB.MinStock,
-		UnitID:           dataDB.UnitID,
-		UnitName:         dataDB.UnitName,
-		UnitAbbreviation: dataDB.UnitAbbreviation,
-		IsActive:         dataDB.IsActive,
-		ExtraPackages:    dataDB.ExtraPackages,
-		PriceTiersCount:  dataDB.PriceTiersCount,
-		IsLowStock:       dataDB.IsLowStock,
-		NeedsStockReview: dataDB.NeedsStockReview,
-		StockReviewNote:  dataDB.StockReviewNote,
-	}
-
-	return data, nil
-}
-
 func (s *productService) Create(req *dto.CreateRequest, role string) (data dto.ProductResponse, err error) {
 	if role != "admin" {
 		req.Stock = 0

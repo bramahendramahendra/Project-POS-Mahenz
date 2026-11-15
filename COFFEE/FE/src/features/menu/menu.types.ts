@@ -44,10 +44,6 @@ export interface UpdateMenuPayload {
   order_index?: number
 }
 
-export interface ReorderMenuPayload {
-  items: { id: number; order_index: number }[]
-}
-
 export interface MenuOption {
   id: number
   label: string

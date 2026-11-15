@@ -84,23 +84,6 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) GetMe(c *gin.Context) {
-	userID := helper.GetUserID(c)
-
-	data, err := h.service.GetMe(userID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Data user",
-		Data:    data,
-	})
-}
-
 // GetLoginOptions: cara login yang tersedia. Publik, dipakai halaman login untuk menentukan tampilan form.
 func (h *AuthHandler) GetLoginOptions(c *gin.Context) {
 	data, err := h.service.GetLoginOptions()
@@ -168,27 +151,6 @@ func (h *AuthHandler) SSO(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Login berhasil",
-		Data:    data,
-	})
-}
-
-func (h *AuthHandler) VerifyToken(c *gin.Context) {
-	req, err := binder.BindJSON[dto.VerifyTokenRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	data, err := h.service.VerifyToken(req.Token)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Hasil verifikasi token",
 		Data:    data,
 	})
 }

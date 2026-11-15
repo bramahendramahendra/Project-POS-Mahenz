@@ -71,12 +71,4 @@ type (
 		IsActive     bool      `json:"is_active"`
 		CreatedAt    time.Time `json:"created_at"`
 	}
-
-	CustomerActiveItem struct {
-		ID           int     `json:"id"`
-		Name         string  `json:"name"`
-		CustomerCode string  `json:"customer_code"`
-		CreditLimit  float64 `json:"credit_limit"`
-		Balance      float64 `json:"balance"`
-	}
 )

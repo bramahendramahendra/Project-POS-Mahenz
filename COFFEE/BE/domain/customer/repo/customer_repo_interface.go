@@ -10,7 +10,6 @@ import (
 type (
 	CustomerRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.Customer, int64, error)
-		GetOptions() ([]*model.Customer, error)
 		GetByID(id int) (*model.Customer, error)
 		GetCount() (int, error)
 		CountActiveReceivables(customerID int) (int, error)

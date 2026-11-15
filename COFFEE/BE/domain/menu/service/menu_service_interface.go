@@ -15,7 +15,6 @@ type (
 		Create(req *dto.CreateRequest) (*dto.MenuResponse, error)
 		Update(id int, req *dto.UpdateRequest) error
 		Delete(id int) error
-		Reorder(req *dto.ReorderRequest) error
 	}
 
 	menuService struct {

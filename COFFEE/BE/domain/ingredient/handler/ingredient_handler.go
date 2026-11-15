@@ -85,19 +85,6 @@ func (h *IngredientHandler) GetOptions(c *gin.Context) {
 	ok(c, 200, "Pilihan bahan", data)
 }
 
-func (h *IngredientHandler) GetByID(c *gin.Context) {
-	id, valid := bindID(c)
-	if !valid {
-		return
-	}
-	data, err := h.service.GetByID(id)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	ok(c, 200, "Detail bahan", data)
-}
-
 func (h *IngredientHandler) Create(c *gin.Context) {
 	req, valid := bindJSON[dto.CreateRequest](c)
 	if !valid {

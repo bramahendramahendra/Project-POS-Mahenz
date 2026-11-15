@@ -22,10 +22,6 @@ type (
 		ID int `uri:"id" validate:"required,min=1"`
 	}
 
-	GetByBarcodeRequest struct {
-		Barcode string `uri:"barcode" validate:"required"`
-	}
-
 	UpdateUriRequest struct {
 		ID int `uri:"id" validate:"required,min=1"`
 	}

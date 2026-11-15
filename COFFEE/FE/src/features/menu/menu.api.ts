@@ -11,7 +11,6 @@ import type {
   MenuOption,
   MenuResponse,
   MenuItem,
-  ReorderMenuPayload,
   UpdateMenuPayload,
 } from './menu.types'
 
@@ -78,18 +77,6 @@ export function useDeleteMenuMutation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
       toast.success('Menu berhasil dihapus')
-    },
-    onError: (e: Error) => toast.error(e.message),
-  })
-}
-
-export function useReorderMenuMutation() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: ReorderMenuPayload) => api.post('/menus/reorder', payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.menus.all() })
-      toast.success('Urutan menu berhasil diperbarui')
     },
     onError: (e: Error) => toast.error(e.message),
   })

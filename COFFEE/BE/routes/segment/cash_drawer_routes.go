@@ -40,7 +40,5 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 		g.POST("/detail/:id", cashDrawerHandler.GetByID)
 		g.POST("/open", myCashPerm("can_create"), cashDrawerHandler.Open)
 		g.POST("/close/:id", myCashPerm("can_edit"), cashDrawerHandler.Close)
-		g.POST("/update-sales/:id", myCashPerm("can_edit"), cashDrawerHandler.UpdateSales)
-		g.POST("/update-expenses/:id", myCashPerm("can_edit"), cashDrawerHandler.UpdateExpenses)
 	}
 }

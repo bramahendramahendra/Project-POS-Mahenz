@@ -43,26 +43,6 @@ func (s *unitService) GetOptions() (data []dto.GetOptionResponse, err error) {
 	return data, nil
 }
 
-func (s *unitService) GetByID(id int) (data dto.UnitResponse, err error) {
-	dataDB, err := s.repo.GetByID(id)
-	if err != nil {
-		return data, err
-	}
-	if dataDB == nil {
-		return data, &errors.NotFoundError{Message: "Satuan tidak ditemukan"}
-	}
-
-	data = dto.UnitResponse{
-		ID:           dataDB.ID,
-		Name:         dataDB.Name,
-		Abbreviation: dataDB.Abbreviation,
-		IsActive:     dataDB.IsActive,
-		CreatedAt:    dataDB.CreatedAt,
-	}
-
-	return data, nil
-}
-
 func (s *unitService) Create(req *dto.CreateRequest) (data dto.UnitResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Abbreviation = strings.TrimSpace(req.Abbreviation)

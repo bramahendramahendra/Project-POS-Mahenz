@@ -15,7 +15,6 @@ import type {
   ImportPreviewGrosirRow,
   ImportPreviewResponse,
   ImportPreviewRow,
-  PriceTier,
   Product,
   ProductListFilter,
   ProductOption,
@@ -129,10 +128,6 @@ export function fetchProductPackages(productId: number) {
   return api.post<ProductPackage[]>(`/products/${productId}/packages/list`, {})
 }
 
-export function fetchProductPrices(productId: number) {
-  return api.post<PriceTier[]>(`/products/${productId}/prices/list`, {})
-}
-
 export function useProductDetailQuery(id: number) {
   return useQuery({
     queryKey: queryKeys.products.detail(id),
@@ -141,26 +136,10 @@ export function useProductDetailQuery(id: number) {
   })
 }
 
-export function useProductBarcodeQuery(code: string, enabled: boolean) {
-  return useQuery({
-    queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.post<{ product: Product }>(`/products/by-barcode/${code}`, {}),
-    enabled: enabled && code.length > 0,
-  })
-}
-
 export function useProductPackagesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.productUnits(productId),
     queryFn: () => fetchProductPackages(productId),
-    enabled: productId > 0,
-  })
-}
-
-export function useProductPricesQuery(productId: number) {
-  return useQuery({
-    queryKey: queryKeys.products.priceTiers(productId),
-    queryFn: () => fetchProductPrices(productId),
     enabled: productId > 0,
   })
 }

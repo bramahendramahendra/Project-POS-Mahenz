@@ -36,25 +36,6 @@ type (
 		Notes          string  `json:"notes" validate:"max=500"`
 	}
 
-	UpdateSalesUriRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	UpdateSalesRequest struct {
-		ID             int     `json:"-"`
-		TotalSales     float64 `json:"total_sales" validate:"min=0"`
-		TotalCashSales float64 `json:"total_cash_sales" validate:"min=0"`
-	}
-
-	UpdateExpensesUriRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
-	UpdateExpensesRequest struct {
-		ID            int     `json:"-"`
-		TotalExpenses float64 `json:"total_expenses" validate:"min=0"`
-	}
-
 	// RESPONSE
 	CurrentCashDrawerResponse struct {
 		ID              int       `json:"id"`

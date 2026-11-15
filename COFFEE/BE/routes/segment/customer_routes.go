@@ -23,7 +23,6 @@ func CustomerRoutes(r *gin.RouterGroup) {
 	g := r.Group("/customers")
 	{
 		g.POST("/list", customerHandler.GetAll)
-		g.POST("/active", customerHandler.GetOptions)
 		g.POST("/detail/:id", customerHandler.GetByID)
 		g.POST("/create", perm("can_create"), customerHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), customerHandler.Update)

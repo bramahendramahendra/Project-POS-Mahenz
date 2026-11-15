@@ -14,14 +14,3 @@ type Receivable struct {
 	CreatedAt       time.Time  `gorm:"column:created_at"`
 	UpdatedAt       *time.Time `gorm:"column:updated_at"`
 }
-
-type ReceivablePayment struct {
-	ID            int       `gorm:"column:id"`
-	ReceivableID  int       `gorm:"column:receivable_id"`
-	PaymentDate   time.Time `gorm:"column:payment_date"`
-	Amount        float64   `gorm:"column:amount"`
-	PaymentMethod string    `gorm:"column:payment_method"`
-	Notes         string    `gorm:"column:notes"`
-	UserID        int       `gorm:"column:user_id"`
-	CreatedAt     time.Time `gorm:"column:created_at"`
-}

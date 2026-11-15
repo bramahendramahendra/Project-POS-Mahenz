@@ -129,10 +129,6 @@ func (s *menuService) Delete(id int) error {
 	return s.repo.Delete(id)
 }
 
-func (s *menuService) Reorder(req *dto.ReorderRequest) error {
-	return s.repo.Reorder(req.Items)
-}
-
 func buildTree(flat []*dto.MyMenuItem) []dto.MyMenuItem {
 	var roots []dto.MyMenuItem
 	childMap := make(map[string][]dto.MyMenuItem)

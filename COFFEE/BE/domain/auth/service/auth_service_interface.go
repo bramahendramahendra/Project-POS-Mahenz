@@ -15,9 +15,7 @@ type (
 		Login(ctx context.Context, req *dto.LoginRequest, ip string) (*dto.LoginResponse, error)
 		Logout(token string) error
 		RefreshToken(refreshToken string) (*dto.RefreshResponse, error)
-		GetMe(userID int) (*dto.UserData, error)
 		ValidateToken(token string) (*model.Session, error)
-		VerifyToken(token string) (*dto.VerifyTokenResponse, error)
 		// LoginSSO menukar kode sekali pakai dari Portal (dibuat BE User) menjadi sesi Coffee.
 		LoginSSO(ctx context.Context, req *dto.SSORequest, ip string) (*dto.LoginResponse, error)
 		// GetLoginOptions: cara login yang tersedia (publik).

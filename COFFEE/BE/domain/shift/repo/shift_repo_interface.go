@@ -17,7 +17,6 @@ type (
 		Update(req *dto.UpdateRequest) error
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
-		GetSummary() ([]*dto.ShiftSummaryResponse, error)
 	}
 
 	shiftRepo struct {

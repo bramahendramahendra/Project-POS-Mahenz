@@ -13,8 +13,6 @@ type (
 		GetHistory(req *dto.GetHistoryRequest) (data []*dto.CashDrawerHistoryResponse, total int64, err error)
 		Open(userID int, req *dto.OpenRequest) (*dto.OpenResponse, error)
 		Close(id int, req *dto.CloseRequest, requestingUserID int, role string) (*dto.CloseResponse, error)
-		UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error
-		UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error
 		AutoCloseYesterday() (int, error)
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 		GetKasirOptions() ([]dto.KasirOptionResponse, error)

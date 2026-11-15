@@ -113,22 +113,6 @@ func (h *BusinessSummaryHandler) GetTopCategories(c *gin.Context) {
 	})
 }
 
-// GET /api/reports/business-summary/summary-extra
-func (h *BusinessSummaryHandler) GetSummaryExtra(c *gin.Context) {
-	period := c.DefaultQuery("period", "today")
-	result, err := h.service.GetSummaryExtra(period)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Ringkasan tambahan",
-		Data:    result,
-	})
-}
-
 // GET /api/reports/business-summary/payment-methods
 func (h *BusinessSummaryHandler) GetPaymentMethods(c *gin.Context) {
 	now := time_helper.GetTimeNow()

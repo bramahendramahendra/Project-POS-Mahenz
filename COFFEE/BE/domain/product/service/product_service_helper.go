@@ -11,25 +11,6 @@ import (
 // dibuat lewat import produk konsisten dengan yang dibuat lewat endpoint kategori langsung.
 const categoryCodeLength = 3
 
-func (s *productService) GetLowStock() (data []*dto.GetLowStockResponse, err error) {
-	dataDB, err := s.repo.GetLowStock()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.GetLowStockResponse{
-			ID:       v.ID,
-			Name:     v.Name,
-			Stock:    v.Stock,
-			MinStock: v.MinStock,
-			UnitName: v.UnitName,
-		})
-	}
-
-	return data, nil
-}
-
 func (s *productService) GetCategoryNames() (data []string, err error) {
 	cats, err := s.repoCategory.GetOptions()
 	if err != nil {

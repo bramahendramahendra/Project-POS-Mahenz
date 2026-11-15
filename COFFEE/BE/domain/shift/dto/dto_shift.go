@@ -58,13 +58,4 @@ type (
 		StartTime string `json:"start_time"`
 		EndTime   string `json:"end_time"`
 	}
-
-	ShiftSummaryResponse struct {
-		ShiftID           int     `json:"shift_id"`
-		ShiftName         string  `json:"shift_name"`
-		TotalTransactions int     `json:"total_transactions"`
-		TotalSales        float64 `json:"total_sales"`
-		TotalCash         float64 `json:"total_cash"`
-		TotalNonCash      float64 `json:"total_non_cash"`
-	}
 )

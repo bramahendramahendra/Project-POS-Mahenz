@@ -83,16 +83,3 @@ type SaleModifierOption struct {
 	IsRequired    bool    `gorm:"column:is_required"`
 	GroupActive   bool    `gorm:"column:group_active"`
 }
-
-type StockMutation struct {
-	ID            int     `gorm:"column:id"`
-	ProductID     int     `gorm:"column:product_id"`
-	MutationType  string  `gorm:"column:mutation_type"`
-	Quantity      float64 `gorm:"column:quantity"`
-	StockBefore   float64 `gorm:"column:stock_before"`
-	StockAfter    float64 `gorm:"column:stock_after"`
-	ReferenceType string  `gorm:"column:reference_type"`
-	ReferenceID   int     `gorm:"column:reference_id"`
-	Notes         string  `gorm:"column:notes"`
-	UserID        int     `gorm:"column:user_id"`
-}

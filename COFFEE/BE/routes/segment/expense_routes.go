@@ -25,7 +25,6 @@ func ExpenseRoutes(r *gin.RouterGroup) {
 	g := r.Group("/expenses")
 	{
 		g.POST("/list", expenseHandler.GetAll)
-		g.POST("/detail/:id", expenseHandler.GetByID)
 		g.POST("/create", perm("can_create"), expenseHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), expenseHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), expenseHandler.Delete)

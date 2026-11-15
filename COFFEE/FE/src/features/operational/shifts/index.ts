@@ -2,7 +2,6 @@ export { ShiftsPage } from './ShiftsPage'
 export {
   useShiftListQuery,
   useShiftOptionsQuery,
-  useShiftDetailQuery,
   useCreateShiftMutation,
   useUpdateShiftMutation,
   useDeleteShiftMutation,

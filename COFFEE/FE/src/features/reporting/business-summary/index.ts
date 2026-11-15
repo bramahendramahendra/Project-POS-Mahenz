@@ -13,5 +13,4 @@ export type {
   MonthStats,
   SalesTrendItem,
   TopProductItem,
-  SummaryExtraResponse,
 } from './business-summary.types'

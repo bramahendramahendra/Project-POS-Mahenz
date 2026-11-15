@@ -78,19 +78,6 @@ func (h *ModifierGroupHandler) GetOptions(c *gin.Context) {
 	ok(c, 200, "Pilihan kelompok tambahan", data)
 }
 
-func (h *ModifierGroupHandler) GetByID(c *gin.Context) {
-	id, valid := bindID(c)
-	if !valid {
-		return
-	}
-	data, err := h.service.GetByID(id)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	ok(c, 200, "Detail kelompok tambahan", data)
-}
-
 func (h *ModifierGroupHandler) Create(c *gin.Context) {
 	req, valid := bindJSON[dto.SaveRequest](c)
 	if !valid {
