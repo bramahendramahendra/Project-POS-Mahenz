@@ -105,7 +105,7 @@ export function MenuCatalog() {
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-gray-400">
             <Coffee size={28} className="opacity-40" />
-            <p className="text-sm">{search ? 'Menu tidak ditemukan' : 'Belum ada menu di kategori ini'}</p>
+            <p className="text-sm">{search ? 'Menu tidak ditemukan' : (data?.categories ?? []).length === 0 ? 'Belum ada menu yang dijual — tambahkan di menu Daftar Menu' : 'Belum ada menu di kategori ini'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">

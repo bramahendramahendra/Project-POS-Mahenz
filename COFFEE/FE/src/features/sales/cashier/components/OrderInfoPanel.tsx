@@ -56,7 +56,7 @@ export function OrderInfoPanel() {
               <SelectValue placeholder="Pilih meja" />
             </SelectTrigger>
             <SelectContent>
-              {tables.length === 0 && <div className="px-3 py-2 text-xs text-gray-500">Belum ada meja aktif</div>}
+              {tables.length === 0 && <div className="px-3 py-2 text-xs text-gray-500">Belum ada meja aktif — tambahkan di menu Meja</div>}
               {tables.map((t) => (
                 <SelectItem key={t.id} value={String(t.id)}>
                   {t.name}

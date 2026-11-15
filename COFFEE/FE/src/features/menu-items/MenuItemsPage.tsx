@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Ban, CircleCheck, Lock, LockOpen, Pencil, Plus, RotateCcw, Search, Trash2 } from 'lucide-react'
 
-import { ConfirmDialog, DataTable, PageHeader, RoleGuard, StatusBadge } from '@/shared/components'
+import { ConfirmDialog, DataTable, PageHeader, PrerequisiteGuard, RoleGuard, StatusBadge } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
@@ -11,6 +11,7 @@ import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 import { useDebounce, usePagination, usePageSizeOptions } from '@/shared/hooks'
 
 import { MenuItemFormModal } from './components/MenuItemFormModal'
+import { useMenuItemPrerequisites } from './hooks/useMenuItemPrerequisites'
 import {
   menuCategoryApi,
   useDeleteMenuItemMutation,
@@ -115,6 +116,9 @@ export function MenuItemsPage() {
 
   const hasFilter = !!search || !!filter.category_id || !!filter.stock_mode || filter.is_active !== undefined || !!filter.is_sold_out
 
+  const prereq = useMenuItemPrerequisites()
+  const prereqMet = !prereq.isLoading && prereq.items.every((i) => i.met)
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -123,7 +127,7 @@ export function MenuItemsPage() {
         breadcrumbs={[{ label: 'Menu' }, { label: 'Daftar Menu' }]}
         actions={
           <RoleGuard menuKey={MENU_KEY} action="can_create">
-            <Button onClick={() => setFormItemId(null)} className="gap-1">
+            <Button onClick={() => setFormItemId(null)} className="gap-1" disabled={!prereqMet}>
               <Plus size={16} />
               Tambah Menu
             </Button>
@@ -131,75 +135,82 @@ export function MenuItemsPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
-        <div className="relative min-w-[200px] flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <Input placeholder="Cari menu..." aria-label="Cari menu" value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
+      <PrerequisiteGuard
+        isLoading={prereq.isLoading}
+        title="Belum bisa menambah menu"
+        description="Sebelum menambah menu, pastikan data berikut sudah tersedia:"
+        items={prereq.items}
+      >
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-white p-3">
+          <div className="relative min-w-[200px] flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Input placeholder="Cari menu..." aria-label="Cari menu" value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                resetPage()
+              }}
+              className="pl-8 h-9 text-sm"
+            />
+          </div>
+          <Select value={filter.category_id ? String(filter.category_id) : 'all'} onValueChange={(v) => changeFilter({ category_id: v === 'all' ? undefined : Number(v) })}>
+            <SelectTrigger className="h-9 w-44" aria-label="Filter kategori">
+              <SelectValue placeholder="Semua kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua kategori</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filter.stock_mode ?? 'all'} onValueChange={(v) => changeFilter({ stock_mode: v === 'all' ? undefined : (v as StockMode) })}>
+            <SelectTrigger className="h-9 w-40" aria-label="Filter mode stok">
+              <SelectValue placeholder="Semua mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua mode</SelectItem>
+              <SelectItem value="recipe">{STOCK_MODE_LABEL.recipe}</SelectItem>
+              <SelectItem value="direct">{STOCK_MODE_LABEL.direct}</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <Switch checked={!!filter.is_sold_out} onCheckedChange={(v) => changeFilter({ is_sold_out: v || undefined })} aria-label="Hanya menu habis" />
+            Habis
+          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1"
+            onClick={() => {
+              setSearch('')
+              setFilter(initialFilter)
               resetPage()
             }}
-            className="pl-8 h-9 text-sm"
-          />
+          >
+            <RotateCcw size={13} />
+            Reset
+          </Button>
         </div>
-        <Select value={filter.category_id ? String(filter.category_id) : 'all'} onValueChange={(v) => changeFilter({ category_id: v === 'all' ? undefined : Number(v) })}>
-          <SelectTrigger className="h-9 w-44" aria-label="Filter kategori">
-            <SelectValue placeholder="Semua kategori" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua kategori</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={String(c.id)}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filter.stock_mode ?? 'all'} onValueChange={(v) => changeFilter({ stock_mode: v === 'all' ? undefined : (v as StockMode) })}>
-          <SelectTrigger className="h-9 w-40" aria-label="Filter mode stok">
-            <SelectValue placeholder="Semua mode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua mode</SelectItem>
-            <SelectItem value="recipe">{STOCK_MODE_LABEL.recipe}</SelectItem>
-            <SelectItem value="direct">{STOCK_MODE_LABEL.direct}</SelectItem>
-          </SelectContent>
-        </Select>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
-          <Switch checked={!!filter.is_sold_out} onCheckedChange={(v) => changeFilter({ is_sold_out: v || undefined })} aria-label="Hanya menu habis" />
-          Habis
-        </label>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 gap-1"
-          onClick={() => {
-            setSearch('')
-            setFilter(initialFilter)
-            resetPage()
+
+        <DataTable<MenuItem & Record<string, unknown>>
+          columns={columns as ColumnDef<MenuItem & Record<string, unknown>>[]}
+          data={rows as (MenuItem & Record<string, unknown>)[]}
+          isLoading={isLoading}
+          emptyMessage={hasFilter ? 'Menu tidak ditemukan' : 'Belum ada menu'}
+          emptyDescription={hasFilter ? 'Coba ubah kata kunci atau filter.' : 'Buat kategori dan ukuran dulu, lalu tambah menu.'}
+          pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        />
+
+        <MenuItemFormModal
+          open={formItemId !== undefined}
+          onOpenChange={(open) => {
+            if (!open) setFormItemId(undefined)
           }}
-        >
-          <RotateCcw size={13} />
-          Reset
-        </Button>
-      </div>
-
-      <DataTable<MenuItem & Record<string, unknown>>
-        columns={columns as ColumnDef<MenuItem & Record<string, unknown>>[]}
-        data={rows as (MenuItem & Record<string, unknown>)[]}
-        isLoading={isLoading}
-        emptyMessage={hasFilter ? 'Menu tidak ditemukan' : 'Belum ada menu'}
-        emptyDescription={hasFilter ? 'Coba ubah kata kunci atau filter.' : 'Buat kategori dan ukuran dulu, lalu tambah menu.'}
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
-      />
-
-      <MenuItemFormModal
-        open={formItemId !== undefined}
-        onOpenChange={(open) => {
-          if (!open) setFormItemId(undefined)
-        }}
-        itemId={formItemId ?? null}
-      />
+          itemId={formItemId ?? null}
+        />
+      </PrerequisiteGuard>
 
       <ConfirmDialog
         open={toggling != null}

@@ -72,23 +72,22 @@ Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.
 Salin `TOKO/BE` dan `TOKO/FE` ke `COFFEE/`, pangkas modul `supplier_return, expiry_batch, customer_balance, capital_reconciliation, backdate, version`; bawa `receivable` dan `customer`. Baseline migrasi baru. Fitur: stok bahan manual + resep catatan, barang jadi (dus/pcs) dipotong saat masuk pesanan, varian/tambahan/meja/antrean harian, open bill, gabung/pindah meja, aturan pesanan lintas hari, tanpa foto/tiket bar, satu kedai, key `coffee.*`, port 8082/3002. Rincian ada di bagian 14 dokumen rancangan. Seperti Portal, kerjakan bertahap dan rancang tahapannya dulu di bagian 5.0 dokumen rancangan sebelum menulis kode, lalu minta persetujuan user.
 
 ## 7. Daftar pekerjaan pascacutover (dicatat 15 Nov 2026, urut prioritas)
-1. **[BERJALAN]** Deploy FE Toko dan Coffee ke server (perbaikan riwayat #79 peringatan data kosong Coffee, #80 logout ke Portal). Cukup Frontend, BE tidak berubah.
+1. **[SELESAI, 15 Nov 2026, laporan user]** Deploy FE Toko dan Coffee ke server (perbaikan riwayat #79 peringatan data kosong Coffee, #80 logout ke Portal). Cukup Frontend, BE tidak berubah.
 2. D.5: uji tablet/APK (tampil Portal, masuk Toko/Coffee, cetak struk Bluetooth, alamat printer) oleh user.
-3. **Keputusan user:** syarat halaman Pembelian Coffee (sekarang supplier + produk barang jadi; usul AI: supplier + produk ATAU bahan baku).
+3. **[SELESAI DI DEV, menunggu commit + deploy FE Coffee]** Syarat Pembelian Coffee: supplier + produk ATAU bahan baku (keputusan 126); plus syarat Daftar Menu (kategori menu) dan pesan kasir tanpa menu/meja (keputusan 127). Type-check, lint, build lolos; uji `testing/cek_bahan/b_syarat.js` 8/8 di laptop, tablet, HP.
 4. Setelah stabil: hapus `/opt/pos-mahenz_lama_<TGL>`, `/var/www/pos-web/dist`, service `pos-backend`.
 5. Setelah stabil: beri akses Coffee ke kasir lewat Portal, atur role di Coffee.
 6. Setelah semua perangkat memakai alamat baru: hapus blok nginx `location ^~ /api/`.
 7. Opsional: matikan login langsung Toko/Coffee bila semua lewat Portal.
-8. **Keputusan user:** hapus data gladi di laptop (database `gladi_*`, `testing/deploy_d3/pos_retail_db_gladi.sql`; berisi salinan data produksi).
-9. Hati-hati: `.gitignore` mengabaikan `docs` dan `nginx`; bila dikeluarkan dari repo, `git pull` di VPS menghapus `/opt/pos-mahenz/nginx`.
+8. **[SELESAI, 15 Nov 2026]** Data gladi dihapus atas persetujuan user: database `gladi_*`, dump `pos_retail_db_gladi.sql`, folder `testing/deploy_d3/run/` dan log gladi. Skrip gladi dan `counts_before.json` disimpan.
+9. ~~`.gitignore` `docs`/`nginx`~~ **[ABAIKAN]**: baris `docs`, `nginx`, `.claude`, `.github`, `mobile` di `.gitignore` sengaja di-on/off-kan user (dikomentari saat deploy produksi, diaktifkan lagi untuk dev lokal). Bukan masalah; jangan dipersoalkan.
 10. Nanti: perbarui library FE yang dilaporkan `npm audit` (tahap tersendiri, uji ulang).
 11. Nanti: uji Go lama warisan Toko yang gagal (lihat item kecil di bawah).
 12. Nanti: rapikan/tandai usang dokumen deploy lama (`PANDUAN_DEPLOY.md`, `DEPLOYMENT_PROD.md`, dll.).
 
 ## 7b. Item terbuka kecil
-- **Temuan D.4 (diperbaiki di dev, riwayat #80; menunggu deploy FE Toko dan Coffee):** logout dari sesi yang sudah tidak berlaku (akun sama login di perangkat lain) dulu dialihkan interceptor 401 ke `/<app>/login`; kini `/auth/logout` dikecualikan dari refresh di `services/api.client.ts` dan 401 saat logout dianggap berhasil di `features/auth/auth.api.ts`. Uji ulang: `testing/logout_portal/` (`proxy.js`, `repro.js`, `repro_sesi.js`).
+- **Temuan D.4 (diperbaiki di dev, riwayat #80; sudah di-deploy 15 Nov 2026):** logout dari sesi yang sudah tidak berlaku (akun sama login di perangkat lain) dulu dialihkan interceptor 401 ke `/<app>/login`; kini `/auth/logout` dikecualikan dari refresh di `services/api.client.ts` dan 401 saat logout dianggap berhasil di `features/auth/auth.api.ts`. Uji ulang: `testing/logout_portal/` (`proxy.js`, `repro.js`, `repro_sesi.js`).
 - Pasca-cutover (beberapa hari setelah stabil): hapus `/opt/pos-mahenz_lama_<TGL>` dan service `pos-backend`, beri akses Coffee ke kasir, hapus blok `location ^~ /api/` lama di nginx.
-- `.gitignore` kini mengabaikan `docs`, `nginx`, `mobile`, `.claude`, `.github` (perubahan user); file yang sudah dilacak masih ikut sampai `git rm --cached`. Bila `nginx/` dikeluarkan dari repo, `git pull` di VPS menghapus salinan di `/opt/pos-mahenz/nginx` (config aktif di `/etc/nginx` aman).
 - Uji Go lama (salinan Toko, ada di Toko dan Coffee): `pkg/binder` `TestBindJSON_LargeNumbers` gagal; paket `helper` panik di `go test` karena `config` membaca `./.env` saat init; teardown uji integrasi stok Toko masih gagal menghapus kemasan anak (Coffee sudah diperbaiki, riwayat #69).
 - `set` akses user ke aplikasi dengan id aplikasi yang tidak ada diabaikan diam-diam (pertimbangkan ditolak).
 - `TOKO/BE/config/config_prod.json` menyimpan SecretKey/password DB di repo (sarankan pindah ke env).
