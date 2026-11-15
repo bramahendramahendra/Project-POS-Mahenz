@@ -120,7 +120,7 @@ func init() {
 
 func initEnv() {
 	v := viper.New()
-	v.SetConfigFile(envPath)
+	v.SetConfigFile(resolvePath(envPath))
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
@@ -139,7 +139,7 @@ func initEnv() {
 
 func initConfig(releaseMode string) {
 	v := viper.New()
-	v.SetConfigFile(configMap[releaseMode])
+	v.SetConfigFile(resolvePath(configMap[releaseMode]))
 	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {

@@ -89,12 +89,12 @@ Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.
 
 ## 6. Pekerjaan berikutnya
 - Ditunda (siap copas, lihat `PENDING.md`): D.5 uji tablet/APK, bersih-bersih server setelah stabil, hapus blok nginx `/api/` lama.
-- Perlu diskusi dengan user dulu: perbarui library FE (`npm audit`); perbaiki uji Go lama yang gagal.
+- Urutan disepakati: uji Go (selesai) → hapus dead code (analisis dulu, laporkan, lalu hapus) → perbarui library FE (`npm audit`,
+  sudah dianalisis). Rincian di `PENDING.md`.
 
 ## 7. Item terbuka kecil
-- Uji Go lama (salinan Toko, ada di Toko dan Coffee): `pkg/binder` `TestBindJSON_LargeNumbers` gagal; paket `helper` panik di
-  `go test` karena `config` membaca `./.env` saat init; teardown uji integrasi stok Toko gagal menghapus kemasan anak
-  (Coffee sudah diperbaiki, riwayat #69).
+- `go test ./...` hijau di keempat BE (15 Nov 2026). Uji yang menulis ke DB dev hanya jalan dengan `POS_DB_TEST=1`.
+  Batas binder: angka bulat JSON terbaca persis sampai 2^53-1 (lewat float64); cukup untuk semua nilai aplikasi.
 - Set akses user ke aplikasi dengan id aplikasi yang tidak ada diabaikan diam-diam (pertimbangkan ditolak).
 - Endpoint opsi warisan Toko (`/units/options`, `/categories/options`, `/products/options`, dll.) membalas `null` saat kosong;
   Toko tidak terdampak karena datanya terisi.

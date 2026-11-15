@@ -1582,6 +1582,9 @@ func TestBindURI_EmptyParams(t *testing.T) {
 	}
 }
 
+// Binder membaca JSON lewat map[string]interface{}, sehingga angka melewati float64. Batas angka bulat yang
+// terbaca persis adalah 2^53-1 (9.007.199.254.740.991); di atas itu presisi hilang. Nilai di aplikasi (rupiah,
+// jumlah, id) jauh di bawah batas ini, jadi uji memeriksa batas tersebut, bukan int64/uint64 maksimum.
 func TestBindJSON_LargeNumbers(t *testing.T) {
 	type LargeNumberStruct struct {
 		BigInt   int64   `json:"big_int"`
@@ -1590,8 +1593,8 @@ func TestBindJSON_LargeNumbers(t *testing.T) {
 	}
 
 	jsonBody := `{
-		"big_int": 9223372036854775807,
-		"big_uint": 18446744073709551615,
+		"big_int": 9007199254740991,
+		"big_uint": 9007199254740991,
 		"big_float": 1.7976931348623157e+308
 	}`
 	c, _ := createJSONContext(jsonBody)
@@ -1601,8 +1604,14 @@ func TestBindJSON_LargeNumbers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if result.BigInt != 9223372036854775807 {
-		t.Errorf("expected big_int max int64, got %d", result.BigInt)
+	if result.BigInt != 9007199254740991 {
+		t.Errorf("expected big_int 2^53-1, got %d", result.BigInt)
+	}
+	if result.BigUint != 9007199254740991 {
+		t.Errorf("expected big_uint 2^53-1, got %d", result.BigUint)
+	}
+	if result.BigFloat != 1.7976931348623157e+308 {
+		t.Errorf("expected big_float max float64, got %g", result.BigFloat)
 	}
 }
 

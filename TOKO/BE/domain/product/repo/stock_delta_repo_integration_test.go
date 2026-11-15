@@ -2,8 +2,10 @@ package repo
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"testing"
+	"time"
 
 	model_product "pos_api/domain/product/model"
 
@@ -71,6 +73,10 @@ var botolPackageIDForTest int
 
 func connectDevDBOrSkip(t *testing.T) *gorm.DB {
 	t.Helper()
+	// Uji ini menulis ke database dev: hanya jalan bila diminta jelas (POS_DB_TEST=1), agar `go test ./...` aman.
+	if os.Getenv("POS_DB_TEST") != "1" {
+		t.Skip("skip: uji integrasi DB; jalankan dengan POS_DB_TEST=1")
+	}
 	dsn := "root:@tcp(127.0.0.1:3306)/pos_retail_db?charset=utf8&parseTime=True&loc=Local"
 	db, err := gorm.Open(gmysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
@@ -90,31 +96,40 @@ func connectDevDBOrSkip(t *testing.T) *gorm.DB {
 func setupConcurrencyTestProduct(t *testing.T, db *gorm.DB, botolStock int) int {
 	t.Helper()
 
-	res := db.Exec(`INSERT INTO products (name, unit_id, stock, min_stock, is_active) VALUES (?, 4, 0, 0, 1)`,
-		fmt.Sprintf("TEST STOCKDELTA CONCURRENCY %d", nowSuffix()))
+	// Dua satuan apa saja dari master Unit DB dev (sebelumnya id 4 dan 11 ditulis mati).
+	var unitIDs []int
+	if err := db.Raw(`SELECT id FROM units ORDER BY id LIMIT 2`).Scan(&unitIDs).Error; err != nil || len(unitIDs) < 2 {
+		t.Skip("skip: butuh minimal 2 satuan di master Unit DB dev")
+	}
+	kardusUnit, botolUnit := unitIDs[0], unitIDs[1]
+
+	// id dibaca berdasarkan nama/kunci, bukan LAST_INSERT_ID(): db di sini pool koneksi, jadi
+	// LAST_INSERT_ID() bisa terbaca dari koneksi lain (id salah, teardown bisa salah sasaran).
+	name := fmt.Sprintf("TEST STOCKDELTA CONCURRENCY %d-%d", time.Now().UnixNano(), nowSuffix())
+	res := db.Exec(`INSERT INTO products (name, unit_id, min_stock, is_active) VALUES (?, ?, 0, 1)`, name, kardusUnit)
 	if res.Error != nil {
-		t.Fatalf("gagal buat produk uji: %v", res.Error)
+		t.Fatalf("gagal insert produk uji: %v", res.Error)
 	}
 	var productID int
-	if err := db.Raw("SELECT LAST_INSERT_ID()").Scan(&productID).Error; err != nil {
+	if err := db.Raw("SELECT id FROM products WHERE name = ?", name).Scan(&productID).Error; err != nil || productID == 0 {
 		t.Fatalf("gagal ambil id produk uji: %v", err)
 	}
 
-	res = db.Exec(`INSERT INTO product_packages (product_id, unit_id, qty, ref_qty, ref_package_id, is_default, stock, reserved_qty, is_active) VALUES (?, 4, 1, NULL, NULL, 1, 0, 0, 1)`, productID)
+	res = db.Exec(`INSERT INTO product_packages (product_id, unit_id, qty, ref_qty, ref_package_id, is_default, stock, reserved_qty, is_active) VALUES (?, ?, 1, NULL, NULL, 1, 0, 0, 1)`, productID, kardusUnit)
 	if res.Error != nil {
-		t.Fatalf("gagal buat package Kardus uji: %v", res.Error)
+		t.Fatalf("gagal insert kemasan Kardus: %v", res.Error)
 	}
 	var kardusPackageID int
-	if err := db.Raw("SELECT LAST_INSERT_ID()").Scan(&kardusPackageID).Error; err != nil {
-		t.Fatalf("gagal ambil id package Kardus: %v", err)
+	if err := db.Raw("SELECT id FROM product_packages WHERE product_id = ? AND is_default = 1", productID).Scan(&kardusPackageID).Error; err != nil || kardusPackageID == 0 {
+		t.Fatalf("gagal ambil id kemasan Kardus: %v", err)
 	}
 
-	res = db.Exec(`INSERT INTO product_packages (product_id, unit_id, qty, ref_qty, ref_package_id, is_default, stock, reserved_qty, is_active) VALUES (?, 11, 24, 1, ?, 0, ?, 0, 1)`, productID, kardusPackageID, botolStock)
+	res = db.Exec(`INSERT INTO product_packages (product_id, unit_id, qty, ref_qty, ref_package_id, is_default, stock, reserved_qty, is_active) VALUES (?, ?, 24, 1, ?, 0, ?, 0, 1)`, productID, botolUnit, kardusPackageID, botolStock)
 	if res.Error != nil {
-		t.Fatalf("gagal buat package Botol uji: %v", res.Error)
+		t.Fatalf("gagal insert kemasan Botol: %v", res.Error)
 	}
-	if err := db.Raw("SELECT LAST_INSERT_ID()").Scan(&botolPackageIDForTest).Error; err != nil {
-		t.Fatalf("gagal ambil id package Botol: %v", err)
+	if err := db.Raw("SELECT id FROM product_packages WHERE product_id = ? AND ref_package_id IS NOT NULL", productID).Scan(&botolPackageIDForTest).Error; err != nil || botolPackageIDForTest == 0 {
+		t.Fatalf("gagal ambil id kemasan Botol: %v", err)
 	}
 
 	return productID
@@ -122,9 +137,17 @@ func setupConcurrencyTestProduct(t *testing.T, db *gorm.DB, botolStock int) int 
 
 func teardownConcurrencyTestProduct(t *testing.T, db *gorm.DB, productID int) {
 	t.Helper()
-	db.Exec("DELETE FROM stock_mutations WHERE product_id = ?", productID)
-	db.Exec("DELETE FROM product_packages WHERE product_id = ?", productID)
-	db.Exec("DELETE FROM products WHERE id = ?", productID)
+	// Kemasan anak (merujuk kemasan lain) dihapus lebih dulu agar foreign key ref_package_id tidak menolak.
+	for _, q := range []string{
+		"DELETE FROM stock_mutations WHERE product_id = ?",
+		"DELETE FROM product_packages WHERE product_id = ? AND ref_package_id IS NOT NULL",
+		"DELETE FROM product_packages WHERE product_id = ?",
+		"DELETE FROM products WHERE id = ?",
+	} {
+		if err := db.Exec(q, productID).Error; err != nil {
+			t.Errorf("teardown gagal (%s): %v", q, err)
+		}
+	}
 }
 
 var nowSuffixCounter int

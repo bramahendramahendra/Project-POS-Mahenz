@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"os"
 	"sort"
 	"sync"
 	"testing"
@@ -16,6 +17,10 @@ import (
 // Baris uji dibiarkan di DB dev. Test dilewati bila MySQL dev tidak bisa dihubungi.
 func connectCoffeeDevDBOrSkip(t *testing.T) *gorm.DB {
 	t.Helper()
+	// Uji ini menulis ke database dev: hanya jalan bila diminta jelas (POS_DB_TEST=1), agar `go test ./...` aman.
+	if os.Getenv("POS_DB_TEST") != "1" {
+		t.Skip("skip: uji integrasi DB; jalankan dengan POS_DB_TEST=1")
+	}
 	dsn := "root:@tcp(127.0.0.1:3306)/pos_coffee_db?charset=utf8&parseTime=True&loc=Local"
 	db, err := gorm.Open(gmysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {

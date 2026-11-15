@@ -51,14 +51,38 @@ Pola ini hanya menghitung `/api/...` di awal alamat, tidak ikut menghitung `/tok
 - Semua 0 selama beberapa hari: minta AI menghapus blok itu di `nginx/pos-web.conf`, lalu deploy nginx
   (SOP_DEPLOY.md, bagian "Nginx").
 
-## 4. Perlu diskusi dulu sebelum dikerjakan
+## Urutan yang disepakati (15 Nov 2026)
 
-- Perbarui library FE yang dilaporkan `npm audit` (Portal, Toko, Coffee).
-- Perbaiki uji Go lama warisan Toko yang gagal (`pkg/binder`, paket `helper`, teardown uji stok Toko).
+**Nomor 11 (uji Go, bagian 5) → hapus dead code (bagian 6) → nomor 10 (library FE, bagian 4).**
+Uji Go hijau dulu sebagai jaring pengaman; dead code dihapus sebelum memperbarui library agar library yang
+ternyata tidak dipakai ikut terbuang.
+
+## 4. Library FE dengan celah keamanan (`npm audit`) — sudah dianalisis, menunggu keputusan
+
+Analisis 15 Nov 2026 (belum ada yang diubah). Portal 24 temuan, Toko 27 (1 critical), Coffee 27 (1 critical).
+
+| Kelompok | Library | Catatan |
+|---|---|---|
+| A. aman (versi kecil) | axios 1.16→1.21.1, zod 4.4.3→4.6.7, react-router-dom 7.15→7.18.5, vite, postcss, eslint, library turunan | `npm audit fix` TANPA `--force` |
+| B. critical | jspdf 2.5.2→4.2.1 (versi besar; Toko, Coffee; simpan struk PDF) | Hanya pakai `text/setFont/setFontSize/splitTextToSize/save/output`; risiko nyata rendah, tetap uji PDF struk |
+| C. tanpa perbaikan di npm | xlsx 0.18.5 (Toko, Coffee; hanya MENULIS export produk) | Celah hanya saat membaca file; import produk dibaca BE (excelize). Pilihan: biarkan (saran AI) / SheetJS 0.20.3 dari cdn.sheetjs.com / ganti exceljs |
+| D. alat lint | typescript-eslint | Jangan ikuti saran audit menurunkan ke 6.15; naikkan ke 8.72.2 |
+
+Usulan urutan: 10a (kelompok A + typescript-eslint, ketiga FE) → 10b (jspdf) → 10c (xlsx sesuai pilihan).
+Tiap tahap: type-check, lint, build, regresi browser, lalu deploy FE terkait. Perlu keputusan: setuju urutan? xlsx pilih mana?
+
+## 6. Hapus dead code — belum dianalisis
+
+Alat: Go `deadcode`/`staticcheck`, FE `knip` (file, export, library npm tak terpakai). Analisis dulu, laporkan daftar,
+hapus setelah user setuju. Per aplikasi, satu tahap sekali jalan: Coffee → Portal → BE User → Toko (paling akhir;
+Toko produksi dan aturan "aditif", butuh izin eksplisit, hanya yang pasti tidak dipakai).
 
 ---
 
 ## Sudah selesai
+
+- 15 Nov 2026: nomor 11 uji Go hijau di keempat BE (lihat riwayat dokumen rancangan). Uji DB dijalankan dengan
+  `POS_DB_TEST=1 go test ./domain/product/repo/` (Toko, Coffee) dan `./domain/queue_number/repo/` (Coffee).
 
 - 15 Nov 2026: cutover VPS (D.4), deploy FE Toko/Coffee (perbaikan logout dan peringatan data kosong),
   syarat Pembelian/Daftar Menu Coffee, akses Coffee untuk owner dan kasir di produksi, hapus data gladi di laptop.
