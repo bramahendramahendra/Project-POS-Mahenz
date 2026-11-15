@@ -115,13 +115,35 @@ ditolak, login berhasil) di laptop/tablet/HP; `b_4_7b` 7/7 (void dibuang), `b_4_
 | devDependencies `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint-plugin-import` | **[DIHAPUS]** (lint memakai paket `typescript-eslint`) |
 | `lint-staged` | PERTAHANKAN (dipakai hook Husky `.husky/pre-commit`) |
 
-### FE-G. Fungsi/hook diekspor yang tidak dipakai di mana pun — DISKUSI
+### FE-G. Fungsi/hook diekspor yang tidak dipakai di mana pun
+
+**Kelompok 2 (format, hitung, utilitas FE), diputuskan AI atas serahan user, 15 Nov 2026:**
+
+| Fungsi | Kemungkinan | Hasil |
+|---|---|---|
+| `formatProductPackage` | 2 (rumus "Satuan (kemasan)" ditulis ulang di 3 tempat) | **[DIPAKAI]** di `PurchaseFormModal`, `ProductDetailModal`, `ProductFormModal` |
+| `isPaymentSufficient` | 4 (modal bayar lebih lengkap: utang, total 0) | **[DIHAPUS]** |
+| `percentage`, `roundTo` | 4 (laporan sengaja membulatkan ke angka bulat) | **[DIHAPUS]** |
+| `parseRupiah` | 4 (`RupiahInput` sengaja angka bulat) | **[DIHAPUS]** |
+| `PAYMENT_STATUS_LABEL` | 4 (label sama terpusat di `StatusBadge`) | **[DIHAPUS]** |
+| `usePermission` | 4 (`useAuth` sudah menyediakan isOwner/isAdmin/isKasir) | **[DIHAPUS]** |
+| `EmptyState` | 4 (hampir identik dengan `DataTableEmpty` yang dipakai) | **[DIHAPUS]** |
+| `getPlatform` + tipe `DevicePlatform` | 4 (`isAndroid` sudah cukup) | **[DIHAPUS]** |
+| `clamp`, `truncate`, `capitalize`, `slugify`, `formatRelative`, `useLocalStorage`, `getApplicablePrice` | 1 | **[DIHAPUS]** (`string.ts` dihapus) |
+| `openReceiptPdf` | 3 (pratinjau PDF di tab baru; sudah ada Simpan/Bagikan PDF, tab baru sering diblokir di WebView APK) | **[DIHAPUS]** |
+
+Temuan sampingan disatukan: `pctChange` (persen naik/turun) yang identik di `SummaryCards` dan `SalesReportSummaryCard`
+kini satu di `shared/utils/number.ts`; `CashDrawerTable` memakai `useAuth` (isOwner/isAdmin) untuk tombol Tutup Paksa.
+Uji: type-check/lint/build; knip ulang hanya menyisakan 5 hook API (kelompok 5); uji baru `testing/deadcode/b_kelompok2.js`
+7/7 di laptop/tablet/HP (label "Dus (Dus)" di detail produk, form produk, pilihan satuan pembelian "Dus (Dus) (x24)";
+Ringkasan Bisnis dan Laporan Penjualan tampil; tombol Tutup Paksa untuk admin; Simpan PDF struk menghasilkan file .pdf);
+regresi `b_4_10` 6/6, `b_4_11` 22/22 di 3 perangkat, `b_4_5` bagian Coffee 5/5 (kata cari di skrip uji diganti nama lengkap
+karena data uji "Croissant" menumpuk; bagian Toko butuh FE Toko yang tidak dinyalakan).
+
+Sisa kelompok ini (hook API, dibahas bersama endpoint di kelompok 5):
 
 `auth.api.ts` useGetMeQuery; `menu.api.ts` useReorderMenuMutation; `shifts.api.ts` useShiftDetailQuery;
-`purchases.types.ts` PAYMENT_STATUS_LABEL; `products.api.ts` useProductBarcodeQuery, useProductPricesQuery (+ `fetchProductPrices`
-yang hanya dipakai olehnya); `products.utils.ts` getApplicablePrice, formatProductPackage; `blePrinter.ts` getPlatform;
-`cashier.utils.ts` isPaymentSufficient; `receiptPdf.ts` openReceiptPdf; komponen `EmptyState`; hook `useLocalStorage`, `usePermission`;
-`currency.ts` parseRupiah; `date.ts` formatRelative; `number.ts` clamp, percentage; `string.ts` truncate, capitalize, slugify.
+`products.api.ts` useProductBarcodeQuery, useProductPricesQuery (+ `fetchProductPrices` yang hanya dipakai olehnya).
 
 ### FE-H. Hanya kata `export` yang berlebih (dipakai di file sendiri) — OPSIONAL
 

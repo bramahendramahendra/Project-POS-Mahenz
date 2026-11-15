@@ -9,11 +9,6 @@ export function formatRupiah(value: number, withDecimal = false): string {
   return formatted
 }
 
-export function parseRupiah(value: string): number {
-  const cleaned = value.replace(/[^\d,]/g, '').replace(',', '.')
-  return parseFloat(cleaned) || 0
-}
-
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('id-ID').format(value)
 }

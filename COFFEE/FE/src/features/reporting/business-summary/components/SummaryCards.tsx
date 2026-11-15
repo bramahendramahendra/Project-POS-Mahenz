@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { ArrowDownRight, ArrowUpRight, Banknote, CreditCard, PackageX, ShoppingBag, TrendingUp } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, pctChange } from '@/shared/utils'
 
 import type { DashboardPeriod, DashboardStats } from '../business-summary.types'
 
@@ -23,12 +23,6 @@ const PREV_LABEL: Record<DashboardPeriod, string> = {
   today: 'kemarin',
   week: 'minggu lalu',
   month: 'bulan lalu',
-}
-
-// Hitung persentase perubahan current vs previous. null = tak bisa dibandingkan.
-function pctChange(current: number, previous: number): number | null {
-  if (previous <= 0) return null
-  return ((current - previous) / previous) * 100
 }
 
 interface DeltaProps {

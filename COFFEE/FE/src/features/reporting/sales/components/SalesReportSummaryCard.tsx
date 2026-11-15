@@ -1,19 +1,13 @@
 import type { ReactNode } from 'react'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
-import { formatRupiah } from '@/shared/utils'
+import { formatRupiah, pctChange } from '@/shared/utils'
 
 import type { SalesReportSummary } from '../sales.types'
 
 interface SalesReportSummaryCardProps {
   summary: SalesReportSummary | undefined
   isLoading: boolean
-}
-
-// Persentase perubahan current vs previous. null = tak bisa dibandingkan.
-function pctChange(current: number, previous: number): number | null {
-  if (previous <= 0) return null
-  return ((current - previous) / previous) * 100
 }
 
 interface DeltaProps {

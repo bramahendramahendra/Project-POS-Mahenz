@@ -22,7 +22,7 @@ import { useSupplierOptionsQuery } from '@/features/procurement/suppliers'
 import type { SupplierOption } from '@/features/procurement/suppliers'
 import { fetchProductDetail } from '@/features/products/products'
 import type { IngredientOption } from '@/features/ingredients'
-import { formatResolvedFactor, formatStockNumber } from '@/features/products/products/products.utils'
+import { formatProductPackage, formatResolvedFactor, formatStockNumber } from '@/features/products/products/products.utils'
 import { AsyncCombobox } from '@/shared/components/ui/async-combobox'
 import { PurchaseItemTargetCell } from './PurchaseItemTargetCell'
 import { useQueryClient } from '@tanstack/react-query'
@@ -394,7 +394,7 @@ export function PurchaseFormModal({ open, onOpenChange, initialData }: PurchaseF
   }
 
   function unitOptionLabel(pkg: ProductPackage) {
-    const name = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
+    const name = formatProductPackage(pkg)
     return pkg.resolved_factor > 1 ? `${name} (x${formatResolvedFactor(pkg.resolved_factor)})` : name
   }
 

@@ -2,8 +2,7 @@ import { useState } from 'react'
 
 import { DataTable } from '@/shared/components'
 import { useDisclosure, usePagination, usePageSizeOptions } from '@/shared/hooks'
-import { useAuthStore } from '@/features/auth'
-import { ROLES } from '@/shared/constants/roles'
+import { useAuth } from '@/features/auth'
 import { monthStart, todayStr } from '@/shared/utils'
 import type { SortState } from '@/shared/components/DataTable/DataTable.types'
 
@@ -34,8 +33,8 @@ export function CashDrawerTable() {
   const { isOpen: detailOpen, open: openDetail, close: closeDetail } = useDisclosure()
   const { isOpen: forceCloseOpen, open: openForceClose, close: closeForceClose } = useDisclosure()
 
-  const { user } = useAuthStore()
-  const canForceClose = user?.roleName === ROLES.OWNER || user?.roleName === ROLES.ADMIN
+  const { isOwner, isAdmin } = useAuth()
+  const canForceClose = isOwner || isAdmin
 
   const { data, isLoading } = useCashDrawerListQuery({ ...filter, page, limit: pageSize })
   const { data: summary, isLoading: summaryLoading } = useCashDrawerSummaryQuery(filter)

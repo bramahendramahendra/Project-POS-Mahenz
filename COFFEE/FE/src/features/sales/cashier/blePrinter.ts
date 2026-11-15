@@ -211,17 +211,6 @@ export type ReceiptData = {
   unpaid?: boolean
 }
 
-export type DevicePlatform = 'android' | 'windows' | 'other'
-
-/** Deteksi platform perangkat dari user agent untuk memilih jalur cetak yang tepat. */
-export function getPlatform(): DevicePlatform {
-  if (typeof navigator === 'undefined') return 'other'
-  const ua = navigator.userAgent.toLowerCase()
-  if (ua.includes('android')) return 'android'
-  if (ua.includes('windows')) return 'windows'
-  return 'other'
-}
-
 /**
  * Bangun byte ESC/POS lengkap dari data struk, dengan perintah format native
  * (align center untuk header, bold untuk TOTAL, feed + cut di akhir). Teks tubuh

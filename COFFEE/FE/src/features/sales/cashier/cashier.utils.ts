@@ -52,10 +52,6 @@ export const calcChange = (grandTotal: number, amountPaid: number): number => {
   return Math.max(0, amountPaid - grandTotal)
 }
 
-export const isPaymentSufficient = (grandTotal: number, amountPaid: number): boolean => {
-  return amountPaid >= grandTotal
-}
-
 export function calculateItemDiscount(
   price: number,
   qty: number,
