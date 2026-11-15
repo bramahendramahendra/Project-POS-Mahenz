@@ -1,0 +1,5 @@
+# Template token bypass maintenance.
+# File AKTIF ada di server pada /etc/nginx/maintenance_token.conf (di luar repo/git),
+# di-generate & di-rotasi otomatis oleh maintenance-on.sh / maintenance-off.sh.
+# Copy manual sekali saat setup awal: sudo cp maintenance_token.conf.example /etc/nginx/maintenance_token.conf
+set $maintenance_token "";
