@@ -34,15 +34,6 @@ type DatabaseConfig struct {
 	MaxIdleTime  int    `json:"MaxIdleTime"`
 }
 
-type RedisConfig struct {
-	Host         string
-	Port         string
-	Password     string
-	Db           int
-	PoolSize     int
-	MinIdleConns int
-}
-
 type LogConfig struct {
 	Path       string `json:"Path"`
 	Level      string `json:"Level"`

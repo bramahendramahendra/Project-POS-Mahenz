@@ -24,8 +24,6 @@ type (
 		GetCount() (int, error)
 		CountPurchasesBySupplier(supplierID int) (int, error)
 		CountActiveDebtBySupplier(supplierID int) (int, error)
-
-		GetDB() *gorm.DB
 	}
 
 	supplierRepo struct {
@@ -35,8 +33,4 @@ type (
 
 func NewSupplierRepo(db *gorm.DB) *supplierRepo {
 	return &supplierRepo{db: db}
-}
-
-func (r *supplierRepo) GetDB() *gorm.DB {
-	return r.db
 }

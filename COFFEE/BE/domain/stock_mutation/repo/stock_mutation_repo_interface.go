@@ -10,8 +10,6 @@ type (
 	StockMutationRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*dto.StockMutationResponse, int64, error)
 		GetByProduct(productID int) ([]*dto.StockMutationByProductResponse, error)
-
-		GetDB() *gorm.DB
 	}
 
 	stockMutationRepo struct {
@@ -21,8 +19,4 @@ type (
 
 func NewStockMutationRepo(db *gorm.DB) *stockMutationRepo {
 	return &stockMutationRepo{db: db}
-}
-
-func (r *stockMutationRepo) GetDB() *gorm.DB {
-	return r.db
 }

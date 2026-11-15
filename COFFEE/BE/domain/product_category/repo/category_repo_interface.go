@@ -22,8 +22,6 @@ type (
 		CheckNameExists(name string, excludeID int) (bool, error)
 		CountProductsByCategory(categoryID int) (int, error)
 		CountActiveProductsByCategory(categoryID int) (int, error)
-
-		GetDB() *gorm.DB
 	}
 
 	categoryRepo struct {
@@ -33,8 +31,4 @@ type (
 
 func NewCategoryRepo(db *gorm.DB) *categoryRepo {
 	return &categoryRepo{db: db}
-}
-
-func (r *categoryRepo) GetDB() *gorm.DB {
-	return r.db
 }

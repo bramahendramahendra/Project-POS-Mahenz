@@ -10,8 +10,6 @@ type (
 	FinanceRepoInterface interface {
 		GetSummary(req *dto.GetSummaryRequest) (*dto.SummaryResponse, error)
 		GetCashflow(req *dto.GetCashflowRequest) ([]dto.CashflowItemResponse, int64, error)
-
-		GetDB() *gorm.DB
 	}
 
 	financeRepo struct {
@@ -21,8 +19,4 @@ type (
 
 func NewFinanceRepo(db *gorm.DB) *financeRepo {
 	return &financeRepo{db: db}
-}
-
-func (r *financeRepo) GetDB() *gorm.DB {
-	return r.db
 }

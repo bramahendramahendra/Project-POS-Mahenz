@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	cryptoRand "crypto/rand"
-	"encoding/base64"
 	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
@@ -205,11 +204,6 @@ func MapResponseBody[T any](data []byte) (T, error) {
 		return result, err
 	}
 	return result, nil
-}
-
-func BuildBasicAuthCreds(username, password string) string {
-	creds := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(creds))
 }
 
 func GenerateExternalId(prefix string) string {

@@ -18,8 +18,6 @@ type (
 		Update(req *dto.UpdateRequest) error
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
-
-		GetDB() *gorm.DB
 	}
 
 	customerRepo struct {
@@ -29,8 +27,4 @@ type (
 
 func NewCustomerRepo(db *gorm.DB) *customerRepo {
 	return &customerRepo{db: db}
-}
-
-func (r *customerRepo) GetDB() *gorm.DB {
-	return r.db
 }

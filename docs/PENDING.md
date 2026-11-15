@@ -71,7 +71,7 @@ Analisis 15 Nov 2026 (belum ada yang diubah). Portal 24 temuan, Toko 27 (1 criti
 Usulan urutan: 10a (kelompok A + typescript-eslint, ketiga FE) → 10b (jspdf) → 10c (xlsx sesuai pilihan).
 Tiap tahap: type-check, lint, build, regresi browser, lalu deploy FE terkait. Perlu keputusan: setuju urutan? xlsx pilih mana?
 
-## 6. Hapus dead code — belum dianalisis
+## 6. Hapus dead code — Coffee sudah dianalisis (daftar lengkap: `docs/DEADCODE.md`), menunggu keputusan user
 
 Alat: Go `deadcode`/`staticcheck`, FE `knip` (file, export, library npm tak terpakai). Analisis dulu, laporkan daftar,
 hapus setelah user setuju. Per aplikasi, satu tahap sekali jalan: Coffee → Portal → BE User → Toko (paling akhir;
