@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"mime/multipart"
 	"reflect"
 	"strconv"
 	"strings"
@@ -78,117 +77,6 @@ func BindURI[T any](c *gin.Context) (T, error) {
 		}
 
 		if err := setFieldValue(fieldVal, paramValue); err != nil {
-			return result, err
-		}
-	}
-
-	return result, nil
-}
-
-// BindQuery extracts query parameters and maps them to the target struct
-// Uses the "form" or "json" tag to match parameter names
-// Usage: data, err := utils.BindQuery[dto.MyRequest](c)
-func BindQuery[T any](c *gin.Context) (T, error) {
-	var result T
-
-	destVal := reflect.ValueOf(&result).Elem()
-	if destVal.Kind() != reflect.Struct {
-		return result, errors.New("type parameter must be a struct")
-	}
-
-	destType := destVal.Type()
-
-	for i := 0; i < destType.NumField(); i++ {
-		field := destType.Field(i)
-		fieldVal := destVal.Field(i)
-
-		if !fieldVal.CanSet() {
-			continue
-		}
-
-		// Get the form tag first, then json tag as fallback
-		tag := field.Tag.Get("form")
-		if tag == "" {
-			tag = field.Tag.Get("json")
-		}
-		if tag == "" {
-			tag = strings.ToLower(field.Name)
-		}
-
-		// Remove omitempty and other options
-		if idx := strings.Index(tag, ","); idx != -1 {
-			tag = tag[:idx]
-		}
-
-		// Get value from query params
-		queryValue := c.Query(tag)
-		if queryValue == "" {
-			continue
-		}
-
-		if err := setFieldValue(fieldVal, queryValue); err != nil {
-			return result, err
-		}
-	}
-
-	return result, nil
-}
-
-// BindMultipartForm extracts multipart form data and maps them to the target struct
-// Uses the "form" tag to match field names
-// Supports file uploads via *multipart.FileHeader fields
-// Usage: data, err := utils.BindMultipartForm[dto.MyRequest](c)
-func BindMultipartForm[T any](c *gin.Context) (T, error) {
-	var result T
-
-	destVal := reflect.ValueOf(&result).Elem()
-	if destVal.Kind() != reflect.Struct {
-		return result, errors.New("type parameter must be a struct")
-	}
-
-	// Parse multipart form with 32MB max memory
-	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-		return result, errors.New("failed to parse multipart form")
-	}
-
-	destType := destVal.Type()
-
-	for i := 0; i < destType.NumField(); i++ {
-		field := destType.Field(i)
-		fieldVal := destVal.Field(i)
-
-		if !fieldVal.CanSet() {
-			continue
-		}
-
-		// Get the form tag
-		tag := field.Tag.Get("form")
-		if tag == "" {
-			tag = strings.ToLower(field.Name)
-		}
-
-		// Remove omitempty and other options
-		if idx := strings.Index(tag, ","); idx != -1 {
-			tag = tag[:idx]
-		}
-
-		// Handle file upload fields
-		if field.Type == reflect.TypeOf((*multipart.FileHeader)(nil)) {
-			file, header, err := c.Request.FormFile(tag)
-			if err == nil {
-				file.Close()
-				fieldVal.Set(reflect.ValueOf(header))
-			}
-			continue
-		}
-
-		// Handle regular form fields
-		formValue := c.Request.FormValue(tag)
-		if formValue == "" {
-			continue
-		}
-
-		if err := setFieldValue(fieldVal, formValue); err != nil {
 			return result, err
 		}
 	}

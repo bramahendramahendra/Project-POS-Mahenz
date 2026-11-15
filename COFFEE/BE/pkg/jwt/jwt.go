@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"fmt"
 	"coffee_api/config"
 	"coffee_api/errors"
 	"coffee_api/helper"
@@ -16,38 +15,6 @@ var (
 	claims                 *jwt.MapClaims
 	invalidTokenErrMessage = "Invalid token"
 	expiredTokenErrMessage = "Token expired"
-
-	rulesVerficationMap = map[string][]string{
-		"pernr":                  {"pernr", "pernr"},
-		"nama":                   {"nama", "nama"},
-		"personalArea":           {"personalArea", "area"},
-		"descPersonalArea":       {"descPersonalArea", "descArea"},
-		"personalSubarea":        {"personalSubarea", "subArea"},
-		"descPersonalSubarea":    {"descPersonalSubarea", "descSubarea"},
-		"costCenter":             {"costCenter", "costCenter"},
-		"descCostCenter":         {"descCostCenter", "descCostCenter"},
-		"orgeh":                  {"organisasiUnit", "orgUnit"},
-		"descOrganisasiUnit":     {"descOrganisasiUnit", "descOrgUnit"},
-		"stell":                  {"stell", "jabatan"},
-		"stellTX":                {"stellTX", "descJabatan"},
-		"jgpg":                   {"jgpg", "jgpg"},
-		"hilfm":                  {"hilfm", "groupJabatan"},
-		"htext":                  {"htext", "descGroupJabatan"},
-		"branch":                 {"branchCode", "branch"},
-		"jenkel":                 {"jenkel", "jenisKelamin"},
-		"personalAreaPGS":        {"personalAreaPGS", "areaPgs"},
-		"descPersonalAreaPGS":    {"descPersonalAreaPGS", "descAreaPgs"},
-		"personalSubareaPGS":     {"personalSubareaPGS", "subAreaPgs"},
-		"descPersonalSubareaPGS": {"descPersonalSubareaPGS", "descSubAreaPgs"},
-		"costCenterPGS":          {"costCenterPGS", "costCenterPgs"},
-		"descCostCenterPGS":      {"descCostCenterPGS", "descCostCenterPgs"},
-		"organisasiUnitPGS":      {"organisasiUnitPGS", "orgUnitPgs"},
-		"descOrganisasiUnitPGS":  {"descOrganisasiUnitPGS", "descOrgUnitPgs"},
-		"hilfmPGS":               {"hilfmPGS", "groupJabatanPgs"},
-		"branchCodePGS":          {"branchCodePGS", "branchPgs"},
-		"htextPGS":               {"htextPGS", "descGroupJabatanPgs"},
-		"tipePekerja":            {"tipePekerja", "tipePekerja"},
-	}
 )
 
 func CreateClaims(data map[string]any) {
@@ -111,18 +78,3 @@ func VerifyToken(tokenString string) (*jwt.MapClaims, error) {
 	return &jwtClaims, nil
 }
 
-func FillResultMapFromClaims(claims jwt.MapClaims) map[string]string {
-	result := make(map[string]string)
-	for resultKey, candidates := range rulesVerficationMap {
-		for _, claimKey := range candidates {
-			if val, ok := claims[claimKey]; ok && val != nil {
-				strVal := fmt.Sprintf("%v", val) // safe conversion of many claim types
-				if strVal != "" {
-					result[resultKey] = strVal
-					break
-				}
-			}
-		}
-	}
-	return result
-}

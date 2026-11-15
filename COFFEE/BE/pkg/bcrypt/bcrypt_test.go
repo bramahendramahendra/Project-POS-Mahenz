@@ -117,68 +117,6 @@ func TestVerifyPassword(t *testing.T) {
 	}
 }
 
-func TestHashPasswordWithParams(t *testing.T) {
-	tests := []struct {
-		name        string
-		password    string
-		memory      uint32
-		iterations  uint32
-		parallelism uint8
-		saltLen     uint32
-		keyLen      uint32
-		wantErr     bool
-	}{
-		{
-			name:        "Standard parameters",
-			password:    "password123",
-			memory:      64 * 1024,
-			iterations:  3,
-			parallelism: 4,
-			saltLen:     16,
-			keyLen:      32,
-			wantErr:     false,
-		},
-		{
-			name:        "Minimal parameters",
-			password:    "password",
-			memory:      1024,
-			iterations:  1,
-			parallelism: 1,
-			saltLen:     8,
-			keyLen:      16,
-			wantErr:     false,
-		},
-		{
-			name:        "High security parameters",
-			password:    "securePassword!@#",
-			memory:      128 * 1024,
-			iterations:  5,
-			parallelism: 8,
-			saltLen:     32,
-			keyLen:      64,
-			wantErr:     false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			hash, err := HashPasswordWithParams(tt.password, tt.memory, tt.iterations, tt.parallelism, tt.saltLen, tt.keyLen)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("HashPasswordWithParams() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr {
-				if hash == "" {
-					t.Error("HashPasswordWithParams() returned empty hash")
-				}
-				if !VerifyPassword(tt.password, hash) {
-					t.Error("HashPasswordWithParams() generated hash that doesn't verify")
-				}
-			}
-		})
-	}
-}
-
 func TestDecodeHash(t *testing.T) {
 	tests := []struct {
 		name string

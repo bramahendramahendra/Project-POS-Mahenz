@@ -1,12 +1,10 @@
 package binder
 
 import (
-	"bytes"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -119,41 +117,6 @@ func createURIContext(params map[string]string) (*gin.Context, *httptest.Respons
 		ginParams = append(ginParams, gin.Param{Key: key, Value: value})
 	}
 	c.Params = ginParams
-
-	return c, w
-}
-
-// Helper function to create gin context with query params
-func createQueryContext(queryParams url.Values) (*gin.Context, *httptest.ResponseRecorder) {
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodGet, "/?"+queryParams.Encode(), nil)
-	return c, w
-}
-
-// Helper function to create gin context with multipart form
-func createMultipartContext(fields map[string]string, files map[string][]byte) (*gin.Context, *httptest.ResponseRecorder) {
-	gin.SetMode(gin.TestMode)
-
-	var b bytes.Buffer
-	mw := multipart.NewWriter(&b)
-
-	for key, value := range fields {
-		mw.WriteField(key, value)
-	}
-
-	for filename, content := range files {
-		fw, _ := mw.CreateFormFile(filename, filename+".txt")
-		fw.Write(content)
-	}
-
-	mw.Close()
-
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPost, "/", &b)
-	c.Request.Header.Set("Content-Type", mw.FormDataContentType())
 
 	return c, w
 }
@@ -583,304 +546,9 @@ func TestBindURI_AllTypes(t *testing.T) {
 // BindQuery Tests
 // =============================================================================
 
-func TestBindQuery_Simple(t *testing.T) {
-	params := url.Values{}
-	params.Set("page", "1")
-	params.Set("limit", "10")
-	params.Set("search", "test")
-	params.Set("active", "true")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Page != 1 {
-		t.Errorf("expected page 1, got %d", result.Page)
-	}
-	if result.Limit != 10 {
-		t.Errorf("expected limit 10, got %d", result.Limit)
-	}
-	if result.Search != "test" {
-		t.Errorf("expected search 'test', got '%s'", result.Search)
-	}
-	if result.Active != true {
-		t.Errorf("expected active true, got %v", result.Active)
-	}
-}
-
-func TestBindQuery_JSONTagFallback(t *testing.T) {
-	params := url.Values{}
-	params.Set("order", "asc")
-	params.Set("sort_by", "name")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryWithJSONStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Order != "asc" {
-		t.Errorf("expected order 'asc', got '%s'", result.Order)
-	}
-	if result.SortBy != "name" {
-		t.Errorf("expected sort_by 'name', got '%s'", result.SortBy)
-	}
-}
-
-func TestBindQuery_NoTag(t *testing.T) {
-	type QueryNoTag struct {
-		Name  string
-		Value int
-	}
-
-	params := url.Values{}
-	params.Set("name", "test")
-	params.Set("value", "42")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryNoTag](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Name != "test" {
-		t.Errorf("expected name 'test', got '%s'", result.Name)
-	}
-	if result.Value != 42 {
-		t.Errorf("expected value 42, got %d", result.Value)
-	}
-}
-
-func TestBindQuery_MissingParams(t *testing.T) {
-	params := url.Values{}
-	params.Set("page", "1")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Page != 1 {
-		t.Errorf("expected page 1, got %d", result.Page)
-	}
-	if result.Limit != 0 {
-		t.Errorf("expected limit 0 (zero value), got %d", result.Limit)
-	}
-}
-
-func TestBindQuery_InvalidInt(t *testing.T) {
-	params := url.Values{}
-	params.Set("page", "not_a_number")
-	c, _ := createQueryContext(params)
-
-	_, err := BindQuery[QueryStruct](c)
-
-	if err == nil {
-		t.Fatal("expected error for invalid int")
-	}
-}
-
-func TestBindQuery_NonStruct(t *testing.T) {
-	params := url.Values{}
-	c, _ := createQueryContext(params)
-
-	_, err := BindQuery[int](c)
-
-	if err == nil {
-		t.Fatal("expected error for non-struct type")
-	}
-	if err.Error() != "type parameter must be a struct" {
-		t.Errorf("expected 'type parameter must be a struct', got '%s'", err.Error())
-	}
-}
-
-func TestBindQuery_AllTypes(t *testing.T) {
-	type QueryAllTypes struct {
-		StrVal   string  `form:"str"`
-		IntVal   int     `form:"int"`
-		Int64Val int64   `form:"int64"`
-		UintVal  uint    `form:"uint"`
-		Float64  float64 `form:"float64"`
-		BoolVal  bool    `form:"bool"`
-	}
-
-	params := url.Values{}
-	params.Set("str", "hello")
-	params.Set("int", "42")
-	params.Set("int64", "9999999999")
-	params.Set("uint", "100")
-	params.Set("float64", "3.14159")
-	params.Set("bool", "true")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryAllTypes](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.StrVal != "hello" {
-		t.Errorf("expected str 'hello', got '%s'", result.StrVal)
-	}
-	if result.IntVal != 42 {
-		t.Errorf("expected int 42, got %d", result.IntVal)
-	}
-	if result.Int64Val != 9999999999 {
-		t.Errorf("expected int64 9999999999, got %d", result.Int64Val)
-	}
-	if result.UintVal != 100 {
-		t.Errorf("expected uint 100, got %d", result.UintVal)
-	}
-	if result.Float64 != 3.14159 {
-		t.Errorf("expected float64 3.14159, got %f", result.Float64)
-	}
-	if result.BoolVal != true {
-		t.Errorf("expected bool true, got %v", result.BoolVal)
-	}
-}
-
 // =============================================================================
 // BindMultipartForm Tests
 // =============================================================================
-
-func TestBindMultipartForm_Simple(t *testing.T) {
-	c, _ := createMultipartContext(
-		map[string]string{
-			"title":   "Test Title",
-			"content": "Test Content",
-		},
-		nil,
-	)
-
-	result, err := BindMultipartForm[FormStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Title != "Test Title" {
-		t.Errorf("expected title 'Test Title', got '%s'", result.Title)
-	}
-	if result.Content != "Test Content" {
-		t.Errorf("expected content 'Test Content', got '%s'", result.Content)
-	}
-}
-
-func TestBindMultipartForm_WithFile(t *testing.T) {
-	c, _ := createMultipartContext(
-		map[string]string{
-			"title": "Test",
-		},
-		map[string][]byte{
-			"file": []byte("file content"),
-		},
-	)
-
-	result, err := BindMultipartForm[FormStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Title != "Test" {
-		t.Errorf("expected title 'Test', got '%s'", result.Title)
-	}
-	if result.File == nil {
-		t.Error("expected file to be set")
-	}
-}
-
-func TestBindMultipartForm_NoTag(t *testing.T) {
-	type FormNoTag struct {
-		Name  string
-		Value int
-	}
-
-	c, _ := createMultipartContext(
-		map[string]string{
-			"name":  "test",
-			"value": "42",
-		},
-		nil,
-	)
-
-	result, err := BindMultipartForm[FormNoTag](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Name != "test" {
-		t.Errorf("expected name 'test', got '%s'", result.Name)
-	}
-	if result.Value != 42 {
-		t.Errorf("expected value 42, got %d", result.Value)
-	}
-}
-
-func TestBindMultipartForm_NonStruct(t *testing.T) {
-	c, _ := createMultipartContext(nil, nil)
-
-	_, err := BindMultipartForm[string](c)
-
-	if err == nil {
-		t.Fatal("expected error for non-struct type")
-	}
-	if err.Error() != "type parameter must be a struct" {
-		t.Errorf("expected 'type parameter must be a struct', got '%s'", err.Error())
-	}
-}
-
-func TestBindMultipartForm_InvalidForm(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest(http.MethodPost, "/", strings.NewReader("not multipart"))
-	c.Request.Header.Set("Content-Type", "multipart/form-data; boundary=invalid")
-
-	_, err := BindMultipartForm[FormStruct](c)
-
-	if err == nil {
-		t.Fatal("expected error for invalid multipart form")
-	}
-}
-
-func TestBindMultipartForm_AllTypes(t *testing.T) {
-	type FormAllTypes struct {
-		StrVal   string  `form:"str"`
-		IntVal   int     `form:"int"`
-		Int64Val int64   `form:"int64"`
-		UintVal  uint    `form:"uint"`
-		Float64  float64 `form:"float64"`
-		BoolVal  bool    `form:"bool"`
-	}
-
-	c, _ := createMultipartContext(
-		map[string]string{
-			"str":     "hello",
-			"int":     "42",
-			"int64":   "9999999999",
-			"uint":    "100",
-			"float64": "3.14159",
-			"bool":    "true",
-		},
-		nil,
-	)
-
-	result, err := BindMultipartForm[FormAllTypes](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.StrVal != "hello" {
-		t.Errorf("expected str 'hello', got '%s'", result.StrVal)
-	}
-	if result.IntVal != 42 {
-		t.Errorf("expected int 42, got %d", result.IntVal)
-	}
-	if result.Int64Val != 9999999999 {
-		t.Errorf("expected int64 9999999999, got %d", result.Int64Val)
-	}
-}
 
 // =============================================================================
 // mapJSONToStruct Tests
@@ -1546,26 +1214,6 @@ func TestBindJSON_UnexportedFields(t *testing.T) {
 	// because it's unexported, but we verify no error occurred
 }
 
-func TestBindQuery_EmptyValues(t *testing.T) {
-	params := url.Values{}
-	params.Set("page", "")
-	params.Set("search", "")
-	c, _ := createQueryContext(params)
-
-	result, err := BindQuery[QueryStruct](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	// Empty values should result in zero values
-	if result.Page != 0 {
-		t.Errorf("expected page 0, got %d", result.Page)
-	}
-	if result.Search != "" {
-		t.Errorf("expected search '', got '%s'", result.Search)
-	}
-}
-
 func TestBindURI_EmptyParams(t *testing.T) {
 	c, _ := createURIContext(map[string]string{})
 
@@ -1640,28 +1288,6 @@ func TestBindJSON_UnicodeCharacters(t *testing.T) {
 	}
 	if result.Name != "日本語テスト 🎉" {
 		t.Errorf("expected unicode characters to be preserved, got '%s'", result.Name)
-	}
-}
-
-func TestBindMultipartForm_OmitEmptyTag(t *testing.T) {
-	type FormOmitEmpty struct {
-		Name string `form:"name,omitempty"`
-	}
-
-	c, _ := createMultipartContext(
-		map[string]string{
-			"name": "test",
-		},
-		nil,
-	)
-
-	result, err := BindMultipartForm[FormOmitEmpty](c)
-
-	if err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-	if result.Name != "test" {
-		t.Errorf("expected name 'test', got '%s'", result.Name)
 	}
 }
 

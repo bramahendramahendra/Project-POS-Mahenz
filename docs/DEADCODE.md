@@ -34,14 +34,30 @@ sebagai turunan `typescript-eslint`).
 | `domain/payment_method/model` **[DIHAPUS]** | model | handler/service/repo payment_method tetap dipakai |
 | `domain/payment_status/model` **[DIHAPUS]** | model | idem |
 | `domain/stock_mutation/model` **[DIHAPUS]** | model | repo stock_mutation tetap dipakai |
-| `helper/regexp` — DISKUSI | 8 fungsi validasi teks | bandingkan dengan validasi yang ditulis ulang; ikut uji `regexp_test.go` |
+| `helper/regexp` **[DIHAPUS]** | 8 fungsi validasi teks | bukan duplikat: validasi berjalan memakai tag validator dan regex lain di `validation`; `IsAccountLoan` format bank proyek lain |
 | `helper/security` **[DIHAPUS]** | sanitasi SQL, validasi header | repo sudah memakai whitelist kolom urutan |
 | `pkg/encryptor` **[DIHAPUS]** | enkripsi AES | ikut file uji |
 | `pkg/redis` **[DIHAPUS]** | pengelola Redis | `RedisConfig` dan komentar Redis di `main.go` ikut dibuang |
 
-Sisa untuk diskusi: `helper/regexp`.
+Semua item BE-A sudah dihapus.
 
-### BE-B. Fungsi tak terpanggil di paket yang masih dipakai — DISKUSI (kecuali yang ditandai)
+### BE-B. Fungsi tak terpanggil di paket yang masih dipakai — **[SEMUA DIHAPUS]** (kelompok 3)
+
+**Kelompok 3 (fungsi bantu BE), diputuskan AI atas serahan user, 16 Nov 2026:** tidak ada yang layak dipakai; semua
+peninggalan template proyek lain (faktur pajak, BRI/Brifaktur, ESB/Brigate, header PN, terbilang) atau tergantikan cara
+yang lebih tepat di kode berjalan (kemungkinan 4): format rupiah struk `rupiah()` angka bulat; kode transaksi/PO dari urutan
+database; `IN ?` GORM; middleware membaca sesi dan header Bearer sendiri; batas hari sebagai teks SQL; handler laporan
+memakai `DefaultQuery` (nilai bawaan, `BindQuery` akan menolak parameter kosong); nama satuan dasar dari `packagesQuery`.
+Dihapus 48 fungsi + 16 fungsi uji yang hanya menguji fungsi itu (`TestBindQuery_*`, `TestBindMultipartForm_*`,
+`TestHashPasswordWithParams`) + paket `helper/regexp` + const `baseUnitNameQuery`; sisa variabel/konstanta global yang hanya
+dipakai fungsi tersebut dibersihkan berdasarkan `staticcheck` (penghitung ID, regex desimal, format invoice BRI, daftar angka
+terbilang, konstanta log ESB, peta klaim `rulesVerficationMap`). Diff: 13 file, 1.537 baris dihapus, 0 baris ditambah.
+Catatan: middleware menyimpan `device_info` ke context tetapi tidak ada yang membacanya; dibiarkan (murah, tidak berbahaya).
+Uji: `go build`/`go vet` (termasuk file uji), `deadcode` kosong, `staticcheck` hanya menyisakan `field private` di uji binder
+(sudah ada sejak awal), `go test ./...` 11 paket ok; Coffee BE dijalankan ulang dengan kode baru: regresi API 4.3-4.10 lolos semua
+(251 kasus), e2e 4.11 22/22, SSO Portal ke Coffee + token palsu/setelah logout ditolak; log BE tanpa 500/panic.
+
+Daftar asal (semua kini dihapus):
 
 | File | Fungsi |
 |---|---|
