@@ -34,7 +34,8 @@ export function IngredientFormModal({ open, onOpenChange, ingredient }: Ingredie
   const [isConfirming, setIsConfirming] = useState(false)
   const [pendingValues, setPendingValues] = useState<IngredientFormValues | null>(null)
 
-  const { data: units = [] } = useUnitOptionsQuery()
+  const { data: unitsData } = useUnitOptionsQuery()
+  const units = unitsData ?? []
   const { mutate: createIngredient, isPending: isCreating } = useCreateIngredientMutation()
   const { mutate: updateIngredient, isPending: isUpdating } = useUpdateIngredientMutation()
   const isPending = isCreating || isUpdating

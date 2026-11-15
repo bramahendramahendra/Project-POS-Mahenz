@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
-import { DataTable, PageHeader } from '@/shared/components'
+import { DataTable, PageHeader, PrerequisiteGuard } from '@/shared/components'
+import { useStockReportPrerequisites } from '@/features/reporting/stock/hooks/useStockReportPrerequisites'
 import { usePageSizeOptions, usePagination } from '@/shared/hooks'
 
 import { useReconListQuery, useReconSummaryQuery } from './stock-reconciliation.api'
@@ -45,6 +46,7 @@ export function StockReconciliationPage() {
   }
 
   const columns = buildReconColumns(handleOpen)
+  const prereq = useStockReportPrerequisites()
 
   return (
     <div className="space-y-4">
@@ -53,20 +55,27 @@ export function StockReconciliationPage() {
         breadcrumbs={[{ label: 'Pelaporan' }, { label: 'Rekonsiliasi Stok' }]}
       />
 
-      <ReconFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
+      <PrerequisiteGuard
+        isLoading={prereq.isLoading}
+        title="Rekonsiliasi stok belum tersedia"
+        description="Rekonsiliasi stok membutuhkan data berikut:"
+        items={prereq.items}
+      >
+        <ReconFilterBar filter={filter} onChange={handleFilterChange} onReset={handleReset} />
 
-      <ReconSummaryCard summary={summary} isLoading={summaryLoading} />
+        <ReconSummaryCard summary={summary} isLoading={summaryLoading} />
 
-      <DataTable<ReconListItem & Record<string, unknown>>
-        columns={columns}
-        data={items as (ReconListItem & Record<string, unknown>)[]}
-        isLoading={listLoading}
-        emptyMessage="Tidak ada produk"
-        emptyDescription="Tidak ada produk yang cocok dengan filter yang dipilih."
-        pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
-      />
+        <DataTable<ReconListItem & Record<string, unknown>>
+          columns={columns}
+          data={items as (ReconListItem & Record<string, unknown>)[]}
+          isLoading={listLoading}
+          emptyMessage="Tidak ada produk"
+          emptyDescription="Tidak ada produk yang cocok dengan filter yang dipilih."
+          pagination={{ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions }}
+        />
 
-      <ReconDetailModal productId={selectedId} open={modalOpen} onOpenChange={setModalOpen} />
+        <ReconDetailModal productId={selectedId} open={modalOpen} onOpenChange={setModalOpen} />
+      </PrerequisiteGuard>
     </div>
   )
 }

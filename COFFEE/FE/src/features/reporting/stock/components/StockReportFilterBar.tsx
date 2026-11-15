@@ -27,7 +27,8 @@ export function StockReportFilterBar({ filter, onChange, onReset }: StockReportF
   const [search, setSearch] = useState(filter.search ?? '')
   const debouncedSearch = useDebounce(search, 300)
 
-  const { data: categories = [] } = useCategoryOptionsQuery()
+  const { data: categoriesData } = useCategoryOptionsQuery()
+  const categories = categoriesData ?? []
   const { mutate: exportReport, isPending: isExporting } = useExportStockReportMutation()
 
   useEffect(() => {

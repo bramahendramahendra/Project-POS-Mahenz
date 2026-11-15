@@ -57,7 +57,9 @@ function MenuItemForm({ detail, onOpenChange }: { detail: MenuItemDetail | null;
   const { data: sizes = [] } = menuSizeApi.useOptions()
   const { data: groups = [] } = useModifierGroupOptionsQuery()
   const { data: ingredients = [] } = useIngredientOptionsQuery()
-  const { data: products = [] } = useProductOptionsQuery()
+  const { data: productsData } = useProductOptionsQuery()
+  // API membalas data null saat belum ada produk; nilai bawaan "= []" tidak berlaku untuk null.
+  const products = productsData ?? []
   const { mutate: save, isPending } = useSaveMenuItemMutation()
 
   const single = detail && !detail.has_variants ? detail.variants[0] : undefined
@@ -217,7 +219,13 @@ function MenuItemForm({ detail, onOpenChange }: { detail: MenuItemDetail | null;
               : 'Racikan: dibuat dari bahan. Stok bahan dicatat lewat menu Bahan Baku; resep hanya catatan takaran.'}
           </p>
 
-          {isDirect && (
+          {isDirect && products.length === 0 && !productId && (
+            <div className="max-w-md rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700" role="alert">
+              ! Belum ada produk barang jadi — tambahkan di menu Barang Jadi → Produk
+            </div>
+          )}
+
+          {isDirect && (products.length > 0 || !!productId) && (
             <div className="max-w-md space-y-1.5">
               <Label>
                 Produk Barang Jadi <span className="text-red-500">*</span>

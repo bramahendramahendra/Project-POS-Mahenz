@@ -1,14 +1,16 @@
 import { useRef } from 'react'
 import { Plus } from 'lucide-react'
 
-import { PageHeader, RoleGuard } from '@/shared/components'
+import { PageHeader, PrerequisiteGuard, RoleGuard } from '@/shared/components'
 import { Button } from '@/shared/components/ui/button'
 
 import { IngredientTable, type IngredientTableHandle } from './components/IngredientTable'
+import { useIngredientPrerequisites } from './hooks/useIngredientPrerequisites'
 
 // Daftar Bahan (tahap 4.3). Stok = pembelian - terpakai - terbuang, tanpa opname (keputusan 84).
 export function IngredientsPage() {
   const tableRef = useRef<IngredientTableHandle>(null)
+  const { isLoading, items } = useIngredientPrerequisites()
 
   return (
     <div className="space-y-4">
@@ -25,7 +27,14 @@ export function IngredientsPage() {
           </RoleGuard>
         }
       />
-      <IngredientTable ref={tableRef} />
+      <PrerequisiteGuard
+        isLoading={isLoading}
+        title="Belum bisa menambah bahan"
+        description="Sebelum menambah bahan, pastikan data berikut sudah tersedia:"
+        items={items}
+      >
+        <IngredientTable ref={tableRef} />
+      </PrerequisiteGuard>
     </div>
   )
 }

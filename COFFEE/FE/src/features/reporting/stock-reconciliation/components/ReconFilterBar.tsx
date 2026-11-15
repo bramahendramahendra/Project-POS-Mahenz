@@ -26,7 +26,8 @@ export function ReconFilterBar({ filter, onChange, onReset }: ReconFilterBarProp
   const [search, setSearch] = useState(filter.search ?? '')
   const debouncedSearch = useDebounce(search, 300)
 
-  const { data: categories = [] } = useCategoryOptionsQuery()
+  const { data: categoriesData } = useCategoryOptionsQuery()
+  const categories = categoriesData ?? []
 
   useEffect(() => {
     onChange({ ...filter, search: debouncedSearch || undefined })
