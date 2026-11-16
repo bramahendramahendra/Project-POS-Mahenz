@@ -45,22 +45,21 @@ func (r *userRepo) GetAll(req *dto.GetAllRequest) ([]*model.User, int64, error) 
 
 	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
 
+	// Kolom urut yang diizinkan. Kolom lain atau kosong memakai id, arah tetap mengikuti sort_order.
 	allowedSortColumns := map[string]string{
+		"id":        "u.id",
 		"username":  "u.username",
 		"full_name": "u.full_name",
 		"role_name": "r.name",
 		"is_active": "u.is_active",
 	}
-	sortCol := "u.id"
-	if col, ok := allowedSortColumns[req.SortBy]; ok {
-		sortCol = col
+	sortBy := req.SortBy
+	if _, ok := allowedSortColumns[sortBy]; !ok {
+		sortBy = "id"
 	}
-	sortDir := "ASC"
-	if req.SortOrder == "desc" {
-		sortDir = "DESC"
-	}
+	orderClause := request_helper.BuildOrderClause(sortBy, req.SortOrder, allowedSortColumns, " ORDER BY u.id ASC")
 
-	query := getAllUsersQuery + conditions + " ORDER BY " + sortCol + " " + sortDir + " LIMIT ? OFFSET ?"
+	query := getAllUsersQuery + conditions + orderClause + " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	var dataDB []*model.User

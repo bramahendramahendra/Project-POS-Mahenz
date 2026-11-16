@@ -33,15 +33,6 @@ type DatabaseConfig struct {
 	MaxIdleTime  int    `json:"MaxIdleTime"`
 }
 
-type RedisConfig struct {
-	Host         string
-	Port         string
-	Password     string
-	Db           int
-	PoolSize     int
-	MinIdleConns int
-}
-
 type LogConfig struct {
 	Path       string `json:"Path"`
 	Level      string `json:"Level"`
@@ -52,14 +43,10 @@ type LogConfig struct {
 
 type Config struct {
 	Timezone                   string         `json:"Timezone"`
-	SecretKey                  string         `json:"SecretKey"`
-	TokenExpire                int            `json:"TokenExpire"`
-	RefreshTokenExpire         int            `json:"RefreshTokenExpire"`
 	FormatTime                 string         `json:"FormatTime"`
 	FormatDate                 string         `json:"FormatDate"`
 	MaxTimeoutGracefulShutdown int            `json:"MaxTimeoutGracefulShutdown"`
 	Log                        LogConfig      `json:"Log"`
-	CorsAllowOrigins           []string       `json:"CorsAllowOrigins"`
 	Database                   DatabaseConfig `json:"Database"`
 }
 
@@ -111,9 +98,6 @@ func initConfig(releaseMode string) {
 
 	Cfg = &Config{
 		Timezone:                   v.GetString("Timezone"),
-		SecretKey:                  v.GetString("SecretKey"),
-		TokenExpire:                v.GetInt("TokenExpire"),
-		RefreshTokenExpire:         v.GetInt("RefreshTokenExpire"),
 		FormatTime:                 v.GetString("FormatTime"),
 		FormatDate:                 v.GetString("FormatDate"),
 		MaxTimeoutGracefulShutdown: v.GetInt("MaxTimeoutGracefulShutdown"),
@@ -124,10 +108,9 @@ func initConfig(releaseMode string) {
 			MaxBackups: v.GetInt("Log.MaxBackups"),
 			MaxAgeDays: v.GetInt("Log.MaxAgeDays"),
 		},
-		CorsAllowOrigins: v.GetStringSlice("CorsAllowOrigins"),
 	}
 
-	// BE User tidak menerbitkan token (tidak ada JWT/sesi): SecretKey tidak wajib.
+	// BE User tidak menerbitkan token (tidak ada JWT/sesi): tidak ada SecretKey/TokenExpire.
 	// Pemanggil dikenali lewat kunci aplikasi (X-App-Key), keputusan 63.
 
 	Db = &DatabaseConfig{

@@ -3,8 +3,6 @@ package repo
 import (
 	dto "auth_api/domain/role/dto"
 	model "auth_api/domain/role/model"
-	request_helper "auth_api/helper/request"
-	time_helper "auth_api/helper/time"
 )
 
 const (
@@ -18,39 +16,6 @@ const (
 	deleteRoleQuery      = `DELETE FROM roles WHERE id = ?`
 	toggleRoleQuery      = `UPDATE roles SET is_active = NOT is_active, updated_at = ? WHERE id = ?`
 )
-
-func (r *roleRepo) GetAll(req *dto.GetAllRequest) ([]*model.Role, int64, error) {
-	var args, countArgs []any
-	conditions := ""
-
-	if req.Search != "" {
-		like := "%" + req.Search + "%"
-		conditions += ` AND (name LIKE ? OR display_name LIKE ?)`
-		args = append(args, like, like)
-		countArgs = append(countArgs, like, like)
-	}
-	if req.IsActive != nil {
-		conditions += ` AND is_active = ?`
-		args = append(args, *req.IsActive)
-		countArgs = append(countArgs, *req.IsActive)
-	}
-
-	var total int64
-	if err := r.db.Raw(countRolesQuery+conditions, countArgs...).Scan(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	_, limit, offset := request_helper.NormalizePagination(req.Page, req.Limit, 10, 100)
-
-	query := getAllRolesQuery + conditions + ` ORDER BY is_system DESC, id ASC LIMIT ? OFFSET ?`
-	args = append(args, limit, offset)
-
-	var dataDB []*model.Role
-	if err := r.db.Raw(query, args...).Scan(&dataDB).Error; err != nil {
-		return nil, 0, err
-	}
-	return dataDB, total, nil
-}
 
 func (r *roleRepo) GetActiveOptions() ([]*dto.RoleOptionResponse, error) {
 	var options []*dto.RoleOptionResponse
@@ -69,46 +34,4 @@ func (r *roleRepo) GetByID(id int) (*model.Role, error) {
 		return nil, nil
 	}
 	return &role, nil
-}
-
-func (r *roleRepo) GetByName(name string) (*model.Role, error) {
-	var role model.Role
-	if err := r.db.Raw(getRoleByNameQuery, name).Scan(&role).Error; err != nil {
-		return nil, err
-	}
-	if role.ID == 0 {
-		return nil, nil
-	}
-	return &role, nil
-}
-
-func (r *roleRepo) Create(req *dto.CreateRequest) (int64, error) {
-	var desc *string
-	if req.Description != "" {
-		desc = &req.Description
-	}
-	if err := r.db.Exec(createRoleQuery, req.Name, req.DisplayName, desc).Error; err != nil {
-		return 0, err
-	}
-	var id int64
-	if err := r.db.Raw(`SELECT LAST_INSERT_ID()`).Scan(&id).Error; err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-
-func (r *roleRepo) Update(id int, req *dto.UpdateRequest) error {
-	var desc *string
-	if req.Description != "" {
-		desc = &req.Description
-	}
-	return r.db.Exec(updateRoleQuery, req.DisplayName, desc, time_helper.GetTimeNow(), id).Error
-}
-
-func (r *roleRepo) Delete(id int) error {
-	return r.db.Exec(deleteRoleQuery, id).Error
-}
-
-func (r *roleRepo) ToggleStatus(id int) error {
-	return r.db.Exec(toggleRoleQuery, time_helper.GetTimeNow(), id).Error
 }

@@ -9,14 +9,8 @@ import (
 
 type (
 	RoleRepoInterface interface {
-		GetAll(req *dto.GetAllRequest) ([]*model.Role, int64, error)
 		GetActiveOptions() ([]*dto.RoleOptionResponse, error)
 		GetByID(id int) (*model.Role, error)
-		GetByName(name string) (*model.Role, error)
-		Create(req *dto.CreateRequest) (int64, error)
-		Update(id int, req *dto.UpdateRequest) error
-		Delete(id int) error
-		ToggleStatus(id int) error
 	}
 
 	roleRepo struct {

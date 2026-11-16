@@ -12,10 +12,6 @@ type GetAllRequest struct {
 	SortOrder string `json:"sort_order"`
 }
 
-type GetByIDRequest struct {
-	ID int `uri:"id" validate:"required,gt=0"`
-}
-
 type CreateRequest struct {
 	Username string `json:"username"  validate:"required,min=3,max=50,alphanum"`
 	Password string `json:"password"  validate:"required,min=8,max=72"`

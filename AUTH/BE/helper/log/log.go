@@ -1,10 +1,8 @@
 package log_helper
 
 import (
-	"fmt"
 	"strings"
 
-	"auth_api/config"
 	global_dto "auth_api/dto"
 	"auth_api/helper"
 	request_helper "auth_api/helper/request"
@@ -12,14 +10,6 @@ import (
 	"auth_api/pkg/logger"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-)
-
-const (
-	insertLogExternalQuery = `INSERT INTO %s (id, request_header, request_body) VALUES (?, ?, ?)`
-	updateLogExternalQuery = `UPDATE %s SET response_http_code = ?, response_header = ?, response_body = ? WHERE id = ?`
-	tableHistoryESB        = `hst_esb_call`
-	tableHistoryBrigate    = `hst_brigate_call`
 )
 
 // FromContext membangun LogEntry dari gin.Context.
@@ -92,34 +82,4 @@ func dispatchLog(logType string, entry global_dto.LogEntry) {
 	default:
 		logger.Log.Debug(entry)
 	}
-}
-
-// LogExternalCall menyimpan log panggilan external ke database.
-func LogExternalCall(dbInstance *gorm.DB, id string, requestHeader, requestBody []byte, isESB, isInsert bool) error {
-	targetTable := tableHistoryESB
-	if !isESB {
-		targetTable = tableHistoryBrigate
-	}
-	if isInsert {
-		query := fmt.Sprintf(insertLogExternalQuery, targetTable)
-		return dbInstance.Exec(query, id, string(requestHeader), string(requestBody)).Error
-	}
-	query := fmt.Sprintf(updateLogExternalQuery, targetTable)
-	return dbInstance.Exec(query, string(requestHeader), string(requestBody), id).Error
-}
-
-// LogExternalCallWithResponse mengupdate log panggilan external dengan data response.
-func LogExternalCallWithResponse(dbInstance *gorm.DB, id string, responseHttpCode int, responseHeader, responseBody []byte, isESB bool) error {
-	targetTable := tableHistoryESB
-	if !isESB {
-		targetTable = tableHistoryBrigate
-	}
-	query := fmt.Sprintf(updateLogExternalQuery, targetTable)
-	return dbInstance.Exec(query, responseHttpCode, string(responseHeader), string(responseBody), id).Error
-}
-
-// IsDebugMode mengembalikan true jika log level saat ini adalah debug.
-// Berguna untuk guard log mahal yang hanya perlu di dev.
-func IsDebugMode() bool {
-	return strings.ToLower(config.Cfg.Log.Level) == "debug"
 }

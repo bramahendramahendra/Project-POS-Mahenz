@@ -9,7 +9,6 @@ import (
 type (
 	UserServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, int64, error)
-		GetByID(id int) (*dto.UserResponse, error)
 		Create(req *dto.CreateRequest) (*dto.UserResponse, error)
 		Update(id, currentUserID int, req *dto.UpdateRequest) error
 		ResetPassword(id, currentUserID int, req *dto.ResetPasswordRequest) error

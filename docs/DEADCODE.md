@@ -376,3 +376,90 @@ updateAppSchema, apiClient, authClient, useMediaQuery, ApiResponse. (APP_TIMEZON
   pelan sampai BE dimulai ulang). Risiko kecil; bisa dibersihkan berkala bila diinginkan.
 - Skema DB lama (`roles`, `apps`, `user_apps`, `sso_codes`, kolom `password`/`role_id`) sudah dibuang migrasi 006; tidak ada kode
   yang masih memakainya.
+
+---
+
+## BE User (dianalisis 16 Nov 2026) — **SELESAI**
+
+Dianalisis dari kode BE User sendiri. Latar belakang: BE User hanya dipanggil server ke server (Portal, Toko, Coffee) lewat
+`127.0.0.1:8080` dengan kunci aplikasi `X-App-Key` (keputusan 63); tidak menerbitkan token/sesi, tidak punya FE, tidak di nginx.
+Hasil alat: `deadcode` 119 fungsi, `ifacecheck` 1 method, tipe DTO/model tak terpakai 0 dari 45, `staticcheck` hanya `field private`
+(uji binder, sudah ada sejak awal). Pemanggil tiap route dicocokkan dengan `client.Post(...)` di Portal, Toko, Coffee: Toko dan
+Coffee hanya memanggil `/login/verify` dan `/sso/exchange`; sisanya dipanggil Portal. Alat ops `cmd/set_app_key` dan
+`cmd/internal/migrationdb` dipakai SOP/panduan cutover: PERTAHANKAN.
+
+Temuan khas BE User (tidak ada di Portal/Coffee): seluruh CRUD Role (handler, service, repo, DTO) tidak punya route; middleware
+`Cors` + config `CorsAllowOrigins` tidak dipasang; config token (`SecretKey`, `TokenExpire`, `RefreshTokenExpire`) tidak dipakai
+karena BE User memang tidak menerbitkan token; `user_repo` menulis ulang logika `BuildOrderClause`; `/users/detail/:id` tercantum
+di daftar API resmi rancangan (baris "Kelola akun dan aplikasi") tetapi kini tidak punya pemanggil.
+
+### BE-A. Paket/file yang tidak diimpor aplikasi
+
+| Paket | Kemungkinan | Saran |
+|---|---|---|
+| `pkg/redis` + `RedisConfig` (+ field `PoolSize`, `MinIdleConns`) + komentar Redis di `main.go` | 1 (tidak memakai Redis) | HAPUS |
+| `pkg/encryptor` (+uji) | 1 | HAPUS |
+| `pkg/janitor` (+uji) | 1 (pencatat percobaan login di `login_rate_limit_middleware.go` berdiri sendiri, tujuannya lain) | HAPUS |
+| `helper/security` | 1 (urutan daftar user memakai daftar kolom yang diizinkan; header dibaca `app_key_middleware`) | HAPUS |
+| `helper/regexp` (+uji) | 1 (validasi memakai tag bawaan validator; kode aplikasi diperiksa `codePattern` sendiri di `app_service`) | HAPUS |
+| `helper/codegen` | 1 (kode aplikasi diketik admin dan diperiksa pola + `GetByCode`, bukan dibuat otomatis) | HAPUS |
+| `middleware/cors_middleware.go` + field config `CorsAllowOrigins` | 1 (tidak pernah dipasang di router; BE User tidak dibuka browser, hanya `127.0.0.1`) | HAPUS (nilai di file config dibiarkan, tidak dibaca lagi) |
+
+### BE-B. Fungsi tak terpanggil di paket yang masih dipakai
+
+| File | Fungsi | Kemungkinan | Saran |
+|---|---|---|---|
+| `helper/global.go` (30) | 29 fungsi template yang sama dengan Portal (faktur, BRI, terbilang, ID acak, JSON) + **GetSecretKey** | 1; GetSecretKey: BE User tidak menandatangani token | HAPUS |
+| `config` | field `SecretKey`, `TokenExpire`, `RefreshTokenExpire` | 1 (keputusan 63: BE User tanpa JWT/sesi; komentar di `config.go` sudah menyebut SecretKey tidak wajib) | HAPUS field (nilai di file config dibiarkan) |
+| `helper/time/time.go` (11) | StartOfDay, EndOfDay, ToSQLDate, ConvertToDateFormatString, NormalizeDateRange, GenerateMasaPajak, GetIndonesianDayNameAndDate + 4 fungsi kecil | 1 | HAPUS |
+| `helper/log/log.go` (3) | LogExternalCall(+WithResponse), IsDebugMode | 1 (tabel ESB/Brigate proyek lain) | HAPUS |
+| `helper/request` (3) | ConvertParamStringToInt, ConvertQueryValueToInt, GetTokenParts | 4 untuk ConvertParamStringToInt (id URL dibaca `binder.BindURI` dengan validasi `gt=0`); 1 untuk lainnya (tanpa query string, tanpa Bearer) | HAPUS |
+| `helper/request/filter_request_param.go` | **BuildOrderClause** | **2**: `user_repo.GetAll` menulis ulang logika yang sama (daftar kolom diizinkan, arah ASC/DESC) | **PAKAI** di `user_repo` (perilaku sama; bonus: "DESC" huruf besar ikut dikenali) |
+| `helper/context_helper.go` | GetUserRole | 1 (role admin diperiksa `ActingUserMiddleware`) | HAPUS |
+| `pkg/bcrypt` | HashPasswordWithParams (+uji) | 1 (`HashPassword` dengan parameter tetap dipakai buat user dan ganti password). Catatan: isi paket memakai Argon2id walau bernama bcrypt; tidak diubah | HAPUS |
+| `pkg/binder` | BindQuery, BindMultipartForm (+uji) | 1 (hanya JSON dan URI) | HAPUS |
+| `validation/validator.go` | 12 aturan khusus (maxfilesize, fileextension, alphanumspace, dateformat, date_range_end/start, required_with, fraction, decimal, alphanumdash, notblank, timeformat) + `AddCustomErrorMessage` (+uji) | 1 (DTO hanya memakai `required`, `min`, `max`, `gt`, `alphanum`, `dive`) | HAPUS (pesan `nefield` dibiarkan seperti Portal) |
+| `errors/error_types.go` | ServiceUnavailableError.Error | - | PERTAHANKAN (kelengkapan tipe error, sama seperti Portal) |
+
+### BE-C. Method interface tak terpanggil
+
+| Interface | Method | Saran |
+|---|---|---|
+| `repository.LogSchedulerRepository` | InsertLogScheduler (+model, baris di `router.go`) | HAPUS (tidak ada penjadwal; tabel `log_schedulers` dibiarkan) |
+
+### BE-D. Endpoint dan handler
+
+| Item | Kemungkinan | Saran |
+|---|---|---|
+| CRUD Role: `RoleHandler.GetAll/GetByID/Create/Update/Delete/ToggleStatus` tanpa route, + method service/repo yang hanya dipakainya + DTO-nya | 1 (rancangan hanya mencantumkan `/roles/options`; role tetap `admin`/`user` dari data awal; salinan template Portal sebelum keputusan 31) | HAPUS (tetap: `GetActiveOptions` untuk `/roles/options`, `repo.GetByID` dipakai user service saat mengganti role, model `Role`; `repo.GetByName` ikut terhapus karena hanya dipakai `Create`) |
+| `GET /health` | - | PERTAHANKAN (SOP dan panduan cutover: `curl 127.0.0.1:8080/api/health`) |
+| `POST /users/detail/:id` | **PUTUSKAN**: tercantum di daftar API resmi rancangan, tetapi hanya Portal yang boleh memanggil grup ini (`PortalOnlyMiddleware` + admin) dan Portal sudah tidak meneruskannya (dead code Portal kelompok 1). Jadi praktis tidak bisa dijangkau siapa pun | Saran AI: HAPUS dan perbarui baris daftar API di rancangan |
+
+### Lainnya — OPSIONAL (tidak diubah tanpa izin)
+
+- Field config `AppName`, `AppAuthor`, `AppVersion`, `AppHost` (dibaca dari `.env`) dan `Timezone` tidak dipakai kode mana pun. Bawaan
+  template yang juga ada di Portal, Toko, Coffee. Tidak berbahaya. Hal yang sama berlaku di Portal (`App*`, `Timezone`,
+  `FormatDate`), terlewat di analisis Portal karena alat tidak memeriksa field config.
+
+**Eksekusi [SELESAI], 16-17 Nov 2026** (user mengikuti semua saran AI: HAPUS/PAKAI disetujui, `/users/detail/:id` dihapus
+dan baris daftar API di rancangan diperbarui, field config OPSIONAL dibiarkan):
+- BE-A, BE-B, BE-C dihapus seperti daftar; berantai ikut: seluruh CRUD Role (handler 6, service 6, repo 6 termasuk `GetByName`,
+  `toRoleResponse`), `UserService.GetByID` + handler, 9 DTO tak terpakai (8 DTO Role + `user/dto.GetByIDRequest`; alat tipe
+  mencocokkan nama saja sehingga terlewat, ditemukan dengan pemeriksaan per paket; pemeriksaan yang sama di Portal bersih),
+  variabel/konstanta sisa `global.go`/`log.go`, 16 fungsi uji binder/bcrypt + 2 pembantu, library `golang-jwt` dan `go-redis`
+  (`go mod tidy`). Field config `SecretKey`, `TokenExpire`, `RefreshTokenExpire`, `CorsAllowOrigins`, `RedisConfig` dihapus dari
+  struct (nilai di file config tidak disentuh, kini diabaikan). `validator.go`/`validator_test.go` disamakan dengan Portal.
+- Kemungkinan 2: `user_repo.GetAll` memakai `BuildOrderClause`. Perilaku lama dijaga: kolom tak dikenal/kosong diarahkan ke `id`
+  sehingga `sort_order` tetap berlaku untuk kolom bawaan (cascade sempat menghapus `BuildOrderClause` karena belum dipakai; file
+  dipulihkan dari git, identik dengan HEAD).
+- Diff: 41 file, +8/-4.894. gofmt hanya pada file yang rapi di HEAD (6 file sudah tidak rapi sejak awal, dibiarkan).
+Uji: build/vet/test 7 paket, `deadcode` hanya `ServiceUnavailableError.Error` (dipertahankan), `ifacecheck` 0, tipe tak terpakai 0,
+`staticcheck` hanya `field private` lama; rekaman urutan `/users/list` sebelum/sesudah (`testing/deadcode/beuser_sort_snapshot.js`)
+20/22 kombinasi identik, 2 berbeda tepat yang diharapkan (`sort_order: "DESC"` huruf besar kini sama dengan `desc`; injeksi lewat
+`sort_by` tetap aman); API BE User `api_3b2` 33/33, API Portal 55/55, API Toko `api_3b4` 31/31, endpoint terhapus menjawab
+"Route not found", `/roles/options` dan `/health` 200; browser laptop: `b_portal_k3` 18/18 (ganti role lewat `roleRepo.GetByID`),
+`v_portal` 40/40, SSO Toko 32/32, SSO Coffee `b_4_11` 22/22; log BE User tanpa 500/panic.
+Perbaikan skrip uji (bukan aplikasi): `api_3b2` S1 menerima path toko dev berupa alamat lengkap (sudah gagal sebelum perubahan);
+`b_4_11` mencari produk dengan nama lengkap (21 produk uji "Croissant Kemasan" di DB dev membuat produk baru tidak tampil).
+Catatan data dev: `api_3b2` A3 memutar kunci Coffee di BE User; kunci Coffee di `pos_coffee_db.auth_credentials` diperbarui
+dari `testing/auth_3b2/keys.txt` agar Coffee dev bisa login lagi (setiap menjalankan `api_3b2`, lakukan hal yang sama).

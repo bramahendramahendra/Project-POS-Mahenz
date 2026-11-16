@@ -151,36 +151,3 @@ func decodeHash(encodedHash string) (*argon2Params, []byte, []byte, error) {
 
 	return params, salt, hash, nil
 }
-
-// HashPasswordWithParams allows custom Argon2id parameters.
-// Use this for specific compliance requirements.
-func HashPasswordWithParams(password string, memory, iterations uint32, parallelism uint8, saltLen, keyLen uint32) (string, error) {
-	salt := make([]byte, saltLen)
-	if _, err := rand.Read(salt); err != nil {
-		return "", fmt.Errorf("failed to generate salt: %w", err)
-	}
-
-	hash := argon2.IDKey(
-		[]byte(password),
-		salt,
-		iterations,
-		memory,
-		parallelism,
-		keyLen,
-	)
-
-	b64Salt := base64.RawStdEncoding.EncodeToString(salt)
-	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
-
-	encodedHash := fmt.Sprintf(
-		"$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
-		argon2.Version,
-		memory,
-		iterations,
-		parallelism,
-		b64Salt,
-		b64Hash,
-	)
-
-	return encodedHash, nil
-}

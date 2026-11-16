@@ -23,7 +23,6 @@ const (
 
 func Router(r *gin.Engine) {
 	repository.LogRequestRepo = repository.NewLogRequestRepository(database.DB)
-	repository.LogSchedulerRepo = repository.NewLogSchedulerRepository(database.DB)
 	// Security: Add security headers first (including HSTS)
 	r.Use(middleware.SecurityHeaders())
 	// Tanpa CORS: BE User tidak pernah dipanggil browser, hanya oleh BE aplikasi (keputusan 63).

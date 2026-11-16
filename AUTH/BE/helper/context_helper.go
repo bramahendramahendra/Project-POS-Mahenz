@@ -8,11 +8,6 @@ func GetUserID(c *gin.Context) int {
 	return userID.(int)
 }
 
-func GetUserRole(c *gin.Context) string {
-	role, _ := c.Get("user_role")
-	return role.(string)
-}
-
 // CallerApp: aplikasi yang memanggil BE User, dikenali dari kunci aplikasi (middleware AppKey).
 type CallerApp struct {
 	ID   int
