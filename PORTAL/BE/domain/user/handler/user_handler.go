@@ -28,12 +28,6 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *UserHandler) GetByID(c *gin.Context) {
-	forward.HandleWithID(c, "id", func(id int, body []byte) (*authclient.Response, error) {
-		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), fmt.Sprintf("/users/detail/%d", id), body)
-	})
-}
-
 func (h *UserHandler) Create(c *gin.Context) {
 	forward.Handle(c, func(body []byte) (*authclient.Response, error) {
 		return h.service.Forward(c.Request.Context(), helper.GetAuthUserID(c), "/users/create", body)

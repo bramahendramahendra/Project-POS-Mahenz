@@ -19,7 +19,6 @@ func UserRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	g := r.Group("/users")
 	{
 		g.POST("/list", userHandler.GetAll)
-		g.POST("/detail/:id", userHandler.GetByID)
 		g.POST("/create", userHandler.Create)
 		g.POST("/update/:id", userHandler.Update)
 		g.POST("/reset-password/:id", userHandler.ResetPassword)

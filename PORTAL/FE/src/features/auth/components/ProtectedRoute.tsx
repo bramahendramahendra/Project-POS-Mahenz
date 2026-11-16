@@ -5,6 +5,7 @@ import { PortalLayout } from '@/shared/components/layouts'
 import { ROUTES } from '@/shared/constants/routes'
 import type { Role } from '@/shared/types'
 
+import { useGetMeQuery } from '../auth.api'
 import { useAuthStore } from '../auth.store'
 
 interface ProtectedRouteProps {
@@ -16,6 +17,8 @@ export function ProtectedRoute({ roles }: ProtectedRouteProps) {
   const location = useLocation()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
+  // Segarkan profil dari BE User saat Portal dibuka (hasilnya langsung masuk ke store).
+  useGetMeQuery()
 
   if (!isAuthenticated || !user || user.apps !== 'web') {
     return <Navigate to={ROUTES.LOGIN} replace />

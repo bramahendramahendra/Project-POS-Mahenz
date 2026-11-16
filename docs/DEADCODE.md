@@ -212,3 +212,167 @@ buildReceiptPdf, buildReceiptText, authClient, useMediaQuery, roundTo.
 
 - 43 tipe TypeScript diekspor tetapi tidak dipakai: OPSIONAL (tidak ikut ke hasil build).
 - Sub-export komponen shadcn (`DialogTrigger`, `SelectGroup`, `CardFooter`, dll.): PERTAHANKAN (pustaka komponen standar).
+
+---
+
+## Portal (dianalisis 16 Nov 2026) — **SELESAI** (kelompok 1 BE, 2 FE, 3 kemungkinan 3)
+
+**Keputusan user 16 Nov 2026:** semua saran HAPUS/PAKAI disetujui; `/auth/me` dipakai (pilihan b); validasi Login/Refresh
+dijalankan (pilihan b). Eksekusi 3 kelompok: 1 BE, 2 FE, 3 dua perubahan kemungkinan 3.
+
+**Kelompok 1 (BE Portal) [SELESAI], 16 Nov 2026:** seluruh BE-A, BE-B, BE-C, dan 2 endpoint BE-D dihapus; berantai ikut:
+handler `VerifyToken` + method service + DTO `VerifyTokenRequest/Response`, handler `GetByID`, variabel/konstanta sisa
+(penghitung ID, regex desimal, format invoice BRI, daftar angka terbilang, konstanta log ESB/Brigate, `rulesVerficationMap`),
+36 fungsi uji binder + 3 pembantunya, uji `validator` untuk 12 aturan yang dihapus (`AddCustomErrorMessage` ikut terbuang),
+library Go `go-redis` + 3 turunannya (`go mod tidy`). Dipertahankan: `NotFoundError.Error`, `InternalServerError.Error`, `/health`,
+`/auth/me`, pesan `nefield` (catatan: DTO Ganti Password juga tidak memakai `nefield`; dibiarkan karena kecil dan bawaan).
+Diff: 38 file, 5.184 baris dihapus, 0 ditambah. Uji: `go build`/`go vet`, `go test` 6 paket ok, `deadcode` hanya 2 method error
+yang dipertahankan, `ifacecheck` 0, tipe tak terpakai 0, `staticcheck` hanya `field private` (sudah ada sejak awal), gofmt bersih;
+endpoint tak dipanggil tinggal `/health`, semua alamat API FE punya route; BE dijalankan ulang: uji API `auth_3b3/api_3b3.js` 55/55
+(P11 dialihkan ke `/users/update/abc`, P13 ke `/users/list`, tambah P13b/P13c: dua endpoint terhapus menjawab "Route not found"),
+browser laptop `v_portal.js` 40/40 dan SSO ke Toko `v_toko.js` 32/32; log BE Portal tanpa 500/panic.
+
+**Kelompok 2 (FE Portal) [SELESAI], 16 Nov 2026:** seluruh FE-E (13 file ui), FE-F (10 library + `dayjs` + 3 alat lint;
+192 paket turunan ikut terbuang, tidak ada library lain yang berubah versi) dan FE-G (komponen ActionModal, ExtendedConfirmDialog,
+EmptyState, DetailField, ScrollableTable, SummaryCard; hook usePagination, useDisclosure, useTableSelection, useLocalStorage;
+seluruh `date.ts` dan `string.ts`; barrel dirapikan) dihapus. `LoginForm` memakai `PasswordInput` (versi Portal, area sentuh
+40 px, sama dengan halaman Ganti Password); ikon gembok diberi `z-10` karena pembungkus `PasswordInput` ber-position relative
+dan bisa menutupinya. Perbedaan kecil yang disengaja: tombol mata di login kini sama dengan Ganti Password (warna abu-abu, tidak
+ikut urutan Tab). `useGetMeQuery` dibiarkan untuk kelompok 3. Diff `src`: 35 file, 5 baris ditambah, 1.313 dihapus.
+Uji: type-check, lint, build; knip tanpa file/library tak terpakai; uji baru `testing/deadcode/b_portal_login_password.js` 9/9 di
+laptop/tablet/HP (ikon gembok dan user tidak tertutup, tombol mata 40x40 bekerja, password salah ditolak dengan pesan, Enter
+mengirim login, tombol mata di Ganti Password bekerja, tanpa error JavaScript); regresi `v_portal.js` 40/40 di laptop/tablet/HP.
+**Temuan tambahan (belum dihapus, menunggu keputusan user):** `ui/tooltip.tsx` hanya dipakai lewat `TooltipProvider` di
+`app/providers.tsx`; `Tooltip`/`TooltipContent`/`TooltipTrigger` tidak dipakai di halaman mana pun (kemungkinan 1:
+provider + file + library `@radix-ui/react-tooltip` bisa dihapus). Terlewat di analisis awal karena dikira sub-export shadcn.
+
+**Kelompok 3 (kemungkinan 3 + Tooltip) [SELESAI], 16 Nov 2026:**
+- Keputusan 129: handler Login dan Refresh menjalankan `validator.Validate.Struct` (pola Ganti Password). Kiriman tidak sah
+  (`device_info` selain desktop/web/android, username/password kosong, refresh token kosong) ditolak 422 dengan rincian; kiriman
+  ini tidak dihitung batas percobaan login (hanya password salah yang dihitung).
+- Keputusan 128: `useGetMeQuery` dipakai di `ProtectedRoute`; hasil `/auth/me` langsung menyegarkan nama, role, dan status wajib
+  ganti password di sesi tersimpan (di dalam `queryFn`, tanpa effect). Dipanggil saat Portal dibuka, paling sering sekali per
+  5 menit saat pindah bagian (staleTime bawaan); bila gagal, sesi tersimpan tetap dipakai.
+- `Tooltip` (temuan tambahan kelompok 2, disetujui user): `TooltipProvider` di `providers.tsx`, `ui/tooltip.tsx`, library
+  `@radix-ui/react-tooltip` dihapus (tanpa perubahan versi library lain).
+Uji: BE build/vet/test, gofmt; FE type-check/lint/build, knip tanpa file/library tak terpakai dan `useGetMeQuery` tidak lagi
+tercatat mati; uji baru `testing/deadcode/b_portal_k3.js` 18/18 di laptop/tablet/HP (V1-V8 validasi Login/Refresh termasuk login
+android APK; S1-S5: admin menurunkan role dan mengganti nama, Portal dibuka ulang, `/auth/me` dipanggil, sesi berubah, langsung
+keluar dari Kelola User dan menunya hilang tanpa login ulang; role dinaikkan kembali; `/auth/me` diputus, Portal tetap jalan; tanpa
+error JavaScript); regresi API Portal 55/55, `v_portal.js` 40/40 dan login 9/9 di laptop/tablet, HP: 40/40 dan login 9/9; SSO Toko 32/32 (laptop);
+SSO Coffee `b_4_11` 22/22 (laptop). Catatan uji: Portal hanya mengizinkan satu sesi aktif per akun, jadi skrip uji tidak boleh
+login ulang akun yang tokennya masih dipakai.
+
+Cara memilah sama dengan Coffee (kemungkinan 1-4). Latar belakang penting: sejak 3B.3 (keputusan 59) BE Portal hanya
+**meneruskan** permintaan ke BE User (kelola user/role/aplikasi, SSO launch) dan hanya mengurus sesi Portal sendiri. Karena itu
+banyak alat bantu template (pagination, ORDER BY, binder query/form, pemeriksaan role) tidak lagi punya tempat dipakai.
+Hasil alat: `deadcode` 123 fungsi, `ifacecheck` 1 method, tipe DTO/model tak terpakai 0, endpoint tak dipanggil 3, alamat API FE
+tanpa route 0; FE `knip` 13 file, 10 library + 3 alat lint, 29 export mati, 8 kata `export` berlebih. Setiap temuan dicek di kode
+Portal sendiri (bukan disalin dari Coffee): kode hidup dicari yang menulis ulang logika serupa (JSON, pembuat ID/token, cache,
+regex, tanggal, badge/kartu, penyimpanan lokal). Hasil khas Portal yang tidak ada di Coffee: aturan validasi khusus tidak dipakai
+DTO mana pun, validasi Login/Refresh tidak dijalankan, dan seluruh `date.ts` + library `dayjs` mati.
+
+### BE-A. Paket/file yang sama sekali tidak diimpor aplikasi
+
+| Paket | Isi | Kemungkinan | Saran |
+|---|---|---|---|
+| `pkg/redis` + `RedisConfig` + komentar Redis di `main.go` | pengelola Redis | 1 (Portal tidak memakai Redis) | HAPUS (sama Coffee) |
+| `pkg/encryptor` (+uji) | enkripsi AES | 1 | HAPUS (sama Coffee) |
+| `pkg/janitor` (+uji) | cache LRU memori bersharding | 1 (satu-satunya penyimpanan memori hidup adalah pencatat percobaan login di `login_rate_limit_middleware.go`, tujuannya lain: daftar waktu gagal per IP+username, bukan cache berukuran) | HAPUS |
+| `helper/security` | sanitasi SQL, validasi header | 1 (Portal tidak membuat query daftar; header dibaca middleware) | HAPUS (sama Coffee) |
+| `helper/regexp` (+uji) | 8 validasi teks | 1 (validasi password/username di BE User) | HAPUS (sama Coffee) |
+| `helper/codegen` | kode unik berprefiks | 1 (Portal tidak membuat kode transaksi) | HAPUS |
+| `middleware/auth/basic_auth_middleware.go` | Basic Auth | 1 (Portal memakai JWT + sesi) | HAPUS (sama Coffee) |
+
+### BE-B. Fungsi tak terpanggil di paket yang masih dipakai
+
+| File | Fungsi | Kemungkinan | Saran |
+|---|---|---|---|
+| `helper/global.go` (29) | GenerateNomorInvoice, GetClaims, GetClaimsId, ConvertDataToJson, ConvertStringToMap, ReadhttpHeader, ParseUserHeader, GenerateCustomID, GeneratePlaceholderForIds, WrapOtherArgumentsWithIds, GenerateTimeBasedID (+fallback), PrettyPrintJSON, MapResponseBody, BuildBasicAuthCreds, GenerateExternalId, GenerateReferenceNumber, GetMaxBackdateBrifaktur, FormatRupiah, FormatRupiahString, ParseCommaSeparatedToMap, GenerateNomorFaktur, TerbilangBigRat (+BigInt), FormatDecimalRupiah, DecimalToPercentage, IndoToMySQLNumber, NormalizeTwoDecimal, WriteCSVWithGzipResponse | 1 (peninggalan template proyek lain: faktur pajak, BRI, terbilang); pembuat ID/kode acak kemungkinan 4: refresh token di `auth_service` memakai 32 byte acak, lebih kuat dari GenerateExternalId (6 byte) / GenerateReferenceNumber (jam); ConvertDataToJson tidak dipakai `helper/error` yang menulis `json.Marshal` sendiri karena butuh penanganan galat berbeda | HAPUS |
+| `helper/time/time.go` (11) | StartOfDay, EndOfDay, ToSQLDate, ConvertToDateFormatString, NormalizeDateRange, GenerateMasaPajak, GetIndonesianDayNameAndDate + 4 fungsi kecil di dalamnya | 1 (Portal tidak punya laporan/rentang tanggal) | HAPUS |
+| `helper/log/log.go` (3) | LogExternalCall, LogExternalCallWithResponse, IsDebugMode | 1 (menulis ke tabel log ESB/Brigate proyek lain; panggilan ke BE User sudah tercatat di log request) | HAPUS (sama Coffee) |
+| `helper/request` (4) | BuildOrderClause, NormalizePagination, ConvertQueryValueToInt, GetTokenParts | 1 untuk 3 pertama (urut/halaman diurus BE User); GetTokenParts kemungkinan 4 (middleware dan `extractBearerToken` sudah membaca token, tidak peka huruf besar/kecil) | HAPUS |
+| `helper/response` | SetPagination | 1 (data halaman diteruskan apa adanya dari BE User) | HAPUS |
+| `helper/context_helper.go` (2) | GetUserRole, GetDeviceInfo | 1 (pemeriksaan role pindah ke BE User, keputusan 59) | HAPUS (sama Coffee) |
+| `pkg/binder` (4) | BindURI, BindQuery, BindMultipartForm, setFieldValue (+uji yang hanya menguji fungsi ini) | 1 (Portal hanya menerima JSON; id URL dibaca `helper/forward`) | HAPUS (sama Coffee) |
+| `pkg/jwt` | FillResultMapFromClaims (+peta `rulesVerficationMap`) | 1 (klaim pegawai BRI) | HAPUS (sama Coffee) |
+| `errors/error_types.go` | NotFoundError.Error, InternalServerError.Error | - | PERTAHANKAN (kelengkapan tipe error yang ditangani `errorHandler`) |
+| `validation/validator.go` (tidak terdeteksi alat, didaftarkan lewat nama tag) | 12 aturan khusus + pesannya: maxfilesize, fileextension, alphanumspace, dateformat, date_range_end, date_range_start, required_with, fraction, decimal, alphanumdash, notblank, timeformat (+kasus uji di `validator_test.go`) | 1 (DTO Portal hanya memakai `required`, `oneof`, `min`, `max`, `nefield`; Portal tidak menerima file, tanggal, atau angka desimal) | HAPUS (pesan `nefield` tetap) |
+
+**Temuan khas Portal, kemungkinan 3 (PUTUSKAN): validasi Login dan Refresh tidak dijalankan.** `LoginRequest` (`username`,
+`password`, `device_info` harus `desktop`/`web`/`android`) dan `RefreshRequest` punya tag `validate`, tetapi handler hanya
+menjalankan `validator.Validate.Struct` di Ganti Password. Dampak sekarang kecil: username/password kosong ditolak BE User,
+refresh kosong ditolak karena sesi tidak ditemukan; tetapi `device_info` berisi apa saja (atau kosong) tetap disimpan ke sesi.
+FE Portal selalu mengirim `web`. Pilihan: (a) biarkan, (b) jalankan validasi di Login dan Refresh (2 baris per handler, pesan
+galat 422 seperti Ganti Password).
+
+### BE-C. Method interface tak terpanggil
+
+| Interface | Method | Kemungkinan | Saran |
+|---|---|---|---|
+| `repository.LogSchedulerRepository` | InsertLogScheduler (+model `LogSchedulerModel`, baris pendaftaran di `routes/router.go`) | 1 (Portal tidak punya penjadwal) | HAPUS kode; tabel `log_schedulers` di DB dibiarkan (tanpa migrasi) |
+
+### BE-D. Endpoint API
+
+| Endpoint | Saran |
+|---|---|
+| `GET /health` | PERTAHANKAN (cek server di SOP/cutover) |
+| `POST /auth/verify-token` | HAPUS (tidak dipanggil siapa pun; Toko/Coffee memeriksa sesi lewat BE User sejak 3B.4; Coffee sudah menghapus yang sama) |
+| `POST /users/detail/:id` | HAPUS (form ubah user memakai data baris daftar; Coffee kelompok 5 menghapus detail yang sama) |
+| `POST /auth/me` + hook FE `useGetMeQuery` | **PUTUSKAN** (kemungkinan 3, lihat bawah) |
+
+**`/auth/me` (kemungkinan 3, terkait keputusan 31 dan 59).** Endpoint ini sengaja dibuat: mengambil profil terbaru dari BE User
+dan termasuk 3 alamat yang boleh dibuka saat wajib ganti password. Tetapi FE tidak pernah memanggilnya (hook `useGetMeQuery`
+tidak dipakai); FE memakai data user yang disimpan saat login. Akibatnya, bila admin mengubah role/nama seseorang, menu di
+Portal orang itu baru berubah setelah ia login ulang (hak akses tetap aman karena diperiksa BE User tiap permintaan).
+Pilihan: (a) biarkan seperti sekarang, (b) pakai: FE memanggil `/auth/me` saat Portal dibuka untuk menyegarkan nama/role,
+(c) hapus endpoint + hook + entri di daftar wajib ganti password.
+
+### FE-E. File tidak terpakai (13)
+
+| File | Kemungkinan | Saran |
+|---|---|---|
+| `ui/badge.tsx` | 4 (status memakai `StatusBadge`; label role di Kelola User ditulis langsung dengan garis tepi dan tanpa efek hover, sedangkan `Badge` varian `secondary` tanpa garis tepi dan punya efek hover/fokus untuk elemen yang bisa diklik) | HAPUS |
+| `ui/card.tsx` | 4 (kartu aplikasi Beranda `AppCard` sengaja berdesain sendiri: sudut besar, ikon, kerangka muat) | HAPUS |
+| `ui/combobox.tsx`, `ui/async-combobox.tsx`, `ui/command.tsx`, `ui/popover.tsx` | 1 (pilihan role memakai `Select`; tidak ada pencarian di dalam pilihan) | HAPUS |
+| `ui/collapsible.tsx`, `ui/radio-group.tsx`, `ui/separator.tsx`, `ui/switch.tsx`, `ui/tabs.tsx`, `ui/textarea.tsx`, `ui/toggle-group.tsx` | 1 (tidak ada bagian lipat, radio, tab, atau isian panjang; status aktif diubah lewat tombol + konfirmasi) | HAPUS |
+
+### FE-F. Library npm tidak terpakai
+
+`@radix-ui/react-collapsible`, `-popover`, `-radio-group`, `-separator`, `-switch`, `-tabs`, `-toast`, `-toggle-group`, `cmdk`,
+`react-is`; **`dayjs`** (berantai: hanya dipakai `date.ts` yang seluruhnya mati, lihat FE-G); alat lint `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint-plugin-import` (lint memakai
+paket `typescript-eslint`). Saran: HAPUS (sama Coffee).
+
+### FE-G. Fungsi/komponen/hook diekspor yang tidak dipakai
+
+| Item | Kemungkinan | Saran |
+|---|---|---|
+| `LoginForm` menulis ulang tombol mata password | 2 (`ui/password-input.tsx` sudah dipakai halaman Ganti Password) | PAKAI `PasswordInput` di `LoginForm` (sama Coffee) |
+| `ActionModal`, `ExtendedConfirmDialog` | 4 (semua modal memakai `FormModal` dan `ConfirmDialog`) | HAPUS |
+| `EmptyState` | 4 (hampir identik `DataTableEmpty` yang dipakai di dalam `DataTable`) | HAPUS (sama Coffee) |
+| `DetailField`, `ScrollableTable`, `SummaryCard` | 1 (Portal tidak punya halaman detail/ringkasan) | HAPUS |
+| `usePagination` | 4 (halaman Kelola User punya paging sendiri yang otomatis kembali ke halaman 1 saat pencarian/ukuran berubah; hook ini tidak) | HAPUS |
+| `useDisclosure` | 4 (modal menyimpan user yang dipilih; hook ini hanya buka/tutup) | HAPUS |
+| `useTableSelection` | 1 (tidak ada aksi massal) | HAPUS |
+| `useLocalStorage` | 1 (sesi disimpan zustand persist) | HAPUS (sama Coffee) |
+| **seluruh `date.ts`** (formatDate, formatDateShort, formatDateTime, formatRelative, toISODate, todayStr, monthStart, weekStart, getWIBNow, APP_TIMEZONE) | 1 (tidak ada satu pun halaman Portal yang menampilkan tanggal; formatDate/getWIBNow hanya dipakai fungsi mati di file yang sama; dari `shared/utils` hanya `cn` yang diimpor) | HAPUS file + export di `utils/index.ts` + library `dayjs` |
+| `string.ts` (truncate, capitalize, slugify) | 1 | HAPUS file (sama Coffee) |
+| `useGetMeQuery` | 3 | **PUTUSKAN** bersama `/auth/me` |
+
+### FE-H. Hanya kata `export` yang berlebih — OPSIONAL
+
+updateAppSchema, apiClient, authClient, useMediaQuery, ApiResponse. (APP_TIMEZONE, getWIBNow, formatDate ikut terhapus bersama `date.ts`.)
+
+### FE-I. Lainnya — PERTAHANKAN / OPSIONAL
+
+- 11 tipe TypeScript diekspor tetapi tidak dipakai: OPSIONAL.
+- Sub-export komponen shadcn (`DialogTrigger`, `SelectGroup`, dll.) dan barrel `index.ts`: PERTAHANKAN (sama Coffee).
+
+### Catatan sampingan Portal (bukan dead code, tidak diubah tanpa izin)
+
+- Kotak pesan galat merah yang sama ditulis ulang 6 kali (LoginForm, Ganti Password, form user, reset password, akses user,
+  form aplikasi). Bisa disatukan jadi satu komponen; murni merapikan.
+- Pencatat percobaan login gagal tidak pernah membuang kunci IP+username yang tidak datang lagi (memori bertambah sangat
+  pelan sampai BE dimulai ulang). Risiko kecil; bisa dibersihkan berkala bila diinginkan.
+- Skema DB lama (`roles`, `apps`, `user_apps`, `sso_codes`, kolom `password`/`role_id`) sudah dibuang migrasi 006; tidak ada kode
+  yang masih memakainya.

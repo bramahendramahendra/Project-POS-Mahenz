@@ -4,7 +4,6 @@ import { RouterProvider } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
 import { initOfflineDetection } from '@/services/notification.service'
-import { TooltipProvider } from '@/shared/components/ui/tooltip'
 
 import { router } from './router'
 
@@ -29,10 +28,8 @@ export function Providers() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={300}>
-        <RouterProvider router={router} />
-        <Toaster position="top-right" richColors closeButton duration={4000} />
-      </TooltipProvider>
+      <RouterProvider router={router} />
+      <Toaster position="top-right" richColors closeButton duration={4000} />
     </QueryClientProvider>
   )
 }

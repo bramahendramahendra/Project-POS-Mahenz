@@ -14,13 +14,3 @@ func GetAuthUserID(c *gin.Context) int {
 	authUserID, _ := c.Get("auth_user_id")
 	return authUserID.(int)
 }
-
-func GetUserRole(c *gin.Context) string {
-	role, _ := c.Get("user_role")
-	return role.(string)
-}
-
-func GetDeviceInfo(c *gin.Context) string {
-	device, _ := c.Get("device_info")
-	return device.(string)
-}

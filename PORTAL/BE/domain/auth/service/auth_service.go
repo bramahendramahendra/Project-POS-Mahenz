@@ -121,29 +121,6 @@ func (s *authService) ChangeMyPassword(ctx context.Context, userID, authUserID i
 	return resp, nil
 }
 
-func (s *authService) VerifyToken(token string) (*dto.VerifyTokenResponse, error) {
-	claims, err := jwt.VerifyToken(token)
-	if err != nil {
-		return &dto.VerifyTokenResponse{Valid: false, Error: err.Error()}, nil
-	}
-
-	claimsMap := make(map[string]any)
-	for k, v := range *claims {
-		claimsMap[k] = v
-	}
-
-	expReadable := ""
-	if exp, ok := (*claims)["exp"].(float64); ok {
-		expReadable = time.Unix(int64(exp), 0).Format(time.RFC3339)
-	}
-
-	return &dto.VerifyTokenResponse{
-		Valid:       true,
-		Claims:      claimsMap,
-		ExpReadable: expReadable,
-	}, nil
-}
-
 func (s *authService) ValidateToken(token string) (*model.Session, error) {
 	if _, err := jwt.VerifyToken(token); err != nil {
 		return nil, err

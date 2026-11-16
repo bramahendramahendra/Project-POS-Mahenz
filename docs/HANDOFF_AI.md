@@ -91,6 +91,9 @@ Standar konsistensi kode Toko/Portal/Coffee: bagian 3.1 dokumen rancangan.
 - Ditunda (siap copas, lihat `PENDING.md`): D.5 uji tablet/APK, bersih-bersih server setelah stabil, hapus blok nginx `/api/` lama.
 - Urutan disepakati: uji Go (selesai) → hapus dead code (analisis dulu, laporkan, lalu hapus) → perbarui library FE (`npm audit`,
   sudah dianalisis). Rincian di `PENDING.md`.
+- Dead code (16 Nov 2026): Coffee selesai; Portal selesai (kelompok 1-3), berikutnya BE User lalu Toko
+  (keputusan 128 `/auth/me` dipakai FE, 129 validasi Login/Refresh). Analisis tiap aplikasi WAJIB dari kode aplikasi itu
+  sendiri, jangan menyalin hasil Coffee. Rincian `docs/DEADCODE.md`.
 
 ## 7. Item terbuka kecil
 - `go test ./...` hijau di keempat BE (15 Nov 2026). Uji yang menulis ke DB dev hanya jalan dengan `POS_DB_TEST=1`.

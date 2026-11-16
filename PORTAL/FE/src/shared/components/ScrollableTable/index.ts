@@ -1,1 +1,0 @@
-export { ScrollableTable } from './ScrollableTable'

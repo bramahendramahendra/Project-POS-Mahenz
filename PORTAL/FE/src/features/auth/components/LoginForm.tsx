@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { AlertCircle, Eye, EyeOff, Loader2, Lock, User } from 'lucide-react'
+import { AlertCircle, Loader2, Lock, User } from 'lucide-react'
 
 import {
   Form,
@@ -12,12 +11,12 @@ import {
   FormMessage,
 } from '@/shared/components/ui/form'
 import { Input } from '@/shared/components/ui/input'
+import { PasswordInput } from '@/shared/components/ui/password-input'
 
 import { useLoginMutation } from '../auth.api'
 import { loginSchema, type LoginFormValues } from '../auth.schema'
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false)
   const { mutate: login, isPending, error, reset } = useLoginMutation()
 
   const form = useForm<LoginFormValues>({
@@ -83,25 +82,16 @@ export function LoginForm() {
               <div className="relative">
                 <Lock
                   size={16}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
                 />
                 <FormControl>
-                  <Input
+                  <PasswordInput
                     {...field}
-                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder="Masukkan password"
-                    className="h-11 rounded-xl bg-white pl-10 pr-11"
+                    className="h-11 rounded-xl bg-white pl-10"
                   />
                 </FormControl>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                  className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
               </div>
               <FormMessage />
             </FormItem>

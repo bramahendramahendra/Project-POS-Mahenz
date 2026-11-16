@@ -1,26 +1,10 @@
 package response_helper
 
 import (
-	"math"
 	global_dto "portal_api/dto"
 
 	"github.com/gin-gonic/gin"
 )
-
-// SetPagination menghitung metadata pagination. Limit wajib divalidasi (>=1)
-// oleh pemanggil sebelum sampai di sini; Limit<=0 dianggap invariant yang
-// dilanggar (bug pemanggil), bukan input yang harus ditoleransi.
-func SetPagination(reqParams *global_dto.FilterRequestParams, total int64) *global_dto.Paginate {
-	if reqParams.Limit <= 0 {
-		panic("SetPagination: limit harus lebih besar dari 0")
-	}
-	return &global_dto.Paginate{
-		Page:       reqParams.Page,
-		PerPage:    reqParams.Limit,
-		Total:      int(total),
-		TotalPages: int(math.Ceil(float64(total) / float64(reqParams.Limit))),
-	}
-}
 
 func WrapResponse(c *gin.Context, resCode int, resType string, resData *global_dto.ResponseParams) {
 	// Security: Ensure critical security headers are always set

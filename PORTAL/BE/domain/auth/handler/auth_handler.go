@@ -31,6 +31,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
+		return
+	}
+
 	data, err := h.service.Login(c.Request.Context(), &req, c.ClientIP())
 	if err != nil {
 		c.Error(err)
@@ -68,6 +73,11 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	req, err := binder.BindJSON[dto.RefreshRequest](c)
 	if err != nil {
 		c.Error(&errors.BadRequestError{Message: err.Error()})
+		return
+	}
+
+	if err := validator.Validate.Struct(req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -119,27 +129,6 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	response_helper.WriteRaw(c, resp.StatusCode, resp.Body)
-}
-
-func (h *AuthHandler) VerifyToken(c *gin.Context) {
-	req, err := binder.BindJSON[dto.VerifyTokenRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	data, err := h.service.VerifyToken(req.Token)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Hasil verifikasi token",
-		Data:    data,
-	})
 }
 
 func extractBearerToken(c *gin.Context) string {

@@ -17,7 +17,6 @@ type (
 		GetMe(ctx context.Context, authUserID int) (*authclient.Response, error)
 		ChangeMyPassword(ctx context.Context, userID, authUserID int, body []byte) (*authclient.Response, error)
 		ValidateToken(token string) (*model.Session, error)
-		VerifyToken(token string) (*dto.VerifyTokenResponse, error)
 	}
 
 	authService struct {

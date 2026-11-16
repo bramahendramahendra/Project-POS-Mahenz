@@ -73,12 +73,25 @@ export function useLogoutMutation() {
   })
 }
 
+// Profil terbaru dari BE User (keputusan 128): dipanggil sekali saat Portal dibuka (ProtectedRoute), lalu nama, role,
+// dan status wajib ganti password di sesi tersimpan disegarkan, sehingga menu langsung sesuai bila admin mengubah role.
+// Bila gagal, data sesi tersimpan tetap dipakai (401 tetap diurus api client: refresh atau keluar).
 export function useGetMeQuery() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const updateUser = useAuthStore((s) => s.updateUser)
 
   return useQuery({
     queryKey: queryKeys.auth.profile(),
-    queryFn: () => api.post<MeResponse>('/auth/me', {}),
+    queryFn: async () => {
+      const me = await api.post<MeResponse>('/auth/me', {})
+      updateUser({
+        fullName: me.full_name,
+        roleId: me.role_id,
+        roleName: me.role_name,
+        mustChangePassword: me.must_change_password,
+      })
+      return me
+    },
     enabled: isAuthenticated,
   })
 }
