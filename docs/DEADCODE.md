@@ -213,6 +213,14 @@ buildReceiptPdf, buildReceiptText, authClient, useMediaQuery, roundTo.
 - 43 tipe TypeScript diekspor tetapi tidak dipakai: OPSIONAL (tidak ikut ke hasil build).
 - Sub-export komponen shadcn (`DialogTrigger`, `SelectGroup`, `CardFooter`, dll.): PERTAHANKAN (pustaka komponen standar).
 
+
+**Susulan 17 Nov 2026 — 6 tipe sisa [DIHAPUS]** (ditemukan setelah pemeriksa tipe diperbaiki saat analisis Toko; pemeriksa lama tidak
+membaca tipe di blok `type ( ... )`): `GetByIDRequest` di dto expense, product_category, product_unit, shift, user (milik endpoint
+detail yang dihapus di kelompok 5) dan model `transaction.Transaction` (kode memakai DTO transaksi; migrasi berupa file SQL, tanpa
+AutoMigrate/refleksi). Diff: 6 file, -45 baris. Uji: build/vet, `go test` + uji DB produk dan nomor antrean, `deadcode` kosong,
+`ifacecheck` 0, tipe tak terpakai 0 (`unused_types_pkg.js`), `staticcheck` hanya 2 temuan lama, gofmt hanya file yang rapi di HEAD;
+BE dijalankan ulang: regresi API Coffee 4.3-4.10 lolos 251/251 (33, 40, 38, 17, 49, 6, 36, 17, 15); log BE tanpa 500/panic.
+
 ---
 
 ## Portal (dianalisis 16 Nov 2026) — **SELESAI** (kelompok 1 BE, 2 FE, 3 kemungkinan 3)

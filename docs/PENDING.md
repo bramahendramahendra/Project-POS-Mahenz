@@ -71,7 +71,7 @@ Analisis 15 Nov 2026 (belum ada yang diubah). Portal 24 temuan, Toko 27 (1 criti
 Usulan urutan: 10a (kelompok A + typescript-eslint, ketiga FE) → 10b (jspdf) → 10c (xlsx sesuai pilihan).
 Tiap tahap: type-check, lint, build, regresi browser, lalu deploy FE terkait. Perlu keputusan: setuju urutan? xlsx pilih mana?
 
-## 6. Hapus dead code — **Coffee SELESAI**; **Portal dan BE User SELESAI**; **Toko SELESAI** (17 Nov 2026; log nginx produksi dicek: hanya 1 panggilan pemindai). Deploy BE + FE Toko oleh user. Sisa: 6 tipe Coffee (lihat DEADCODE.md Toko kelompok 1), lalu nomor 10 (npm audit, bagian 4). Temuan baru: Coffee masih punya 6 tipe sisa (lihat DEADCODE.md Toko kelompok 1); lalu BE User → Toko (rincian `docs/DEADCODE.md`)
+## 6. Hapus dead code — **Coffee SELESAI**; **Portal dan BE User SELESAI**; **Toko SELESAI** (17 Nov 2026; log nginx produksi dicek: hanya 1 panggilan pemindai). Deploy BE + FE Toko oleh user. 6 tipe sisa Coffee sudah dihapus (17 Nov 2026). **Dead code semua aplikasi SELESAI.** Berikutnya nomor 10 (npm audit, bagian 4). Temuan baru: Coffee masih punya 6 tipe sisa (lihat DEADCODE.md Toko kelompok 1); lalu BE User → Toko (rincian `docs/DEADCODE.md`)
 
 Temuan Coffee yang perlu keputusan user (tidak dihapus, tidak dibuatkan fitur):
 - Ringkasan Bisnis belum menampilkan **metode bayar**, padahal keputusan 117 menulis "metode bayar tetap" (endpoint

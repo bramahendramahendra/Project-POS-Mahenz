@@ -1,31 +1,5 @@
 package model
 
-import "time"
-
-type Transaction struct {
-	ID              int       `gorm:"column:id"`
-	TransactionCode string    `gorm:"column:transaction_code"`
-	UserID          int       `gorm:"column:user_id"`
-	ShiftID         *int      `gorm:"column:shift_id"`
-	TransactionDate time.Time `gorm:"column:transaction_date"`
-	Subtotal        float64   `gorm:"column:subtotal"`
-	Discount        float64   `gorm:"column:discount"`
-	Tax             float64   `gorm:"column:tax"`
-	TotalAmount     float64   `gorm:"column:total_amount"`
-	PaymentMethod   string    `gorm:"column:payment_method"`
-	PaymentAmount   float64   `gorm:"column:payment_amount"`
-	ChangeAmount    float64   `gorm:"column:change_amount"`
-	BalanceUsed     float64   `gorm:"column:balance_used"`
-	CustomerID      *int      `gorm:"column:customer_id"`
-	IsCredit        bool      `gorm:"column:is_credit"`
-	Status          string    `gorm:"column:status"`
-	DeviceSource    string    `gorm:"column:device_source"`
-	CashDrawerID    *int      `gorm:"column:cash_drawer_id"`
-	CreatedBy       *int      `gorm:"column:created_by"`
-	CreatedAt       time.Time `gorm:"column:created_at"`
-	UpdatedAt       time.Time `gorm:"column:updated_at"`
-}
-
 // TransactionItem: baris pesanan. ProductID > 0 hanya untuk menu barang jadi (stok dipotong);
 // menu racikan ProductID = 0.
 type TransactionItem struct {
