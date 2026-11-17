@@ -112,14 +112,6 @@ func (r *receivableRepo) GetDetailByID(id int) (*dto.ReceivableDetailResponse, e
 	return &item, nil
 }
 
-func (r *receivableRepo) GetSummary() ([]*dto.ReceivableSummaryItem, error) {
-	var dataDB []*dto.ReceivableSummaryItem
-	if err := r.db.Raw(getReceivableSummaryQuery).Scan(&dataDB).Error; err != nil {
-		return nil, err
-	}
-	return dataDB, nil
-}
-
 func (r *receivableRepo) GetStats() (*dto.ReceivableStats, error) {
 	var stats dto.ReceivableStats
 	if err := r.db.Raw(getReceivableStatsQuery).Scan(&stats).Error; err != nil {

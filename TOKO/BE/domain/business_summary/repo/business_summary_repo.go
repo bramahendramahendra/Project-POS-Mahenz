@@ -9,13 +9,6 @@ import (
 )
 
 const (
-	todayStatsQuery = `
-		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
-		       COALESCE(SUM(discount),0) as total_discount
-		FROM transactions WHERE DATE(transaction_date) = ? AND status = 'completed'`
-
-	todayExpensesQuery = `SELECT COALESCE(SUM(amount),0) as total FROM expenses WHERE expense_date = ?`
-
 	rangeStatsQuery = `
 		SELECT COUNT(*) as total_transactions, COALESCE(SUM(total_amount),0) as total_sales,
 		       COALESCE(SUM(discount),0) as total_discount
@@ -77,63 +70,9 @@ const (
 		GROUP BY ti.product_id, p.name
 		ORDER BY total_value DESC LIMIT ?`
 
-	topCategoriesQuery = `
-		SELECT c.id as category_id, c.name as category_name,
-		       SUM(ti.subtotal) as total_sales
-		FROM transaction_items ti
-		LEFT JOIN products p ON ti.product_id = p.id
-		LEFT JOIN categories c ON p.category_id = c.id
-		LEFT JOIN transactions t ON ti.transaction_id = t.id
-		WHERE DATE(t.transaction_date) BETWEEN ? AND ? AND t.status = 'completed'
-		GROUP BY c.id, c.name ORDER BY total_sales DESC LIMIT ?`
-
-	paymentMethodsQuery = `
-		SELECT payment_method, COUNT(*) as count, SUM(total_amount) as total
-		FROM transactions WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
-		GROUP BY payment_method`
-
 	lowStockCandidatesQuery   = `SELECT id, min_stock FROM products WHERE is_active = 1`
 	openReceivablesCountQuery = `SELECT COUNT(*) FROM receivables WHERE status != 'paid'`
-
-	highestTransactionQuery = `
-		SELECT COALESCE(MAX(total_amount),0) as total_amount, COALESCE(transaction_code,'') as transaction_code
-		FROM transactions
-		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
-		ORDER BY total_amount DESC LIMIT 1`
-
-	peakHourQuery = `
-		SELECT COALESCE(sub.hour, 0) as hour, COALESCE(sub.count, 0) as count
-		FROM (
-			SELECT HOUR(transaction_date) as hour, COUNT(*) as count
-			FROM transactions
-			WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'
-			GROUP BY HOUR(transaction_date)
-			ORDER BY count DESC LIMIT 1
-		) sub RIGHT JOIN (SELECT 1) dummy ON 1=1`
-
-	avgTransactionQuery = `
-		SELECT COALESCE(AVG(total_amount),0) as avg_amount, COUNT(*) as total_count
-		FROM transactions
-		WHERE DATE(transaction_date) BETWEEN ? AND ? AND status = 'completed'`
 )
-
-func (r *businessSummaryRepo) GetTodayStats(date string) (*dto.TodayStats, error) {
-	var result dto.TodayStats
-	row := r.db.Raw(todayStatsQuery, date).Row()
-	if err := row.Scan(&result.TotalTransactions, &result.TotalSales, &result.TotalDiscount); err != nil {
-		return nil, fmt.Errorf("GetTodayStats: %w", err)
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetTodayExpenses(date string) (float64, error) {
-	var total float64
-	row := r.db.Raw(todayExpensesQuery, date).Row()
-	if err := row.Scan(&total); err != nil {
-		return 0, fmt.Errorf("GetTodayExpenses: %w", err)
-	}
-	return total, nil
-}
 
 func (r *businessSummaryRepo) GetStatsByRange(startDate, endDate string) (*dto.TodayStats, error) {
 	var result dto.TodayStats
@@ -279,76 +218,4 @@ func (r *businessSummaryRepo) GetTopProducts(filter dto.DateRangeFilter) ([]dto.
 		items = append(items, item)
 	}
 	return items, nil
-}
-
-func (r *businessSummaryRepo) GetTopCategories(filter dto.DateRangeFilter) ([]dto.TopCategoryItem, error) {
-	rows, err := r.db.Raw(topCategoriesQuery, filter.StartDate, filter.EndDate, filter.Limit).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("GetTopCategories: %w", err)
-	}
-	defer rows.Close()
-
-	var items []dto.TopCategoryItem
-	for rows.Next() {
-		var item dto.TopCategoryItem
-		if err := rows.Scan(&item.CategoryID, &item.CategoryName, &item.TotalSales); err != nil {
-			return nil, fmt.Errorf("GetTopCategories scan: %w", err)
-		}
-		items = append(items, item)
-	}
-	return items, nil
-}
-
-func (r *businessSummaryRepo) GetPaymentMethods(filter dto.DateRangeFilter) ([]dto.PaymentMethodItem, error) {
-	rows, err := r.db.Raw(paymentMethodsQuery, filter.StartDate, filter.EndDate).Rows()
-	if err != nil {
-		return nil, fmt.Errorf("GetPaymentMethods: %w", err)
-	}
-	defer rows.Close()
-
-	var items []dto.PaymentMethodItem
-	for rows.Next() {
-		var item dto.PaymentMethodItem
-		if err := rows.Scan(&item.PaymentMethod, &item.Count, &item.Total); err != nil {
-			return nil, fmt.Errorf("GetPaymentMethods scan: %w", err)
-		}
-		items = append(items, item)
-	}
-	return items, nil
-}
-
-func (r *businessSummaryRepo) GetHighestTransaction(filter dto.DateRangeFilter) (*dto.HighestTransactionItem, error) {
-	var result dto.HighestTransactionItem
-	row := r.db.Raw(highestTransactionQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.TotalAmount, &result.TransactionCode); err != nil {
-		return nil, fmt.Errorf("GetHighestTransaction: %w", err)
-	}
-	if result.TransactionCode == "" {
-		return nil, nil
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetPeakHour(filter dto.DateRangeFilter) (*dto.PeakHourItem, error) {
-	var result dto.PeakHourItem
-	row := r.db.Raw(peakHourQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.Hour, &result.Count); err != nil {
-		return nil, fmt.Errorf("GetPeakHour: %w", err)
-	}
-	if result.Count == 0 {
-		return nil, nil
-	}
-	return &result, nil
-}
-
-func (r *businessSummaryRepo) GetAvgTransaction(filter dto.DateRangeFilter) (*dto.AvgTransactionItem, error) {
-	var result dto.AvgTransactionItem
-	row := r.db.Raw(avgTransactionQuery, filter.StartDate, filter.EndDate).Row()
-	if err := row.Scan(&result.AvgAmount, &result.TotalCount); err != nil {
-		return nil, fmt.Errorf("GetAvgTransaction: %w", err)
-	}
-	if result.TotalCount == 0 {
-		return nil, nil
-	}
-	return &result, nil
 }

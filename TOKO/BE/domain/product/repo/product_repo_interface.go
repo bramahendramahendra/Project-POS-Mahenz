@@ -9,11 +9,9 @@ import (
 
 type ProductRepoInterface interface {
 	GetAll(req *dto_product.GetAllRequest) ([]*model_product.Product, int64, error)
-	GetOptions() ([]*model_product.ProductOption, error)
 	GetByID(id int) (*model_product.Product, error)
 	GetByBarcode(barcode string) (*model_product.Product, error)
 	Search(req *dto_product.SearchRequest) ([]*model_product.ProductSearchResult, error)
-	GetLowStock() ([]*model_product.LowStockProduct, error)
 	CountTransactionItems(productID int) (int, error)
 	CountPurchaseItems(productID int) (int, error)
 	Create(req *dto_product.CreateRequest) (int64, error)

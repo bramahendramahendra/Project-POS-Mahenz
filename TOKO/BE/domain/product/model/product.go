@@ -31,11 +31,6 @@ type Product struct {
 	IsLowStock bool `gorm:"-"`
 }
 
-type ProductOption struct {
-	ID   int    `gorm:"column:id"`
-	Name string `gorm:"column:name"`
-}
-
 type ProductSearchResult struct {
 	ID           int     `gorm:"column:id"`
 	Barcode      string  `gorm:"column:barcode"`
@@ -45,12 +40,4 @@ type ProductSearchResult struct {
 	MinStock     float64 `gorm:"column:min_stock"`
 	UnitID       int     `gorm:"column:unit_id"`
 	UnitName     string  `gorm:"column:unit_name"`
-}
-
-type LowStockProduct struct {
-	ID       int     `gorm:"column:id"`
-	Name     string  `gorm:"column:name"`
-	Stock    float64 `gorm:"column:stock"`
-	MinStock float64 `gorm:"column:min_stock"`
-	UnitName string  `gorm:"column:unit_name"`
 }

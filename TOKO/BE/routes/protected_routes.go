@@ -18,7 +18,6 @@ func protectedRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	r.Use(pos_middleware.POSBearerAuthMiddleware(authSvc))
 
 	segment.AuthRoutes(r, authClient)
-	segment.PinRoutes(r)
 	segment.UserRoutes(r)
 	segment.ProductCategoryRoutes(r)
 	segment.ProductUnitRoutes(r)
@@ -35,7 +34,6 @@ func protectedRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	segment.CustomerRoutes(r)
 	segment.ReceivableRoutes(r)
 	segment.ShiftRoutes(r)
-	segment.StockMutationRoutes(r)
 	segment.StockReconciliationRoutes(r)
 	segment.CapitalReconciliationRoutes(r)
 	segment.FinanceRoutes(r)

@@ -48,21 +48,6 @@ func (h *CustomerHandler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *CustomerHandler) GetOptions(c *gin.Context) {
-	data, err := h.service.GetOptions()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Opsi pelanggan",
-		Data:    data,
-	})
-}
-
 func (h *CustomerHandler) GetByID(c *gin.Context) {
 	req, err := binder.BindURI[dto.GetByIDRequest](c)
 	if err != nil {

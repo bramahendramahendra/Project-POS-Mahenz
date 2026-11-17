@@ -212,24 +212,6 @@ func (s *cashDrawerService) Close(id int, req *dto.CloseRequest, requestingUserI
 	}, nil
 }
 
-func (s *cashDrawerService) UpdateSales(id int, req *dto.UpdateSalesRequest, requestingUserID int, role string) error {
-	cd, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if cd == nil {
-		return &errors.NotFoundError{Message: "Kas tidak ditemukan"}
-	}
-	if role != "owner" && role != "admin" && cd.UserID != requestingUserID {
-		return &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke kas ini"}
-	}
-	if cd.Status != "open" {
-		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
-	}
-
-	return s.repo.UpdateSales(id, req.TotalSales, req.TotalCashSales, time_helper.GetTimeNow())
-}
-
 func (s *cashDrawerService) AutoCloseYesterday() (int, error) {
 	return s.repo.AutoCloseYesterday(time_helper.GetTimeNow())
 }
@@ -240,22 +222,4 @@ func (s *cashDrawerService) GetSummary(req *dto.GetHistoryRequest) (*dto.CashDra
 
 func (s *cashDrawerService) GetKasirOptions() ([]dto.KasirOptionResponse, error) {
 	return s.repo.GetKasirOptions()
-}
-
-func (s *cashDrawerService) UpdateExpenses(id int, req *dto.UpdateExpensesRequest, requestingUserID int, role string) error {
-	cd, err := s.repo.GetByID(id)
-	if err != nil {
-		return err
-	}
-	if cd == nil {
-		return &errors.NotFoundError{Message: "Kas tidak ditemukan"}
-	}
-	if role != "owner" && role != "admin" && cd.UserID != requestingUserID {
-		return &errors.UnauthorizededError{Message: "Anda tidak memiliki akses ke kas ini"}
-	}
-	if cd.Status != "open" {
-		return &errors.BadRequestError{Message: "Kas sudah ditutup"}
-	}
-
-	return s.repo.UpdateExpenses(id, req.TotalExpenses, time_helper.GetTimeNow())
 }

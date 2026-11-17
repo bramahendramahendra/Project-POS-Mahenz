@@ -1,23 +1,5 @@
 package model
 
-import "time"
-
-type SupplierReturn struct {
-	ID                int        `db:"id"`
-	ReturnCode        string     `db:"return_code"`
-	PurchaseID        int        `db:"purchase_id"`
-	SupplierID        *int       `db:"supplier_id"`
-	SupplierName      string     `db:"supplier_name"`
-	ReturnDate        string     `db:"return_date"`
-	TotalReturnAmount float64    `db:"total_return_amount"`
-	Reason            string     `db:"reason"`
-	Status            string     `db:"status"`
-	UserID            int        `db:"user_id"`
-	Notes             string     `db:"notes"`
-	CreatedAt         time.Time  `db:"created_at"`
-	UpdatedAt         *time.Time `db:"updated_at"`
-}
-
 type SupplierReturnRow struct {
 	ID                int                  `gorm:"column:id"`
 	ReturnCode        string               `gorm:"column:return_code"`

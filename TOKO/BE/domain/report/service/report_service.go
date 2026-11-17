@@ -23,10 +23,6 @@ func (s *reportService) GetSalesReport(params dto.FilterParams) (*dto.SalesRepor
 	return &dto.SalesReportResponse{Summary: *summary, Items: items}, nil
 }
 
-func (s *reportService) GetSalesChart(params dto.FilterParams) ([]dto.SalesChartItem, error) {
-	return s.repo.GetSalesChart(params)
-}
-
 func (s *reportService) ExportSalesReport(params dto.FilterParams) (*bytes.Buffer, error) {
 	data, err := s.GetSalesReport(params)
 	if err != nil {

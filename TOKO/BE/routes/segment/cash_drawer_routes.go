@@ -19,10 +19,10 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 	perm := func(action string) gin.HandlerFunc {
 		return middleware.PermissionMiddleware(svc, "keuangan.kas_harian", action)
 	}
-	// Aksi kas milik-sendiri (open/close/update-sales/update-expenses) dipakai dari
+	// Aksi kas milik-sendiri (open/close) dipakai dari
 	// halaman "Kas Saya" — digembok ke menu itu, bukan "Kas Harian" (rekap semua
 	// kasir, khusus admin/owner). Kepemilikan tetap divalidasi di service layer
-	// (lihat cash_drawer_service.go: Close/UpdateSales/UpdateExpenses menolak user
+	// (lihat cash_drawer_service.go: Close menolak user
 	// lain kecuali admin/owner).
 	myCashPerm := func(action string) gin.HandlerFunc {
 		return middleware.PermissionMiddleware(svc, "keuangan.kas_saya", action)
@@ -38,7 +38,5 @@ func CashDrawerRoutes(r *gin.RouterGroup) {
 		g.POST("/detail/:id", cashDrawerHandler.GetByID)
 		g.POST("/open", myCashPerm("can_create"), cashDrawerHandler.Open)
 		g.POST("/close/:id", myCashPerm("can_edit"), cashDrawerHandler.Close)
-		g.POST("/update-sales/:id", myCashPerm("can_edit"), cashDrawerHandler.UpdateSales)
-		g.POST("/update-expenses/:id", myCashPerm("can_edit"), cashDrawerHandler.UpdateExpenses)
 	}
 }

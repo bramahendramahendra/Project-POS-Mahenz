@@ -25,7 +25,6 @@ func ProductUnitRoutes(r *gin.RouterGroup) {
 		// Unit Handler
 		g.POST("/list", unitHandler.GetAll)
 		g.POST("/options", unitHandler.GetOptions)
-		g.POST("/detail/:id", unitHandler.GetByID)
 		g.POST("/create", perm("can_create"), unitHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), unitHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), unitHandler.Delete)

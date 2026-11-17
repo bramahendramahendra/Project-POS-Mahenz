@@ -13,8 +13,6 @@ type (
 		GetDetail(productID int) (*dto.DetailResponse, error)
 		Adjust(req *dto.AdjustRequest) (*dto.DetailResponse, error)
 		MarkReviewed(req *dto.MarkReviewedRequest) (*dto.DetailResponse, error)
-
-		GetDB() *gorm.DB
 	}
 
 	stockReconciliationRepo struct {
@@ -24,8 +22,4 @@ type (
 
 func NewStockReconciliationRepo(db *gorm.DB) *stockReconciliationRepo {
 	return &stockReconciliationRepo{db: db}
-}
-
-func (r *stockReconciliationRepo) GetDB() *gorm.DB {
-	return r.db
 }

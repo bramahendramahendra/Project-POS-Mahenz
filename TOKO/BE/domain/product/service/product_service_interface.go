@@ -12,7 +12,6 @@ import (
 type (
 	ProductServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) (data []dto.ProductResponse, total int64, err error)
-		GetOptions() (data []*dto.GetOptionResponse, err error)
 		Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error)
 		GetByID(id int) (data dto.ProductResponse, err error)
 		GetByBarcode(barcode string) (data dto.ProductResponse, err error)
@@ -38,7 +37,6 @@ type (
 		GetPurchaseHistory(productID, page, limit int) (*dto.PurchaseHistoryResponse, error)
 		GetSaleHistory(productID, page, limit int, status string) (*dto.SaleHistoryResponse, error)
 
-		GetLowStock() (data []*dto.GetLowStockResponse, err error)
 		GetCategoryNames() (data []string, err error)
 		GetUnitInfos() (data []*dto.GetUnitInfoResponse, err error)
 	}

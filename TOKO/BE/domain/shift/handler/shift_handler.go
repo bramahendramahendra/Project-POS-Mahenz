@@ -63,47 +63,6 @@ func (h *ShiftHandler) GetOptions(c *gin.Context) {
 	})
 }
 
-func (h *ShiftHandler) GetSummary(c *gin.Context) {
-	data, err := h.service.GetSummary()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Ringkasan shift",
-		Data:    data,
-	})
-}
-
-func (h *ShiftHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetByID(req.ID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail shift",
-		Data:    data,
-	})
-}
-
 func (h *ShiftHandler) Create(c *gin.Context) {
 	req, err := binder.BindJSON[dto.CreateRequest](c)
 	if err != nil {

@@ -11,7 +11,6 @@ type (
 		GetAll() ([]model.Setting, error)
 		GetByKey(key string) (*model.Setting, error)
 		Upsert(key, value string) error
-		ResetAll() error
 	}
 
 	settingRepo struct {

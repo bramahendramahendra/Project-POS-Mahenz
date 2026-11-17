@@ -23,7 +23,6 @@ func SettingRoutes(r *gin.RouterGroup) {
 		// tetap pakai RoleMiddleware.
 		g.GET("", settingHandler.GetAll)
 		g.POST("", middleware.RoleMiddleware("owner", "admin"), settingHandler.Save)
-		g.POST("/reset", middleware.RoleMiddleware("admin"), settingHandler.Reset)
 
 		g.GET("/store", settingHandler.GetStoreProfile)
 		g.POST("/store", middleware.PermissionMiddleware(svc, "sistem.profil_toko", "can_edit"), settingHandler.UpdateStoreProfile)

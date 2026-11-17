@@ -44,8 +44,6 @@ const (
 	// lokal di sini agar backdate konsisten memakai pola yang sama.
 	getPackagesByProductQuery = `SELECT pp.id, pp.ref_package_id, pp.qty, pp.ref_qty, pp.purchase_price, COALESCE(u.name, '') AS unit_name FROM product_packages pp JOIN units u ON u.id = pp.unit_id WHERE pp.product_id = ?`
 
-	updateBackdateSalesQuery = `UPDATE cash_drawer SET total_sales = total_sales + ?, total_cash_sales = total_cash_sales + ?, updated_at = ? WHERE id = ?`
-
 	createReceivableQuery = `INSERT INTO receivables (transaction_id, customer_id, total_amount, remaining_amount, status) VALUES (?, ?, ?, ?, 'unpaid')`
 )
 

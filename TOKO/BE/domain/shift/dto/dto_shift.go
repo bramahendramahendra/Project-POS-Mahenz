@@ -13,10 +13,6 @@ type (
 		SortOrder string `json:"sort_order"`
 	}
 
-	GetByIDRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
 	CreateRequest struct {
 		Name      string `json:"name" validate:"required,min=2,max=100,notblank"`
 		StartTime string `json:"start_time" validate:"required,timeformat"`
@@ -57,14 +53,5 @@ type (
 		Name      string `json:"name"`
 		StartTime string `json:"start_time"`
 		EndTime   string `json:"end_time"`
-	}
-
-	ShiftSummaryResponse struct {
-		ShiftID           int     `json:"shift_id"`
-		ShiftName         string  `json:"shift_name"`
-		TotalTransactions int     `json:"total_transactions"`
-		TotalSales        float64 `json:"total_sales"`
-		TotalCash         float64 `json:"total_cash"`
-		TotalNonCash      float64 `json:"total_non_cash"`
 	}
 )

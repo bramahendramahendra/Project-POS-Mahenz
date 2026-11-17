@@ -25,7 +25,6 @@ func ProductCategoryRoutes(r *gin.RouterGroup) {
 		// Category Handler
 		g.POST("/list", categoryHandler.GetAll)
 		g.POST("/options", categoryHandler.GetOptions)
-		g.POST("/detail/:id", categoryHandler.GetByID)
 		g.POST("/create", perm("can_create"), categoryHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), categoryHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), categoryHandler.Delete)

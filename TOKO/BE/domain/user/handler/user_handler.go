@@ -48,32 +48,6 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *UserHandler) GetByID(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, svcErr := h.service.GetByID(req.ID)
-	if svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Detail user",
-		Data:    data,
-	})
-}
-
 func (h *UserHandler) Update(c *gin.Context) {
 	uriReq, err := binder.BindURI[dto.UpdateUriRequest](c)
 	if err != nil {

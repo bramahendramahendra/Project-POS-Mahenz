@@ -28,8 +28,6 @@ func ShiftRoutes(r *gin.RouterGroup) {
 		// buat dropdown, dibutuhkan lintas fitur (di sini oleh OpenCashDrawerModal), bukan cuma
 		// oleh menu Shift itu sendiri. Jangan tempel perm() lagi di sini.
 		g.POST("/active", shiftHandler.GetOptions)
-		g.POST("/summary", perm("can_view"), shiftHandler.GetSummary)
-		g.POST("/detail/:id", perm("can_view"), shiftHandler.GetByID)
 		g.POST("/create", perm("can_create"), shiftHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), shiftHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), shiftHandler.Delete)

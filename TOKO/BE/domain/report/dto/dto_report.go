@@ -46,12 +46,6 @@ type SalesSummary struct {
 	PrevAvailable    bool    `json:"prev_available"`
 }
 
-type SalesChartItem struct {
-	Label             string  `json:"label"`
-	TotalSales        float64 `json:"total_sales"`
-	TotalTransactions int     `json:"total_transactions"`
-}
-
 type SalesReportResponse struct {
 	Summary SalesSummary `json:"summary"`
 	Items   []SalesItem  `json:"items"`

@@ -9,7 +9,6 @@ import (
 type (
 	UserServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, int64, error)
-		GetByID(id int) (*dto.UserResponse, error)
 		Update(id, currentUserID int, req *dto.UpdateRequest) error
 		Delete(id, currentUserID int) error
 		ToggleStatus(id, currentUserID int) error

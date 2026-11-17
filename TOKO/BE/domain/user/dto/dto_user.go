@@ -12,10 +12,6 @@ type GetAllRequest struct {
 	SortOrder string `json:"sort_order"`
 }
 
-type GetByIDRequest struct {
-	ID int `uri:"id" validate:"required,gt=0"`
-}
-
 type UpdateUriRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
 }

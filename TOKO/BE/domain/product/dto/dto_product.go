@@ -80,11 +80,6 @@ type (
 		StockReviewNote  string `json:"stock_review_note"`
 	}
 
-	GetOptionResponse struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-
 	SearchResponse struct {
 		ID           int     `json:"id"`
 		Barcode      string  `json:"barcode"`

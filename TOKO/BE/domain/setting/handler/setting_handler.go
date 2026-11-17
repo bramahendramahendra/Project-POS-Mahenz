@@ -70,19 +70,6 @@ func (h *SettingHandler) Save(c *gin.Context) {
 	})
 }
 
-// POST /api/settings/reset
-func (h *SettingHandler) Reset(c *gin.Context) {
-	if err := h.service.Reset(); err != nil {
-		c.Error(err)
-		return
-	}
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Settings berhasil direset ke default",
-	})
-}
-
 // GET /api/settings/store
 func (h *SettingHandler) GetStoreProfile(c *gin.Context) {
 	data, err := h.service.GetStoreProfile()

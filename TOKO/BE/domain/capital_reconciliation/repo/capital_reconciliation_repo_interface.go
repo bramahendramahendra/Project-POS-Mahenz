@@ -12,8 +12,6 @@ type (
 		GetSummary() (*dto.SummaryResponse, error)
 		Resolve(req *dto.ResolveRequest) error
 		Skip(req *dto.SkipRequest) error
-
-		GetDB() *gorm.DB
 	}
 
 	capitalReconciliationRepo struct {
@@ -23,8 +21,4 @@ type (
 
 func NewCapitalReconciliationRepo(db *gorm.DB) *capitalReconciliationRepo {
 	return &capitalReconciliationRepo{db: db}
-}
-
-func (r *capitalReconciliationRepo) GetDB() *gorm.DB {
-	return r.db
 }

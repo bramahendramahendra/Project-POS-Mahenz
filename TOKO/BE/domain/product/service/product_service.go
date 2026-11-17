@@ -39,22 +39,6 @@ func (s *productService) GetAll(req *dto.GetAllRequest) (data []dto.ProductRespo
 	return data, total, nil
 }
 
-func (s *productService) GetOptions() (data []*dto.GetOptionResponse, err error) {
-	dataDB, err := s.repo.GetOptions()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, &dto.GetOptionResponse{
-			ID:   v.ID,
-			Name: v.Name,
-		})
-	}
-
-	return data, nil
-}
-
 func (s *productService) Search(req *dto.SearchRequest) (data []*dto.SearchResponse, err error) {
 	data = []*dto.SearchResponse{}
 	dataDB, err := s.repo.Search(req)

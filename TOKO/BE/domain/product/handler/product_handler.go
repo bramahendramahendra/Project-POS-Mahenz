@@ -49,22 +49,6 @@ func (h *ProductHandler) GetAll(c *gin.Context) {
 	})
 }
 
-// POST /products/options
-func (h *ProductHandler) GetOptions(c *gin.Context) {
-	data, err := h.service.GetOptions()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Opsi produk",
-		Data:    data,
-	})
-}
-
 // POST /products/search
 func (h *ProductHandler) Search(c *gin.Context) {
 	req, err := binder.BindJSON[dto.SearchRequest](c)

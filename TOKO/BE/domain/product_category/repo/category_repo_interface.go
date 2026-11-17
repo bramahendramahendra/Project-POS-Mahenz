@@ -23,7 +23,6 @@ type (
 		CountProductsByCategory(categoryID int) (int, error)
 		CountActiveProductsByCategory(categoryID int) (int, error)
 
-		GetDB() *gorm.DB
 	}
 
 	categoryRepo struct {
@@ -35,6 +34,3 @@ func NewCategoryRepo(db *gorm.DB) *categoryRepo {
 	return &categoryRepo{db: db}
 }
 
-func (r *categoryRepo) GetDB() *gorm.DB {
-	return r.db
-}

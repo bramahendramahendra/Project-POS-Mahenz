@@ -12,7 +12,6 @@ import (
 	"pos_api/scheduler"
 	bootstrap "pos_api/server"
 
-	// "pos_api/pkg/redis"
 
 	"context"
 	"errors"
@@ -79,10 +78,6 @@ func closeConnections() error {
 		errs = append(errs, fmt.Sprintf("Failed to close database connection: %v", err))
 	}
 
-	// If you enable Redis later
-	// if err := redis.Client.Close(); err != nil {
-	//     errs = append(errs, fmt.Sprintf("Failed to close redis connection: %v", err))
-	// }
 
 	if len(errs) > 0 {
 		return errors.New(strings.Join(errs, " | "))

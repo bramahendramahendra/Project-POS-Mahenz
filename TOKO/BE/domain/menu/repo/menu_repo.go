@@ -179,13 +179,3 @@ func (r *menuRepo) Update(id int, req *dto.UpdateRequest) error {
 func (r *menuRepo) Delete(id int) error {
 	return r.db.Exec(deleteMenuQuery, id).Error
 }
-
-func (r *menuRepo) Reorder(items []dto.ReorderItem) error {
-	now := time_helper.GetTimeNow()
-	for _, item := range items {
-		if err := r.db.Exec(updateOrderQuery, item.OrderIndex, now, item.ID).Error; err != nil {
-			return err
-		}
-	}
-	return nil
-}

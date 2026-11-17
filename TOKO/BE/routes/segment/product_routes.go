@@ -33,7 +33,6 @@ func ProductRoutes(r *gin.RouterGroup) {
 	{
 		// Product Handler
 		g.POST("/list", productHandler.GetAll)
-		g.POST("/options", productHandler.GetOptions)
 		g.POST("/search", productHandler.Search)
 		g.POST("/detail/:id", productHandler.GetByID)
 		g.POST("/by-barcode/:barcode", productHandler.GetByBarcode)

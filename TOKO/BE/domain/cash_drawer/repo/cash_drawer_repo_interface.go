@@ -26,7 +26,6 @@ type (
 		GetSummary(req *dto.GetHistoryRequest) (*dto.CashDrawerSummaryResponse, error)
 		GetKasirOptions() ([]dto.KasirOptionResponse, error)
 
-		GetDB() *gorm.DB
 		WithTx(tx *gorm.DB) CashDrawerRepoInterface
 	}
 
@@ -37,10 +36,6 @@ type (
 
 func NewCashDrawerRepo(db *gorm.DB) *cashDrawerRepo {
 	return &cashDrawerRepo{db: db}
-}
-
-func (r *cashDrawerRepo) GetDB() *gorm.DB {
-	return r.db
 }
 
 // WithTx mengembalikan repo instance baru yang terikat ke transaksi tx, supaya operasi

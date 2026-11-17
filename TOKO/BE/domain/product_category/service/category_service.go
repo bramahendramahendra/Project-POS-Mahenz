@@ -45,29 +45,6 @@ func (s *categoryService) GetOptions() (data []dto.GetOptionResponse, err error)
 	return data, nil
 }
 
-func (s *categoryService) GetByID(id int) (data dto.CategoryResponse, err error) {
-	dataDB, err := s.repo.GetByID(id)
-	if err != nil {
-		return data, err
-	}
-	if dataDB == nil {
-		return data, &errors.NotFoundError{Message: "Kategori tidak ditemukan"}
-	}
-
-	data = dto.CategoryResponse{
-		ID:                 dataDB.ID,
-		Name:               dataDB.Name,
-		Code:               dataDB.Code,
-		Description:        dataDB.Description,
-		IsActive:           dataDB.IsActive,
-		ProductCount:       dataDB.ProductCount,
-		ActiveProductCount: dataDB.ActiveProductCount,
-		CreatedAt:          dataDB.CreatedAt,
-	}
-
-	return data, nil
-}
-
 func (s *categoryService) Create(req *dto.CreateRequest) (data dto.CategoryResponse, err error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)

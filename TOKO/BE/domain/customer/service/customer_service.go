@@ -32,25 +32,6 @@ func (s *customerService) GetAll(req *dto.GetAllRequest) (data []dto.CustomerRes
 	return data, total, nil
 }
 
-func (s *customerService) GetOptions() (data []dto.CustomerActiveItem, err error) {
-	dataDB, err := s.repo.GetOptions()
-	if err != nil {
-		return data, err
-	}
-
-	for _, v := range dataDB {
-		data = append(data, dto.CustomerActiveItem{
-			ID:           v.ID,
-			Name:         v.Name,
-			CustomerCode: v.CustomerCode,
-			CreditLimit:  v.CreditLimit,
-			Balance:      v.Balance,
-		})
-	}
-
-	return data, nil
-}
-
 func (s *customerService) GetByID(id int) (data dto.CustomerDetailResponse, err error) {
 	dataDB, err := s.repo.GetByID(id)
 	if err != nil {

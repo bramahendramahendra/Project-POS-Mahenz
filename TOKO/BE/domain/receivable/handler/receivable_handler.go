@@ -48,21 +48,6 @@ func (h *ReceivableHandler) GetAll(c *gin.Context) {
 	})
 }
 
-func (h *ReceivableHandler) GetSummary(c *gin.Context) {
-	data, err := h.service.GetSummary()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Ringkasan piutang per pelanggan",
-		Data:    data,
-	})
-}
-
 func (h *ReceivableHandler) GetStats(c *gin.Context) {
 	data, err := h.service.GetStats()
 	if err != nil {
@@ -100,32 +85,6 @@ func (h *ReceivableHandler) GetByID(c *gin.Context) {
 		Code:    helper.StatusOk,
 		Status:  true,
 		Message: "Detail piutang",
-		Data:    data,
-	})
-}
-
-func (h *ReceivableHandler) GetPayments(c *gin.Context) {
-	req, err := binder.BindURI[dto.GetByIDRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	data, err := h.service.GetPayments(req.ID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Riwayat pembayaran piutang",
 		Data:    data,
 	})
 }

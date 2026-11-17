@@ -20,8 +20,6 @@ type (
 		ApproveWithStockReduction(id int, userID int) error
 		ReleaseReservedStock(id int) error
 		Delete(req *dto.GetSupplierReturnByIDRequest) error
-
-		GetDB() *gorm.DB
 	}
 
 	supplierReturnRepo struct {
@@ -31,8 +29,4 @@ type (
 
 func NewSupplierReturnRepo(db *gorm.DB) *supplierReturnRepo {
 	return &supplierReturnRepo{db: db}
-}
-
-func (r *supplierReturnRepo) GetDB() *gorm.DB {
-	return r.db
 }

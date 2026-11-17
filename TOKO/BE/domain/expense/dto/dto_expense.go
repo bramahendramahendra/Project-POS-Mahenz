@@ -13,10 +13,6 @@ type (
 		SortOrder string `json:"sort_order"`
 	}
 
-	GetByIDRequest struct {
-		ID int `uri:"id" validate:"required,min=1"`
-	}
-
 	CreateRequest struct {
 		ExpenseDate   string  `json:"expense_date" validate:"required"`
 		Category      string  `json:"category" validate:"required,max=100,notblank"`

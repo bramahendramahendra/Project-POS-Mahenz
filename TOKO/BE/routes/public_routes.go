@@ -25,7 +25,6 @@ func publicRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 	authGroup.POST("/sso", authHand.SSO)
 	authGroup.GET("/login-options", authHand.GetLoginOptions)
 	authGroup.POST("/refresh", authHand.RefreshToken)
-	authGroup.POST("/verify-token", authHand.VerifyToken)
 
 	versionRepoInst := version_repo.NewVersionRepo(pkgdatabase.DB)
 	versionSvc := version_service.NewVersionService(versionRepoInst)

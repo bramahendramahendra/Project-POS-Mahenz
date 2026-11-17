@@ -10,7 +10,6 @@ import (
 type (
 	CustomerRepoInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*model.Customer, int64, error)
-		GetOptions() ([]*model.Customer, error)
 		GetByID(id int) (*model.Customer, error)
 		GetCount() (int, error)
 		CountActiveReceivables(customerID int) (int, error)
@@ -18,8 +17,6 @@ type (
 		Update(req *dto.UpdateRequest) error
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
-
-		GetDB() *gorm.DB
 	}
 
 	customerRepo struct {
@@ -29,8 +26,4 @@ type (
 
 func NewCustomerRepo(db *gorm.DB) *customerRepo {
 	return &customerRepo{db: db}
-}
-
-func (r *customerRepo) GetDB() *gorm.DB {
-	return r.db
 }

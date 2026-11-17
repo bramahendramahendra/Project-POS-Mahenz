@@ -17,8 +17,6 @@ type (
 		GetByID(id int) (*model.ExpiryBatch, error)
 		Confirm(id, userID int, notes string) error
 		WriteOff(id, userID int, notes string) error
-
-		GetDB() *gorm.DB
 	}
 
 	expiryBatchRepo struct {
@@ -28,8 +26,4 @@ type (
 
 func NewExpiryBatchRepo(db *gorm.DB) *expiryBatchRepo {
 	return &expiryBatchRepo{db: db}
-}
-
-func (r *expiryBatchRepo) GetDB() *gorm.DB {
-	return r.db
 }

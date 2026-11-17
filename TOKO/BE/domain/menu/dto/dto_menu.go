@@ -39,15 +39,6 @@ type DeleteRequest struct {
 	ID int `uri:"id" validate:"required,gt=0"`
 }
 
-type ReorderItem struct {
-	ID         int `json:"id"          validate:"required,gt=0"`
-	OrderIndex int `json:"order_index"`
-}
-
-type ReorderRequest struct {
-	Items []ReorderItem `json:"items" validate:"required,min=1,dive"`
-}
-
 // MenuOptionResponse digunakan untuk dropdown parent menu — hanya menu root (parent_id NULL)
 type MenuOptionResponse struct {
 	ID    int    `json:"id"`

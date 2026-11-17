@@ -52,21 +52,6 @@ func (h *ReportHandler) GetSalesReport(c *gin.Context) {
 	})
 }
 
-func (h *ReportHandler) GetSalesChart(c *gin.Context) {
-	params := parseFilterParams(c)
-	data, err := h.service.GetSalesChart(params)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Chart penjualan",
-		Data:    data,
-	})
-}
-
 func (h *ReportHandler) ExportSalesReport(c *gin.Context) {
 	params := parseFilterParams(c)
 	buf, err := h.service.ExportSalesReport(params)

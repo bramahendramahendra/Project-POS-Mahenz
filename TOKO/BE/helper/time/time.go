@@ -2,7 +2,6 @@ package time_helper
 
 import (
 	"pos_api/config"
-	"strconv"
 	"time"
 )
 
@@ -20,12 +19,6 @@ func StartOfDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, config.Location)
 }
 
-// EndOfDay mengembalikan jam 23:59:59 WIB dari tanggal t.
-func EndOfDay(t time.Time) time.Time {
-	t = t.In(config.Location)
-	return time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, config.Location)
-}
-
 // ToSQLDate memformat t menjadi "2006-01-02" (WIB) untuk dipakai sebagai parameter query MySQL.
 func ToSQLDate(t time.Time) string {
 	return t.In(config.Location).Format("2006-01-02")
@@ -40,10 +33,6 @@ func GetEndTime(timeString string) string {
 	duration := time.Since(now)
 	endTime := now.Add(duration)
 	return endTime.Format(config.FormatTime)
-}
-
-func ConvertToDateFormatString(value time.Time) string {
-	return value.Format(config.Cfg.FormatDate)
 }
 
 // NormalizeDateRange melengkapi date_from/date_to yang cuma berisi tanggal (YYYY-MM-DD)
@@ -66,64 +55,3 @@ func NormalizeDateRange(dateFrom, dateTo string) (string, string) {
 	return dateFrom, dateTo
 }
 
-func GenerateMasaPajak() (bulanPajak, tahunPajak string) {
-	now := GetTimeNow()
-	bulanPajak = now.Format("01")
-	tahunPajak = now.Format("2006")
-	return
-}
-
-// get indonesia day name and today date with format "02 Januari 2006"
-func GetIndonesianDayNameAndDate() (dayName, formattedDate string) {
-	now := GetTimeNow()
-	day := now.Day()
-	month := now.Month()
-	year := now.Year()
-	dayName = getIndonesianDayName(now.Weekday())
-	formattedDate = formatIndonesianDate(day, month, year)
-	return
-}
-
-func getIndonesianDayName(weekday time.Weekday) string {
-	dayNames := map[time.Weekday]string{
-		time.Sunday:    "Minggu",
-		time.Monday:    "Senin",
-		time.Tuesday:   "Selasa",
-		time.Wednesday: "Rabu",
-		time.Thursday:  "Kamis",
-		time.Friday:    "Jumat",
-		time.Saturday:  "Sabtu",
-	}
-	return dayNames[weekday]
-}
-
-func formatIndonesianDate(day int, month time.Month, year int) string {
-	monthNames := map[time.Month]string{
-		time.January:   "Januari",
-		time.February:  "Februari",
-		time.March:     "Maret",
-		time.April:     "April",
-		time.May:       "Mei",
-		time.June:      "Juni",
-		time.July:      "Juli",
-		time.August:    "Agustus",
-		time.September: "September",
-		time.October:   "Oktober",
-		time.November:  "November",
-		time.December:  "Desember",
-	}
-
-	monthName := monthNames[month]
-	return formatTwoDigits(day) + " " + monthName + " " + formatFourDigits(year)
-}
-
-func formatTwoDigits(number int) string {
-	if number < 10 {
-		return "0" + strconv.Itoa(number)
-	}
-	return strconv.Itoa(number)
-}
-
-func formatFourDigits(number int) string {
-	return strconv.Itoa(number)
-}

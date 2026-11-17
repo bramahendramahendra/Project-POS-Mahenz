@@ -463,3 +463,161 @@ Perbaikan skrip uji (bukan aplikasi): `api_3b2` S1 menerima path toko dev berupa
 `b_4_11` mencari produk dengan nama lengkap (21 produk uji "Croissant Kemasan" di DB dev membuat produk baru tidak tampil).
 Catatan data dev: `api_3b2` A3 memutar kunci Coffee di BE User; kunci Coffee di `pos_coffee_db.auth_credentials` diperbarui
 dari `testing/auth_3b2/keys.txt` agar Coffee dev bisa login lagi (setiap menjalankan `api_3b2`, lakukan hal yang sama).
+
+---
+
+## Toko (dianalisis 17 Nov 2026) — kelompok 1 dan 2 SELESAI; kelompok 3 (FE) belum
+
+**Keputusan user 17 Nov 2026:** mengikuti semua saran AI (HAPUS/PERTAHANKAN sesuai daftar; Saldo manual dibiarkan;
+`formatProductPackage` dipakai; `password-input` dihapus dan `LoginForm` Toko dibiarkan; endpoint dihapus setelah cek log nginx).
+
+**Kelompok 1 (BE tanpa endpoint) [SELESAI], 17 Nov 2026:** BE-A, BE-B, BE-C seperti daftar (kecuali Saldo `Adjust`/`GetBalance` dan
+`ClearPinHash` yang ikut fitur PIN di kelompok 2; dijaga lewat `KEEP_IFACE` baru di `cascade.js`). Berantai: query
+`todayStatsQuery`/`todayExpensesQuery`/`getAllActiveProductsForLowStockQuery`, `GetLowStockResponse`, variabel sisa template,
+16 uji binder/bcrypt + 2 pembantu, library `go-redis`. Validator: 9 aturan + 18 fungsi uji + 18 struct uji dihapus,
+`dateformat`/`notblank`/`timeformat` tetap; `TestAddCustomErrorMessage` lama (memakai aturan yang dihapus) diganti uji baru
+`TestNotBlankAndTimeformat` (aturan yang dipakai tetapi belum pernah diuji). Komentar penjelasan "stok baru per produk" dipindah
+ke `packagesQuery` (sama dengan Coffee) dan judul `// RESPONSE` di DTO produk dikembalikan. Akhir baris CRLF dipertahankan;
+gofmt hanya pada 15 file yang rapi di HEAD (file lain banyak yang CRLF/tidak rapi sejak awal, dibiarkan). Diff: 62 file, +30/-4.495.
+**Celah alat yang ditemukan:** pemeriksa tipe per paket memakai `\t` di pola grep (tidak dibaca sebagai tab), sehingga tipe di blok
+`type ( ... )` tidak pernah diperiksa. Diganti `testing/deadcode/unused_types_pkg.js`; diulang di semua BE: BE User dan Portal tetap 0,
+Toko menemukan `GetLowStockResponse` (ikut dihapus), **Coffee masih punya 6 sisa** (5 `GetByIDRequest` milik endpoint detail yang
+dihapus di kelompok 5, model `transaction.Transaction`) — belum disentuh, menunggu keputusan user.
+Uji: build/vet, `go test` 10 paket + uji DB produk, `deadcode` kosong, `ifacecheck` tepat 3 yang dipertahankan, tipe tak terpakai 0,
+`staticcheck` hanya 2 temuan lama; BE Toko dijalankan ulang: uji baru `testing/deadcode/api_toko_k1.js` 15/15 (notblank/timeformat/
+dateformat menolak dengan pesan Indonesia di Shift, Pelanggan, Pengeluaran, Retur; aturan bawaan tetap; Ringkasan Bisnis
+today/week/month, tren, produk terlaris; endpoint PIN masih ada), `api_3b4` 31/31, `v_portal` 40/40 + `v_toko` 32/32 di laptop/
+tablet/HP, `r_toko` 86 layar: 4 layar bermasalah sama persis dengan sebelum perubahan (tabel lebar di dialog Pembelian dan Laporan
+Penjualan; lebar isi berubah karena data uji hari ini); log BE tanpa 500/panic. Usang, tidak dijalankan: `portal_toko_e2e/b_flow.js`
+(port dan tabel sebelum Fase 3B) dan `test-edit-pembelian.js` (port sebelum restrukturisasi).
+
+**Kelompok 2 (endpoint BE) [SELESAI], 17 Nov 2026.** Cek log nginx produksi oleh user (access.log, .1, dan semua .gz): 0, kecuali
+1 baris `GET /api/auth/me` 14 Nov 2026 11:26 UTC (sebelum cutover), jawaban 400, tanpa referer, Firefox Linux: pemindai otomatis
+(FE Toko selalu memakai POST; APK memakai WebView Android), bukan pengguna. Dihapus 26 endpoint (daftar BE-D, termasuk
+`/reports/sales/chart` yang sempat terlewat skrip karena ditulis `"/sales/chart"` dan ketahuan saat pencocokan ulang BE-FE) beserta
+handler, method service, method repo dan query yang hanya dipakainya (`GetTopCategories`, `GetPaymentMethods`, `GetSummaryExtra` +
+`GetHighestTransaction`/`GetPeakHour`/`GetAvgTransaction`, `GetSalesChart`, `Reorder`, `ResetAll`, dst.), domain `pin` dan
+`stock_mutation` (tabel tetap), 25 DTO, dan paket `pkg/bcrypt` (Argon2; ternyata hanya dipakai PIN, sama seperti Coffee;
+`golang.org/x/crypto` kini dependensi tidak langsung). **Repo `UpdateSales`/`UpdateExpenses` tetap** (dipakai transaksi dan
+pengeluaran untuk menambah total kas otomatis); yang dihapus hanya service/handler endpoint manualnya. Saldo manual tetap.
+Komentar route kas disesuaikan ("open/close"). Route yang tidak dipanggil FE kini tinggal `/health` dan `/settings/:key`;
+4 alamat FE tanpa route berasal dari hook FE mati (dihapus di kelompok 3).
+Uji: build/vet, `go test` + uji DB produk, `deadcode` kosong, `ifacecheck` hanya Saldo, tipe tak terpakai 0, `staticcheck` hanya
+2 temuan lama; uji baru `testing/deadcode/api_toko_k2.js` 50/50 (26 endpoint terhapus "Route not found"; 21 endpoint yang
+dipertahankan/bernama mirip tetap 200 termasuk `/menus/options`, `/shifts/active`, `/settings/pagination_sizes`, riwayat Saldo;
+pengeluaran tunai menambah total pengeluaran kas otomatis 0 -> 1.234); `api_3b4` 31/31 (T30/T30a dialihkan dari `/auth/me` ke
+`/menus/my`, uji satu sesi per user tetap), `api_toko_k1` 15/15 (K1 kini memastikan PIN terhapus), `v_portal` 40/40 + `v_toko`
+32/32 di laptop/tablet/HP, `r_toko` 86 layar tanpa masalah baru; `log_requests` Toko: tidak ada "Route not found" dari FE (hanya
+dari skrip uji, termasuk T21/T22 `api_3b4` yang sengaja memeriksa endpoint lama 3B.4); log BE tanpa 500/panic.
+Diff gabungan kelompok 1+2 (belum di-commit): 154 file, +33/-6.571.
+
+Dianalisis dari kode Toko sendiri. Alat: `deadcode` 100 fungsi, `ifacecheck` 18 method, `staticcheck` 5 temuan, tipe DTO/model tak
+terpakai (pemeriksaan per paket) 8, endpoint BE tanpa pemanggil FE 24, FE `knip` 21 file, 3 library + 4 alat dev, 31 export mati.
+
+**Pemeriksaan keamanan produksi (khas Toko):**
+- APK hanya cangkang yang membuka web produksi (`mobile/capacitor.config.ts`, `server.url`), FE tanpa service worker: semua
+  perangkat selalu memakai FE terbaru, tidak ada FE lama di tablet yang bisa memanggil endpoint lama.
+- Tiap endpoint dicek riwayat git FE Toko (termasuk struktur lama `FE/src`) dengan potongan alamat pendek, karena FE bisa menulis
+  alamat terpisah (`base + '/summary-extra'`; pencarian alamat lengkap sempat salah menyimpulkan "tidak pernah ada").
+- Endpoint yang alamatnya hanya tertulis di hook FE yang mati dihitung TIDAK dipanggil (`/auth/me`, `/menus/reorder`,
+  `/shifts/detail/:id`, `/products/options`, saldo manual); alat endpoint menghitungnya "dipakai".
+- Folder `domain/_sample_reference` (contoh integrasi ESB BRI) tidak pernah dikompilasi: Go mengabaikan folder berawalan `_`, dan
+  paket `pkg/transport` yang diimpornya tidak ada. Alat tidak bisa melihatnya.
+- Sebelum endpoint dihapus, disarankan cek log nginx produksi (perintah di bawah) untuk memastikan tidak ada pemanggil di luar FE.
+
+### BE-A. Paket/folder yang tidak diimpor aplikasi — HAPUS
+
+`pkg/redis` (+`RedisConfig` dan komentar di `main.go`), `pkg/encryptor` (+uji), `helper/security`, `helper/regexp` (+uji),
+`middleware/auth/basic_auth_middleware.go`, paket model `payment_method`, `payment_status`, `stock_mutation` (domain tetap), folder
+`domain/_sample_reference`. Berbeda dari Portal/BE User: `pkg/janitor` dan `helper/codegen` DIPAKAI Toko (izin menu dan kode
+produk/kategori/supplier) — PERTAHANKAN.
+
+### BE-B. Fungsi, konstanta, tipe tak terpakai — HAPUS
+
+| Item | Kemungkinan |
+|---|---|
+| `helper/global.go` 29 fungsi template (faktur, BRI, terbilang, ID, JSON) | 1 |
+| `helper/time` EndOfDay, ConvertToDateFormatString, GenerateMasaPajak, GetIndonesianDayNameAndDate + 4 fungsi kecil | 1 |
+| `helper/log` LogExternalCall(+WithResponse), IsDebugMode | 1 |
+| `helper/request` ConvertParamStringToInt, ConvertQueryValueToInt, GetTokenParts | 4/1 (id URL lewat binder; middleware membaca Bearer sendiri) |
+| `helper/context_helper.go` GetDeviceInfo | 1 |
+| `pkg/bcrypt` HashPasswordWithParams (+uji), `pkg/binder` BindQuery, BindMultipartForm (+uji), `pkg/jwt` FillResultMapFromClaims | 1 |
+| const `updateBackdateSalesQuery` (backdate), `baseUnitNameQuery` (rekonsiliasi stok) | 1 |
+| Tipe: `SalesTrendFilter`, `ReceivablePayment`, model `payment_method.PaymentMethod`, `payment_status.PaymentStatus`, `stock_mutation.StockMutation`, `supplier_return.SupplierReturn` (yang dipakai `supplier/model.SupplierReturn`), `transaction/model.Transaction` dan `.StockMutation` (yang dipakai hanya `TransactionItem`) | 1 |
+| `validation/validator.go` 9 aturan khusus tak dipakai DTO: maxfilesize, fileextension, alphanumspace, date_range_end, date_range_start, required_with, fraction, decimal, alphanumdash (+uji) | 1. **Toko memakai `dateformat`, `notblank`, `timeformat`: PERTAHANKAN** (beda dari Portal/BE User) |
+| `errors` tipe error | PERTAHANKAN |
+
+### BE-C. Method interface tak terpanggil
+
+| Interface | Method | Saran |
+|---|---|---|
+| 12 repo | `GetDB` | HAPUS (1) |
+| `business_summary/repo` | GetTodayStats, GetTodayExpenses (+query) | HAPUS (4: layanan memakai `GetStatsByRange`/`GetExpensesByRange` untuk hari ini) |
+| `product/service` | GetLowStock (+repo, DTO, model `LowStockProduct`) | HAPUS (1: tidak pernah punya route) |
+| `pin/repo` | ClearPinHash | HAPUS bersama seluruh fitur PIN (BE-D) |
+| `customer_balance/repo` | **Adjust**, GetBalance | **PUTUSKAN** (lihat kemungkinan 3 Saldo) |
+
+### BE-D. Endpoint tanpa pemanggil — HAPUS (route + handler + service/repo yang hanya dipakainya)
+
+Tidak pernah dipanggil FE Toko sepanjang riwayat git: `/auth/verify-token`, `/reports/business-summary/{top-categories,
+payment-methods}`, `/reports/sales/chart`, `/cash-drawer/update-sales/:id` dan `/update-expenses/:id` (berbahaya: mengubah total kas
+manual, padahal total dihitung otomatis), `/customers/active`, detail `/expenses|categories|units|users/detail/:id`, seluruh `/pin/*`
+(domain `pin`; tidak ada di data menu; kolom `users.pin_hash` dibiarkan), `/receivables/summary`, `/receivables/payments/:id`,
+`/settings/reset` (berbahaya: mengembalikan pengaturan ke bawaan), `/shifts/summary`, `/stock-mutations/list` dan
+`/product/:product_id` (seluruh domain `stock_mutation`; tabelnya tetap ditulis domain lain).
+Pernah dipanggil lalu **sengaja dihapus user** dari FE: `/reports/business-summary/summary-extra` (commit "standart", 28 Jun 2026).
+Hanya dipanggil hook FE yang mati: `/auth/me` (uji `portal_toko_e2e/b_flow.js` B1b ikut disesuaikan), `/menus/reorder`,
+`/shifts/detail/:id`, `/products/options`.
+**PERTAHANKAN:** `GET /health` (SOP), `GET /settings/:key` (salah tebak alat: dipakai `/settings/pagination_sizes`),
+`/products/by-barcode/:code` (dipakai pemindai barcode kasir).
+
+Cek log produksi sebelum eksekusi (copas di VPS; harus: semua 0):
+```bash
+P='/(toko/)?api/(auth/verify-token|auth/me|reports/business-summary/(top-categories|payment-methods|summary-extra)|reports/sales/chart|cash-drawer/update-(sales|expenses)|customers/active|(expenses|categories|units|users|shifts)/detail|pin/|receivables/(summary|payments)|settings/reset|shifts/summary|stock-mutations|menus/reorder|products/options)'
+sudo grep -hcE "\"[A-Z]+ $P" /var/log/nginx/access.log /var/log/nginx/access.log.1
+sudo zgrep -hcE "\"[A-Z]+ $P" /var/log/nginx/access.log.*.gz
+```
+
+### Kemungkinan 3 — PUTUSKAN (tidak dihapus, tidak dibuatkan fitur)
+
+**Saldo pelanggan manual.** Saldo yang berjalan: bertambah lewat "simpan kembalian ke saldo" di struk, dipakai bayar di kasir,
+dikembalikan saat void. Yang tidak punya layar: top up manual, refund manual, riwayat saldo (route `/customers/:id/balance/{topup,
+refund,history}` + hook FE dari commit "saldo" 24 Agu 2026 yang tidak pernah dipasang di layar), dan `Adjust`/`GetBalance` di repo.
+Pilihan: (a) biarkan (saran AI: fitur produk, butuh keputusan pemilik toko), (b) buatkan layar, (c) hapus.
+
+### FE Toko
+
+| Item | Kemungkinan | Saran |
+|---|---|---|
+| `ui/dropdown-menu.tsx`, `ui/radio-group.tsx` + library `@radix-ui/react-dropdown-menu`, `-radio-group`, `-toast`; dev `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint-plugin-import` | 1 | HAPUS |
+| `ui/password-input.tsx` | 2 terhadap `LoginForm` (tombol mata ditulis ulang) | **PUTUSKAN**: saran AI hapus file dan **biarkan LoginForm** (tampilan login produksi tidak berubah) |
+| `formatProductPackage` | 2: rumus "Satuan (kemasan)" ditulis ulang di 4 tempat (Pembelian, Detail Produk, Form Produk, Kasir Backdate) | **PUTUSKAN**: saran AI pakai (teks hasil identik) |
+| `getApplicablePrice` (products.utils) | 4: salinan identik di `cashier.utils` yang dipakai kasir | HAPUS salinan mati |
+| `usePermission` | 4: peran tetap (owner/admin) bertentangan dengan izin menu; layar memakai `useAuth` + `RoleGuard` | HAPUS |
+| `isPaymentSufficient` | 4: modal bayar sudah menangani kredit dan total 0 | HAPUS |
+| `PAYMENT_STATUS_LABEL` | 4: label sama di `StatusBadge` | HAPUS |
+| `PAYMENT_METHOD_VALUES` | 4: tipe `PaymentMethod` lebih lengkap (`balance`) | HAPUS |
+| `CAPITAL_RECON_MENU_KEY` | 1: router menulis 34 kunci menu sebagai teks | HAPUS |
+| `EmptyState` | 4: hampir identik `DataTableEmpty` | HAPUS |
+| `getPlatform` | 4: `isAndroid` cukup | HAPUS |
+| `openReceiptPdf` | 1: Simpan PDF dipakai, buka di tab baru tidak (sering diblokir WebView APK) | HAPUS |
+| `parseRupiah`, `percentage`, `clamp`, `truncate`, `capitalize`, `slugify` (`string.ts`), `formatRelative`, `useLocalStorage` | 1 | HAPUS |
+| Hook mati: `useGetMeQuery`, `useReorderMenuMutation`, `useShiftDetailQuery`, `useProductOptionsQuery`, `useProductBarcodeQuery`, `useProductPricesQuery` (`fetchProductPrices` tetap dipakai kasir), `cashier.useProductBarcodeSearchQuery` (pemindai memakai `useBarcodeScan`), re-export di `backdate-cashier.api.ts` | 1 | HAPUS (bersama endpointnya bila ada) |
+| Hook saldo manual (`useCustomerBalanceHistoryQuery`, `useTopupBalanceMutation`, `useRefundBalanceMutation`) | 3 | PUTUSKAN bersama Saldo |
+| `shared/types/webBluetooth.d.ts`, `lint-staged` | salah tebak alat | PERTAHANKAN |
+
+### PERTAHANKAN / OPSIONAL
+
+- Alat `cmd/`: 5 skrip `backfill_*` (sekali jalan untuk data stok/HPP lama; `backfill_stock_restore` untuk memulihkan backup
+  produksi lama) dan `migrate_users_to_auth` (panduan cutover): PERTAHANKAN.
+- 17 barrel `index.ts` tak diimpor, kata `export` berlebih, 44 tipe TS tak terpakai, sub-export shadcn: OPSIONAL.
+- Field config `AppName`, `AppAuthor`, `AppHost`, `Timezone`: OPSIONAL (sama dengan aplikasi lain).
+- `main.go` mengimpor `pkg/database` dua kali (gaya, ST1019): OPSIONAL.
+
+### Usulan eksekusi (setelah disetujui)
+
+1. **Kelompok 1, BE tanpa endpoint** (BE-A, BE-B, BE-C kecuali Saldo): tidak mengubah perilaku API.
+2. **Kelompok 2, endpoint BE** (BE-D) setelah user menjalankan cek log nginx produksi di atas dan hasilnya 0.
+3. **Kelompok 3, FE** (hapus + kemungkinan 2 sesuai keputusan).
+Tiap kelompok: build/vet/test, alat dead code, regresi API dan browser Toko di laptop/tablet/HP (`v_toko`, `portal_toko_e2e`,
+uji kasir/backdate/pembelian/laporan yang ada), log BE tanpa 500/panic; deploy Toko oleh user.

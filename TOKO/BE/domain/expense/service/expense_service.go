@@ -31,30 +31,6 @@ func (s *expenseService) GetAll(req *dto.GetAllRequest) (data []dto.ExpenseRespo
 	return data, total, nil
 }
 
-func (s *expenseService) GetByID(id int) (data dto.ExpenseResponse, err error) {
-	dataDB, err := s.repo.GetByID(id)
-	if err != nil {
-		return data, err
-	}
-	if dataDB == nil {
-		return data, &errors.NotFoundError{Message: "Pengeluaran tidak ditemukan"}
-	}
-
-	data = dto.ExpenseResponse{
-		ID:            dataDB.ID,
-		ExpenseDate:   dataDB.ExpenseDate,
-		Category:      dataDB.Category,
-		Description:   dataDB.Description,
-		Amount:        dataDB.Amount,
-		PaymentMethod: dataDB.PaymentMethod,
-		UserID:        dataDB.UserID,
-		UserName:      dataDB.UserName,
-		Notes:         dataDB.Notes,
-	}
-
-	return data, nil
-}
-
 func (s *expenseService) Create(req *dto.CreateRequest, userID int) (data dto.ExpenseResponse, err error) {
 	var newID int64
 

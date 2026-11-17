@@ -32,7 +32,6 @@ func ReportRoutes(r *gin.RouterGroup) {
 	g := r.Group("/reports")
 	{
 		g.GET("/sales", permSales("can_view"), reportHandler.GetSalesReport)
-		g.GET("/sales/chart", permSales("can_view"), reportHandler.GetSalesChart)
 		g.GET("/sales/export", permSales("can_view"), reportHandler.ExportSalesReport)
 		g.POST("/sales/list", permSales("can_view"), reportHandler.GetSalesList)
 		g.POST("/sales/summary", permSales("can_view"), reportHandler.GetSalesSummaryData)

@@ -9,9 +9,7 @@ type (
 	ReceivableServiceInterface interface {
 		GetAll(req *dto.GetAllRequest) ([]*dto.ReceivableResponse, int64, error)
 		GetByID(id int) (*dto.ReceivableDetailResponse, error)
-		GetSummary() ([]*dto.ReceivableSummaryItem, error)
 		GetStats() (*dto.ReceivableStats, error)
-		GetPayments(id int) ([]*dto.PaymentResponse, error)
 		Pay(req *dto.PayRequest) (*dto.PayResponse, error)
 	}
 

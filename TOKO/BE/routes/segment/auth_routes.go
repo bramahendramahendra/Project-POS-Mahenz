@@ -18,7 +18,6 @@ func AuthRoutes(r *gin.RouterGroup, authClient *authclient.Client) {
 
 	g := r.Group("/auth")
 	{
-		g.POST("/me", authHandler.GetMe)
 		g.POST("/logout", authHandler.Logout)
 		// Hanya role admin (bukan owner) yang boleh menyalakan/mematikan login langsung.
 		g.POST("/direct-login", middleware.RoleMiddleware("admin"), authHandler.SetDirectLogin)

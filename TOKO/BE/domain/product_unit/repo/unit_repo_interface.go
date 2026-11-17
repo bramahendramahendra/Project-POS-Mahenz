@@ -21,8 +21,6 @@ type (
 		CheckAbbreviationExists(abbreviation string, excludeID int) (bool, error)
 		CountProductUnitsByUnit(unitID int) (int, error)
 		CountActiveProductsByUnit(unitID int) (int, error)
-
-		GetDB() *gorm.DB
 	}
 
 	unitRepo struct {
@@ -32,8 +30,4 @@ type (
 
 func NewUnitRepo(db *gorm.DB) *unitRepo {
 	return &unitRepo{db: db}
-}
-
-func (r *unitRepo) GetDB() *gorm.DB {
-	return r.db
 }

@@ -17,9 +17,6 @@ type (
 		Update(req *dto.UpdateRequest) error
 		Delete(req *dto.DeleteRequest) error
 		ToggleStatus(req *dto.ToggleStatusRequest) error
-		GetSummary() ([]*dto.ShiftSummaryResponse, error)
-
-		GetDB() *gorm.DB
 	}
 
 	shiftRepo struct {
@@ -29,8 +26,4 @@ type (
 
 func NewShiftRepo(db *gorm.DB) *shiftRepo {
 	return &shiftRepo{db: db}
-}
-
-func (r *shiftRepo) GetDB() *gorm.DB {
-	return r.db
 }

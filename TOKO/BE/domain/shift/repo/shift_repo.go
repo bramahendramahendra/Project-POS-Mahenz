@@ -112,10 +112,3 @@ func (r *shiftRepo) ToggleStatus(req *dto.ToggleStatusRequest) error {
 	return r.db.Exec(toggleShiftStatusQuery, time_helper.GetTimeNow(), req.ID).Error
 }
 
-func (r *shiftRepo) GetSummary() ([]*dto.ShiftSummaryResponse, error) {
-	var dataDB []*dto.ShiftSummaryResponse
-	if err := r.db.Raw(getShiftSummaryQuery).Scan(&dataDB).Error; err != nil {
-		return nil, err
-	}
-	return dataDB, nil
-}

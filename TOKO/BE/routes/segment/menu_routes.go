@@ -33,6 +33,5 @@ func MenuRoutes(r *gin.RouterGroup) {
 		g.POST("/create", perm("can_create"), menuHandler.Create)
 		g.POST("/update/:id", perm("can_edit"), menuHandler.Update)
 		g.POST("/delete/:id", perm("can_delete"), menuHandler.Delete)
-		g.POST("/reorder", perm("can_edit"), menuHandler.Reorder)
 	}
 }

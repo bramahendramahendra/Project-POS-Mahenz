@@ -25,13 +25,6 @@ const (
 	// stok baru per produk = SUM stok tiap paket dikonversi ke anchor.
 	// Konversi dihitung di Go (ResolvePackageFactor) supaya konsisten dengan
 	// jalur stok live, bukan reimplementasi SQL.
-	baseUnitNameQuery = `
-		SELECT u.name
-		FROM product_packages pp
-		JOIN units u ON u.id = pp.unit_id
-		WHERE pp.product_id = ? AND pp.is_default = 1
-		LIMIT 1`
-
 	packagesQuery = `
 		SELECT pp.id, pp.product_id, pp.unit_id, u.name AS unit_name,
 		       COALESCE(u.abbreviation, '') AS abbreviation,

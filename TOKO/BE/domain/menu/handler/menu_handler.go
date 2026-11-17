@@ -188,27 +188,3 @@ func (h *MenuHandler) Delete(c *gin.Context) {
 		Message: "Menu berhasil dihapus",
 	})
 }
-
-func (h *MenuHandler) Reorder(c *gin.Context) {
-	req, err := binder.BindJSON[dto.ReorderRequest](c)
-	if err != nil {
-		c.Error(&errors.BadRequestError{Message: err.Error()})
-		return
-	}
-
-	if err := validator.Validate.Struct(req); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if svcErr := h.service.Reorder(&req); svcErr != nil {
-		c.Error(svcErr)
-		return
-	}
-
-	response_helper.WrapResponse(c, 200, "json", &global_dto.ResponseParams{
-		Code:    helper.StatusOk,
-		Status:  true,
-		Message: "Urutan menu berhasil diperbarui",
-	})
-}

@@ -61,17 +61,6 @@ const (
 		LEFT JOIN units u ON u.id = p.unit_id
 		WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?)`
 
-	// getAllActiveProductsForLowStockQuery -- perbandingan "stok menipis"
-	// TIDAK dilakukan di SQL (anchor-vs-anchor, celah #12 -- salah alarm
-	// begitu sisa < 1 unit anchor). Cuma ambil kandidat (semua produk aktif)
-	// plus min_stock, perbandingan sebenarnya dilakukan di Go pakai
-	// ComputeStockSummary (satuan terkecil) -- lihat GetLowStock().
-	getAllActiveProductsForLowStockQuery = `
-		SELECT p.id, p.name, p.min_stock, p.needs_stock_review, COALESCE(u.name, '') as unit_name
-		FROM products p
-		LEFT JOIN units u ON u.id = p.unit_id
-		WHERE p.is_active = 1`
-
 	getProductOptionsQuery      = `SELECT id, name FROM products WHERE is_active = 1 ORDER BY name`
 	checkProductUsedQuery       = `SELECT COUNT(*) FROM transaction_items WHERE product_id = ?`
 	checkProductPurchasedQuery  = `SELECT COUNT(*) FROM purchase_items WHERE product_id = ?`
@@ -210,15 +199,6 @@ func (r *productRepo) GetAll(req *dto.GetAllRequest) ([]*model.Product, int64, e
 	return dataDB, total, nil
 }
 
-func (r *productRepo) GetOptions() ([]*model.ProductOption, error) {
-	var dataDB []*model.ProductOption
-	err := r.db.Raw(getProductOptionsQuery).Scan(&dataDB).Error
-	if err != nil {
-		return nil, err
-	}
-	return dataDB, nil
-}
-
 func (r *productRepo) GetByID(id int) (*model.Product, error) {
 	var dataDB model.Product
 	err := r.db.Raw(getProductByIDQuery, id).Scan(&dataDB).Error
@@ -285,58 +265,6 @@ func (r *productRepo) Search(req *dto.SearchRequest) ([]*model.ProductSearchResu
 				v.Stock = s.AnchorStock - s.AnchorReserved
 			}
 		}
-	}
-	return dataDB, nil
-}
-
-// GetLowStock -- Fase 5 (celah #12): dulu perbandingan (stock - reserved_qty)
-// <= min_stock langsung di SQL, anchor-vs-anchor, salah alarm begitu sisa
-// produk < 1 unit anchor penuh (mis. 0 Kardus + 20 Botol dari kapasitas 48).
-// Sekarang perbandingan dilakukan di satuan TERKECIL lewat ComputeStockSummary.
-func (r *productRepo) GetLowStock() ([]*model.LowStockProduct, error) {
-	type candidateRow struct {
-		ID               int     `gorm:"column:id"`
-		Name             string  `gorm:"column:name"`
-		MinStock         float64 `gorm:"column:min_stock"`
-		NeedsStockReview bool    `gorm:"column:needs_stock_review"`
-		UnitName         string  `gorm:"column:unit_name"`
-	}
-	var candidates []*candidateRow
-	if err := r.db.Raw(getAllActiveProductsForLowStockQuery).Scan(&candidates).Error; err != nil {
-		return nil, err
-	}
-	if len(candidates) == 0 {
-		return []*model.LowStockProduct{}, nil
-	}
-
-	minStockByProduct := make(map[int]float64, len(candidates))
-	for _, c := range candidates {
-		minStockByProduct[c.ID] = c.MinStock
-	}
-	summaries, err := BuildStockSummaries(r.db, minStockByProduct)
-	if err != nil {
-		return nil, err
-	}
-
-	dataDB := make([]*model.LowStockProduct, 0, len(candidates))
-	for _, c := range candidates {
-		s, ok := summaries[c.ID]
-		if !ok {
-			// Gagal dianalisis (rantai bercabang dkk) -- tidak dimasukkan ke
-			// daftar stok menipis (datanya sendiri meragukan), badge
-			// needs_stock_review di FE (Fase 6) yang memberi tahu admin.
-			continue
-		}
-		if !s.IsLowStock {
-			continue
-		}
-		dataDB = append(dataDB, &model.LowStockProduct{
-			ID:       c.ID,
-			Name:     c.Name,
-			Stock:    s.AnchorStock - s.AnchorReserved,
-			MinStock: c.MinStock,
-			UnitName: c.UnitName,
-		})
 	}
 	return dataDB, nil
 }

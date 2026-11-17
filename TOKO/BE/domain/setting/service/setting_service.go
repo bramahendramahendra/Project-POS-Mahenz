@@ -52,10 +52,6 @@ func (s *settingService) Save(data map[string]string) error {
 	return nil
 }
 
-func (s *settingService) Reset() error {
-	return s.repo.ResetAll()
-}
-
 func (s *settingService) getSettingValue(key string) string {
 	setting, err := s.repo.GetByKey(key)
 	if err != nil || setting == nil {

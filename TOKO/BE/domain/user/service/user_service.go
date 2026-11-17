@@ -18,17 +18,6 @@ func (s *userService) GetAll(req *dto.GetAllRequest) ([]*dto.UserResponse, int64
 	return result, total, nil
 }
 
-func (s *userService) GetByID(id int) (*dto.UserResponse, error) {
-	u, err := s.repo.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-	if u == nil {
-		return nil, &errors.NotFoundError{Message: "User tidak ditemukan"}
-	}
-	return toUserResponse(u), nil
-}
-
 func (s *userService) Update(id, currentUserID int, req *dto.UpdateRequest) error {
 	u, err := s.repo.GetByID(id)
 	if err != nil {
