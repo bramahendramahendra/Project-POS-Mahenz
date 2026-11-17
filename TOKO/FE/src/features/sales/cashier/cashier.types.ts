@@ -12,9 +12,6 @@ export interface ProductSearchResult {
 export type DiscountType = 'none' | 'percent' | 'amount'
 export type PaymentMethod = 'cash' | 'transfer' | 'qris' | 'card' | 'kredit' | 'balance'
 
-// Nilai enum yang diterima backend (sesuai validasi oneof)
-export const PAYMENT_METHOD_VALUES = ['cash', 'transfer', 'qris', 'card', 'kredit'] as const
-
 export interface CartItem {
   product_id: number
   product_name: string

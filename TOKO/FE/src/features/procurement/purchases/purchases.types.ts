@@ -1,11 +1,5 @@
 export type PaymentStatus = 'paid' | 'unpaid' | 'partial'
 
-export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
-  paid: 'Lunas',
-  unpaid: 'Hutang',
-  partial: 'Bayar Sebagian',
-}
-
 export type PurchaseStatus = 'active' | 'void'
 
 export interface PurchaseItemExpiryBatch {

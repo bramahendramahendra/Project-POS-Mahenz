@@ -18,7 +18,6 @@ import type {
   PriceTier,
   Product,
   ProductListFilter,
-  ProductOption,
   ProductPackage,
   ProductSearchOption,
   UpdatePackagePayload,
@@ -106,13 +105,6 @@ export function useProductListQuery(filter: ProductListFilter) {
   })
 }
 
-export function useProductOptionsQuery() {
-  return useQuery({
-    queryKey: queryKeys.products.options(),
-    queryFn: () => api.post<ProductOption[]>('/products/options', {}),
-  })
-}
-
 export function useProductSearchQuery(keyword: string, enabled = true) {
   return useQuery({
     queryKey: ['products', 'search', keyword],
@@ -141,26 +133,10 @@ export function useProductDetailQuery(id: number) {
   })
 }
 
-export function useProductBarcodeQuery(code: string, enabled: boolean) {
-  return useQuery({
-    queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.post<{ product: Product }>(`/products/by-barcode/${code}`, {}),
-    enabled: enabled && code.length > 0,
-  })
-}
-
 export function useProductPackagesQuery(productId: number) {
   return useQuery({
     queryKey: queryKeys.products.productUnits(productId),
     queryFn: () => fetchProductPackages(productId),
-    enabled: productId > 0,
-  })
-}
-
-export function useProductPricesQuery(productId: number) {
-  return useQuery({
-    queryKey: queryKeys.products.priceTiers(productId),
-    queryFn: () => fetchProductPrices(productId),
     enabled: productId > 0,
   })
 }

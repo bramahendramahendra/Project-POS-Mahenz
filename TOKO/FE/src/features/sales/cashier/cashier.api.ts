@@ -3,7 +3,6 @@ import { toast } from 'sonner'
 
 import { api } from '@/services'
 import { queryKeys } from '@/shared/constants'
-import type { Product } from '@/features/products/products'
 
 import type { CheckoutResponse, PaymentPayload, ProductSearchResult } from './cashier.types'
 
@@ -12,14 +11,6 @@ export function useProductSearchQuery(keyword: string, enabled: boolean) {
     queryKey: ['cashier', 'search', keyword],
     queryFn: () => api.post<ProductSearchResult[]>('/products/search', { q: keyword, limit: 20 }),
     enabled: enabled && keyword.length >= 2,
-  })
-}
-
-export function useProductBarcodeSearchQuery(code: string, enabled: boolean) {
-  return useQuery({
-    queryKey: queryKeys.products.barcode(code),
-    queryFn: () => api.post<Product>(`/products/by-barcode/${code}`, {}),
-    enabled: enabled && code.length > 0,
   })
 }
 

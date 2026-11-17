@@ -32,7 +32,7 @@ import {
   useUpdateProductMutation,
   useUpdateProductPackageMutation,
 } from '../products.api'
-import { calcMargin } from '../products.utils'
+import { calcMargin, formatProductPackage } from '../products.utils'
 import { productSchema } from '../products.schema'
 import type { ProductFormValues, GrosirFormValues } from '../products.schema'
 import { GrosirRowForm } from './GrosirRowForm'
@@ -61,7 +61,7 @@ function mapProductToForm(product: Product): ProductFormValues {
 }
 
 function packageLabel(pkg: ProductPackage): string {
-  const name = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
+  const name = formatProductPackage(pkg)
   return pkg.is_default ? `${name} (Satuan Dasar)` : name
 }
 

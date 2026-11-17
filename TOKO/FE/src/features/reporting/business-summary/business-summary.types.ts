@@ -46,9 +46,3 @@ export interface TopProductItem {
   total_qty: number
   total_value: number
 }
-
-export interface SummaryExtraResponse {
-  highest: { total_amount: number; transaction_code: string } | null
-  peakHour: { hour: number; count: number } | null
-  avg: { avg_amount: number; total_count: number } | null
-}

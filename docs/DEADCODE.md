@@ -466,7 +466,7 @@ dari `testing/auth_3b2/keys.txt` agar Coffee dev bisa login lagi (setiap menjala
 
 ---
 
-## Toko (dianalisis 17 Nov 2026) — kelompok 1 dan 2 SELESAI; kelompok 3 (FE) belum
+## Toko (dianalisis 17 Nov 2026) — **SELESAI** (kelompok 1 BE, 2 endpoint, 3 FE)
 
 **Keputusan user 17 Nov 2026:** mengikuti semua saran AI (HAPUS/PERTAHANKAN sesuai daftar; Saldo manual dibiarkan;
 `formatProductPackage` dipakai; `password-input` dihapus dan `LoginForm` Toko dibiarkan; endpoint dihapus setelah cek log nginx).
@@ -510,6 +510,27 @@ pengeluaran tunai menambah total pengeluaran kas otomatis 0 -> 1.234); `api_3b4`
 32/32 di laptop/tablet/HP, `r_toko` 86 layar tanpa masalah baru; `log_requests` Toko: tidak ada "Route not found" dari FE (hanya
 dari skrip uji, termasuk T21/T22 `api_3b4` yang sengaja memeriksa endpoint lama 3B.4); log BE tanpa 500/panic.
 Diff gabungan kelompok 1+2 (belum di-commit): 154 file, +33/-6.571.
+
+**Kelompok 3 (FE Toko) [SELESAI], 17 Nov 2026.** Dihapus: `ui/dropdown-menu`, `ui/radio-group`, `ui/password-input` (LoginForm Toko
+TIDAK diubah), `EmptyState`, `usePermission`, `useLocalStorage`, `string.ts`, `number.ts` (clamp, percentage, lalu `roundTo` yang
+hanya dipakai percentage), `capital-reconciliation.constants.ts`, `getApplicablePrice` salinan di products.utils (kasir memakai salinan
+identik di cashier.utils), `isPaymentSufficient`, `PAYMENT_STATUS_LABEL`, `PAYMENT_METHOD_VALUES`, `getPlatform` + tipe
+`DevicePlatform`, `openReceiptPdf`, `parseRupiah`, `formatRelative`, hook mati (`useGetMeQuery`, `useReorderMenuMutation`,
+`useShiftDetailQuery`, `useProductOptionsQuery`, `useProductBarcodeQuery`, `useProductPricesQuery`, `cashier.useProductBarcodeSearchQuery`,
+re-export di `backdate-cashier.api.ts`), tipe milik endpoint yang dihapus (`ReorderMenuPayload`, `ProductOption`,
+`SummaryExtraResponse`), barrel dirapikan; library `@radix-ui/react-dropdown-menu`, `-radio-group`, `-toast`, alat lint
+`@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `eslint-plugin-import` (109 paket turunan, tanpa perubahan versi
+library lain). Kemungkinan 2: `formatProductPackage` dipakai di Pembelian, Detail Produk, Form Produk, Kasir Backdate (ekspresi identik,
+tipe `ProductPackage` sama). Dipertahankan: hook Saldo manual, `fetchProductPrices`, `webBluetooth.d.ts`, `lint-staged`. CRLF dijaga.
+Diff `src`: 38 file, +10/-543. knip: export mati tinggal 3 hook Saldo (sengaja); sisanya OPSIONAL (barrel, kata export, tipe).
+Uji: type-check/lint/build; uji baru `testing/deadcode/b_toko_k3.js` 8/8 di laptop/tablet/HP (label "Bungkus (Bungkus (Isi 10 Buah))" di
+detail produk, form produk, pilihan satuan pembelian; login Toko dan tombol mata; 7 halaman yang filenya diubah terbuka di alamatnya
+sendiri tanpa error, termasuk Kasir Backdate; Simpan PDF struk menghasilkan .pdf; tanpa error JavaScript); `v_portal` + `v_toko` 32/32
+di laptop/tablet/HP; `r_toko` 86 layar tanpa masalah baru; tidak ada panggilan "Route not found" baru dari FE; log BE tanpa 500/panic.
+Belum diuji langsung: label kemasan di keranjang Kasir Backdate (butuh kas backdate terbuka); dijamin oleh ekspresi identik + type-check.
+Catatan skrip uji: pemeriksaan halaman awalnya terlalu longgar (route tak dikenal dialihkan ke "/" tanpa pesan error, dan alamat
+Shift salah ditulis); diperbaiki dengan memastikan alamat akhir sama dengan halaman yang dibuka.
+**Dead code Toko SELESAI** (kelompok 1-3).
 
 Dianalisis dari kode Toko sendiri. Alat: `deadcode` 100 fungsi, `ifacecheck` 18 method, `staticcheck` 5 temuan, tipe DTO/model tak
 terpakai (pemeriksaan per paket) 8, endpoint BE tanpa pemanggil FE 24, FE `knip` 21 file, 3 library + 4 alat dev, 31 export mati.

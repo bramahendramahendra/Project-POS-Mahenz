@@ -49,22 +49,6 @@ export function formatDateTime(date: string | Date): string {
   return `${formatDate(date)}, ${hours}:${minutes}`
 }
 
-export function formatRelative(date: string | Date): string {
-  const d = toWIB(date)
-  const now = getWIBNow()
-  const diffMs = now.valueOf() - d.valueOf()
-  const diffSeconds = Math.floor(diffMs / 1000)
-  const diffMinutes = Math.floor(diffSeconds / 60)
-  const diffHours = Math.floor(diffMinutes / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffSeconds < 60) return 'baru saja'
-  if (diffMinutes < 60) return `${diffMinutes} menit yang lalu`
-  if (diffHours < 24) return `${diffHours} jam yang lalu`
-  if (diffDays === 1) return 'kemarin'
-  return formatDate(date)
-}
-
 export function toISODate(date: Date): string {
   return toWIB(date).format('YYYY-MM-DD')
 }

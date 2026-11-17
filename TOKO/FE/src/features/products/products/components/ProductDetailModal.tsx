@@ -8,7 +8,7 @@ import { formatDate, formatRupiah } from '@/shared/utils'
 import { useProductDetailQuery, useProductPackagesQuery } from '../products.api'
 import { useExpiryBatchHistoryQuery } from '../expiry-batches.api'
 import type { ExpiryBatchStatus } from '../expiry-batches.types'
-import { calcMargin, formatPackageBreakdown } from '../products.utils'
+import { calcMargin, formatPackageBreakdown, formatProductPackage } from '../products.utils'
 import { ProductPurchaseHistory } from './ProductPurchaseHistory'
 import { ProductSaleHistory } from './ProductSaleHistory'
 
@@ -209,7 +209,7 @@ export function ProductDetailModal({ open, onOpenChange, productId }: ProductDet
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-gray-800">
-                      {u.package_name ? `${u.unit_name} (${u.package_name})` : u.unit_name}
+                      {formatProductPackage(u)}
                     </span>
                     <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
                       Turunan

@@ -21,14 +21,6 @@ export function useShiftOptionsQuery() {
   })
 }
 
-export function useShiftDetailQuery(id: number) {
-  return useQuery({
-    queryKey: queryKeys.shifts.detail(id),
-    queryFn: () => api.post<Shift>(`/shifts/detail/${id}`, {}),
-    enabled: id > 0,
-  })
-}
-
 export function useCreateShiftMutation() {
   const qc = useQueryClient()
   return useMutation({

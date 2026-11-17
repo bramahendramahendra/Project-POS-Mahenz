@@ -18,6 +18,7 @@ import {
 import type { Product, ProductPackage, PriceTier } from '@/features/products/products'
 
 import { useBackdateCashierStore } from '../backdate-cashier.store'
+import { formatProductPackage } from '@/features/products/products/products.utils'
 import { getApplicablePrice } from '../../cashier/cashier.utils'
 import { useBarcodeScan } from '../../cashier/hooks/useBarcodeScan'
 import { useProductSearch } from '../../cashier/hooks/useProductSearch'
@@ -63,7 +64,7 @@ export function BackdateProductSearch() {
   }, [results])
 
   const addItemToCart = (product: Product, pkg: ProductPackage) => {
-    const label = pkg.package_name ? `${pkg.unit_name} (${pkg.package_name})` : pkg.unit_name
+    const label = formatProductPackage(pkg)
     const price = Number(getApplicablePrice(product.prices, pkg.unit_id, 1) ?? pkg.selling_price ?? 0)
     addToCart({
       product_id: product.id,

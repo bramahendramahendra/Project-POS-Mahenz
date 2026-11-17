@@ -132,16 +132,6 @@ export function useLogoutMutation() {
   })
 }
 
-export function useGetMeQuery() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-
-  return useQuery({
-    queryKey: queryKeys.auth.profile(),
-    queryFn: () => api.post<AuthUser>('/auth/me', {}),
-    enabled: isAuthenticated,
-  })
-}
-
 // Menyalakan/mematikan login langsung (hanya admin; BE menolak role lain).
 export function useSetDirectLoginMutation() {
   const queryClient = useQueryClient()

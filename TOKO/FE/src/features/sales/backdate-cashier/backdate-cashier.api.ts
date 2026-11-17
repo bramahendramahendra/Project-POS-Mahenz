@@ -21,5 +21,3 @@ export function useBackdateCheckoutMutation() {
   })
 }
 
-// Reuse product search from regular cashier
-export { useProductSearchQuery, useProductBarcodeSearchQuery, useCustomerCreditQuery } from '../cashier/cashier.api'

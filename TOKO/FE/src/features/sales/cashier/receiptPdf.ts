@@ -125,14 +125,3 @@ export function saveReceiptPdf(data: ReceiptData): void {
   const doc = buildReceiptPdf(data)
   doc.save(receiptFileName(data))
 }
-
-/**
- * Buka struk PDF di tab baru (untuk pratinjau / bagikan / cetak dari viewer PDF).
- * Mengembalikan false bila popup diblokir.
- */
-export function openReceiptPdf(data: ReceiptData): boolean {
-  const doc = buildReceiptPdf(data)
-  const url = doc.output('bloburl')
-  const win = window.open(url as unknown as string, '_blank')
-  return !!win
-}

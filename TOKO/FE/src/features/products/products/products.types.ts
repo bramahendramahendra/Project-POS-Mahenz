@@ -109,11 +109,6 @@ export type UpdatePackagePayload = CreatePackagePayload
 
 export type ProductFilter = ProductListFilter
 
-export interface ProductOption {
-  id: number
-  name: string
-}
-
 export interface ProductSearchOption {
   id: number
   barcode: string

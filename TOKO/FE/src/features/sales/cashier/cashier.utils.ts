@@ -62,10 +62,6 @@ export const getApplicablePrice = (
   return tiers[0]?.price ?? null
 }
 
-export const isPaymentSufficient = (grandTotal: number, amountPaid: number): boolean => {
-  return amountPaid >= grandTotal
-}
-
 export function calculateItemDiscount(
   price: number,
   qty: number,
