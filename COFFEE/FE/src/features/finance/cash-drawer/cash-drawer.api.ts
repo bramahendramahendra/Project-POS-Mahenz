@@ -66,6 +66,22 @@ export function useCloseCashDrawerMutation() {
   })
 }
 
+// Keputusan 133: admin menjalankan penutupan kas hari sebelumnya yang sama dengan penjadwal tengah malam
+// (selisih 0; hari yang masih punya pesanan terbuka dilewati).
+export function useAutoCloseYesterdayMutation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<{ closed: number }>('/cash-drawer/auto-close-yesterday', {}),
+    onSuccess: ({ closed }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.cashDrawer.all() })
+      qc.invalidateQueries({ queryKey: queryKeys.myCash.data() })
+      if (closed > 0) toast.success(`${closed} kas berhasil ditutup`)
+      else toast.info('Tidak ada kas yang perlu ditutup')
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 export function useCashDrawerSummaryQuery(filter?: CashDrawerListFilter) {
   return useQuery({
     queryKey: queryKeys.cashDrawer.summary(filter as unknown as Record<string, unknown>),

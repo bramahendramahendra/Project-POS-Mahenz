@@ -4,7 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 
 import { api } from '@/services'
 import { formatRupiah } from '@/shared/utils'
-import { ORDER_TYPE_LABEL, type OrderType } from '@/features/sales/cashier/cashier.types'
+import {
+  ORDER_TYPE_LABEL,
+  PAYMENT_METHOD_LABEL,
+  type OrderType,
+  type PaymentMethod,
+} from '@/features/sales/cashier/cashier.types'
 
 import type { SalesFilter } from '../sales.types'
 
@@ -20,7 +25,6 @@ interface SalesBreakdown {
   order_types: { key: string; count: number; total: number }[]
 }
 
-const PAYMENT_LABEL: Record<string, string> = { cash: 'Tunai', transfer: 'Transfer', qris: 'QRIS', card: 'Kartu', kredit: 'Hutang' }
 type Tab = 'menu' | 'category' | 'payment' | 'order'
 const TABS: { key: Tab; label: string }[] = [
   { key: 'menu', label: 'Per Menu' },
@@ -144,7 +148,7 @@ export function SalesBreakdownSection({ filter }: { filter: SalesFilter }) {
             <tbody className="divide-y">
               {(tab === 'payment' ? data.payment_methods : data.order_types).map((g) => (
                 <tr key={g.key}>
-                  <td className={td}>{tab === 'payment' ? (PAYMENT_LABEL[g.key] ?? g.key) : (ORDER_TYPE_LABEL[g.key as OrderType] ?? 'Lainnya')}</td>
+                  <td className={td}>{tab === 'payment' ? (PAYMENT_METHOD_LABEL[g.key as PaymentMethod] ?? g.key) : (ORDER_TYPE_LABEL[g.key as OrderType] ?? 'Lainnya')}</td>
                   <td className={`${td} text-right`}>{g.count}</td>
                   <td className={`${td} text-right font-medium`}>{formatRupiah(g.total)}</td>
                 </tr>

@@ -6,6 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { formatDate, formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
+import { PAYMENT_METHOD_LABEL, type PaymentMethod } from '@/features/sales/cashier/cashier.types'
+
 import type { Expense } from '../expenses.types'
 
 export interface ExpenseColumnHandlers {
@@ -18,14 +20,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   pembelian: 'Pembelian',
   gaji: 'Gaji',
   lainnya: 'Lainnya',
-}
-
-const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  card: 'Kartu',
-  qris: 'QRIS',
-  kredit: 'Kredit',
 }
 
 export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<Expense>[] {
@@ -59,7 +53,7 @@ export function buildExpenseColumns(handlers: ExpenseColumnHandlers): ColumnDef<
       mobileHidden: true,
       cell: (row) => (
         <span className="text-sm text-gray-600">
-          {PAYMENT_METHOD_LABEL[row.payment_method] ?? row.payment_method}
+          {PAYMENT_METHOD_LABEL[row.payment_method as PaymentMethod] ?? row.payment_method}
         </span>
       ),
     },

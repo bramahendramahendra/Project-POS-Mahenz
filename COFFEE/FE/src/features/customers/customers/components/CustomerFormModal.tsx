@@ -129,7 +129,7 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
               <Input id="cust-phone" {...register('phone')} placeholder="08xx-xxxx-xxxx" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cust-credit">Limit Kredit</Label>
+              <Label htmlFor="cust-credit">Limit Hutang</Label>
               <RupiahInput
                 id="cust-credit"
                 value={creditLimit}

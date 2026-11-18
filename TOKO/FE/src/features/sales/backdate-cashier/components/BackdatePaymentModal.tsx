@@ -19,17 +19,18 @@ import { formatRupiah } from '@/shared/utils'
 import { useCustomerCreditQuery } from '../../cashier/cashier.api'
 import { calcCartSummary } from '../../cashier/cashier.utils'
 import type { PaymentMethod } from '../../cashier/cashier.types'
+import { PAYMENT_METHOD_LABEL } from '../../cashier/cashier.types'
 import { useBackdateCashierStore } from '../backdate-cashier.store'
 import { useBackdateCheckoutMutation } from '../backdate-cashier.api'
 import type { BackdateCashDrawer } from '../../backdate-cash/backdate-cash.types'
 import type { BackdatePaymentPayload } from '../backdate-cashier.types'
 
 const PAYMENT_METHODS: { key: PaymentMethod; label: string }[] = [
-  { key: 'cash', label: 'Tunai' },
-  { key: 'transfer', label: 'Transfer' },
-  { key: 'qris', label: 'QRIS' },
-  { key: 'card', label: 'Kartu' },
-  { key: 'kredit', label: 'Hutang' },
+  { key: 'cash', label: PAYMENT_METHOD_LABEL.cash },
+  { key: 'transfer', label: PAYMENT_METHOD_LABEL.transfer },
+  { key: 'qris', label: PAYMENT_METHOD_LABEL.qris },
+  { key: 'card', label: PAYMENT_METHOD_LABEL.card },
+  { key: 'kredit', label: PAYMENT_METHOD_LABEL.kredit },
 ]
 
 function buildRoundedOptions(grandTotal: number): number[] {

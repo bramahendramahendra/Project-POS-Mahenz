@@ -6,10 +6,10 @@ import { Button } from '@/shared/components/ui/button'
 import { ScrollArea } from '@/shared/components/ui/scroll-area'
 import { formatRupiah } from '@/shared/utils'
 import { ReceiptPrint } from '@/features/sales/cashier/components/ReceiptPrint'
-import { ORDER_TYPE_LABEL } from '@/features/sales/cashier/cashier.types'
+import { ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
 
 import { useTransactionDetailQuery } from '../transactions.api'
-import { PAYMENT_LABELS, TRANSACTION_STATUS_BADGE, formatDateTimeLong, transactionReceipt } from '../transactions.utils'
+import { TRANSACTION_STATUS_BADGE, formatDateTimeLong, transactionReceipt } from '../transactions.utils'
 import { VoidTransactionDialog } from './VoidTransactionDialog'
 
 interface TransactionDetailModalProps {
@@ -54,7 +54,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
         ['Kasir penerima', transaction.status === 'completed' || transaction.status === 'void' ? transaction.kasir_name : '—'],
         ['Diselesaikan oleh', transaction.settled_by_name || '—'],
         ['Pelanggan', transaction.customer_name || '—'],
-        ['Metode Bayar', transaction.status === 'completed' || transaction.status === 'void' ? PAYMENT_LABELS[transaction.payment_method] : '—'],
+        ['Metode Bayar', transaction.status === 'completed' || transaction.status === 'void' ? PAYMENT_METHOD_LABEL[transaction.payment_method] : '—'],
       ]
     : []
 

@@ -1,16 +1,8 @@
 import { formatRupiah } from '@/shared/utils'
 
 import type { CartItem, CartSummary, CheckoutResponse, Discount, PaymentMethod, Tax } from './cashier.types'
+import { PAYMENT_METHOD_LABEL } from './cashier.types'
 import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Kredit',
-  balance: 'Saldo',
-}
 
 const ESC_INIT = new Uint8Array([0x1b, 0x40]) // ESC @ — reset printer
 const CUT_PAPER = new Uint8Array([0x1d, 0x56, 0x00]) // GS V 0 — full cut
@@ -160,7 +152,7 @@ export function receiptToPlainText(params: {
   if (customerName) out += padLine('Pelanggan', customerName, width)
   for (const [label, value] of orderInfoRows(checkoutData)) out += padLine(label, value, width)
   if (unpaid) out += center('TAGIHAN - BELUM DIBAYAR', width)
-  else out += padLine('Pembayaran', PAYMENT_LABELS[paymentMethod], width)
+  else out += padLine('Pembayaran', PAYMENT_METHOD_LABEL[paymentMethod], width)
   out += line
 
   for (const item of cart) {
@@ -179,7 +171,7 @@ export function receiptToPlainText(params: {
   }
   out += padLine('TOTAL', formatRupiah(summary.grandTotal), width)
   if (!unpaid) {
-    out += padLine(`Dibayar (${PAYMENT_LABELS[paymentMethod]})`, formatRupiah(amountPaid), width)
+    out += padLine(`Dibayar (${PAYMENT_METHOD_LABEL[paymentMethod]})`, formatRupiah(amountPaid), width)
     out += padLine('Kembalian', formatRupiah(change), width)
   }
   out += line
@@ -258,7 +250,7 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
     push(ESC_BOLD_OFF)
     push(ESC_ALIGN_LEFT)
   } else {
-    pushText(padLine('Pembayaran', PAYMENT_LABELS[data.paymentMethod], width))
+    pushText(padLine('Pembayaran', PAYMENT_METHOD_LABEL[data.paymentMethod], width))
   }
   pushText(lineSep)
 
@@ -281,7 +273,7 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
   pushText(padLine('TOTAL', formatRupiah(data.summary.grandTotal), width))
   push(ESC_BOLD_OFF)
   if (!data.unpaid) {
-    pushText(padLine(`Dibayar (${PAYMENT_LABELS[data.paymentMethod]})`, formatRupiah(data.amountPaid), width))
+    pushText(padLine(`Dibayar (${PAYMENT_METHOD_LABEL[data.paymentMethod]})`, formatRupiah(data.amountPaid), width))
     pushText(padLine('Kembalian', formatRupiah(change), width))
   }
   pushText(lineSep)
@@ -398,7 +390,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
     rows.push(`<div class="info"><span class="lbl">${esc(label)}:</span> <span class="val">${esc(value)}</span></div>`)
   }
   if (data.unpaid) rows.push('<div class="center" style="font-weight:bold">TAGIHAN - BELUM DIBAYAR</div>')
-  else rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_LABELS[data.paymentMethod])}</span></div>`)
+  else rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_METHOD_LABEL[data.paymentMethod])}</span></div>`)
   rows.push('<hr />')
 
   for (const item of data.cart) {

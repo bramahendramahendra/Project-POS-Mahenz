@@ -1,15 +1,7 @@
 import { formatRupiah } from '@/shared/utils'
 
 import type { CartItem, CartSummary, CheckoutResponse, Discount, PaymentMethod, Tax } from './cashier.types'
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Kredit',
-  balance: 'Saldo',
-}
+import { PAYMENT_METHOD_LABEL } from './cashier.types'
 
 const ESC_INIT = new Uint8Array([0x1b, 0x40]) // ESC @ — reset printer
 const CUT_PAPER = new Uint8Array([0x1d, 0x56, 0x00]) // GS V 0 — full cut
@@ -149,7 +141,7 @@ export function receiptToPlainText(params: {
   out += padLine('No. Transaksi', checkoutData.transaction_code, width)
   out += padLine('Tanggal', new Date(checkoutData.transaction_date).toLocaleString('id-ID'), width)
   if (customerName) out += padLine('Pelanggan', customerName, width)
-  out += padLine('Pembayaran', PAYMENT_LABELS[paymentMethod], width)
+  out += padLine('Pembayaran', PAYMENT_METHOD_LABEL[paymentMethod], width)
   out += line
 
   for (const item of cart) {
@@ -167,7 +159,7 @@ export function receiptToPlainText(params: {
     out += padLine(`Pajak (${tax.percent}%)`, `+${formatRupiah(summary.taxAmount)}`, width)
   }
   out += padLine('TOTAL', formatRupiah(summary.grandTotal), width)
-  out += padLine(`Dibayar (${PAYMENT_LABELS[paymentMethod]})`, formatRupiah(amountPaid), width)
+  out += padLine(`Dibayar (${PAYMENT_METHOD_LABEL[paymentMethod]})`, formatRupiah(amountPaid), width)
   out += padLine('Kembalian', formatRupiah(change), width)
   out += line
 
@@ -225,7 +217,7 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
   pushText(padLine('No. Transaksi', data.checkoutData.transaction_code, width))
   pushText(padLine('Tanggal', new Date(data.checkoutData.transaction_date).toLocaleString('id-ID'), width))
   if (data.customerName) pushText(padLine('Pelanggan', data.customerName, width))
-  pushText(padLine('Pembayaran', PAYMENT_LABELS[data.paymentMethod], width))
+  pushText(padLine('Pembayaran', PAYMENT_METHOD_LABEL[data.paymentMethod], width))
   pushText(lineSep)
 
   for (const item of data.cart) {
@@ -246,7 +238,7 @@ export function buildReceiptEscposBytes(data: ReceiptData): Uint8Array {
   push(ESC_BOLD_ON)
   pushText(padLine('TOTAL', formatRupiah(data.summary.grandTotal), width))
   push(ESC_BOLD_OFF)
-  pushText(padLine(`Dibayar (${PAYMENT_LABELS[data.paymentMethod]})`, formatRupiah(data.amountPaid), width))
+  pushText(padLine(`Dibayar (${PAYMENT_METHOD_LABEL[data.paymentMethod]})`, formatRupiah(data.amountPaid), width))
   pushText(padLine('Kembalian', formatRupiah(change), width))
   pushText(lineSep)
 
@@ -353,7 +345,7 @@ export function buildReceiptHtml(data: ReceiptData): string {
   rows.push(`<div class="info"><span class="lbl">No:</span> <span class="val">${esc(data.checkoutData.transaction_code)}</span></div>`)
   rows.push(`<div class="info"><span class="lbl">Tgl:</span> <span class="val">${esc(tanggal)}</span></div>`)
   if (data.customerName) rows.push(`<div class="info"><span class="lbl">Plg:</span> <span class="val">${esc(data.customerName)}</span></div>`)
-  rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_LABELS[data.paymentMethod])}</span></div>`)
+  rows.push(`<div class="info"><span class="lbl">Bayar:</span> <span class="val">${esc(PAYMENT_METHOD_LABEL[data.paymentMethod])}</span></div>`)
   rows.push('<hr />')
 
   for (const item of data.cart) {

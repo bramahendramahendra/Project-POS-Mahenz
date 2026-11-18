@@ -1,5 +1,6 @@
-import { PageHeader, PrerequisiteGuard } from '@/shared/components'
+import { PageHeader, PrerequisiteGuard, RoleGuard } from '@/shared/components'
 
+import { AutoCloseYesterdayButton } from './components/AutoCloseYesterdayButton'
 import { CashDrawerTable } from './components/CashDrawerTable'
 import { useCashDrawerPrerequisites } from './hooks/useCashDrawerPrerequisites'
 
@@ -11,6 +12,11 @@ export function CashDrawerPage() {
       <PageHeader
         title="Kas Harian"
         breadcrumbs={[{ label: 'Keuangan' }, { label: 'Kas Harian' }]}
+        actions={
+          <RoleGuard menuKey="keuangan.kas_harian" action="can_edit">
+            <AutoCloseYesterdayButton />
+          </RoleGuard>
+        }
       />
 
       <PrerequisiteGuard

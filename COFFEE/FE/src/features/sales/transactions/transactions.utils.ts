@@ -1,16 +1,7 @@
 import { savedReceiptLine } from '@/features/sales/cashier/cashier.utils'
 import type { CartItem, CartSummary, CheckoutResponse, Discount, Tax } from '@/features/sales/cashier'
 
-import type { PaymentMethod, Transaction, TransactionStatus } from './transactions.types'
-
-export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Kredit',
-  balance: 'Saldo',
-}
+import type { Transaction, TransactionStatus } from './transactions.types'
 
 /** Tampilan status transaksi (StatusBadge + label Coffee). */
 export const TRANSACTION_STATUS_BADGE: Record<TransactionStatus, { status: 'success' | 'void' | 'open' | 'closed'; label: string }> = {

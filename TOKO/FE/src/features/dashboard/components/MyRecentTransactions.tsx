@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { StatusBadge } from '@/shared/components'
 import { formatRupiah } from '@/shared/utils'
 import { TransactionDetailModal } from '@/features/sales/transactions/components/TransactionDetailModal'
-import { PAYMENT_LABELS } from '@/features/sales/transactions/transactions.utils'
+import { PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
 import type { PaymentMethod } from '@/features/sales/transactions/transactions.types'
 
 import { useRecentTransactionsQuery } from '../dashboard.api'
@@ -51,7 +51,7 @@ export function MyRecentTransactions() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{item.transaction_code}</p>
                       <p className="text-xs text-gray-400">
-                        {formatDateTimeShort(item.transaction_date)} · {PAYMENT_LABELS[item.payment_method as PaymentMethod] ?? item.payment_method}
+                        {formatDateTimeShort(item.transaction_date)} · {PAYMENT_METHOD_LABEL[item.payment_method as PaymentMethod] ?? item.payment_method}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

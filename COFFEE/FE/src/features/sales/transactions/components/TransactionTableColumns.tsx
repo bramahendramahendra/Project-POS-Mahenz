@@ -6,10 +6,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/components/ui/
 import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
-import { ORDER_TYPE_LABEL } from '@/features/sales/cashier/cashier.types'
+import { ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
 
 import type { Transaction } from '../transactions.types'
-import { PAYMENT_LABELS, TRANSACTION_STATUS_BADGE, formatDateTimeShort } from '../transactions.utils'
+import { TRANSACTION_STATUS_BADGE, formatDateTimeShort } from '../transactions.utils'
 
 export interface TransactionColumnHandlers {
   onDetail: (transaction: Transaction) => void
@@ -89,7 +89,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       cell: (row) => (
         row.status === 'completed' || row.status === 'void' ? (
           <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
-            {PAYMENT_LABELS[row.payment_method]}
+            {PAYMENT_METHOD_LABEL[row.payment_method]}
           </span>
         ) : (
           <span className="text-sm text-gray-400">—</span>

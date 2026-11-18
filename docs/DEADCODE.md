@@ -105,7 +105,7 @@ ulang (4.7b).
 
 - **Dipertahankan:** `GET /health` (cek server SOP); `GET /reports/business-summary/payment-methods` (**kemungkinan 3**:
   keputusan 117 menulis "metode bayar tetap" di Ringkasan Bisnis, tetapi tidak pernah ditampilkan FE mana pun; kini hanya ada di
-  Laporan Penjualan tab Metode Bayar); `POST /cash-drawer/auto-close-yesterday` (**kemungkinan 3**: dibuat sengaja di 4.9 untuk
+  Laporan Penjualan tab Metode Bayar); `POST /cash-drawer/auto-close-yesterday` (**[DIPAKAI 17 Nov 2026]**, keputusan 132-133: kedua endpoint kemungkinan 3 ini kini punya layar) (**kemungkinan 3**: dibuat sengaja di 4.9 untuk
   admin, belum ada tombolnya; penutupan otomatis tengah malam tetap berjalan tanpa endpoint ini).
 - **Dihapus 23 endpoint** (route + handler + method service/repo yang hanya dipakai olehnya + query/DTO/tipe sisa):
   verify-token, auth/me, summary-extra, sales/chart, cash-drawer update-sales/update-expenses (berbahaya: mengubah total kas

@@ -18,13 +18,16 @@ function periodToTrendParam(period: DashboardPeriod): string {
   }
 }
 
+// Rentang kotak di bawah kartu angka (keputusan 134): Hari Ini = hari ini saja, Minggu Ini = 7 hari terakhir,
+// Bulan Ini = awal bulan s.d. hari ini.
 function periodToDateRange(period: DashboardPeriod): { start_date: string; end_date: string } {
   const now = getWIBNow()
   const end = now.format('YYYY-MM-DD')
-  const start = period === 'month'
-    ? now.startOf('month').format('YYYY-MM-DD')
-    : now.subtract(6, 'day').format('YYYY-MM-DD')
-  return { start_date: start, end_date: end }
+  switch (period) {
+    case 'today': return { start_date: end, end_date: end }
+    case 'month': return { start_date: now.startOf('month').format('YYYY-MM-DD'), end_date: end }
+    default:      return { start_date: now.subtract(6, 'day').format('YYYY-MM-DD'), end_date: end }
+  }
 }
 
 export function useDashboardStatsQuery(period: DashboardPeriod) {
@@ -77,5 +80,22 @@ export function useOrderTypesQuery(period: DashboardPeriod) {
   return useQuery({
     queryKey: ['businessSummary', 'orderTypes', period],
     queryFn: () => api.get<OrderTypeItem[]>('/reports/business-summary/order-types', range),
+  })
+}
+
+// Coffee (keputusan 132): penjualan per metode bayar pada periode yang sama (transaksi selesai,
+// sama dengan Laporan Penjualan tab Metode Bayar). Persentase dihitung BE dari total periode.
+export interface PaymentMethodShareItem {
+  payment_method: string
+  total: number
+  count: number
+  percentage: number
+}
+
+export function useSummaryPaymentMethodsQuery(period: DashboardPeriod) {
+  const range = periodToDateRange(period)
+  return useQuery({
+    queryKey: ['businessSummary', 'paymentMethods', period],
+    queryFn: () => api.get<PaymentMethodShareItem[]>('/reports/business-summary/payment-methods', range),
   })
 }

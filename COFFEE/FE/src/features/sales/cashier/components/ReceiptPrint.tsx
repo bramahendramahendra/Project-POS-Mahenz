@@ -39,6 +39,7 @@ import type {
   PaymentMethod,
   Tax,
 } from '../cashier.types'
+import { PAYMENT_METHOD_LABEL } from '../cashier.types'
 import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from '../cashier.utils'
 
 interface ReceiptPrintProps {
@@ -156,15 +157,6 @@ const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   show_logo: false,
   auto_print: false,
   print_method: 'browser',
-}
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Hutang',
-  balance: 'Saldo',
 }
 
 function formatDate(dateStr: string): string {
@@ -459,7 +451,7 @@ export function ReceiptPrint({
         ) : (
           <div className="flex justify-between">
             <span className="text-gray-400">Pembayaran</span>
-            <span className="text-gray-700">{PAYMENT_LABELS[paymentMethod]}</span>
+            <span className="text-gray-700">{PAYMENT_METHOD_LABEL[paymentMethod]}</span>
           </div>
         )}
       </div>
@@ -565,8 +557,6 @@ export function ReceiptPrint({
         </div>
         </ScrollArea>
     </ActionModal>
-
-
 
     {/* Pemilih metode cetak — muncul saat tombol Cetak ditekan. */}
     <ActionModal

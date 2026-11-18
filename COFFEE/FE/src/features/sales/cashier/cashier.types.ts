@@ -14,6 +14,17 @@ export const ORDER_TYPE_LABEL: Record<OrderType, string> = {
   dine_in: 'Makan di tempat',
 }
 
+// Label metode bayar (keputusan 135: kode `kredit` ditampilkan "Hutang" di semua tempat). Satu sumber untuk kasir,
+// struk, riwayat transaksi, laporan, dan pengeluaran.
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  cash: 'Tunai',
+  transfer: 'Transfer',
+  qris: 'QRIS',
+  card: 'Kartu',
+  kredit: 'Hutang',
+  balance: 'Saldo',
+}
+
 export interface CatalogVariant {
   id: number
   size_id: number | null

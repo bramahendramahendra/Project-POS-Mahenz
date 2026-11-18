@@ -23,7 +23,7 @@ INSERT IGNORE INTO payment_methods (code, label, is_active, sort_order) VALUES
     ('transfer', 'Transfer Bank', 1, 2),
     ('card',     'Kartu',         1, 3),
     ('qris',     'QRIS',          1, 4),
-    ('kredit',   'Kredit',        1, 5);
+    ('kredit',   'Hutang',        1, 5);
 
 -- -------------------------------------------------------------
 -- Roles (3 role sistem seperti Toko + "menunggu akses" untuk profil SSO baru)

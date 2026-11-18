@@ -14,7 +14,7 @@ import { createPaymentSchema, type PaymentFormValues } from '../cashier.schema'
 import { useCheckoutMutation, useCustomerCreditQuery } from '../cashier.api'
 import { useCashierStore } from '../cashier.store'
 import type { CartItem, CartSummary, CheckoutResponse, Discount, PaymentMethod, PaymentPayload, Tax } from '../cashier.types'
-import { ORDER_TYPE_LABEL } from '../cashier.types'
+import { ORDER_TYPE_LABEL, PAYMENT_METHOD_LABEL } from '../cashier.types'
 import { calcChange } from '../cashier.utils'
 import { usePayBillMutation } from '../openBill.api'
 import { useActiveBill } from '../useActiveBill'
@@ -27,11 +27,11 @@ interface PaymentModalProps {
 }
 
 const PAYMENT_METHODS: { key: PaymentFormValues['payment_method']; label: string }[] = [
-  { key: 'cash', label: 'Tunai' },
-  { key: 'transfer', label: 'Transfer' },
-  { key: 'qris', label: 'QRIS' },
-  { key: 'card', label: 'Kartu' },
-  { key: 'kredit', label: 'Hutang' },
+  { key: 'cash', label: PAYMENT_METHOD_LABEL.cash },
+  { key: 'transfer', label: PAYMENT_METHOD_LABEL.transfer },
+  { key: 'qris', label: PAYMENT_METHOD_LABEL.qris },
+  { key: 'card', label: PAYMENT_METHOD_LABEL.card },
+  { key: 'kredit', label: PAYMENT_METHOD_LABEL.kredit },
 ]
 
 function buildRoundedOptions(grandTotal: number): number[] {

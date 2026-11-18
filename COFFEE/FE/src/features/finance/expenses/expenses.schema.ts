@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
+import { PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
+
 export const EXPENSE_PAYMENT_METHODS = [
-  { value: 'cash', label: 'Tunai' },
-  { value: 'transfer', label: 'Transfer' },
-  { value: 'card', label: 'Kartu' },
-  { value: 'qris', label: 'QRIS' },
-  { value: 'kredit', label: 'Kredit' },
+  { value: 'cash', label: PAYMENT_METHOD_LABEL.cash },
+  { value: 'transfer', label: PAYMENT_METHOD_LABEL.transfer },
+  { value: 'card', label: PAYMENT_METHOD_LABEL.card },
+  { value: 'qris', label: PAYMENT_METHOD_LABEL.qris },
+  { value: 'kredit', label: PAYMENT_METHOD_LABEL.kredit },
 ] as const
 
 export const EXPENSE_CATEGORIES = [

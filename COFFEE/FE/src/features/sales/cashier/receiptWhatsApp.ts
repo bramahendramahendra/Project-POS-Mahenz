@@ -6,17 +6,8 @@
 import { formatRupiah } from '@/shared/utils'
 
 import type { ReceiptData } from './blePrinter'
-import type { PaymentMethod } from './cashier.types'
+import { PAYMENT_METHOD_LABEL } from './cashier.types'
 import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Hutang',
-  balance: 'Saldo',
-}
 
 /** Susun teks ringkasan struk (polos) untuk dikirim via WhatsApp. */
 export function buildReceiptText(data: ReceiptData): string {
@@ -33,7 +24,7 @@ export function buildReceiptText(data: ReceiptData): string {
   if (data.customerName) lines.push(`Plg   : ${data.customerName}`)
   for (const [label, value] of orderInfoRows(data.checkoutData)) lines.push(`${label.padEnd(6)}: ${value}`)
   if (data.unpaid) lines.push('*TAGIHAN - BELUM DIBAYAR*')
-  else lines.push(`Bayar : ${PAYMENT_LABELS[data.paymentMethod]}`)
+  else lines.push(`Bayar : ${PAYMENT_METHOD_LABEL[data.paymentMethod]}`)
   lines.push('--------------------------------')
 
   for (const item of data.cart) {

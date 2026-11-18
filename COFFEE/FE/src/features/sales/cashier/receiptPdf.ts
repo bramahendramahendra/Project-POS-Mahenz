@@ -16,17 +16,8 @@ import { jsPDF } from 'jspdf'
 import { formatRupiah } from '@/shared/utils'
 
 import type { ReceiptData } from './blePrinter'
-import type { PaymentMethod } from './cashier.types'
+import { PAYMENT_METHOD_LABEL } from './cashier.types'
 import { cartItemDetails, cartItemName, cartItemQtyLine, orderInfoRows } from './cashier.utils'
-
-const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Hutang',
-  balance: 'Saldo',
-}
 
 // Dimensi dalam milimeter.
 const PAGE_WIDTH: Record<'58mm' | '80mm', number> = { '58mm': 58, '80mm': 80 }
@@ -65,7 +56,7 @@ export function buildReceiptPdf(data: ReceiptData): jsPDF {
   if (data.customerName) pushRow('Plg', data.customerName)
   for (const [label, value] of orderInfoRows(data.checkoutData)) pushRow(label, value)
   if (data.unpaid) pushCenter('TAGIHAN - BELUM DIBAYAR', { bold: true })
-  else pushRow('Bayar', PAYMENT_LABELS[data.paymentMethod])
+  else pushRow('Bayar', PAYMENT_METHOD_LABEL[data.paymentMethod])
   pushSep()
 
   for (const item of data.cart) {

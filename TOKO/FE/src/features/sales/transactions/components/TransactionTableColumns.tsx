@@ -7,7 +7,9 @@ import { formatRupiah } from '@/shared/utils'
 import type { ColumnDef } from '@/shared/components/DataTable/DataTable.types'
 
 import type { Transaction } from '../transactions.types'
-import { PAYMENT_LABELS, formatDateTimeShort } from '../transactions.utils'
+import { PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
+
+import { formatDateTimeShort } from '../transactions.utils'
 
 export interface TransactionColumnHandlers {
   onDetail: (transaction: Transaction) => void
@@ -66,7 +68,7 @@ export function buildTransactionColumns({ onDetail, onVoid }: TransactionColumnH
       sortable: true,
       cell: (row) => (
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">
-          {PAYMENT_LABELS[row.payment_method]}
+          {PAYMENT_METHOD_LABEL[row.payment_method]}
         </span>
       ),
     },

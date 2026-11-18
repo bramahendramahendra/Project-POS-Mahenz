@@ -10,7 +10,9 @@ import type { CartItem, CartSummary, Discount, Tax } from '@/features/sales/cash
 
 import { useTransactionDetailQuery, useVoidTransactionMutation } from '../transactions.api'
 import type { Transaction } from '../transactions.types'
-import { PAYMENT_LABELS, formatDateTimeLong } from '../transactions.utils'
+import { PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
+
+import { formatDateTimeLong } from '../transactions.utils'
 
 interface TransactionDetailModalProps {
   transactionId: number | null
@@ -141,7 +143,7 @@ export function TransactionDetailModal({ transactionId, onClose }: TransactionDe
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Metode Bayar</p>
-                    <p className="font-medium">{PAYMENT_LABELS[transaction.payment_method]}</p>
+                    <p className="font-medium">{PAYMENT_METHOD_LABEL[transaction.payment_method]}</p>
                   </div>
                 </div>
 

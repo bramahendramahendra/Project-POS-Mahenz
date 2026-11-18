@@ -59,7 +59,7 @@ export function buildCustomerColumns(handlers: CustomerColumnHandlers): ColumnDe
     },
     {
       key: 'credit_limit',
-      header: 'Limit Kredit',
+      header: 'Limit Hutang',
       align: 'right',
       sortable: true,
       cell: (row) =>

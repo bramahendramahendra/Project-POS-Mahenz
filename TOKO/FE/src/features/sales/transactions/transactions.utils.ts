@@ -1,14 +1,3 @@
-import type { PaymentMethod } from './transactions.types'
-
-export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Tunai',
-  transfer: 'Transfer',
-  qris: 'QRIS',
-  card: 'Kartu',
-  kredit: 'Kredit',
-  balance: 'Saldo',
-}
-
 export function formatDateTimeShort(dateStr: string): string {
   return new Date(dateStr).toLocaleString('id-ID', {
     day: '2-digit',

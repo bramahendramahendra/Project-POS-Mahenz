@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 
+import { PAYMENT_METHOD_LABEL } from '@/features/sales/cashier/cashier.types'
+
 import type { TransactionListFilter } from '../transactions.types'
 
 interface TransactionFilterProps {
@@ -62,11 +64,11 @@ export function TransactionFilterBar({ filter, onChange, onReset }: TransactionF
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Metode</SelectItem>
-          <SelectItem value="cash">Tunai</SelectItem>
-          <SelectItem value="transfer">Transfer</SelectItem>
-          <SelectItem value="qris">QRIS</SelectItem>
-          <SelectItem value="card">Kartu</SelectItem>
-          <SelectItem value="kredit">Kredit</SelectItem>
+          <SelectItem value="cash">{PAYMENT_METHOD_LABEL.cash}</SelectItem>
+          <SelectItem value="transfer">{PAYMENT_METHOD_LABEL.transfer}</SelectItem>
+          <SelectItem value="qris">{PAYMENT_METHOD_LABEL.qris}</SelectItem>
+          <SelectItem value="card">{PAYMENT_METHOD_LABEL.card}</SelectItem>
+          <SelectItem value="kredit">{PAYMENT_METHOD_LABEL.kredit}</SelectItem>
         </SelectContent>
       </Select>
 
